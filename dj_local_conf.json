@@ -1,0 +1,20 @@
+{
+    "Database.host": "127.0.0.1",
+    "safemode": false,
+    "database.user": null,
+    "Database.password": "simple",
+    "Database.user": "root",
+    "database.host": "localhost",
+    "display.limit": 7,
+    "history": [
+        "No config file found, using default settings."
+    ],
+    "database.password": null,
+    "connection.init_function": null,
+    "loglevel": "INFO",
+    "display.width": 14,
+    "database.port": 3306,
+    "database.reconnect": false,
+    "display.show_tuple_count": true,
+    "connection.charset": ""
+}
