@@ -1,0 +1,162 @@
+import warnings as warn
+try: import cv2
+except: pass
+from moviepy.editor import VideoFileClip, concatenate_videoclips
+from moviepy.video.fx import crop
+import os
+from tempfile import mkdtemp
+from tqdm import tqdm
+from nptdms import TdmsFile
+import numpy as np
+from multiprocessing.dummy import Pool as ThreadPool
+
+
+# TODO stitch videos together after tdms conversion
+# TODO add video cropper to Misc
+
+class VideoConverter:
+    def __init__(self, filepath, output='.mp4', output_folder=None):
+        self.editor = Editor()
+
+        self.filep = filepath
+        self.output = output
+
+        self.folder, self.filename = os.path.split(self.filep)
+        self.filename, self.extention = os.path.splitext(self.filename)
+
+        if output_folder is not None:
+            self.folder = output_folder
+        self.codecs = dict(avi='png', mp4='mpeg4')
+
+        if output in self.filep:
+            warn.warn('The file is already in the desired format {}'.format(output))
+        else:
+            # Check format of original file and call appropriate converter
+            if self.extention in ['.avi', '.mp4']: self.videotovideo_converter()
+            elif self.extention == '.tdms':
+                if not self.output == '.mp4':
+                    raise ValueError('TDMS --> Video conversion only supports .mp4 format for output video')
+                self.tdmstovideo_converter()
+            else:
+                raise ValueError('Unrecognised file format {}'.format(self.extention))
+
+    def videotovideo_converter(self):
+        clip = VideoFileClip(self.filep)
+        fps = clip.fps
+        self.editor.save_clip(clip, self.folder, self.filename, self.output, fps)
+
+    def tdmstovideo_converter(self):
+        def write_clip(limits, vidname, w, h, framerate, data):
+            """ create a .cv2 videowriter and start writing """
+            vidname = '{}__{}.mp4'.format(vidname, limits[0])
+            fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+            videowriter = cv2.VideoWriter(os.path.join(self.folder, vidname), fourcc,
+                                          framerate, (w, h), iscolor)
+
+            for framen in tqdm(range(limits[0], limits[1])):
+                videowriter.write(data[framen])
+            videowriter.release()
+
+        warn.warn('Currently TDMS conversion depends on hardcoded variables !!')
+        tempdir = mkdtemp(dir=self.folder)
+
+        # HARDCODED variables about the video recorded
+        skip_data_points = 4094
+        real_width = 1936
+        width = real_width + 48
+        height = 1216
+        frame_size = width * height
+        real_frame_size = real_width * height
+        f_size = os.path.getsize(self.filep)  # size in bytes
+        tot_frames = int((f_size - skip_data_points) / frame_size)  # num frames
+        fps = 30
+
+        iscolor = False  # is the video RGB or greyscale
+        print('Total number of frames {}'.format(tot_frames))
+
+        # Number of parallel processes for faster writing to video
+        num_processes = 3
+
+        # Open TDMS
+        print('Opening TDMS: ', self.filename + self.extention)
+        bfile = open(self.filep, 'rb')
+        tdms = TdmsFile(bfile, memmap_dir=tempdir)  # open tdms binary file as a memmapped object
+
+        print('Extracting data')
+        tdms = tdms.__dict__['objects']["/'cam0'/'data'"].data.reshape((tot_frames, height, width), order='C')
+        tdms = tdms[:, :, :real_width]  # reshape
+
+        # Write to Video
+        print('Writing to Video - {} parallel processes'.format(num_processes))
+        if num_processes == 1:
+            write_clip([0, tot_frames], self.filename, width, height, fps, tdms)
+        else:
+            # Get frames range for each video writer that will run in parallel
+            steps = np.linspace(0, tot_frames, num_processes + 1).astype(int)
+            step = steps[1]
+            steps2 = np.asarray([x + step for x in steps])
+            limits = [s for s in zip(steps, steps2)][:-1]
+            # start writing
+            pool = ThreadPool(num_processes)
+            _ = pool.map(write_clip, limits)
+
+        # TODO fetch clips names and concatenate them
+
+
+class Editor:
+    @staticmethod
+    def concatenate_clips(paths_tuple):
+        clips = [VideoFileClip(p) for p in paths_tuple]
+        concatenated = concatenate_videoclips(clips)
+        return concatenated
+
+    @staticmethod
+    def save_clip(clip, folder, name, format, fps):
+        codecs = dict(avi='png', mp4='mpeg4')
+        outputname = os.path.join(folder, name + format)
+        codec = codecs[format.split('.')[0]]
+
+        print("""
+            Writing {} to:
+            {}
+            """.format(name + format, outputname))
+        clip.write_videofile(outputname, codec=codec, fps=fps)
+
+    @staticmethod
+    def split_clip(clip, number_of_clips=4, ispath=False):
+            if ispath: clip = VideoFileClip(clip)
+
+            duration = clip.duration
+            step = duration / number_of_clips
+            subclips = []
+            for n in range(number_of_clips):
+                subclips.append(clip.subclip(step*n, step*(n+1)))
+
+            return subclips
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

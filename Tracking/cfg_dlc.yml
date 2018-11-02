@@ -1,0 +1,4 @@
+DLC folder: 'C:\Users\Federico\Documents\GitHub\DeepLabCut'
+dlc_network_posecfg: 'C:\Users\Federico\Documents\GitHub\DeepLabCut\pose-tensorflow\models\maze06Sept-trainset95shuffle1\test\pose_cfg.yaml'
+dlc_network_snapshot: '-1'
+

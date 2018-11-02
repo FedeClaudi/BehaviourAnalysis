@@ -1,7 +1,7 @@
 {
     "Database.host": "127.0.0.1",
     "safemode": false,
-    "database.user": null,
+    "database.user": "root",
     "Database.password": "simple",
     "Database.user": "root",
     "database.host": "localhost",
@@ -14,7 +14,7 @@
     "loglevel": "INFO",
     "display.width": 14,
     "database.port": 3306,
-    "database.reconnect": false,
+    "database.reconnect": true,
     "display.show_tuple_count": true,
     "connection.charset": ""
 }
