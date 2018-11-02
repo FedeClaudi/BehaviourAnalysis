@@ -9,7 +9,7 @@ from tqdm import tqdm
 from nptdms import TdmsFile
 import numpy as np
 from multiprocessing.dummy import Pool as ThreadPool
-
+from functools import partial
 
 # TODO stitch videos together after tdms conversion
 # TODO add video cropper to Misc
@@ -46,8 +46,9 @@ class VideoConverter:
         self.editor.save_clip(clip, self.folder, self.filename, self.output, fps)
 
     def tdmstovideo_converter(self):
-        def write_clip(limits, vidname, w, h, framerate, data):
+        def write_clip(arguments, limits=None):
             """ create a .cv2 videowriter and start writing """
+            vidname, w, h, framerate, data = arguments
             vidname = '{}__{}.mp4'.format(vidname, limits[0])
             fourcc = cv2.VideoWriter_fourcc(*'MP4V')
             videowriter = cv2.VideoWriter(os.path.join(self.folder, vidname), fourcc,
@@ -57,7 +58,7 @@ class VideoConverter:
                 videowriter.write(data[framen])
             videowriter.release()
 
-        warn.warn('Currently TDMS conversion depends on hardcoded variables !!')
+        warn.warn('\nCurrently TDMS conversion depends on hardcoded variables !!')
         tempdir = mkdtemp(dir=self.folder)
 
         # HARDCODED variables about the video recorded
@@ -80,6 +81,7 @@ class VideoConverter:
         # Open TDMS
         print('Opening TDMS: ', self.filename + self.extention)
         bfile = open(self.filep, 'rb')
+        print('  ...binary opened, opening mmemmapped')
         tdms = TdmsFile(bfile, memmap_dir=tempdir)  # open tdms binary file as a memmapped object
 
         print('Extracting data')
@@ -88,17 +90,23 @@ class VideoConverter:
 
         # Write to Video
         print('Writing to Video - {} parallel processes'.format(num_processes))
+        params = (self.filename, real_width, height, fps, tdms)
+
         if num_processes == 1:
-            write_clip([0, tot_frames], self.filename, width, height, fps, tdms)
+            write_clip(params, [0, tot_frames])
         else:
             # Get frames range for each video writer that will run in parallel
             steps = np.linspace(0, tot_frames, num_processes + 1).astype(int)
             step = steps[1]
             steps2 = np.asarray([x + step for x in steps])
             limits = [s for s in zip(steps, steps2)][:-1]
+            partial_writer = partial(write_clip, params)
+            # vidname, w, h, framerate, data, limits
             # start writing
             pool = ThreadPool(num_processes)
-            _ = pool.map(write_clip, limits)
+            _ = pool.map(partial_writer, limits)
+
+        os.rmdir(tempdir)
 
         # TODO fetch clips names and concatenate them
 

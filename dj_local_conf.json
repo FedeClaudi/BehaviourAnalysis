@@ -1,6 +1,6 @@
 {
     "Database.host": "127.0.0.1",
-    "safemode": false,
+    "safemode": true,
     "database.user": "root",
     "Database.password": "simple",
     "Database.user": "root",
@@ -9,7 +9,7 @@
     "history": [
         "No config file found, using default settings."
     ],
-    "database.password": null,
+    "database.password": "simple",
     "connection.init_function": null,
     "loglevel": "INFO",
     "display.width": 14,

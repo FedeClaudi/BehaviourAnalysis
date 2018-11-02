@@ -203,13 +203,13 @@ class DLCtracking:
         # POSE ESTIMATION <---
         if self.batch_size <2:
             PredicteData = np.zeros((nframes_approx, 3 * len(self.cfg['all_joints_names'])))
-            for frame_n, frame in enumerate(clip.iter_frames()):
-                if frame_n % 100 == 0:
-                    print('Processed {} frames of {} total'.format(frame_n, nframes_approx))
+            for nframes, frame in enumerate(clip.iter_frames()):
+                if nframes % 100 == 0:
+                    print('Processed {} frames of {} total'.format(nframes, nframes_approx))
 
                 image = img_as_ubyte(frame)
                 pose = self.getpose(self.sess, self.inputs, image, self.cfg, self.outputs, outall=False)
-                PredicteData[frame_n, :] = pose.flatten()
+                PredicteData[nframes, :] = pose.flatten()
         else:
             PredicteData = np.zeros((nframes_approx, 3 * len(self.cfg['all_joints_names'])))
             batch_ind = 0  # keeps track of which image within a batch should be written to
@@ -248,9 +248,12 @@ class DLCtracking:
             [self.cfg['all_joints_names'], ['x', 'y', 'likelihood']],
             names=['bodyparts', 'coords'])
 
-        DataMachine = pd.DataFrame(PredicteData[:frame_n, :], columns=pdindex,
-                                   index=range(frame_n))  # slice pose data to have same # as # of frames.
-        DataMachine.to_hdf(dataname, 'df_with_missing', format='table', mode='w')
+        try:
+            DataMachine = pd.DataFrame(PredicteData[:nframes, :], columns=pdindex,
+                                       index=range(nframes))  # slice pose data to have same # as # of frames.
+            DataMachine.to_hdf(dataname, 'df_with_missing', format='table', mode='w')
+        except:
+            a = 1
 
         print("Processing took", round(stop-start,2), "seconds.")
 
@@ -260,6 +263,7 @@ if __name__ == "__main__":
     processedfolder = 'D:\\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\\Rotation_vte\\processed'
 
     DLCmanager(datafolder, processedfolder)
+
 
 
 
