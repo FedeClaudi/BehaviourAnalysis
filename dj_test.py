@@ -1,7 +1,11 @@
 import datajoint as dj
 
+dj.config['database.host'] = 'tutorial-db.datajoint.io'
+dj.config['database.user'] = 'fede12321'
+dj.config['databas.password'] = 'BT1dbFx2Zb'
 
-schema = dj.schema('tutorial', locals())
+dj.conn()
+schema = dj.schema('fede12321_tutorial', locals())
 
 
 @schema
@@ -14,7 +18,8 @@ class Mouse(dj.Manual):
       """
 
 m = Mouse()
-print(m)
+while True:
+     m
 
 a =1
 

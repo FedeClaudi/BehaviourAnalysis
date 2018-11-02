@@ -9,7 +9,7 @@
     "history": [
         "No config file found, using default settings."
     ],
-    "database.password": "simple",
+    "database.password": "fede",
     "connection.init_function": null,
     "loglevel": "INFO",
     "display.width": 14,

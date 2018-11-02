@@ -16,37 +16,38 @@ class Mouse(dj.Manual):
       single_housed: enum('Y', 'N')    # single housed or group caged
       """
 
-# @schema
-# class Session(dj.Manual):
-#      definition = """
-#      # experiment session
-#      session_uid: varchar(128)    # unique session identifier
-#      ---
-#       -> Mouse
-#      session_date: varchar(128)            # session date
-#      experiment: varchar(128)    # name of the experimenter
-#
-#      software: enum('M', 'B')         # mantis or old behaviour software
-#      experimenter: varchar(128)    # name of the experimenter
-#      """
-#
-# @schema
-# class BehaviourRecording(dj.Manual):
-#      definition = """
-#      # Individual recordings within a session
-#      recording_number: int               # recording number within a session
-#      ---
-#      metadata_path : varchar(128)       # name of the experimenter
-#      video_path : varchar(128)       # name of the experimenter
-#
-#      tracked : enum('Y', 'N')   # asdas
-#      dlc_data: varchar(128)      # path to .h5 produced as a result of dlc tracking
-#      """
-#
-#
-#
-#
-#
+@schema
+class Session(dj.Manual):
+     definition = """
+     # experiment session
+     session_uid: varchar(128)    # unique session identifier
+     ---
+      -> Mouse
+     session_date: varchar(128)            # session date
+     experiment: varchar(128)    # name of the experimenter
+
+     software: enum('M', 'B')         # mantis or old behaviour software
+     experimenter: varchar(128)    # name of the experimenter
+     """
+
+@schema
+class BehaviourRecording(dj.Manual):
+     definition = """
+     # Individual recordings within a session
+     -> Session
+     recording_number: int               # recording number within a session
+     ---
+     metadata_path : varchar(128)       # name of the experimenter
+     video_path : varchar(128)       # name of the experimenter
+
+     tracked : enum('Y', 'N')   # asdas
+     dlc_data: varchar(128)      # path to .h5 produced as a result of dlc tracking
+     """
+
+
+
+
+
 
 
 

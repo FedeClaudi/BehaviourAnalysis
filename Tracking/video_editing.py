@@ -10,6 +10,7 @@ from nptdms import TdmsFile
 import numpy as np
 from multiprocessing.dummy import Pool as ThreadPool
 from functools import partial
+import shutil
 
 # TODO stitch videos together after tdms conversion
 # TODO add video cropper to Misc
@@ -59,7 +60,7 @@ class VideoConverter:
             videowriter.release()
 
         warn.warn('\nCurrently TDMS conversion depends on hardcoded variables !!')
-        tempdir = mkdtemp(dir=self.folder)
+        tempdir = os.path.join(self.folder, 'Temp')
 
         # HARDCODED variables about the video recorded
         skip_data_points = 4094
@@ -70,7 +71,7 @@ class VideoConverter:
         real_frame_size = real_width * height
         f_size = os.path.getsize(self.filep)  # size in bytes
         tot_frames = int((f_size - skip_data_points) / frame_size)  # num frames
-        fps = 30
+        fps = 100
 
         iscolor = False  # is the video RGB or greyscale
         print('Total number of frames {}'.format(tot_frames))
@@ -106,7 +107,7 @@ class VideoConverter:
             pool = ThreadPool(num_processes)
             _ = pool.map(partial_writer, limits)
 
-        os.rmdir(tempdir)
+        # shutil.rmtree(tempdir)
 
         # TODO fetch clips names and concatenate them
 
