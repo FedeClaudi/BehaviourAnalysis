@@ -41,6 +41,8 @@ class DLCmanager:
         self.raw = rawfolder
         self.proc = processedfolder
 
+        configtf = True
+
         # Select files to process
         log = open(os.path.join(self.raw, "Log.txt"), "a+")
 
@@ -55,12 +57,13 @@ class DLCmanager:
             self.to_process = given_list
 
         for video in self.to_process:
-            DLCtracking(os.path.join(self.raw, video), self.proc)
+            DLCtracking(os.path.join(self.raw, video), self.proc, runconfig=True)
+            configtf = False
             log.write(video)
 
 
 class DLCtracking:
-    def __init__(self, file, destfld=None, resize=False, resize_fact=2.5, batch_size=4):
+    def __init__(self, file, destfld=None, resize=False, resize_fact=2.5, batch_size=4, runconfig=True):
         self.batch_size = batch_size
 
         self.filep = file
@@ -77,7 +80,7 @@ class DLCtracking:
         analysed = self.check_if_analysed()
 
         if not analysed:
-            self.configure()
+            if runconfig: self.configure()
 
             if self.extention == '.tdms':  # Convert to mp4
                 convert = VideoConverter(self.filep, output_folder=self.destfld)
@@ -183,6 +186,7 @@ class DLCtracking:
 
         try: clip = VideoFileClip(os.path.join(self.folder, self.filename+self.extention)).resize(factor)
         except:
+            return
             raise ValueError('Could not open clip at: {}'.format(os.path.join(self.folder, self.filename+self.extention)))
 
         # prepare data array
