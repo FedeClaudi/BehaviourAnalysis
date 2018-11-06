@@ -162,7 +162,7 @@ class Editor:
         videowriter = cv2.VideoWriter(videopath, fourcc, framerate, (w, h), iscolor)
 
         for framen in tqdm(range(start, stop)):
-            videowriter.write(frames_data[framen])
+            videowriter.write(frames_data[:, :, framen])
         videowriter.release()
 
 

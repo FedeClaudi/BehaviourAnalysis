@@ -1,7 +1,11 @@
 import datajoint as dj
 
+dj.config['Database.host'] = '127.0.0.1'
+dj.config['Database.user'] = 'root'
+dj.config['Database.password'] = 'simple'
 
 schema = dj.schema('Database', locals())
+
 
 @schema
 class Mouse(dj.Manual):
@@ -13,7 +17,7 @@ class Mouse(dj.Manual):
       dob: varchar(128)                             # mouse date of birth 
       sex: enum('M', 'F', 'U')                      # sex of mouse - Male, Female, or Unknown/Unclassified
       single_housed: enum('Y', 'N')                 # single housed or group caged
-      enriched cage: enum('Y', 'N')                 # presence of wheel or other stuff in the cage
+      enriched_cage: enum('Y', 'N')                 # presence of wheel or other stuff in the cage
       """
 
 @schema
@@ -35,9 +39,8 @@ class Manipulation(dj.Manual):
     type: varchar(128)                              # DREADDs, opto...
     virus: varchar(128)                             # virus being used, if any
     compund: varchar(128)                           # name of drug used, if any
-    target: composite                               # target area, population, projection.. 
-    -> Surgery
     """
+    #    target: "composite   "                            # target area, population, projection..
 
 @schema
 class Surgery(dj.Manual):
@@ -54,26 +57,29 @@ class NeuronalRecording(dj.Manual):
     definition = """
     name: varchar(128)                              # name identifying recording
     ---
-    -> BehaviourRecording
     type: varchar(128)                              # e.g. probe, miniscope
-    tgt area: varchar(128)                          # area being targeted
-    tgt pop: varchar(128)                           # neuronal population being targeted
-    data files paths: composite                     # dictionary with paths to relevant files
-    other: composite                                # other potentially useful info can be stored as a dict here
+    tgt_area: varchar(128)                          # area being targeted
+    tgt_pop: varchar(128)                           # neuronal population being targeted
     """
+    #     -> BehaviourRecording
+
+    #    data_files paths: composite                     # dictionary with paths to relevant files
+   #  other: composite                                # other potentially useful info can be stored as a dict here
 
 @schema
 class Session(dj.Manual):
     definition = """
     # One experiment on one day with one mouse
-    id: varchare(128)                               # unique ID: YYYYMMDD_MOUSEID
-    ---
-    date: date                                      # day of the experiment
-    software: enum('Mantis', 'Behaviour')           # software used for the experiment
-    -> Mouse
-    -> Experiment
-    -> Manipulation
+    id: varchare(128)                               # YYYYMMDD_MOUSEID
     """
+"""
+---
+date: date                                      # day of the experiment
+software: enum('Mantis', 'Behaviour')           # software used for the experiment
+-> Mouse
+-> Experiment
+-> Manipulation
+"""
 
 @schema
 class BehaviourRecording(dj.Manual):
@@ -83,11 +89,12 @@ class BehaviourRecording(dj.Manual):
     ---
     number: int                                     # recording number
     metadata path: varchar(512)                     # path to metadata .tmds
-    data files paths: composite                     # dictionary with path to metadata, video and tracking files
     video format: enum('mp4', 'avi', 'tmds')        # file format of recorded video
     -> Session
     
     """
+    #     data files paths: composite                     # dictionary with path to metadata, video and tracking files
+
 
 @schema
 class BehaviourTrial(dj.Manual):
@@ -96,10 +103,11 @@ class BehaviourTrial(dj.Manual):
     id: varchar(129)                                # unique ID: YYYYMMDD_MOUSEID_RECNUM_TRIALNUM
     ---
     -> Recording
-    Stimlus type: varchar(128)                      # loom, ultrasound
-    Stimulus metadata: composite                    # python dictionary with stim metadata: parameters...
-    Stimulus timestamp: int                         # either timestamp in ms or in frames from start of Recording
+    Stimlus_type: varchar(128)                      # loom, ultrasound
+    Stimulus_timestamp: int                         # either timestamp in ms or in frames from start of Recording
     """
+    #     Stimulus_metadata: composite                    # python dictionary with stim metadata: parameters...
+
 
 
 
