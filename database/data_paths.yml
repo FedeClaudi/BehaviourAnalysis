@@ -1,0 +1,11 @@
+mice_records: 'C:\Users\Federico\Downloads\FC_animals_records.xlsx',
+exp_records: 'D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\analysis\datalog.xls',
+
+raw_data_folder: 'D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\raw_data'
+raw_metadata_folder: 'metadata'   # appended to raw data folder
+raw_video_folder: 'video'   # appended to raw data folder
+raw_to_sort: 'to_sort'   # appended to raw data folder
+
+trials_clips: 'trials_clips'   # appended to raw data folder
+
+tracked_data_folder: 'D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\processed'

@@ -16,7 +16,7 @@ from easydict import EasyDict as edict
 import time
 from tqdm import tqdm
 
-from video_editing import VideoConverter
+from utils.video_editing import VideoConverter
 
 def load_yaml(fpath):
     """ load settings from a yaml file and return them as a dictionary """
