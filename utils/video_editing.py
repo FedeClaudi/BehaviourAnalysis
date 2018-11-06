@@ -157,12 +157,14 @@ class Editor:
         if h is None: h = frames_data.shape[1]
         if framerate is None: raise ValueError('No frame rate parameter was given as an input')
 
-
         fourcc = cv2.VideoWriter_fourcc(*'MP4V')
         videowriter = cv2.VideoWriter(videopath, fourcc, framerate, (w, h), iscolor)
 
         for framen in tqdm(range(start, stop)):
-            videowriter.write(frames_data[:, :, framen])
+            frame = np.array(frames_data[:, :, framen], dtype=np.uint8).T
+            cv2.imshow('frame', frame)
+            cv2.waitKey(1)
+            videowriter.write(frame)
         videowriter.release()
 
 
