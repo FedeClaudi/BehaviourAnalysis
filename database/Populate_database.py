@@ -147,8 +147,13 @@ class PopulateDatabase:
                 raise ValueError('Feature not implemented yet: get trial clips for custom folder')
 
         editor = Editor()
-
         metadata_files = os.listdir(metadata_fld)
+
+        # parameters to draw on frame
+        border_size = 20
+        color_on = [255, 255, 255]
+        color_off = [255, 255, 255]
+        curr_color = color_off
 
         for v in os.listdir(video_fld):
             if 'tdms' in v:
@@ -185,6 +190,27 @@ class PopulateDatabase:
                                     raise ValueError('something went wrong while trying to read the next frame')
 
                                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+                                if frame_counter < window[0]:
+                                    sign = ''
+                                    curr_color = color_off
+                                else:
+                                    sign = '+'
+                                    if frame_counter % 10 == 0:
+                                        if curr_color == color_off: curr_color = color_on
+                                        else: curr_color = color_off
+
+                                # border and colored rectangle around frame
+                                bordered_gray = cv2.copyMakeBorder(frame, border_size, border_size, border_size, border_size,
+                                                           cv2.BORDER_CONSTANT, value=curr_color)
+
+                                # report time relative to stimulus onset
+                                frame_time = (frame_counter - window[0]) / fps
+                                frame_time = str(round(.2 * round(frame_time / .2), 1)) + '0' * (abs(frame_time) < 10)
+                                cv2.putText(bordered_gray, sign + str(frame_time) + 's', (width - 110, height + 10), 0, 1,
+                                            (180, 180, 180), thickness=2)
+
+
                                 temp_data[:,:, frame_counter] = gray.T
                                 frame_counter += 1
                             video_path = os.path.join(self.trials_clips, name+'{}-{}'.format(stim_type, stim))
