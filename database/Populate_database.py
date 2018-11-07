@@ -1,4 +1,4 @@
-# from Tables_definitions import *
+from Tables_definitions import *
 
 import datajoint as dj
 import os
@@ -12,13 +12,6 @@ from tqdm import tqdm
 
 
 from utils.video_editing import *
-
-
-Mouse = 'mouse'
-Experiment = Mouse
-Surgery = Mouse
-Manipulation = Mouse
-Session, BehaviourRecording, NeuronalRecording, BehaviourTrial = Mouse, Mouse, Mouse, Mouse
 
 class PopulateDatabase:
     def __init__(self):
@@ -54,45 +47,59 @@ class PopulateDatabase:
         self.trials_clips = os.path.join(self.raw_data_folder, paths['trials_clips'])
         self.tracked_data_folder = paths['tracked_data_folder']
 
-    @staticmethod
-    def mouse(filepath):
-        print(" Update MOUSE table from excel file.")
-        print(""" 
-        Table definition:
-            {}""".format(Mouse.definition))
+        self.mice = Mice()
+        self.sessions = Sessions()
+        self.recordings = Recordings()
+        self.trials = Trials()
+        self.all_tables = dict(mice=self.mice,sessions= self.sessions, recordings=self.recordings, trials=self.trials)
 
-    @staticmethod
-    def experiment(filepath):
-        print(" Update EXPERIMENT table from excel file.")
-        print(""" 
-        Table definition:
-            {}""".format(Experiment.definition))
 
-    @staticmethod
-    def surgery(filepath):
-        print(" Update SURGERY table from excel file.")
-        print(""" 
-        Table definition:
-            {}""".format(Surgery.definition))
+    def display_tables_headings(self):
+        for name, table in self.all_tables.items():
+            print('\n\nTable definition for {}:'.format(name))
+            print(table)
 
-    @staticmethod
-    def manipulation(filepath):
-        print(" Update MANIPULATION table from excel file.")
-        print(""" 
-        Table definition:
-            {}""".format(Manipulation.definition))
 
-    @staticmethod
-    def session(filepath):
-        print(" Update SESSION table from excel file.")
-        print(""" 
-        Table definition:
-            {}
-        With subclasses:
-            {}
-            {}
-            {}""".format(Session.definition, NeuronalRecording.definition, BehaviourRecording.definition,
-                         BehaviourTrial.definition))
+
+    # @staticmethod
+    # def mouse(filepath):
+    #     print(" Update MOUSE table from excel file.")
+    #     print("""
+    #     Table definition:
+    #         {}""".format(Mouse.definition))
+    #
+    # @staticmethod
+    # def experiment(filepath):
+    #     print(" Update EXPERIMENT table from excel file.")
+    #     print("""
+    #     Table definition:
+    #         {}""".format(Experiment.definition))
+    #
+    # @staticmethod
+    # def surgery(filepath):
+    #     print(" Update SURGERY table from excel file.")
+    #     print("""
+    #     Table definition:
+    #         {}""".format(Surgery.definition))
+    #
+    # @staticmethod
+    # def manipulation(filepath):
+    #     print(" Update MANIPULATION table from excel file.")
+    #     print("""
+    #     Table definition:
+    #         {}""".format(Manipulation.definition))
+    #
+    # @staticmethod
+    # def session(filepath):
+    #     print(" Update SESSION table from excel file.")
+    #     print("""
+    #     Table definition:
+    #         {}
+    #     With subclasses:
+    #         {}
+    #         {}
+    #         {}""".format(Session.definition, NeuronalRecording.definition, BehaviourRecording.definition,
+    #                      BehaviourTrial.definition))
 
     @staticmethod
     def load_stimuli_from_tdms(tdmspath, software='behaviour'):
@@ -260,7 +267,7 @@ class PopulateDatabase:
 
 if __name__ == '__main__':
     p = PopulateDatabase()
-    p.create_trials_clips()
-
+    # p.create_trials_clips()
+    p.display_tables_headings()
 
 

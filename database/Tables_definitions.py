@@ -41,12 +41,12 @@ class Recordings(dj.Imported):
     # Within one session one may perform several recordings. Each recording has its own video and metadata files
     recording_uid: varchar(128)   # uniquely identifying name for each recording YYMMDD_MOUSEID_RECNUM
     ---
-    -> Sessions()
+    -> Sessions
     rec_num: smallint       # recording number within that session
-    video_file_path: varchar(532) # path to the file storing the video data
-    video_file_format: enum('tmds', 'mp4', 'avi)  # format in which the video was recorded
-    converted_video_file_path: varchar(532)  # if video was recorded in.tdms and converted to video,where is the video stored
-    metadata_file_path: varchar(532) # path to the .tdms file storing the metadata
+    video_file_path: varchar(128) # path to the file storing the video data
+    video_format: enum('tdms', 'avi', 'mp4')  # format in which the video was recorded
+    converted_video_file_path: varchar(128)  # if video was recorded in.tdms and converted to video,where is the video stored
+    metadata_file_path: varchar(128) # path to the .tdms file storing the metadata
     """
 
 @schema
@@ -55,7 +55,7 @@ class PoseData(dj.Imported):
     # pose data extracted from dlc processing the video of a whole recording
     -> Recordings 
     ---
-    data longblob  # pose loaded from an .h5 data file
+    data: longblob  # pose loaded from an .h5 data file
     """
 
 @schema
