@@ -8,6 +8,14 @@ schema = dj.schema('Database', locals())
 
 
 @schema
+class Test(dj.Manual):
+    definition = """
+    id: varchar(128)    # name
+    data: composite     # data
+    
+    """
+
+@schema
 class Mouse(dj.Manual):
       definition = """
       # Mouse table lists all the mice used and the relevant attributes
