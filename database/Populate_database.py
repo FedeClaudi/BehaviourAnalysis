@@ -53,53 +53,82 @@ class PopulateDatabase:
         self.trials = Trials()
         self.all_tables = dict(mice=self.mice,sessions= self.sessions, recordings=self.recordings, trials=self.trials)
 
-
     def display_tables_headings(self):
         for name, table in self.all_tables.items():
-            print('\n\nTable definition for {}:'.format(name))
-            print(table)
+            print('\n\nTable definition for {}:\n{}'.format(name, table))
 
+    def reset_database(self):
+        print('ATTENTION: this might result in loss of data!!!')
+        q = input('Continue ? [Y/N]')
+        if not q.lower() == 'y':
+            return
+        else:
+            [table.drop() for table in self.all_tables.values()]
 
+    def update_mice_table(self):
+        """ Populates the Mice() table from the database"""
+        """
+          mouse_id: varchar(128)                        # unique mouse id
+          ---
+          strain:   varchar(128)                        # genetic strain
+          dob: varchar(128)                             # mouse date of birth 
+          sex: enum('M', 'F', 'U')                      # sex of mouse - Male, Female, or Unknown/Unclassified
+          single_housed: enum('Y', 'N')                 # single housed or group caged
+          enriched_cage: enum('Y', 'N')                 # presence of wheel or other stuff in the cage
+        """
 
-    # @staticmethod
-    # def mouse(filepath):
-    #     print(" Update MOUSE table from excel file.")
-    #     print("""
-    #     Table definition:
-    #         {}""".format(Mouse.definition))
-    #
-    # @staticmethod
-    # def experiment(filepath):
-    #     print(" Update EXPERIMENT table from excel file.")
-    #     print("""
-    #     Table definition:
-    #         {}""".format(Experiment.definition))
-    #
-    # @staticmethod
-    # def surgery(filepath):
-    #     print(" Update SURGERY table from excel file.")
-    #     print("""
-    #     Table definition:
-    #         {}""".format(Surgery.definition))
-    #
-    # @staticmethod
-    # def manipulation(filepath):
-    #     print(" Update MANIPULATION table from excel file.")
-    #     print("""
-    #     Table definition:
-    #         {}""".format(Manipulation.definition))
-    #
-    # @staticmethod
-    # def session(filepath):
-    #     print(" Update SESSION table from excel file.")
-    #     print("""
-    #     Table definition:
-    #         {}
-    #     With subclasses:
-    #         {}
-    #         {}
-    #         {}""".format(Session.definition, NeuronalRecording.definition, BehaviourRecording.definition,
-    #                      BehaviourTrial.definition))
+        table = self.mice
+        loaded_excel = pyexcel.get_records(file_name=self.mice_records)
+
+        for m in loaded_excel:
+            if not m['']: continue
+            inputdata = (m[''], m['Strain'], m['DOB'].strip(), 'M', 'Y', 'Y')
+            try:
+                mice.insert1(inputdata)
+            except:
+                a = 1
+
+    def update_sessions_table(self):
+        """  Populates the sessions table """
+        """# A session is one behavioural experiment performed on one mouse on one day
+            uid: smallint     # unique number that defines each session
+            name: varchar(128)  # unique name that defines each session - YYMMDD_MOUSEID
+            ---
+            -> Mice                # mouse used for the experiment
+            date: date             # date in the YYYY-MM-DD format
+            num_recordings: smallint   # number of recordings performed within that session
+            experiment_name: varchar(128)  # name of the experiment the session is part of 
+            experimenter: varchar(128)      # name of the person performing the experiment
+        """
+
+        table = self.sessions
+        mice = self.mice.fetch(as_dict=True)
+        loaded_excel = pyexcel.get_records(file_name=self.exp_records)
+
+        for session in loaded_excel:
+            mouse_id = session['MouseID']
+            for mouse in mice:
+                idd = mouse['mouse_id']
+                original_idd = mouse['mouse_id']
+                idd = idd.replace('_', '')
+                idd = idd.replace('.', '')
+                if idd.lower() == mouse_id.lower():
+                    break
+
+                session_data = dict(
+                    uid = None,
+                    name=str(session['Sess.ID']),
+                    mouse_id=original_idd,
+                    session_date=session['Date'],
+                    num_recordings = None,
+                    experiment=session['Experiment'],
+                    experimenter='Federico'
+                )
+                try:
+                    sessions.insert1(session_data)
+                except:
+                    pass
+
 
     @staticmethod
     def load_stimuli_from_tdms(tdmspath, software='behaviour'):
