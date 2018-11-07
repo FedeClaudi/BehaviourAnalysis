@@ -13,6 +13,7 @@ from tqdm import tqdm
 
 from utils.video_editing import *
 
+
 class PopulateDatabase:
     def __init__(self):
         """
@@ -65,7 +66,7 @@ class PopulateDatabase:
         else:
             [table.drop() for table in self.all_tables.values()]
 
-    def update_mice_table(self):
+    def populate_mice_table(self):
         """ Populates the Mice() table from the database"""
         """
           mouse_id: varchar(128)                        # unique mouse id
@@ -83,12 +84,15 @@ class PopulateDatabase:
         for m in loaded_excel:
             if not m['']: continue
             inputdata = (m[''], m['Strain'], m['DOB'].strip(), 'M', 'Y', 'Y')
-            try:
-                mice.insert1(inputdata)
-            except:
-                a = 1
+            print('Trying to import mouse: ', m[''])
 
-    def update_sessions_table(self):
+            try:
+                table.insert1(inputdata)
+                print('Mouse: ', m[''], 'imported succesfully')
+            except:
+                raise ValueError('Failed to import mouse: ', m[''])
+
+    def populate_sessions_table(self):
         """  Populates the sessions table """
         """# A session is one behavioural experiment performed on one mouse on one day
             uid: smallint     # unique number that defines each session
@@ -115,19 +119,106 @@ class PopulateDatabase:
                 if idd.lower() == mouse_id.lower():
                     break
 
-                session_data = dict(
-                    uid = None,
-                    name=str(session['Sess.ID']),
-                    mouse_id=original_idd,
-                    session_date=session['Date'],
-                    num_recordings = None,
-                    experiment=session['Experiment'],
-                    experimenter='Federico'
-                )
-                try:
-                    sessions.insert1(session_data)
-                except:
-                    pass
+            session_name = '{}_{}'.format(session['Date'], session['MouseID'])
+            session_date = '20'+str(session['Date'])
+
+            session_data = dict(
+                uid = str(session['Sess.ID']),
+                name=session_name,
+                mouse_id=original_idd,
+                date=session_date,
+                num_recordings = 0,
+                experiment_name=session['Experiment'],
+                experimenter='Federico'
+            )
+            try:
+                table.insert1(session_data)
+            except:
+                raise ValueError('Failed to add session {} to Sessions table'.format(session_name))
+
+    def populated_recordings_table(self):
+        """ Populate the Recordings table """
+        """
+            # Within one session one may perform several recordings. Each recording has its own video and metadata files
+            recording_uid: varchar(128)   # uniquely identifying name for each recording YYMMDD_MOUSEID_RECNUM
+            ---
+            -> Sessions
+            rec_num: smallint       # recording number within that session
+            video_file_path: varchar(128) # path to the file storing the video data
+            video_format: enum('tdms', 'avi', 'mp4')  # format in which the video was recorded
+            converted_video_file_path: varchar(128)  # if video was recorded in.tdms and converted to video,where is the video stored
+            metadata_file_path: varchar(128) # path to the .tdms file storing the metadata
+        """
+        print('Populating Recordings Table')
+        sessions = self.sessions.fetch(as_dict=True)
+        table = self.recordings
+
+        for session in sessions:
+            print('Getting records for session: ', session['name'])
+            # get video and metadata files
+            videos = sorted([f for f in os.listdir(self.raw_video_folder)
+                             if session['name'].lower() in f.lower() and 'test' not in f])
+            metadatas = sorted([f for f in os.listdir(self.raw_metadata_folder)
+                                if session['name'].lower() in f.lower() and 'test' not in f])
+
+            if not videos or not metadatas:
+                if not videos and not metadatas: continue
+                print('couldnt find files for session: ', session['name'])
+            else:
+                if len(videos) != len(metadatas):
+                    raise ValueError('Something went wront while trying to get the files')
+
+                num_recs = len(videos)
+
+                # Loop over the files for each recording and extract info
+                for rec_num, (vid, met) in enumerate(zip(videos, metadatas)):
+                    if vid.split('.')[0].lower() != met.split('.')[0].lower():
+                        raise ValueError('Files dont match!')
+
+                    name = vid.split('.')[0]
+                    try:
+                        recnum = int(name.split('_')[2])
+                    except:
+                        recnum = 1
+
+                    if rec_num+1 != recnum:
+                        raise ValueError('Something went wrong while getting recording number within the session')
+
+                    rec_name = session['name']+'_'+str(recnum)
+                    format = vid.split('.')[-1]
+                    converted = 'nan'
+
+                    # insert recording in table
+                    data_to_input = dict(
+                        recording_uid=rec_name,
+                        uid=session['uid'],
+                        name=session['name'],
+                        rec_num=rec_num,
+                        video_file_path=os.path.join(self.raw_video_folder, vid),
+                        video_format=format,
+                        converted_video_file_path=converted,
+                        metadata_file_path=os.path.join(self.raw_metadata_folder, met)
+                    )
+
+                    # TODO check if stuff is missing
+                    
+                    self.insert_entry_in_table(rec_name, 'recording_uid', data_to_input, table, overwrite=False)
+
+    @staticmethod
+    def insert_entry_in_table(dataname, checktag, data, table, overwrite=False):
+        try:
+            table.insert1(data)
+            print('     ... success')
+        except:
+            if dataname in list(table.fetch(checktag)):
+                if overwrite:
+                    q = input('Recording entry already in table.\nDo you wish to overwrite? [Y/N]')
+                    if q.lower() == 'y':
+                        raise ValueError('Feature not implemented yet, overwriting')
+                    else:
+                        return
+            else:
+                raise ValueError('Failed to add data entru {} to {} table'.format(dataname, table.full_table_name[-1]))
 
 
     @staticmethod
@@ -191,7 +282,8 @@ class PopulateDatabase:
         # LOOP OVER EACH VIDEO FILE IN FOLDER
         metadata_files = os.listdir(metadata_fld)
         for v in os.listdir(video_fld):
-            if os.path.getsize(os.path.join(self.raw_video_folder, v)) == 0: break  # skip if video file is empty
+            print('\n\n\nProcessing: ', v)
+            if os.path.getsize(os.path.join(self.raw_video_folder, v)) == 0: continue  # skip if video file is empty
 
             if 'tdms' in v:  # TODO implemente tdms --> avi conversion
                 raise ValueError('Feature not implemented yet: get trial clips from .tdms video')
@@ -205,8 +297,12 @@ class PopulateDatabase:
                 # Load metadata
                 tdms_file = [f for f in metadata_files if name == f.split('.')[0]]
                 if len(tdms_file)>1: raise ValueError('Could not disambiguate video --> tdms relationship')
-                elif not tdms_file:
-                    raise ValueError('Didnt find a tdms file')
+                elif not tdms_file:     # Try a couple of things to rescue this error
+                    tdms_file = [f for f in metadata_files if name.upper() == f.split('.')[0]]
+                    if not tdms_file:
+                        tdms_file = [f for f in metadata_files if name.lower() == f.split('.')[0]]
+                    if not tdms_file: # give up
+                        raise ValueError('Didnt find a tdms file')
                 else:
                     # Stimuli frames
                     stimuli = self.load_stimuli_from_tdms(os.path.join(metadata_fld, tdms_file[0]))
@@ -292,11 +388,17 @@ class PopulateDatabase:
                              os.path.join(self.raw_video_folder, fld+'.avi'))
                 else:
                     pass
+        print('... task completed')
 
 
 if __name__ == '__main__':
     p = PopulateDatabase()
     # p.create_trials_clips()
+    # p.populate_mice_table()
+    # p.populate_sessions_table()
+    p.populated_recordings_table()
     p.display_tables_headings()
+
+    a = 1
 
 

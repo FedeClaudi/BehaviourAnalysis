@@ -36,7 +36,7 @@ class Sessions(dj.Manual):
     """
 
 @schema
-class Recordings(dj.Imported):
+class Recordings(dj.Manual):
     definition = """
     # Within one session one may perform several recordings. Each recording has its own video and metadata files
     recording_uid: varchar(128)   # uniquely identifying name for each recording YYMMDD_MOUSEID_RECNUM
