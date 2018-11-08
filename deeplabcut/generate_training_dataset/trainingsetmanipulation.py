@@ -179,7 +179,7 @@ def MakeLabeledPlots(folder,DataCombined,cfg,Labels,Colorscheme,cc,scale):
             left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
         plt.gca().invert_yaxis()
 
-        plt.savefig(str(Path(tmpfolder)/imagename.split("/")[-1])) #create file name
+        plt.savefig(str(Path(tmpfolder)/imagename.split("\\")[-1])) #create file name
         plt.close("all")
 
 def SplitTrials(trialindex, trainFraction=0.8):
@@ -289,8 +289,8 @@ def create_training_dataset(config,num_shuffles=1,Shuffles=None):
     project_path = cfg['project_path']
     # Create path for training sets & store data there 
     trainingsetfolder = auxiliaryfunctions.GetTrainingSetFolder(cfg) #Path concatenatn OS platform independent
-    auxiliaryfunctions.attempttomakefolder(Path(os.path.join(project_path,str(trainingsetfolder))),recursive=True)
-    Data = merge_annotateddatasets(cfg,project_path,Path(os.path.join(project_path,trainingsetfolder)))
+    auxiliaryfunctions.attempttomakefolder(Path(os.path.join(str(project_path),str(trainingsetfolder))),recursive=True)
+    Data = merge_annotateddatasets(cfg,str(project_path),str(Path(os.path.join(str(project_path),str(trainingsetfolder)))))
     Data = Data[scorer] #extract labeled data
 
     #set model type. we will allow more in the future.
@@ -399,8 +399,8 @@ def create_training_dataset(config,num_shuffles=1,Shuffles=None):
                 auxiliaryfunctions.attempttomakefolder(str(Path(config).parents[0] / modelfoldername)+ '/'+ '/train')
                 auxiliaryfunctions.attempttomakefolder(str(Path(config).parents[0] / modelfoldername)+ '/'+ '/test')
                 
-                path_train_config = str(os.path.join(cfg['project_path'],Path(modelfoldername),'train','pose_cfg.yaml'))
-                path_test_config = str(os.path.join(cfg['project_path'],Path(modelfoldername),'test','pose_cfg.yaml'))
+                path_train_config = str(os.path.join(cfg['project_path'],str(Path(modelfoldername)),'train','pose_cfg.yaml'))
+                path_test_config = str(os.path.join(cfg['project_path'],str(Path(modelfoldername)),'test','pose_cfg.yaml'))
                 #str(cfg['proj_path']+'/'+Path(modelfoldername) / 'test'  /  'pose_cfg.yaml')
                 
                 items2change = {
@@ -416,7 +416,7 @@ def create_training_dataset(config,num_shuffles=1,Shuffles=None):
     
                 defaultconfigfile = str(Path(deeplabcut.__file__).parents[0] / 'pose_cfg.yaml')
                 
-                trainingdata = MakeTrain_pose_yaml(items2change,path_train_config,defaultconfigfile)
+                trainingdata = MakeTrain_pose_yaml(items2change,str(path_train_config),defaultconfigfile)
                 keys2save = [
                     "dataset", "num_joints", "all_joints", "all_joints_names",
                     "net_type", 'init_weights', 'global_scale', 'location_refinement',

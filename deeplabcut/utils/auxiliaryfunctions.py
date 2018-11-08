@@ -26,7 +26,8 @@ def write_config(configname,cfg):
 
 def attempttomakefolder(foldername,recursive=False):
     ''' Attempts to create a folder with specified name. Does nothing if it already exists. '''
-    if os.path.isdir(foldername):
+    foldername = str(foldername)
+    if os.path.isdir(str(foldername)):
         print(foldername, " already exists!")
     else:
         if recursive:

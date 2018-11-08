@@ -143,7 +143,7 @@ def evaluate_network(config,Shuffles=[1],plotting = None,show_errors = True,comp
                 #name for deeplabcut net (based on its parameters)
                 DLCscorer = auxiliaryfunctions.GetScorerName(cfg,shuffle,trainFraction,trainingsiterations)
                 print("Running ", DLCscorer, " with # of trainingiterations:", trainingsiterations)
-                resultsfilename=os.path.join(str(evaluationfolder),DLCscorer + '-' + Snapshots[snapindex]+  '.h5')
+                resultsfilename= os.path.join(str(evaluationfolder),DLCscorer + '-' + Snapshots[snapindex]+  '.h5')
                 try:
                     DataMachine = pd.read_hdf(resultsfilename,'df_with_missing')
                     print("This net has already been evaluated!")
