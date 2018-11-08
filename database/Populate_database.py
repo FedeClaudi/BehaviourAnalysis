@@ -9,8 +9,8 @@ import cv2
 from moviepy.editor import VideoFileClip
 from shutil import copyfile
 from tqdm import tqdm
-
-
+import warnings
+import pandas as pd
 from utils.video_editing import *
 
 
@@ -153,8 +153,8 @@ class PopulateDatabase:
         sessions = self.sessions.fetch(as_dict=True)
         table = self.recordings
 
-        for session in sessions:
-            print('Getting records for session: ', session['name'])
+        for session in tqdm(sessions):
+            print('Getting recordings for session: ', session['uid'], ' - ', session['name'])
             # get video and metadata files
             videos = sorted([f for f in os.listdir(self.raw_video_folder)
                              if session['name'].lower() in f.lower() and 'test' not in f])
@@ -169,6 +169,7 @@ class PopulateDatabase:
                     raise ValueError('Something went wront while trying to get the files')
 
                 num_recs = len(videos)
+                print(' ... found {} recs'.format(num_recs))
 
                 # Loop over the files for each recording and extract info
                 for rec_num, (vid, met) in enumerate(zip(videos, metadatas)):
@@ -188,6 +189,19 @@ class PopulateDatabase:
                     format = vid.split('.')[-1]
                     converted = 'nan'
 
+                    # Get deeplabcut data
+                    posefile = [os.path.join(self.tracked_data_folder, f) for f in os.listdir(self.tracked_data_folder)
+                                if rec_name in f]
+                    if not posefile:
+                        posefile = [os.path.join(self.tracked_data_folder, f) for f in os.listdir(self.tracked_data_folder)
+                                   if session['name'] in f]
+
+                    if len(posefile) != 1:
+                        raise ValueError('Failed to load pose data, found {} files'.format(len(posefile)))
+                    else: posefile = posefile[0]
+
+                    # pose_data = pd.read_hdf(posefile)
+
                     # insert recording in table
                     data_to_input = dict(
                         recording_uid=rec_name,
@@ -197,18 +211,50 @@ class PopulateDatabase:
                         video_file_path=os.path.join(self.raw_video_folder, vid),
                         video_format=format,
                         converted_video_file_path=converted,
-                        metadata_file_path=os.path.join(self.raw_metadata_folder, met)
+                        metadata_file_path=os.path.join(self.raw_metadata_folder, met),
+                        pose_data=posefile
                     )
 
-                    # TODO check if stuff is missing
-                    
                     self.insert_entry_in_table(rec_name, 'recording_uid', data_to_input, table, overwrite=False)
+
+    def populate_trials_table(self):
+        """# Metadata of each trial (e.g. stim type and frame of onset)
+        -> Recordings  --> recording_uid: varchar(128)
+        uid: varchar(128)  # uniquely identifuing ID for each trial YYMMDD_MOUSEID_RECNUM_TRIALNUM
+        ---
+        stim_type: varchar(128)
+        stim_start: int   # number of frame at start of stim
+        stim_duration: int   # duration in frames
+        """
+        print('Populating Trials Table')
+        recordings = self.recordings.fetch(as_dict=True)
+        table = self.trials
+
+        for rec in tqdm(recordings):
+            print('processing recording: ', rec['recording_uid'])
+            trial_num = 0
+            stims = self.load_stimuli_from_tdms(rec['metadata_file_path'])
+            for stim_type, stims_frames in stims.items():
+                if not stims_frames: continue
+                for stim in stims_frames:
+                    name = rec['recording_uid'] + '_' + str(trial_num)
+                    if stim_type == 'visual': dur = 5*30  # TODO this stuff is hardocoded
+                    else: dur = 9*30
+                    warnings.warn('Hardcoded variables: stim duration and video fps')
+
+                    data_to_input = dict(recording_uid=rec['recording_uid'],
+                                         uid=name,
+                                         stim_type=stim_type,
+                                         stim_start=stim,
+                                         stim_duration=dur)
+
+                    self.insert_entry_in_table(name, 'uid', data_to_input, table, overwrite=False)
 
     @staticmethod
     def insert_entry_in_table(dataname, checktag, data, table, overwrite=False):
         try:
             table.insert1(data)
-            print('     ... success')
+            print('     ... inserted {} in table'.format(dataname))
         except:
             if dataname in list(table.fetch(checktag)):
                 if overwrite:
@@ -218,7 +264,7 @@ class PopulateDatabase:
                     else:
                         return
             else:
-                raise ValueError('Failed to add data entru {} to {} table'.format(dataname, table.full_table_name[-1]))
+                raise ValueError('Failed to add data entry {} to {} table'.format(dataname, table.full_table_name[-1]))
 
 
     @staticmethod
@@ -391,12 +437,15 @@ class PopulateDatabase:
         print('... task completed')
 
 
+
+
 if __name__ == '__main__':
     p = PopulateDatabase()
     # p.create_trials_clips()
     # p.populate_mice_table()
     # p.populate_sessions_table()
     p.populated_recordings_table()
+    p.populate_trials_table()
     p.display_tables_headings()
 
     a = 1

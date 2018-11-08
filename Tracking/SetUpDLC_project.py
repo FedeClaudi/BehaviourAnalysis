@@ -1,3 +1,4 @@
+print('Importing deeplabcut takes a while...')
 import deeplabcut
 import os
 import yaml
@@ -9,7 +10,7 @@ with open('../database/data_paths.yml', 'r') as f:
 
 # Get list of vidos to be traind
 use_trial_clips = True
-select_random_subset = .05  # if False take all video, if float between 0-1 select that proprtion of values
+select_random_subset = .01  # if False take all video, if float between 0-1 select that proprtion of values
 if use_trial_clips:
     dr = os.path.join(paths['raw_data_folder'], paths['trials_clips'])
     if not select_random_subset: select_random_subset = 10  # set to arbritarily high value
@@ -25,7 +26,7 @@ os.chdir(paths['dlc_nets'])
 
 
 # Extract frames
-cfg_path = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Nets\\Maze-Federico-2018-11-07\\config.yaml'
+cfg_path = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Nets\\Maze-Federico-2018-11-08\\config.yaml'
 # deeplabcut.extract_frames(cfg_path, 'automatic', 'kmeans', crop=False, checkcropping=False)
 
 # Label frames
