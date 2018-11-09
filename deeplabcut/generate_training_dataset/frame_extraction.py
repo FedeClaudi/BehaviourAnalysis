@@ -102,19 +102,20 @@ def extract_frames(config,mode,algo='uniform',crop=False,checkcropping=False):
                 if not cap.isOpened():
                     raise ValueError('Could not load video file for frame extraction')
                 fps = cap.get(cv2.CAP_PROP_FPS)
-                indexlength = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+                indexlength = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))  # tot number of frames in videofile
 
             if crop==True:
                 print("Make sure you change the crop parameters in the config.yaml file. The default parameters are set to the video dimensions.")
                 coords = cfg['video_sets'][video]['crop'].split(',')
 
-
-                # image = clip.get_frame(start*clip.duration) #frame is accessed by index *1./clip.fps (fps cancels)
-                cap.set(cv2.CAP_PROP_POS_FRAMES, int(indexlength+start))
-                ret, image = cap.read()
-                if not ret:
-                    raise ValueError('Something went wrong when opening next frame: {} of {}'.
-                                     format(frame_counter, tot_frames))
+                if not use_opencv:
+                    image = clip.get_frame(start*clip.duration) #frame is accessed by index *1./clip.fps (fps cancels)
+                else:
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, int(np.floor(indexlength*start)))
+                    ret, image = cap.read()
+                    if not ret:
+                        raise ValueError('Something went wrong when opening next frame: {} of {}'.
+                                         format(int(np.floor(indexlength*start)), indexlength))
 
                 fname = Path(video)
                 output_path = Path(config).parents[0] / 'labeled-data' / fname.stem
@@ -129,35 +130,45 @@ def extract_frames(config,mode,algo='uniform',crop=False,checkcropping=False):
                     plt.show()
                     
                     print("The red boundary indicates how the cropped image will look.")
-                    #saveimg = str(Path(config).parents[0] / Path('labeled-data','IsCroppingOK_'+fname.stem +".png")) 
-                    #io.imsave(saveimg, image)
+                    # saveimg = str(Path(config).parents[0] / Path('labeled-data','IsCroppingOK_'+fname.stem +".png"))
+                    # io.imsave(saveimg, image)
                     
                     msg = input("Is the cropping ok? (yes/no): ")
                     if msg == "yes" or msg == "y" or msg =="Yes" or msg == "Y":
-                      if len(os.listdir(output_path))==0: #check if empty
-                            #store full frame (good for augmentation)
+                      if len(os.listdir(str(output_path)))==0: #check if empty
+                            # store full frame (good for augmentation)
                             index = 0
-                            image = img_as_ubyte(clip.get_frame(index * 1. / clip.fps))
+
+                            if not use_opencv: image = img_as_ubyte(clip.get_frame(index * 1. / clip.fps))
+                            else:
+                                cap.set(cv2.CAP_PROP_POS_FRAMES, int(index))
+                                ret, image = cap.read()
+                                image = img_as_ubyte(image)
                             output_path = Path(config).parents[0] / 'labeled-data' / Path(video).stem
                             saveimg = str(output_path) +'/img'+ str(index).zfill(indexlength) + ".png"  
                             io.imsave(saveimg, image)
                             
                             # crop and move on with extraction of frames:
-                            clip=clip.crop(y1 = int(coords[2]),y2 = int(coords[3]),x1 = int(coords[0]), x2 = int(coords[1]))
+                            if not use_opencv:   # if using opencv the individual frames are cropped during extraction
+                                clip=clip.crop(y1 = int(coords[2]),y2 = int(coords[3]),x1 = int(coords[0]), x2 = int(coords[1]))
+
                       else:
                           askuser=input ("The directory already contains some frames. Do you want to add to it?(yes/no): ")
                           if askuser=='y' or askuser=='yes' or askuser=='Y' or askuser=='Yes':
-                              clip=clip.crop(y1 = int(coords[2]),y2 = int(coords[3]),x1 = int(coords[0]), x2 = int(coords[1]))
+                              if not use_opencv: # if using opencv the individual frames are cropped during extraction
+                                  clip=clip.crop(y1 = int(coords[2]),y2 = int(coords[3]),x1 = int(coords[0]), x2 = int(coords[1]))
                           else:
                               sys.exit("Delete the frames and try again later!")
                     else:
                       sys.exit("Correct the crop parameters in the config.yaml file and try again!")
 
             print("Extracting frames based on %s ..." %algo)
+            if use_opencv:
+                clip = VideoFileClip(video)  # need to open the clip to pass it to the frame selection tools
             if algo =='uniform': #extract n-1 frames (0 was already stored)
-                frames2pick=frameselectiontools.UniformFrames(clip,numframes2pick-1,start,stop)
+                frames2pick = frameselectiontools.UniformFrames(clip,numframes2pick-1,start,stop)
             elif algo =='kmeans':
-                frames2pick=frameselectiontools.KmeansbasedFrameselection(clip,numframes2pick-1,start,stop)
+                frames2pick = frameselectiontools.KmeansbasedFrameselection(clip,numframes2pick-1,start,stop)
             else:
                 print("Please implement this method yourself and send us a pull request! Otherwise, choose 'uniform' or 'kmeans'.")
                 frames2pick=[]
@@ -170,6 +181,9 @@ def extract_frames(config,mode,algo='uniform',crop=False,checkcropping=False):
                     if use_opencv:
                         cap.set(cv2.CAP_PROP_POS_FRAMES, index)
                         ret, image = cap.read()
+                        if crop:
+                            image = image[int(coords[2]): int(coords[3]), int(coords[0]):int(coords[1])]
+
                         image = img_as_ubyte(image)  # this will fail if frame is not loaded correctly
                     else:
                         image = img_as_ubyte(clip.get_frame(index * 1. / clip.fps))
