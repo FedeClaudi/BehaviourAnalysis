@@ -61,6 +61,11 @@ def extract_frames(config,mode,algo='uniform',crop=False,checkcropping=False):
     from skimage.util import img_as_ubyte
     import matplotlib.pyplot as plt
     import matplotlib.patches as patches
+    try:
+        import cv2
+        use_opencv = True
+    except:
+        use_opencv = False
     
     from deeplabcut.generate_training_dataset import frameselectiontools
 
@@ -89,15 +94,28 @@ def extract_frames(config,mode,algo='uniform',crop=False,checkcropping=False):
         videos = cfg['video_sets'].keys()
         for vindex,video in enumerate(videos):
             
-            #update to openCV
-            clip = VideoFileClip(video)
-            indexlength = int(np.ceil(np.log10(clip.duration * clip.fps)))
+            if not use_opencv: # use moviepy
+                clip = VideoFileClip(video)
+                indexlength = int(np.ceil(np.log10(clip.duration * clip.fps)))
+            else:  # updated frame extraction with openCV
+                cap = cv2.VideoCapture(video)
+                if not cap.isOpened():
+                    raise ValueError('Could not load video file for frame extraction')
+                fps = cap.get(cv2.CAP_PROP_FPS)
+                indexlength = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
             if crop==True:
                 print("Make sure you change the crop parameters in the config.yaml file. The default parameters are set to the video dimensions.")
                 coords = cfg['video_sets'][video]['crop'].split(',')
-                image = clip.get_frame(start*clip.duration) #frame is accessed by index *1./clip.fps (fps cancels)
-                
+
+
+                # image = clip.get_frame(start*clip.duration) #frame is accessed by index *1./clip.fps (fps cancels)
+                cap.set(cv2.CAP_PROP_POS_FRAMES, int(indexlength+start))
+                ret, image = cap.read()
+                if not ret:
+                    raise ValueError('Something went wrong when opening next frame: {} of {}'.
+                                     format(frame_counter, tot_frames))
+
                 fname = Path(video)
                 output_path = Path(config).parents[0] / 'labeled-data' / fname.stem
                 if output_path.exists() and checkcropping==True:
@@ -143,11 +161,21 @@ def extract_frames(config,mode,algo='uniform',crop=False,checkcropping=False):
             else:
                 print("Please implement this method yourself and send us a pull request! Otherwise, choose 'uniform' or 'kmeans'.")
                 frames2pick=[]
-            
-            indexlength = int(np.ceil(np.log10(clip.duration * clip.fps))) 
+
+            if use_opencv: indexlength = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            else: ndexlength = int(np.ceil(np.log10(clip.duration * clip.fps)))
             for index in frames2pick:
                 try:
-                    image = img_as_ubyte(clip.get_frame(index * 1. / clip.fps))
+                    # using opencv
+                    if use_opencv:
+                        cap.set(cv2.CAP_PROP_POS_FRAMES, index)
+                        ret, image = cap.read()
+                        if not ret:
+                            raise ValueError('Something went wrong when opening next frame: {} of {}'.
+                                             format(frame_counter, tot_frames))
+                        image = img_as_ubyte(image)
+                    else:
+                        image = img_as_ubyte(clip.get_frame(index * 1. / clip.fps))
                     output_path = str(Path(config).parents[0] / 'labeled-data' / Path(video).stem)
                     img_name = str(output_path) +'/img'+ str(index).zfill(indexlength) + ".png"
                     io.imsave(img_name,image)
