@@ -163,17 +163,14 @@ def extract_frames(config,mode,algo='uniform',crop=False,checkcropping=False):
                 frames2pick=[]
 
             if use_opencv: indexlength = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-            else: ndexlength = int(np.ceil(np.log10(clip.duration * clip.fps)))
+            else: indexlength = int(np.ceil(np.log10(clip.duration * clip.fps)))
             for index in frames2pick:
                 try:
                     # using opencv
                     if use_opencv:
                         cap.set(cv2.CAP_PROP_POS_FRAMES, index)
                         ret, image = cap.read()
-                        if not ret:
-                            raise ValueError('Something went wrong when opening next frame: {} of {}'.
-                                             format(frame_counter, tot_frames))
-                        image = img_as_ubyte(image)
+                        image = img_as_ubyte(image)  # this will fail if frame is not loaded correctly
                     else:
                         image = img_as_ubyte(clip.get_frame(index * 1. / clip.fps))
                     output_path = str(Path(config).parents[0] / 'labeled-data' / Path(video).stem)
@@ -182,8 +179,12 @@ def extract_frames(config,mode,algo='uniform',crop=False,checkcropping=False):
                 except FileNotFoundError:
                     print("Frame # ", index, " does not exist.")
             #close video. 
-            clip.close()
-            del clip
+            if not use_opencv:
+                clip.close()
+                del clip
+            else:
+                cap.close() # is this correct?
+                del cap
     else:
         print("Invalid MODE. Choose either 'manual' or 'automatic'. Check ``help(deeplabcut.extract_frames)`` on python and ``deeplabcut.extract_frames?`` \
               for ipython/jupyter notebook for more details.")
