@@ -176,6 +176,8 @@ def extract_frames(config,mode,algo='uniform',crop=False,checkcropping=False):
             if use_opencv: indexlength = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
             else: indexlength = int(np.ceil(np.log10(clip.duration * clip.fps)))
             for index in frames2pick:
+                output_path = str(Path(config).parents[0] / 'labeled-data' / Path(video).stem)
+
                 try:
                     # using opencv
                     if use_opencv:
@@ -185,10 +187,10 @@ def extract_frames(config,mode,algo='uniform',crop=False,checkcropping=False):
                             image = image[int(coords[2]): int(coords[3]), int(coords[0]):int(coords[1])]
 
                         image = img_as_ubyte(image)  # this will fail if frame is not loaded correctly
+                        img_name = str(output_path) + '/img' + str(index) + ".png"
                     else:
                         image = img_as_ubyte(clip.get_frame(index * 1. / clip.fps))
-                    output_path = str(Path(config).parents[0] / 'labeled-data' / Path(video).stem)
-                    img_name = str(output_path) +'/img'+ str(index).zfill(indexlength) + ".png"
+                        img_name = str(output_path) + '/img' + str(index).zfill(indexlength) + ".png"
                     io.imsave(img_name,image)
                 except FileNotFoundError:
                     print("Frame # ", index, " does not exist.")
@@ -197,7 +199,6 @@ def extract_frames(config,mode,algo='uniform',crop=False,checkcropping=False):
                 clip.close()
                 del clip
             else:
-                cap.close() # is this correct?
                 del cap
     else:
         print("Invalid MODE. Choose either 'manual' or 'automatic'. Check ``help(deeplabcut.extract_frames)`` on python and ``deeplabcut.extract_frames?`` \
