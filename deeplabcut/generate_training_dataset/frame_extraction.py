@@ -64,6 +64,7 @@ def extract_frames(config,mode,algo='uniform',crop=False,checkcropping=False):
     try:
         import cv2
         use_opencv = True
+        print(a)
     except:
         use_opencv = False
     

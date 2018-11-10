@@ -11,34 +11,35 @@ arguments = dict(
     get_videos=False,
     create_proj=False,
     add_videos=False,
-    extract_frames=True,
+    extract_frames=False,
     label_frames=False,
     check_labels=False,
     create_training_set=False,
     train=False,
     evaluate=False,
-    analyse_videos=False,
-    create_label_video=False,
-    plot_trajectories=False,
+    analyse_videos=True,
+    create_label_video=True,
+    plot_trajectories=True,
     extract_outlier=False,
     refine_labels=False
 )
-cfg_path = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Nets\\Maze-Federico-2018-11-08\\' \
+cfg_path = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Nets\\Barnes-Federico-2018-11-09\\' \
            'config.yaml'
-dr = os.path.join(paths['raw_data_folder'], paths['trials_clips'])
 
-test_videos = [os.path.join(dr,f) for f in os.listdir(dr)]  # [str(os.path.join(dr, v)) for v in os.listdir(dr) if  random.uniform(0.0, 1.0) < 0.005]
+# dr = os.path.join(paths['raw_data_folder'], paths['trials_clips'])
+dr = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\DAQ\\upstairs_rig\\video_clips\\videos_for_FC'
+test_videos = [os.path.join(dr,f) for f in os.listdir(dr) if 'avi' in f]  # [str(os.path.join(dr, v)) for v in os.listdir(dr) if  random.uniform(0.0, 1.0) < 0.005]
 
 
 # GET VIDEOS
 def get_videos():
     use_trial_clips = True
-    select_random_subset = .01  # if False take all video, if float between 0-1 select that proprtion of values
+    select_random_subset = .5  # if False take all video, if float between 0-1 select that proprtion of values
     if use_trial_clips:
         if not select_random_subset: select_random_subset = 10  # set to arbritarily high value
 
         videos = [str(os.path.join(dr, v)) for v in os.listdir(dr) if
-                           random.uniform(0.0, 1.0) < select_random_subset]
+                           random.uniform(0.0, 1.0) < select_random_subset and 'avi' in v]
         return  videos
     else:
         raise ValueError('Feature not yet implemetned: use other folders to select training videos')
@@ -56,7 +57,7 @@ if arguments['create_proj']:
     if training_videos is None:
         training_videos = get_videos()
     os.chdir(paths['dlc_nets'])
-    deeplabcut.create_new_project('Maze', 'Federico', training_videos, str('D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Nets'), copy_videos=True)
+    deeplabcut.create_new_project('Barnes', 'Federico', training_videos, str('D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Nets'), copy_videos=True)
 
 # ADD VIDEOS TO PROJECT
 if arguments['add_videos']:
@@ -66,7 +67,7 @@ if arguments['add_videos']:
 
 # EXTRACT FRAMES
 if arguments['extract_frames']:
-    deeplabcut.extract_frames(cfg_path, 'automatic', 'kmeans', crop=False, checkcropping=False)
+    deeplabcut.extract_frames(cfg_path, 'automatic', 'uniform', crop=False, checkcropping=False)
 
 # LABEL FRAMES
 if arguments['label_frames']:
@@ -90,15 +91,15 @@ if arguments['evaluate']:
 
 # ANALYZE VIDEO
 if arguments['analyse_videos']:
-    deeplabcut.analyze_videos(cfg_path, [test_videos[0]], shuffle=1, save_as_csv=False)
+    deeplabcut.analyze_videos(cfg_path, test_videos, shuffle=1, save_as_csv=False)
 
 # CREATE LABELED VIDEO
 if arguments['create_label_video']:
-    deeplabcut.create_labeled_video(cfg_path,  [test_videos[0]])
+    deeplabcut.create_labeled_video(cfg_path,  test_videos)
 
 # PLOT TRAJECTORIES
 if arguments['plot_trajectories']:
-    deeplabcut.plot_trajectories(cfg_path, [test_videos[0]])
+    deeplabcut.plot_trajectories(cfg_path, test_videos)
 
 # EXTRACT OUTLIERS
 if arguments['extract_outlier']:

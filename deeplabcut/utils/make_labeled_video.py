@@ -211,7 +211,7 @@ def create_labeled_video(config,video,shuffle=1,trainingsetindex=0,videotype='av
 
     bodyparts=auxiliaryfunctions.IntersectionofBodyPartsandOnesGivenbyUser(cfg,displayedbodyparts)
     
-    if [os.path.isdir(i) for i in video] == [True]:
+    if [os.path.isdir(str(i)) for i in video] == [True]:
       print("Analyzing all the videos in the directory")
       videofolder= video[0]
       os.chdir(videofolder)

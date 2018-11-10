@@ -132,7 +132,7 @@ def analyze_videos(config,videos,shuffle=1,trainingsetindex=0,videotype='avi',gp
     # Datafolder
     ##################################################
     #checks if input is a directory
-    if [os.path.isdir(i) for i in videos] == [True]:#os.path.isdir(video)==True:
+    if [os.path.isdir(str(i)) for i in videos] == [True]:#os.path.isdir(video)==True:
         """
         Analyzes all the videos in the directory.
         """
@@ -148,7 +148,7 @@ def analyze_videos(config,videos,shuffle=1,trainingsetindex=0,videotype='avi',gp
             else:
                 Videos=[]
         else:
-            Videos=[v for v in videos if os.path.isfile(v)]
+            Videos=[v for v in videos if os.path.isfile(str(v))]
     
     if len(videos)>0:
         #looping over videos
