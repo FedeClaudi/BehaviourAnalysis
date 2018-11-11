@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import cv2
+import os
 
-
-dr = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\DAQ\\upstairs_rig\\video_clips\\videos_for_FC'
+dr = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\DAQ\\upstairs_rig\\video_clips\\videos_for_FC'
 videoname = "Barnes US wall up (2)_CA3380_audio-3 (27')"
 posename = "Barnes US wall up (2)_CA3380_audio-3 (27')DeepCut_resnet50_BarnesNov9shuffle1_150000_labeled"
 
