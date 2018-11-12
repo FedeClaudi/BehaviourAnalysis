@@ -1,5 +1,5 @@
 from nptdms import TdmsFile
-
+import os
 
 def load_stimuli_from_tdms(tdmspath, software='behaviour'):
         """ Takes the path to a tdms file and attempts to load the stimuli metadata from it, returns a dictionary

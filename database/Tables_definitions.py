@@ -1,10 +1,8 @@
 import datajoint as dj
 
-dj.config['Database.host'] = '127.0.0.1'
-dj.config['Database.user'] = 'root'
-dj.config['Database.password'] = 'simple'
-
-schema = dj.schema('Database', locals())
+from dj_config import start_connection
+dbname = start_connection()
+schema = dj.schema(dbname, locals())
 
 @schema
 class Mice(dj.Manual):
@@ -26,7 +24,7 @@ class Sessions(dj.Manual):
     uid: smallint     # unique number that defines each session
     name: varchar(128)  # unique name that defines each session - YYMMDD_MOUSEID
     ---
-    -> Mice                # mouse used for the experiment
+    -> Mice
     date: date             # date in the YYYY-MM-DD format
     num_recordings: smallint   # number of recordings performed within that session
     experiment_name: varchar(128)  # name of the experiment the session is part of 

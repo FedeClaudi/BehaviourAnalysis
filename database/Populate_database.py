@@ -53,7 +53,7 @@ class PopulateDatabase:
         self.sessions = Sessions()
         self.recordings = Recordings()
         self.trials = Trials()
-        self.all_tables = dict(mice=self.mice,sessions= self.sessions, recordings=self.recordings, trials=self.trials)
+        self.all_tables = dict(mice=self.mice, sessions= self.sessions, recordings=self.recordings, trials=self.trials)
 
     def display_tables_headings(self):
         for name, table in self.all_tables.items():
@@ -66,6 +66,10 @@ class PopulateDatabase:
             return
         else:
             [table.drop() for table in self.all_tables.values()]
+
+    def remove_table(self, tablename):
+        tb = self.all_tables[tablename]
+        tb.drop()
 
     def populate_mice_table(self):
         """ Populates the Mice() table from the database"""
@@ -166,6 +170,8 @@ class PopulateDatabase:
                                    if session['name'] in f]
 
                     if len(posefile) != 1:
+                        if rec_name in table.fetch('recording_uid'): continue  # no need to worry about it
+
                         print("\n\n\nCould not find pose data for recording {}".format(rec_name))
                         if posefile:
                             print('Found these possible matches: ')
@@ -208,16 +214,16 @@ class PopulateDatabase:
         table = self.trials
 
         for rec in tqdm(recordings):
-            print('processing recording: ', rec['recording_uid'])
+            print('\n\nprocessing recording: ', rec['recording_uid'])
             trial_num = 0
-            stims = self.load_stimuli_from_tdms(rec['metadata_file_path'])
+            stims = load_stimuli_from_tdms(rec['metadata_file_path'])
             for stim_type, stims_frames in stims.items():
                 if not stims_frames: continue
                 for stim in stims_frames:
                     name = rec['recording_uid'] + '_' + str(trial_num)
                     if stim_type == 'visual': dur = 5*30  # TODO this stuff is hardocoded
                     else: dur = 9*30
-                    warnings.warn('Hardcoded variables: stim duration and video fps')
+                    warnings.warn('Hardcoded variables: stim duration and video fps\n\n')
 
                     data_to_input = dict(recording_uid=rec['recording_uid'],
                                          uid=name,
@@ -253,6 +259,11 @@ class PopulateDatabase:
 
 if __name__ == '__main__':
     p = PopulateDatabase()
+
+
+    # p.remove_table('trials')
+    # sys.exit()
+
     p.populate_mice_table()
     p.populate_sessions_table()
     p.populate_recordings_table()
