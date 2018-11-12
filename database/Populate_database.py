@@ -40,7 +40,7 @@ class PopulateDatabase:
                 * BehaviourTrial""")
 
         # Hard coded paths to relevant files and folders
-        with open('database\data_paths.yml', 'r') as f:
+        with open('paths.yml', 'r') as f:
             paths = yaml.load(f)
 
         self.mice_records = paths['mice_records']
@@ -74,43 +74,24 @@ class PopulateDatabase:
 
     def populate_mice_table(self):
         """ Populates the Mice() table from the database"""
-        """
-          mouse_id: varchar(128)                        # unique mouse id
-          ---
-          strain:   varchar(128)                        # genetic strain
-          dob: varchar(128)                             # mouse date of birth 
-          sex: enum('M', 'F', 'U')                      # sex of mouse - Male, Female, or Unknown/Unclassified
-          single_housed: enum('Y', 'N')                 # single housed or group caged
-          enriched_cage: enum('Y', 'N')                 # presence of wheel or other stuff in the cage
-        """
-
         table = self.mice
         loaded_excel = pyexcel.get_records(file_name=self.mice_records)
 
         for m in loaded_excel:
             if not m['']: continue
-            inputdata = (m[''], m['Strain'], m['DOB'].strip(), 'M', 'Y', 'Y')
-            print('Trying to import mouse: ', m[''])
 
-            try:
-                table.insert1(inputdata)
-                print('Mouse: ', m[''], 'imported succesfully')
-            except:
-                raise ValueError('Failed to import mouse: ', m[''])
+            mouse_data = dict(
+                mouse_id = m[''],
+                strain = m['Strain'],
+                dob = m['DOB'].strip(),
+                sex = 'M',
+                single_housed = 'Y',
+                enriched_cage = 'Y'
+            )
+            self.insert_entry_in_table(mouse_data['mouse_id'], 'mouse_id', mouse_data, table)
 
     def populate_sessions_table(self):
         """  Populates the sessions table """
-        """# A session is one behavioural experiment performed on one mouse on one day
-            uid: smallint     # unique number that defines each session
-            name: varchar(128)  # unique name that defines each session - YYMMDD_MOUSEID
-            ---
-            -> Mice                # mouse used for the experiment
-            date: date             # date in the YYYY-MM-DD format
-            num_recordings: smallint   # number of recordings performed within that session
-            experiment_name: varchar(128)  # name of the experiment the session is part of 
-            experimenter: varchar(128)      # name of the person performing the experiment
-        """
-
         table = self.sessions
         mice = self.mice.fetch(as_dict=True)
         loaded_excel = pyexcel.get_records(file_name=self.exp_records)
@@ -137,24 +118,10 @@ class PopulateDatabase:
                 experiment_name=session['Experiment'],
                 experimenter='Federico'
             )
-            try:
-                table.insert1(session_data)
-            except:
-                raise ValueError('Failed to add session {} to Sessions table'.format(session_name))
+            self.insert_entry_in_table(session_data['name'], 'name', session_data, table)
 
     def populate_recordings_table(self):
         """ Populate the Recordings table """
-        """
-            # Within one session one may perform several recordings. Each recording has its own video and metadata files
-            recording_uid: varchar(128)   # uniquely identifying name for each recording YYMMDD_MOUSEID_RECNUM
-            ---
-            -> Sessions
-            rec_num: smallint       # recording number within that session
-            video_file_path: varchar(128) # path to the file storing the video data
-            video_format: enum('tdms', 'avi', 'mp4')  # format in which the video was recorded
-            converted_video_file_path: varchar(128)  # if video was recorded in.tdms and converted to video,where is the video stored
-            metadata_file_path: varchar(128) # path to the .tdms file storing the metadata
-        """
         print('Populating Recordings Table')
         sessions = self.sessions.fetch(as_dict=True)
         table = self.recordings
@@ -224,14 +191,6 @@ class PopulateDatabase:
                     self.insert_entry_in_table(rec_name, 'recording_uid', data_to_input, table, overwrite=False)
 
     def populate_trials_table(self):
-        """# Metadata of each trial (e.g. stim type and frame of onset)
-        -> Recordings  --> recording_uid: varchar(128)
-        uid: varchar(128)  # uniquely identifuing ID for each trial YYMMDD_MOUSEID_RECNUM_TRIALNUM
-        ---
-        stim_type: varchar(128)
-        stim_start: int   # number of frame at start of stim
-        stim_duration: int   # duration in frames
-        """
         print('Populating Trials Table')
         recordings = self.recordings.fetch(as_dict=True)
         table = self.trials
@@ -258,6 +217,12 @@ class PopulateDatabase:
 
     @staticmethod
     def insert_entry_in_table(dataname, checktag, data, table, overwrite=False):
+        """
+        dataname: value of indentifying key for entry in table
+        checktag: name of the identifying key ['those before the --- in the table declaration']
+        data: entry to be inserted into the table
+        table: database table
+        """
         try:
             table.insert1(data)
             print('     ... inserted {} in table'.format(dataname))
@@ -269,135 +234,15 @@ class PopulateDatabase:
                         raise ValueError('Feature not implemented yet, overwriting')
                     else:
                         return
+                else:
+                    print('Entry with id: {} already in table'.format(dataname))
             else:
                 raise ValueError('Failed to add data entry {} to {} table'.format(dataname, table.full_table_name[-1]))
 
-    def create_trials_clips(self, BehavRec=None, folder=None, prestim=10, poststim=20):
-        """
-        This function creates small mp4 videos for each trial and saves them.
-        It can work on a single BehaviouralRecording or on a whole folder
-
-        :param BehavRec recording to work on, if None work on a whole folder
-        :param folder  path to a folder containing videos to be processed, if None self.raw_video_folder
-        """
-        if BehavRec:
-            raise ValueError('Feature not implemented yet: get trial clips for BehaviourRecording')
-        else:
-            if folder is None:
-                video_fld = self.raw_video_folder
-                metadata_fld = self.raw_metadata_folder
-            else:
-                raise ValueError('Feature not implemented yet: get trial clips for custom folder')
-
-        # parameters to draw on frame
-        border_size = 20
-        color_on = [128, 128, 128]
-        color_off = [0, 0, 0]
-        curr_color = color_off
-
-        # LOOP OVER EACH VIDEO FILE IN FOLDER
-        metadata_files = os.listdir(metadata_fld)
-        for v in os.listdir(video_fld):
-            print('\n\n\nProcessing: ', v)
-            if os.path.getsize(os.path.join(self.raw_video_folder, v)) == 0: continue  # skip if video file is empty
-
-            if 'tdms' in v:  # TODO implemente tdms --> avi conversion
-                raise ValueError('Feature not implemented yet: get trial clips from .tdms video')
-            else:
-                name = os.path.splitext(v)[0]
-
-                # Check if already processed
-                processed = [f for f in os.listdir(self.trials_clips) if name in f]
-                if processed: continue
-
-                # Load metadata
-                tdms_file = [f for f in metadata_files if name == f.split('.')[0]]
-                if len(tdms_file)>1: raise ValueError('Could not disambiguate video --> tdms relationship')
-                elif not tdms_file:     # Try a couple of things to rescue this error
-                    tdms_file = [f for f in metadata_files if name.upper() == f.split('.')[0]]
-                    if not tdms_file:
-                        tdms_file = [f for f in metadata_files if name.lower() == f.split('.')[0]]
-                    if not tdms_file: # give up
-                        raise ValueError('Didnt find a tdms file')
-                else:
-                    # Stimuli frames
-                    stimuli = self.load_stimuli_from_tdms(os.path.join(metadata_fld, tdms_file[0]))
-
-                    # Open opencv cap reader and extract video metrics
-                    cap = cv2.VideoCapture(os.path.join(self.raw_video_folder, v))
-                    if not cap.isOpened():
-                        print('Could not process this one')
-                        raise ValueError('Could not load video file')
-
-                    fps = cap.get(cv2.CAP_PROP_FPS)
-                    window = (int(prestim*fps), int(poststim*fps))
-                    clip_number_of_frames = int(window[1]+window[0])
-
-                    # Loop over stims
-                    for stim_type, stims in stimuli.items():
-                        if stim_type == 'audio':
-                            stim_end = window[0] + 9 * fps
-                        else:
-                            stim_end = window[0] + 5 * fps
-
-                        for stim in stims:
-                            width, height = int(cap.get(3)), int(cap.get(4))
-
-                            frame_n = stim-window[0]
-                            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_n-1)
-
-                            video_path = os.path.join(self.trials_clips,
-                                                      name + '_{}-{}'.format(stim_type, stim) + '.mp4')
-                            print('\n\nSaving Clip in: ', video_path)
-                            fourcc = cv2.VideoWriter_fourcc(*'MP4V')
-                            videowriter = cv2.VideoWriter(video_path, fourcc, fps, (width + (border_size * 2),
-                                                                                    height + (border_size * 2)), False)
-
-                            for frame_counter in tqdm(range(clip_number_of_frames)):
-                                ret, frame = cap.read()
-                                if not ret:
-                                    tot_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-                                    if frame_counter + frame_n-1 == tot_frames: break
-                                    else:
-                                        raise ValueError('Something went wrong when opening next frame: {} of {}'.
-                                                         format(frame_counter, tot_frames))
-
-                                # Prep to display stim on
-                                if frame_counter < window[0]:
-                                    sign = ''
-                                    curr_color = color_off
-                                else:
-                                    sign = '+'
-                                    if frame_counter > stim_end: curr_color = color_off
-                                    else:
-                                        if frame_counter % 15 == 0:
-                                            if curr_color == color_off: curr_color = color_on
-                                            else: curr_color = color_off
-
-                                # Make frame
-                                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                                bordered_gray = cv2.copyMakeBorder(gray, border_size, border_size, border_size, border_size,
-                                                           cv2.BORDER_CONSTANT, value=curr_color)
-
-                                frame_time = (frame_counter - window[0]) / fps
-                                frame_time = str(round(.2 * round(frame_time / .2), 1)) + '0' * (abs(frame_time) < 10)
-                                cv2.putText(bordered_gray, sign + str(frame_time) + 's', (width - 110, height + 10), 0, 1,
-                                            (180, 180, 180), thickness=2)
-
-                                # Save to file
-                                videowriter.write(bordered_gray)
-
-                                frame_counter += 1
-                            videowriter.release()
-
-
-
 if __name__ == '__main__':
     p = PopulateDatabase()
-    p.display_tables_headings()
-    # p.create_trials_clips()
     p.populate_mice_table()
     p.populate_sessions_table()
-    p.populated_recordings_table()
+    p.populate_recordings_table()
     p.populate_trials_table()
     p.display_tables_headings()

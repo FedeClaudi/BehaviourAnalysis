@@ -11,5 +11,6 @@ deeplabcut/pose_estimation_tensorflow/models/pretrained/resnet_v1_50.ckpt
 *.jpg
 *.xml
 *.idea
+*.pyc
 deeplabcut/pose_estimation_tensorflow/models/pretrained/resnet_v1_101.ckpt
 deeplabcut/pose_estimation_tensorflow/models/pretrained/resnet_v1_50.ckpt
