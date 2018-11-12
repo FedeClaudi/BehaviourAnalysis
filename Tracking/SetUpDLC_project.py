@@ -8,6 +8,7 @@ import sys
 
 import deeplabcut
 import yaml
+print(' ... ready!')
 
 with open('database/data_paths.yml', 'r') as f:
     paths = yaml.load(f)
@@ -96,6 +97,7 @@ if arguments['extract_frames']:
 
 # LABEL FRAMES
 if arguments['label_frames']:
+    print('Getting ready to label frames')
     deeplabcut.label_frames(cfg_path)
 
 # CHECK LABELS
