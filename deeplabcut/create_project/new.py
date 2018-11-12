@@ -14,6 +14,7 @@ from pathlib import Path
 import cv2
 from deeplabcut import DEBUG
 import shutil
+from tqdm import tqdm
 
 def yaml_config_template(yaml_path, cfg):
     """Write a dictionary of configuration into a new yaml file.
@@ -94,7 +95,7 @@ def create_new_project(project, experimenter, videos, working_directory=None, co
     destinations = [video_path.joinpath(vp.name) for vp in videos]
     if copy_videos==True:
         print("Copying the videos")
-        for src, dst in zip(videos, destinations):
+        for src, dst in tqdm(zip(videos, destinations)):
             shutil.copy(str(src),str(dst))
     else:
       # creates the symlinks of the video and puts it in the videos directory.

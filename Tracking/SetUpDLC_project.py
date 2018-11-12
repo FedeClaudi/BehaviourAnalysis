@@ -1,7 +1,10 @@
+# -*- coding: utf-8 -*-
+
 print('Importing deeplabcut takes a while...')
 import os
 import platform
 import random
+import sys
 
 import deeplabcut
 import yaml
@@ -20,7 +23,7 @@ else:
     project_path = 'Users/federicoclaudi/Desktop'
 
 arguments = dict(
-    get_training_vids_th = 0.01,
+    get_training_vids_th = 0.02,
     project_params = dict(
         experiment = 'testgui',
         experimenter = 'Federico',
@@ -41,15 +44,21 @@ arguments = dict(
     refine_labels=False
 )
 
-# dr = os.path.join(paths['raw_data_folder'], paths['trials_clips'])
-test_videos = [os.path.join(dr,f) for f in os.listdir(dr) if 'avi' in f]  # [str(os.path.join(dr, v)) for v in os.listdir(dr) if  random.uniform(0.0, 1.0) < 0.005]
+test_videos = [os.path.join(dr,f) for f in os.listdir(dr) if 'avi' in f]
 
 # GET VIDEOS
-def get_videos():
+def get_videos(min_vids=5):
     use_trial_clips = True
+    videos = []
     if use_trial_clips:
-        videos = [str(os.path.join(dr, v)) for v in os.listdir(dr) if
-                           random.uniform(0.0, 1.0) < arguments['get_training_vids_th'] and 'avi' in v]
+        if len(os.listdir(dr)) < min_vids:  # get as many as you can
+            min_vids = len(os.listdir(dr))
+            arguments['get_training_vids_th'] = 10  # high value to ensure we get all the viedeos
+
+        while len(videos) < min_vids:
+            videos = [str(os.path.join(dr, v)) for v in os.listdir(dr) if
+                            random.uniform(0.0, 1.0) < arguments['get_training_vids_th'] 
+                            and 'avi' in v and str(os.path.join(dr, v)) not in videos]
         return  videos
     else:
         raise ValueError('Feature not yet implemetned: use other folders to select training videos')
@@ -64,10 +73,16 @@ else:
 if arguments['create_proj']:
     if training_videos is None:
         training_videos = get_videos()
+
+    print('Creating project with {} videos'.format(len(training_videos)))
+    # yn = input('Continue? y/n')
+    # if 'y' not in yn.lower(): sys.exit()
+    os.chdir('Users/federicoclaudi/Desktop')
+    
     deeplabcut.create_new_project(arguments['project_params']['experiment'],
                                   arguments['project_params']['experimenter'], 
                                   training_videos, 
-                                  arguments['project_params']['project_path'], copy_videos=True)
+                                  working_directory='/Users/federicoclaudi/Desktop', copy_videos=True)
 
 # ADD VIDEOS TO PROJECT
 if arguments['add_videos']:
