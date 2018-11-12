@@ -1,25 +1,32 @@
-from Tables_definitions import *
+from dj_config import start_connection
+start_connection()
 
-import datajoint as dj
+import sys
+sys.path.append('./')   # <- necessary to import packages from other directories within the project
+
 import os
+import warnings
+from shutil import copyfile
+
+import cv2
+import datajoint as dj
+import moviepy
+import pandas as pd
 import pyexcel
 import yaml
-import moviepy
-import cv2
 from moviepy.editor import VideoFileClip
-from shutil import copyfile
 from tqdm import tqdm
-import warnings
-import pandas as pd
-from utils.video_editing import *
+
+from Tables_definitions import *
+from Utilities import video_editing
+
+
 
 
 class PopulateDatabase:
     def __init__(self):
         """
-        Collection of methods to populate the different
-
-
+        Collection of methods to populate the database
         """
         print("""
         Ready to populate database. Available classes:
@@ -34,7 +41,7 @@ class PopulateDatabase:
                 * BehaviourTrial""")
 
         # Hard coded paths to relevant files and folders
-        with open('./data_paths.yml', 'r') as f:
+        with open('database\data_paths.yml', 'r') as f:
             paths = yaml.load(f)
 
         self.mice_records = paths['mice_records']
@@ -441,13 +448,10 @@ class PopulateDatabase:
 
 if __name__ == '__main__':
     p = PopulateDatabase()
+    p.display_tables_headings()
     # p.create_trials_clips()
-    # p.populate_mice_table()
-    # p.populate_sessions_table()
+    p.populate_mice_table()
+    p.populate_sessions_table()
     p.populated_recordings_table()
     p.populate_trials_table()
     p.display_tables_headings()
-
-    a = 1
-
-
