@@ -11,15 +11,8 @@
 { "key": "shift+cmd+space",           "command": "editor.action.commentLine",
 "when": "editorTextFocus && !editorReadonly" },     
 { "key": "cmd+r",           "command": "code-runner.run"},  
+{
+    "code-runner.runInTerminal": true
+},
 ]
-
-
-Extensions:
-
-Bracket Pair
-Code Runner
-GitLens
-MaterialIconTheme
-Python
-Material Dark Theme
 

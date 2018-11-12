@@ -12,11 +12,11 @@ import yaml
 with open('database/data_paths.yml', 'r') as f:
     paths = yaml.load(f)
 
-if 'windows' in str(platform.sys).lower():
-    cfg_path = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Nets\\Barnes-Federico-2018-11-09\\' \
-            'config.yaml'
+if 'windows' in platform.system().lower():
     dr = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\DAQ\\upstairs_rig\\video_clips\\videos_for_FC'
-    proj_path = str('D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Nets')
+    project_path = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Nets'
+    cfg_path = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Nets\\testgui-Federico-2018-11-12\\' \
+        'config.yaml'
 else:
     cfg_path = "/Users/federicoclaudi/Desktop/testgui-Federico-2018-11-12/config.yaml"
     dr = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/raw_data/video"
@@ -44,7 +44,7 @@ arguments = dict(
     refine_labels=False
 )
 
-test_videos = [os.path.join(dr,f) for f in os.listdir(dr) if 'avi' in f]
+# test_videos = [os.path.join(dr,f) for f in os.listdir(dr) if 'avi' in f]
 
 # GET VIDEOS
 def get_videos(min_vids=5):
@@ -77,12 +77,12 @@ if arguments['create_proj']:
     print('Creating project with {} videos'.format(len(training_videos)))
     # yn = input('Continue? y/n')
     # if 'y' not in yn.lower(): sys.exit()
-    os.chdir('Users/federicoclaudi/Desktop')
+    # os.chdir('Users/federicoclaudi/Desktop')
     
     deeplabcut.create_new_project(arguments['project_params']['experiment'],
                                   arguments['project_params']['experimenter'], 
                                   training_videos, 
-                                  working_directory='/Users/federicoclaudi/Desktop', copy_videos=True)
+                                  working_directory=project_path, copy_videos=True)
 
 # ADD VIDEOS TO PROJECT
 if arguments['add_videos']:

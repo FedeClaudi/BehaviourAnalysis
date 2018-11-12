@@ -6,18 +6,12 @@ from tqdm import tqdm
 import cv2
 import os
 
-<<<<<<< HEAD
 make_videos = False
 make_plots = True
 
-dr = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\DAQ\\upstairs_rig\\video_clips\\videos_for_FC'
-videoname = "Barnes US wall up (2)_CA3380_audio-3 (27').avi"
-posename = "Barnes US wall up (2)_CA3380_audio-3 (27')DeepCut_resnet50_BarnesNov9shuffle1_150000.h5"
-=======
 dr = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\DAQ\\upstairs_rig\\video_clips\\videos_for_FC'
 videoname = "Barnes US wall up (2)_CA3380_audio-3 (27')"
 posename = "Barnes US wall up (2)_CA3380_audio-3 (27')DeepCut_resnet50_BarnesNov9shuffle1_150000_labeled"
->>>>>>> 48a286fae5d99b814eec6134bb13651e64a9a9b1
 
 videos = [f for f in os.listdir(dr) if'avi' in f and 'labeled' not in f]
 posesfiles = [f for f in os.listdir(dr) if 'h5' in f and 'metadata' not in f]
@@ -91,44 +85,6 @@ if make_plots:
                         [pointsdict[l1][1], pointsdict[l2][1]], color=color, linewidth=3, alpha=alpha)
 
         f.savefig(os.path.join(dr, video.split('.')[0])+'.eps', format='eps', dpi=1000)
-
-
-
-"""
-  def plot_skeleton_time(self, poses, ax):
-        x = np.linspace(1, 101 * (len(poses.keys()) / 2), len(poses.keys()) + 1)
-        for idx, (fr, pose) in enumerate(sorted(poses.items())):
-            fr = x[idx]
-            # Mark the frame
-            if idx == self.prestim_frames-1:
-                ax.axvline(fr, color='r', linewidth=3)
-                # Plot pose over maze edges at react time
-                self.plot_skeleton_single_pose(pose, self.pose_space)
-                self.plot_skeleton_lines(self.pose_space, pose, self.colors, False)
-
-                maze_outline = self.session.Metadata.videodata[0]['Maze Edges']
-                self.pose_space.imshow(maze_outline, cmap='gray')
-
-            elif not (idx+self.prestim_frames+1)%10:
-                ax.axvline(fr, color=[0.4, 0.4, 0.4], linewidth=2)
-                ax.text(fr-20, 600, '{}'.format(idx-self.prestim_frames+1),
-                        bbox={'facecolor': [0.1, 0.1, 0.1], 'alpha': 0.5, 'pad': 10})
-
-            elif (idx-self.prestim_frames) == self.at_shelter:
-                ax.axvline(fr, color=[0.8, 0.2, 0.8], linewidth=3, label=None)
-
-            else:
-                ax.axvline(fr, color=[0.6, 0.6, 0.6], linewidth=0.25)
-
-            # Plot the skeleton
-            self.plot_skeleton_lines(ax, pose, self.colors, fr)
-
-            # Plot the location of the bodyparts
-            self.plot_skeleton_single_pose(pose, ax, shift=fr)
-        return x
-
-
-"""
 
 # CREATE video/pose overlay - loop over videos
 if make_videos:
