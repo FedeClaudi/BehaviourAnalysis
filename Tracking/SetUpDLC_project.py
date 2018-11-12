@@ -146,5 +146,4 @@ deeplabcut.add_new_videos(`Full path of the project configuration file*',
 
 MANUALLY EXTRACT MORE FRAMES
 deeplabcut.extract_frames(‘config_path’,‘manual’)
-
 """
