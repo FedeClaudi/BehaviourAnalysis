@@ -18,7 +18,7 @@ if 'windows' in str(platform.sys).lower():
     dr = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\DAQ\\upstairs_rig\\video_clips\\videos_for_FC'
     proj_path = str('D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Nets')
 else:
-    cfg_path = ""
+    cfg_path = "/Users/federicoclaudi/Desktop/testgui-Federico-2018-11-12/config.yaml"
     dr = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/raw_data/video"
     project_path = 'Users/federicoclaudi/Desktop'
 
@@ -28,11 +28,11 @@ arguments = dict(
         experiment = 'testgui',
         experimenter = 'Federico',
         project_path = project_path),
-    get_videos=True,
-    create_proj=True,
+    get_videos=False,
+    create_proj=False,
     add_videos=False,
     extract_frames=False,
-    label_frames=False,
+    label_frames=True,
     check_labels=False,
     create_training_set=False,
     train=False,
