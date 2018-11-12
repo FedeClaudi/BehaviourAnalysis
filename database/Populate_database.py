@@ -18,9 +18,8 @@ from moviepy.editor import VideoFileClip
 from tqdm import tqdm
 
 from Tables_definitions import *
-from Utilities import video_editing
-
-
+from Utilities.video_editing import *
+from Utilities.stim_times_loader import *
 
 
 class PopulateDatabase:
@@ -143,7 +142,7 @@ class PopulateDatabase:
             except:
                 raise ValueError('Failed to add session {} to Sessions table'.format(session_name))
 
-    def populated_recordings_table(self):
+    def populate_recordings_table(self):
         """ Populate the Recordings table """
         """
             # Within one session one may perform several recordings. Each recording has its own video and metadata files
@@ -273,42 +272,6 @@ class PopulateDatabase:
             else:
                 raise ValueError('Failed to add data entry {} to {} table'.format(dataname, table.full_table_name[-1]))
 
-
-    @staticmethod
-    def load_stimuli_from_tdms(tdmspath, software='behaviour'):
-        """ Takes the path to a tdms file and attempts to load the stimuli metadata from it, returns a dictionary
-         with the stim times """
-        # TODO load metadata
-        # Try to load a .tdms
-        print('\n Loading stimuli time from .tdms: {}'.format(os.path.split(tdmspath)[-1]))
-        try:
-            tdms = TdmsFile(tdmspath)
-        except:
-            raise ValueError('Could not load .tdms file')
-
-        if software == 'behaviour':
-            stimuli = dict(audio=[], visual=[], digital=[])
-            for group in tdms.groups():
-                for obj in tdms.group_channels(group):
-                    if 'stimulis' in str(obj).lower():
-                        for idx in obj.as_dataframe().loc[0].index:
-                            if '  ' in idx:
-                                framen = int(idx.split('  ')[1].split('-')[0])
-                            else:
-                                framen = int(idx.split(' ')[2].split('-')[0])
-
-                            if 'visual' in str(obj).lower():
-                                stimuli['visual'].append(framen)
-                            elif 'audio' in str(obj).lower():
-                                stimuli['audio'].append(framen)
-                            elif 'digital' in str(obj).lower():
-                                stimuli['digital'].append(framen)
-                            else:
-                                print('                  ... couldnt load stim correctly')
-        else:
-            raise ValueError('Feature not implemented yet: load stim metdata from Mantis .tdms')
-        return stimuli
-
     def create_trials_clips(self, BehavRec=None, folder=None, prestim=10, poststim=20):
         """
         This function creates small mp4 videos for each trial and saves them.
@@ -426,23 +389,6 @@ class PopulateDatabase:
 
                                 frame_counter += 1
                             videowriter.release()
-
-    def sort_behaviour_files(self):
-        for fld in os.listdir(self.raw_to_sort):
-            for f in os.listdir(os.path.join(self.raw_to_sort, fld)):
-                print('sorting ', fld)
-                if '.tdms' in f and 'index' not in f:
-                    copyfile(os.path.join(self.raw_to_sort, fld, f),
-                             os.path.join(self.raw_metadata_folder, f))
-                elif '.avi' in f:
-                    os.rename(os.path.join(self.raw_to_sort, fld, f),
-                              os.path.join(self.raw_to_sort, fld, fld+'.avi'))
-                    copyfile(os.path.join(self.raw_to_sort, fld, fld+'.avi'), 
-                             os.path.join(self.raw_video_folder, fld+'.avi'))
-                else:
-                    pass
-        print('... task completed')
-
 
 
 

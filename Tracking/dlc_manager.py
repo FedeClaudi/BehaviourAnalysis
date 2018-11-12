@@ -12,7 +12,6 @@ print(' ... ready!')
 
 
 class DLCManager:
-    
     """
     Collection of useful functions for deeplabcut:
 
@@ -50,7 +49,6 @@ class DLCManager:
                             and 'labeled' in v]
         return  videos
 
-
     def create_project(self):
         # TODO add check if file existsts already
         training_videos = self.sel_videos_in_folder()
@@ -60,7 +58,6 @@ class DLCManager:
                                     arguments['project_params']['experimenter'], 
                                     training_videos, 
                                     working_directory=project_path, copy_videos=True)
-
 
     def add_videos_to_project(self):
         vids_to_add = self.sel_videos_in_folder()
