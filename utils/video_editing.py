@@ -33,7 +33,7 @@ class VideoConverter:
             warn.warn('The file is already in the desired format {}'.format(output))
         else:
             # Check format of original file and call appropriate converter
-            if self.extention in ['.avi', '.mp4']: self.videotovideo_converter()
+            if self.extention in ['.avi', '.mp4', '.mov']: self.videotovideo_converter()
             elif self.extention == '.tdms':
                 if not self.output == '.mp4':
                     raise ValueError('TDMS --> Video conversion only supports .mp4 format for output video')
@@ -123,14 +123,13 @@ class Editor:
     def save_clip(clip, folder, name, format, fps):
         codecs = dict(avi='png', mp4='mpeg4')
         outputname = os.path.join(folder, name + format)
-        codec = codecs[format.split('.')[0]]
+        codec = codecs[format.split('.')[1]]
 
         print("""
             Writing {} to:
             {}
             """.format(name + format, outputname))
         clip.write_videofile(outputname, codec=codec, fps=fps)
-
     @staticmethod
     def split_clip(clip, number_of_clips=4, ispath=False):
             if ispath: clip = VideoFileClip(clip)
@@ -168,7 +167,9 @@ class Editor:
         videowriter.release()
 
 
-
+if __name__ == '__main__':
+    filetoconvert = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\fishes.mov'
+    VideoConverter(filetoconvert)
 
 
 
