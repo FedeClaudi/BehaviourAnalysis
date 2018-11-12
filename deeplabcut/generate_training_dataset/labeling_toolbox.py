@@ -21,6 +21,7 @@ from pathlib import Path
 import argparse
 import yaml
 from deeplabcut.generate_training_dataset import auxfun_drag_label
+from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar
 
 # ###########################################################################
 # Class for GUI MainFrame
@@ -37,11 +38,10 @@ class MainFrame(wx.Frame):
         # self.top_split = wx.Panel(self.split_win, style=wx.SUNKEN_BORDER)
         self.top_split = MatplotPanel(self.split_win,config) # This call/link the MatplotPanel and MainFrame classes which replaces the above line
         self.bottom_split = wx.Panel(self.split_win, style=wx.SUNKEN_BORDER)
-        self.split_win.SplitHorizontally(self.top_split, self.bottom_split, 885)
+        self.split_win.SplitHorizontally(self.top_split, self.bottom_split, 450)
         self.Maximize(True)
 
-# Add Buttons to the bottom_split window and bind them to plot functions
-
+# Add Buttons to the bottom_split window and bind them to plot functions  # TODO it would be better if size and pos were not hardcoded px values
         self.Button1 = wx.Button(self.bottom_split, -1, "Load Frames", size=(200, 40), pos=(250, 25))
         self.Button1.Bind(wx.EVT_BUTTON, self.browseDir)
         self.Button1.Enable(True)
@@ -59,6 +59,19 @@ class MainFrame(wx.Frame):
         self.Button4.Enable(False)
         self.close = wx.Button(self.bottom_split, -1, "Quit", size=(80, 40), pos=(1230, 25))
         self.close.Bind(wx.EVT_BUTTON,self.quitButton)
+
+# Add buttons to allow for zooming
+        
+        self.Button6 = wx.Button(self.top_split,-1,"Home", size=(60,20),pos=(1040,855))
+        self.Button6.Bind(wx.EVT_BUTTON,self.home)
+        
+        self.Button7 = wx.Button(self.top_split,-1,"Pan", size=(60,20),pos=(940,855))
+        self.Button7.Bind(wx.EVT_BUTTON,self.pan)
+
+        self.Button8 = wx.Button(self.top_split,-1,"Zoom", size=(60,20),pos=(840,855))
+        self.Button8.Bind(wx.EVT_BUTTON,self.zoom)
+
+# Define variables 
 
         self.currentDirectory = os.getcwd()
         self.index = []
@@ -85,6 +98,19 @@ class MainFrame(wx.Frame):
         else:
             self.new_labels = False
 #
+    def zoom(self,event):
+        self.statusbar.SetStatusText("Zoom")
+        self.toolbar.zoom()
+        
+    def home(self,event):
+        self.statusbar.SetStatusText("Home")
+        self.toolbar.home()
+         
+    def pan(self,event):
+        self.statusbar.SetStatusText("Pan")
+        self.toolbar.pan()
+
+
     def quitButton(self, event):
         """
         Quits the GUI
@@ -160,6 +186,8 @@ class MainFrame(wx.Frame):
         img_name = Path(self.index[self.iter]).name # self.index[self.iter].split('/')[-1]
         self.ax1f1.set_title(str(str(self.iter)+"/"+str(len(self.index)-1) +" "+ img_name ))
         self.canvas = FigureCanvas(self.top_split,-1,self.fig1)
+        self.toolbar = NavigationToolbar(self.canvas)
+
         #checks for unique bodyparts
         if len(self.bodyparts)!=len(set(self.bodyparts)):
           print("Error! bodyparts must have unique labels!Please choose unique bodyparts in config.yaml file and try again. Quiting for now!")

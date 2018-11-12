@@ -3,5 +3,11 @@ deeplabcut/pose_estimation_tensorflow/models/pretrained/resnet_v1_101.ckpt
 deeplabcut/pose_estimation_tensorflow/models/pretrained/resnet_v1_50.ckpt
 *.ckpt
 *.ckpt
+*.vscode
+*.avi
+*.mp4
+*.tdms
+*.png
+*.jpg
 deeplabcut/pose_estimation_tensorflow/models/pretrained/resnet_v1_101.ckpt
 deeplabcut/pose_estimation_tensorflow/models/pretrained/resnet_v1_50.ckpt
