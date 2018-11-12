@@ -29,15 +29,10 @@ class PopulateDatabase:
         """
         print("""
         Ready to populate database. Available classes:
-                * Mouse
-                * Experiment
-                * Surgery
-                * Manipulation
-                * Session
-            Updating SESSION will also update:
-                * NeuralRecording
-                * BehaviourRecording
-                * BehaviourTrial""")
+                * Mice
+                * Sessions
+                * Recordings
+                * Trials""")
 
         # Hard coded paths to relevant files and folders
         with open('paths.yml', 'r') as f:
@@ -164,15 +159,32 @@ class PopulateDatabase:
 
                     # Get deeplabcut data
                     posefile = [os.path.join(self.tracked_data_folder, f) for f in os.listdir(self.tracked_data_folder)
-                                if rec_name in f]
+                                if rec_name == os.path.splitext(f)[0]]
                     if not posefile:
+                        print('didnt find pose file, trying harder')
                         posefile = [os.path.join(self.tracked_data_folder, f) for f in os.listdir(self.tracked_data_folder)
                                    if session['name'] in f]
 
                     if len(posefile) != 1:
-                        raise ValueError('Failed to load pose data, found {} files'.format(len(posefile)))
-                    else: posefile = posefile[0]
-
+                        print("\n\n\nCould not find pose data for recording {}".format(rec_name))
+                        if posefile:
+                            print('Found these possible matches: ')
+                            [print('\n[{}] - {}'.format(i,f)) for i,f in enumerate(posefile)]
+                            yn = input("\nPlease select file [or type 'y' if none matches and you wish to continue anyways, n otherwise]:  int/y/n  ")
+                        else:
+                            yn = input('\nNo .h5 file found, continue anyways??  y/n  ')
+                        if yn == 'n': 
+                            raise ValueError('Failed to load pose data, found {} files for recording --- \n         {}\n{}'.format(len(posefile), 
+                                                                                                                            rec_name, posefile))
+                        elif yn == 'y':
+                            continue
+                        else:
+                            try:
+                                sel = int(yn)
+                                posefile = posefile[sel]
+                            except:
+                                raise ValueError('Failed to load pose data, found {} files for recording --- \n         {}\n{}'.format(len(posefile), 
+                                                                                                                            rec_name, posefile))
                     # pose_data = pd.read_hdf(posefile)
 
                     # insert recording in table
