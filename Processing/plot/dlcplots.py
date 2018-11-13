@@ -86,13 +86,16 @@ if make_plots:
 
         f.savefig(os.path.join(dr, video.split('.')[0])+'.eps', format='eps', dpi=1000)
 
+
 # CREATE video/pose overlay - loop over videos
 if make_videos:
     for vid in tqdm(videos):
         # pose = [p for p in poses if vid.split('.') in p]
         pose = poses
-        if len(pose) != 1: raise ValueError('ops')
-        else: pose = pose[0]
+        if len(pose) != 1:
+            raise ValueError('ops')
+        else:
+            pose = pose[0]
 
         posedf = pd.read_hdf(os.path.join(dr, pose, ))
 
@@ -107,26 +110,28 @@ if make_videos:
         h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
         wpoints = cv2.VideoWriter(savepath1, fourcc, 30, (h, w), False)
-        wlines =  cv2.VideoWriter(savepath2, fourcc, 30, (h, w), False)
-        wpolys =  cv2.VideoWriter(savepath3, fourcc, 30, (h, w), False)
+        wlines = cv2.VideoWriter(savepath2, fourcc, 30, (h, w), False)
+        wpolys = cv2.VideoWriter(savepath3, fourcc, 30, (h, w), False)
 
         framen = 0  # loop over frames
         while True:
             print('frame n: ', framen)
             ret, frame = cap.read()
-            blkframe =np.uint8( np.zeros(frame.shape))
+            blkframe = np.uint8(np.zeros(frame.shape))
             frame2 = frame.copy()
-            if not ret: break
+            if not ret:
+                break
             frame_pose = posedf.iloc[framen]
 
             # plot single bparts
             frame_pose = frame_pose['DeepCut_resnet50_BarnesNov9shuffle1_150000']
 
-            plotted  =[]
+            plotted = []
             pointsdict = {}
             for bpname in frame_pose.keys():
                 bpname = bpname[0]
-                if bpname in plotted: continue
+                if bpname in plotted:
+                    continue
                 bp = frame_pose[bpname]
                 if bpname in bp_groups.head:
                     color = colors.head
@@ -134,17 +139,23 @@ if make_videos:
                     color = colors.body
                 else:
                     continue
-                cv2.circle(frame, (np.int32(bp.x), np.int32(bp.y)), 5, color, -1)
+                cv2.circle(
+                    frame, (np.int32(bp.x), np.int32(bp.y)), 5, color, -1)
                 pointsdict[bpname] = np.int32([bp.x, bp.y])
 
             # draw mouse polygon
-            cv2.fillPoly(blkframe,  [np.int32([pointsdict[k] for k in bp_groups.body])], color=colors.body)
-            cv2.fillPoly(blkframe, [np.int32([pointsdict[k] for k in bp_groups.head])], color=colors.head)
+            cv2.fillPoly(blkframe,  [np.int32([pointsdict[k]
+                                               for k in bp_groups.body])], color=colors.body)
+            cv2.fillPoly(blkframe, [np.int32([pointsdict[k]
+                                              for k in bp_groups.head])], color=colors.head)
 
-            cv2.polylines(frame2, [np.int32([pointsdict[k] for k in ['lear', 'body', 'rear']])], color=[0, 255, 0], isClosed=True)
-            cv2.polylines(frame2, [np.int32([pointsdict[k] for k in ['body', 'tail_base']])], color=[0, 255, 0], isClosed=True)
+            cv2.polylines(frame2, [np.int32([pointsdict[k] for k in [
+                          'lear', 'body', 'rear']])], color=[0, 255, 0], isClosed=True)
+            cv2.polylines(frame2, [np.int32([pointsdict[k] for k in [
+                          'body', 'tail_base']])], color=[0, 255, 0], isClosed=True)
 
-            cv2.polylines(frame2, [np.int32([pointsdict[k] for k in bp_groups.head])], color=[0, 255, 0], isClosed=True)
+            cv2.polylines(frame2, [np.int32([pointsdict[k] for k in bp_groups.head])], color=[
+                          0, 255, 0], isClosed=True)
 
             cv2.imshow('blkframe', frame2)
             cv2.waitKey(1)
@@ -154,15 +165,11 @@ if make_videos:
             wlines.write(frame2)
 
             framen += 1
-            if framen > 350: break
+            if framen > 350:
+                break
         wpoints.release()
         wpolys.release()
         wlines.release()
-
-
-
-
-
 
 
 
