@@ -3,31 +3,7 @@ import pandas as pd
 import numpy as np
 import os
 
-
-def get_bps_as_points_dict(frame_pose):
-    '''get_bps_as_points_dict [turns the pose pd.Series into a dictionary, easier to handle]
-    
-    Arguments:
-        frame_pose {[pd.Series]} -- [pose at one frame from DLC]
-    
-    Returns:
-        [dict] -- [dictionary of x,y position of each bodypart in the frame]
-    '''
-
-    # TODO add other variables (e.g. velocity...)
-    # TODO exclude/include body segments
-
-    names = []
-    pointsdict = {}
-    for bpname in frame_pose.keys():
-        bpname = bpname[0]
-        if bpname in names:  # dont take twice
-            continue
-        else:
-            names.append(bpname)
-            bp_pos = frame_pose[bpname]
-            pointsdict[bpname] = np.int32([bp_pos.x, bp_pos.y])
-    return pointsdict
+from Processing.plot.plotting_utils import *
 
 
 def cv2_plot_mouse_bps(frame, points_dict, color_dict=None, s=5):
