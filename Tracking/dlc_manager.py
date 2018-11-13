@@ -109,13 +109,21 @@ class DLCManager:
     def evaluate_network(self):
         deeplabcut.evaluate_network(self.dlc_paths['cfg_path'], plotting=True)
 
-    def analyze_videos(self):
-        vids = self.sel_videos_in_folder()
-        deeplabcut.analyze_videos(self.dlc_paths['cfg_path'], vids, shuffle=1, save_as_csv=False)
+    def analyze_videos(self, videos=None):     
+        if videos is None:
+            videos = self.sel_videos_in_folder()
+        else: 
+            if not isinstance(videos, list):
+                videos = [videos]
+        deeplabcut.analyze_videos(self.dlc_paths['cfg_path'], videos, shuffle=1, save_as_csv=False)
 
-    def create_labeled_videos(self):
-        vids = self.sel_videos_in_folder()
-        deeplabcut.create_labeled_video(self.dlc_paths['cfg_path'],  vids)
+    def create_labeled_videos(self, videos=None):
+        if videos is None:
+            videos = self.sel_videos_in_folder()
+        else: 
+            if not isinstance(videos, list):
+                videos = [videos]
+        deeplabcut.create_labeled_video(self.dlc_paths['cfg_path'],  videos)
 
     def extract_outliers(self):
         vids = self.sel_videos_in_folder()
@@ -128,5 +136,8 @@ class DLCManager:
 if __name__ == "__main__":
     manager = DLCManager()
 
-    manager.label_frames()
+    vids = manager.sel_videos_in_folder(all=True)
+    # manager.analyze_videos(videos=vids)
+    manager.create_labeled_videos(videos=vids)
+
 
