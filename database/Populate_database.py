@@ -25,7 +25,7 @@ from Utilities.stim_times_loader import *
 class PopulateDatabase:
     def __init__(self):
         """
-        Collection of methods to populate the database
+        Collection of methods to populate the datajoint database
         """
         print("""
         Ready to populate database. Available classes:
@@ -49,6 +49,7 @@ class PopulateDatabase:
         self.trials_clips = os.path.join(self.raw_data_folder, paths['trials_clips'])
         self.tracked_data_folder = paths['tracked_data_folder']
 
+        # Load tables definitions
         self.mice = Mice()
         self.sessions = Sessions()
         self.recordings = Recordings()
@@ -56,10 +57,16 @@ class PopulateDatabase:
         self.all_tables = dict(mice=self.mice, sessions= self.sessions, recordings=self.recordings, trials=self.trials)
 
     def display_tables_headings(self):
+        """
+        prints out each table with the first N entries
+        """
         for name, table in self.all_tables.items():
             print('\n\nTable definition for {}:\n{}'.format(name, table))
 
     def reset_database(self):
+        """
+        tries to remove all tables from the database
+        """
         print('ATTENTION: this might result in loss of data!!!')
         q = input('Continue ? [Y/N]')
         if not q.lower() == 'y':
@@ -68,6 +75,9 @@ class PopulateDatabase:
             [table.drop() for table in self.all_tables.values()]
 
     def remove_table(self, tablename):
+        """
+        removes a single table from the database
+        """
         tb = self.all_tables[tablename]
         tb.drop()
 

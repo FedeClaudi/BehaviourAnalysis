@@ -23,6 +23,7 @@ def load_yaml(fpath):
     with open(fpath, 'r') as f:
         settings = yaml.load(f)
     return settings
+
 # add parent directory: (where nnet & config are!)
 tf_settings = load_yaml('.\cfg_dlc.yml')
 sys.path.append(os.path.join(tf_settings['DLC folder'], "pose-tensorflow"))
@@ -63,6 +64,9 @@ class DLCmanager:
 
 
 class DLCtracking:
+    """
+        Handles the tracking of a single video using DeepLabCut
+    """
     def __init__(self, file, destfld=None, resize=False, resize_fact=2.5, batch_size=4, runconfig=True):
         self.batch_size = batch_size
 
@@ -157,8 +161,6 @@ class DLCtracking:
 
         self.sess, self.inputs, self.outputs = predict.setup_pose_prediction(self.cfg)
         a =1
-
-
 
     # ANALYZE FUNCTIONS
     @staticmethod
