@@ -8,6 +8,8 @@ raw_to_sort: 'to_sort'   # appended to raw data folder
 
 trials_clips: 'trials_clips'   # appended to raw data folder
 
+clip_for_dlc_training: 'D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Training_videos'
+
 tracked_data_folder: 'D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\processed'
 
 dlc_nets: 'D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets'

@@ -16,7 +16,7 @@ experiment: 'maze'
 experimenter: 'Federico'
 
 # DLC select videos options
-get_training_vids_th: 0.005  # prop of videos to use to generate the training set [roughly]
+get_training_vids_th: 0.0065  # prop of videos to use to generate the training set [roughly]
 min_num_vids: 14              # min number of videos to be used
 video_format: 'mp4'
 

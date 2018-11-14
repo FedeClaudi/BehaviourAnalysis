@@ -56,7 +56,9 @@ class DLCManager:
         if min_n is None: min_n = self.settings['min_num_vids']
 
         if all:
+            print('Getting all videos')
             videos = [os.path.join(dr,f) for f in os.listdir(dr) if self.settings['video_format']  in f]
+            return  videos
         else:  # get a subset of the videos in folder
             if len(os.listdir(dr)) < min_n:  # get as many as you can
                 min_n = len(os.listdir(dr))
@@ -69,12 +71,12 @@ class DLCManager:
                             and 'labeled' not in v]
                 self.settings['get_training_vids_th'] += self.settings['get_training_vids_th']/2
 
-        yn = input('\n\nGot {} videos, continue? y/n   '.format(len(videos)))
-        if yn == 'y':
-            print('Got videos')
-            return  videos
-        else:
-            sys.exit()
+            yn = input('\n\nGot {} videos, continue? y/n   '.format(len(videos)))
+            if yn == 'y':
+                print('Got videos')
+                return  videos
+            else:
+                sys.exit()
 
     ### DLC functions
 
@@ -135,6 +137,8 @@ class DLCManager:
 
 if __name__ == "__main__":
     manager = DLCManager()
+
+    # manager.label_frames()
 
     vids = manager.sel_videos_in_folder(all=True)
     # manager.analyze_videos(videos=vids)

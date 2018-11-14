@@ -1,3 +1,6 @@
+import sys
+sys.path.append('./') 
+
 import os 
 try:
     import cv2
@@ -5,9 +8,11 @@ except:
     raise ImportError('Could not import openCV !!!!')
 from tqdm import tqdm
 
+from Utilities.file_io.files_load_save import load_yaml
+
 from Utilities.stim_times_loader import load_stimuli_from_tdms
 
-def create_trials_clips(rawvideo_fld, rawmetadata_fld, BehavRec=None, folder=None, prestim=10, poststim=20):
+def create_trials_clips(save_fld, rawvideo_fld, rawmetadata_fld, BehavRec=None, folder=None, prestim=10, poststim=20, clean_vids=True):
     """
     This function creates small mp4 videos for each trial and saves them.
     It can work on a single BehaviouralRecording or on a whole folder
@@ -34,7 +39,7 @@ def create_trials_clips(rawvideo_fld, rawmetadata_fld, BehavRec=None, folder=Non
     metadata_files = os.listdir(metadata_fld)
     for v in os.listdir(video_fld):
         print('\n\n\nProcessing: ', v)
-        if os.path.getsize(os.path.join(self.raw_video_folder, v)) == 0: continue  # skip if video file is empty
+        if os.path.getsize(os.path.join(video_fld, v)) == 0: continue  # skip if video file is empty
 
         if 'tdms' in v:  # TODO implemente tdms --> avi conversion
             raise ValueError('Feature not implemented yet: get trial clips from .tdms video')
@@ -42,7 +47,7 @@ def create_trials_clips(rawvideo_fld, rawmetadata_fld, BehavRec=None, folder=Non
             name = os.path.splitext(v)[0]
 
             # Check if already processed
-            processed = [f for f in os.listdir(self.trials_clips) if name in f]
+            processed = [f for f in os.listdir(save_fld) if name in f]
             if processed: continue
 
             # Load metadata
@@ -59,7 +64,7 @@ def create_trials_clips(rawvideo_fld, rawmetadata_fld, BehavRec=None, folder=Non
                 stimuli = load_stimuli_from_tdms(os.path.join(metadata_fld, tdms_file[0]))
 
                 # Open opencv cap reader and extract video metrics
-                cap = cv2.VideoCapture(os.path.join(self.raw_video_folder, v))
+                cap = cv2.VideoCapture(os.path.join(video_fld, v))
                 if not cap.isOpened():
                     print('Could not process this one')
                     raise ValueError('Could not load video file')
@@ -81,7 +86,7 @@ def create_trials_clips(rawvideo_fld, rawmetadata_fld, BehavRec=None, folder=Non
                         frame_n = stim-window[0]
                         cap.set(cv2.CAP_PROP_POS_FRAMES, frame_n-1)
 
-                        video_path = os.path.join(self.trials_clips,
+                        video_path = os.path.join(save_fld,
                                                     name + '_{}-{}'.format(stim_type, stim) + '.mp4')
                         print('\n\nSaving Clip in: ', video_path)
                         fourcc = cv2.VideoWriter_fourcc(*'MP4V')
@@ -111,16 +116,28 @@ def create_trials_clips(rawvideo_fld, rawmetadata_fld, BehavRec=None, folder=Non
 
                             # Make frame
                             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                            bordered_gray = cv2.copyMakeBorder(gray, border_size, border_size, border_size, border_size,
-                                                        cv2.BORDER_CONSTANT, value=curr_color)
+                            if not clean_vids:
+                                gray = cv2.copyMakeBorder(gray, border_size, border_size, border_size, border_size,
+                                                            cv2.BORDER_CONSTANT, value=curr_color)
 
-                            frame_time = (frame_counter - window[0]) / fps
-                            frame_time = str(round(.2 * round(frame_time / .2), 1)) + '0' * (abs(frame_time) < 10)
-                            cv2.putText(bordered_gray, sign + str(frame_time) + 's', (width - 110, height + 10), 0, 1,
-                                        (180, 180, 180), thickness=2)
+                                frame_time = (frame_counter - window[0]) / fps
+                                frame_time = str(round(.2 * round(frame_time / .2), 1)) + '0' * (abs(frame_time) < 10)
+                                cv2.putText(gray, sign + str(frame_time) + 's', (width - 110, height + 10), 0, 1,
+                                            (180, 180, 180), thickness=2)
 
                             # Save to file
-                            videowriter.write(bordered_gray)
+                            videowriter.write(gray)
                             frame_counter += 1
                         videowriter.release()
+
+
+
+if __name__ == "__main__":
+    paths = load_yaml('./paths.yml')
+
+    create_trials_clips(paths['clip_for_dlc_training'], 
+                        os.path.join(paths['raw_data_folder'], paths['raw_video_folder']),
+                        os.path.join(paths['raw_data_folder'], paths['raw_metadata_folder']), 
+                        BehavRec=None, folder=None, prestim=15, poststim=15, clean_vids=True)
+
 
