@@ -3,7 +3,7 @@
 # project_path -> dlc project working directory (where the project will be stored)
 # cfg_path -> path to the configure yaml file
 paths-windows: 
-  dr: D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Training_videos'                  
+  dr: D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Training_videos             
   project_path: 'D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets'
   cfg_path: 'D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets\maze-Federico-2018-11-12\config.yaml'
 paths-mac: 

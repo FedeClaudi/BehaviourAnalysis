@@ -55,13 +55,28 @@ class DLCManager:
         dr = self.dlc_paths['dr']
         if min_n is None: min_n = self.settings['min_num_vids']
 
-        all_videos = [os.path.join(dr, f) for f in os.listdir(dr) if self.settings['video_format'] in f]
-
         if all:
-            return all_videos
-        else:
-            selected_videos = random.sample(all_videos, self.settings['number_of_training_videos'])
-            return selected_videos
+            print('Getting all videos')
+            videos = [os.path.join(dr,f) for f in os.listdir(dr) if self.settings['video_format']  in f]
+            return  videos
+        else:  # get a subset of the videos in folder
+            if len(os.listdir(dr)) < min_n:  # get as many as you can
+                min_n = len(os.listdir(dr))
+                self.settings['get_training_vids_th'] = 10  # high value to ensure we get all the viedeos
+            videos = []
+            while len(videos) < min_n:
+                videos = [str(os.path.join(dr, v)) for v in os.listdir(dr) 
+                            if random.uniform(0.0, 1.0) < self.settings['get_training_vids_th'] 
+                            and self.settings['video_format'] in v and str(os.path.join(dr, v)) not in videos
+                            and 'labeled' not in v]
+                self.settings['get_training_vids_th'] += self.settings['get_training_vids_th']/2
+
+            yn = input('\n\nGot {} videos, continue? y/n   '.format(len(videos)))
+            if yn == 'y':
+                print('Got videos')
+                return  videos
+            else:
+                sys.exit()
 
     ### DLC functions
 
