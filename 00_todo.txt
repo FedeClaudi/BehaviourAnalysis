@@ -1,5 +1,7 @@
 
 
+** include results of DLC tracking directly into the database [for each rec] as longblob
+
 
 Create a script that loads the dj database and checks which sessions don't have a pose.h5 file attached --> trackes them
 
