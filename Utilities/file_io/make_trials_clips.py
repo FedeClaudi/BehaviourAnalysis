@@ -43,7 +43,11 @@ def create_trials_clips(save_fld, rawvideo_fld, rawmetadata_fld, BehavRec=None, 
 
         if 'tdms' in v:  # TODO implemente tdms --> avi conversion
             raise ValueError('Feature not implemented yet: get trial clips from .tdms video')
+        elif 'txt' in v:
+            continue
         else:
+            if not 'avi' in v and not 'mp4' in v:
+                raise ValueError('Unrecognised video format for : \n', v)
             name = os.path.splitext(v)[0]
 
             # Check if already processed
