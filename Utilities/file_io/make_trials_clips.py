@@ -86,18 +86,20 @@ def create_trials_clips(save_fld, rawvideo_fld, rawmetadata_fld, BehavRec=None, 
                         frame_n = stim-window[0]
                         cap.set(cv2.CAP_PROP_POS_FRAMES, frame_n-1)
 
-                        video_path = os.path.join(save_fld,
-                                                    name + '_{}-{}'.format(stim_type, stim) + '.mp4')
+                        video_path = os.path.join(save_fld, name + '_{}-{}'.format(stim_type, stim) + '.mp4')
                         print('\n\nSaving Clip in: ', video_path)
                         fourcc = cv2.VideoWriter_fourcc(*'MP4V')
-                        videowriter = cv2.VideoWriter(video_path, fourcc, fps, (width + (border_size * 2),
+                        if not clean_vids:
+                            videowriter = cv2.VideoWriter(video_path, fourcc, fps, (width + (border_size * 2),
                                                                                 height + (border_size * 2)), False)
+                        else:
+                                videowriter = cv2.VideoWriter(video_path, fourcc, fps, (width , height ), False)
 
                         for frame_counter in tqdm(range(clip_number_of_frames)):
                             ret, frame = cap.read()
                             if not ret:
                                 tot_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-                                if frame_counter + frame_n-1 == tot_frames: break
+                                if frame_counter + frame_n-1 == tot_frames or frame_counter == tot_frames: break
                                 else:
                                     raise ValueError('Something went wrong when opening next frame: {} of {}'.
                                                         format(frame_counter, tot_frames))
@@ -116,6 +118,7 @@ def create_trials_clips(save_fld, rawvideo_fld, rawmetadata_fld, BehavRec=None, 
 
                             # Make frame
                             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
                             if not clean_vids:
                                 gray = cv2.copyMakeBorder(gray, border_size, border_size, border_size, border_size,
                                                             cv2.BORDER_CONSTANT, value=curr_color)
@@ -129,6 +132,10 @@ def create_trials_clips(save_fld, rawvideo_fld, rawmetadata_fld, BehavRec=None, 
                             videowriter.write(gray)
                             frame_counter += 1
                         videowriter.release()
+
+                        # Check if file was properly created
+                        if not os.path.getsize(video_path) > 1000:  # ! arbitrary value
+                            raise ValueError('The file was not created properly')
 
 
 
