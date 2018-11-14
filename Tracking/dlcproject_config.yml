@@ -4,8 +4,8 @@
 # cfg_path -> path to the configure yaml file
 paths-windows: 
   dr: D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Training_videos             
-  project_path: 'D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets'
-  cfg_path: 'D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets\maze-Federico-2018-11-12\config.yaml'
+  project_path: D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets
+  cfg_path: D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets\maze-Federico-2018-11-14\config.yaml
 paths-mac: 
   cfg_path: "/Users/federicoclaudi/Desktop/testgui-Federico-2018-11-12/config.yaml"
   dr: "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/raw_data/video"

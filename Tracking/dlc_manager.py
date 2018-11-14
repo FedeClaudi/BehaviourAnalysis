@@ -24,6 +24,19 @@ class DLCManager:
     deeplabcut.extract_frames(‘config_path’,‘manual’)
     """
 
+    """
+        Typical pipeline for training a DLC network:
+
+            - create project with videos
+            - extract frames
+            - label frames + check labels
+            - creating training sets
+            - train
+            - evaluate -> make labelled videos and inspect by eye
+            - enjoy
+
+    """
+
     def __init__(self):
         # Get paths and settings
         with open('paths.yml', 'r') as f:
@@ -65,8 +78,6 @@ class DLCManager:
             selected_videos = random.sample(
                 all_videos, self.settings['number_of_training_videos'])
             return selected_videos
-
-   # ttesstt 
 
     ### DLC functions
 
@@ -128,7 +139,7 @@ class DLCManager:
 if __name__ == "__main__":
     manager = DLCManager()
 
-    manager.create_project()
+    manager.extract_frames()
 
     # manager.label_frames()
 
