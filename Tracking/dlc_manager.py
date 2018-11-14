@@ -56,7 +56,7 @@ class DLCManager:
         if min_n is None: min_n = self.settings['min_num_vids']
 
         if all:
-            videos = [os.path.join(dr,f) for f in os.listdir(dr) if 'avi' in f]
+            videos = [os.path.join(dr,f) for f in os.listdir(dr) if self.settings['video_format']  in f]
         else:  # get a subset of the videos in folder
             if len(os.listdir(dr)) < min_n:  # get as many as you can
                 min_n = len(os.listdir(dr))
