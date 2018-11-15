@@ -142,10 +142,10 @@ if __name__ == "__main__":
     # manager.create_project()
     # manager.extract_frames()
 
-    manager.train_network()
+    # manager.train_network()
 
-    # vids = manager.sel_videos_in_folder(all=True)
-    # manager.analyze_videos(videos=vids)
-   #  manager.create_labeled_videos(videos=vids)
+    vids = manager.sel_videos_in_folder(all=False, min_n=2)
+    manager.analyze_videos(videos=vids)
+    manager.create_labeled_videos(videos=vids)
 
 

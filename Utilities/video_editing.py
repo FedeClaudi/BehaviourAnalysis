@@ -130,6 +130,7 @@ class Editor:
             {}
             """.format(name + format, outputname))
         clip.write_videofile(outputname, codec=codec, fps=fps)
+
     @staticmethod
     def split_clip(clip, number_of_clips=4, ispath=False):
             if ispath: clip = VideoFileClip(clip)
@@ -166,10 +167,57 @@ class Editor:
             videowriter.write(frame)
         videowriter.release()
 
+    @staticmethod
+    def compress_clip(videopath, compress_factor, save_path=None, start_frame=0, stop_frame=None):
+        '''
+            takes the path to a video, opens it as opecv Cap and resizes to compress factor [0-1] and saves it
+        '''
+        cap = cv2.VideoCapture(videopath)
+        width = cap.get(3)
+        height = cap.get(4)
+        fps = cap.get(5)
+
+        resized_width = int(np.ceil(width*compress_factor))
+        resized_height = int(np.ceil(height*compress_factor))
+
+        if save_path is None:
+            save_name = os.path.split(videopath)[-1].split('.')[0] + '_compressed' + '.mp4'
+            save_path = os.path.split(videopath)
+            save_path = os.path.join(list(save_path))
+
+        fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+        videowriter = cv2.VideoWriter(save_path, fourcc, fps, (resized_width, resized_height), False)
+        framen = 0
+        while True:
+            if framen % 100 == 0:
+                print('Processing frame ', framen)
+            
+            if framen >= start_frame:
+                ret, frame = cap.read()
+                if not ret: break
+
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                resized = cv2.resize(gray, (resized_width, resized_height)) 
+                videowriter.write(resized)
+            framen += 1
+
+            if stop_frame is not None:
+                if framen >= stop_frame: break
+
+        videowriter.release()
+
 
 if __name__ == '__main__':
-    filetoconvert = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\fishes.mov'
-    VideoConverter(filetoconvert)
+    raw_fld = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\DLC_nets\\deepmouse_raw'
+    edited_fld = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\deepmouse_edited'
+    raw_name = 'test_man_tis_v-default-104926442-cam2-0.avi'
+
+    compress_factor = 0.75
+    split_in = 4
+
+    editor = Editor()
+    
+    resized = editor.compress_clip(os.path.join(raw_fld, raw_name), compress_factor, os.path.join(edited_fld, 'dariocompressed_6.mp4'), start_frame=23000, stop_frame=25000)
 
 
 
