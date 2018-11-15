@@ -5,6 +5,8 @@
 
 Create a script that loads the dj database and checks which sessions don't have a pose.h5 file attached --> trackes them
 
-Facilitate set up of DLC tracking for different users
+
+
+
 
 
