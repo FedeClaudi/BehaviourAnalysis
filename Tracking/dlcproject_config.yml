@@ -22,4 +22,3 @@ video_format: 'mp4'
 
 # DLC behaviour
 extract_frames_mode: 'uniform'    # 'uniform' vs 'kmeans'
-

@@ -139,9 +139,10 @@ class DLCManager:
 if __name__ == "__main__":
     manager = DLCManager()
 
-    manager.extract_frames()
+    # manager.create_project()
+    # manager.extract_frames()
 
-    # manager.label_frames()
+    manager.train_network()
 
     # vids = manager.sel_videos_in_folder(all=True)
     # manager.analyze_videos(videos=vids)
