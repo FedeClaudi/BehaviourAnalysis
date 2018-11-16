@@ -72,7 +72,7 @@ class DLCManager:
         all_videos = [os.path.join(dr, f) for f in os.listdir(
             dr) if self.settings['video_format'] in f]
 
-        if all:
+        if all or self.settings['number_of_training_videos'] >= len(all_videos):
             return all_videos
         else:
             selected_videos = random.sample(
@@ -128,9 +128,9 @@ class DLCManager:
                 videos = [videos]
         deeplabcut.create_labeled_video(self.dlc_paths['cfg_path'],  videos)
 
-    def extract_outliers(self):
-        vids = self.sel_videos_in_folder()
-        deeplabcut.extract_outlier_frames(self.dlc_paths['cfg_path'], vids)
+    def extract_outliers(self, videos=None):
+        if videos is None: videos = self.sel_videos_in_folder()
+        deeplabcut.extract_outlier_frames(self.dlc_paths['cfg_path'], videos)
 
     def refine_labels(self):
         deeplabcut.refine_labels(self.dlc_paths['cfg_path'])
@@ -140,12 +140,13 @@ if __name__ == "__main__":
     manager = DLCManager()
 
     # manager.create_project()
-    # manager.extract_frames()
+    manager.label_frames()
 
     # manager.train_network()
 
-    vids = manager.sel_videos_in_folder(all=False, min_n=2)
-    manager.analyze_videos(videos=vids)
-    manager.create_labeled_videos(videos=vids)
-
+    # vids = manager.sel_videos_in_folder(all=True, min_n=2)
+    # manager.analyze_videos(videos=vids)
+    # manager.create_labeled_videos(videos=vids)cls
+    
+    # manager.extract_outliers(videos=vids)
 

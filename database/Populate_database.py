@@ -271,7 +271,7 @@ if __name__ == '__main__':
     p = PopulateDatabase()
 
 
-    # p.remove_table('trials')
+    # p.remove_table('mice')
     # sys.exit()
 
     p.populate_mice_table()

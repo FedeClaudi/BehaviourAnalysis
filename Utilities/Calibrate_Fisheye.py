@@ -1,4 +1,11 @@
-import numpy as np; import os; import glob; import cv2
+
+import sys
+sys.path.append('./')
+
+import numpy as np
+import os
+import glob
+import cv2
 
 # TODO give credit to philip
 
@@ -28,10 +35,11 @@ class FisheyeCorrection:
             ValueError -- [description]
         '''
 
+
         if load_maps:
             if not maps_file or not isinstance(maps_file, str) or not '.npy' in maps_file:
-                raise ValueError('Plese provide valid path to maps file')
-            self.load_maps(maps_file)
+                maps_file = 'Utilities\\fisheye_maps.npy'
+            self.load_maps(file=maps_file)
         else:
             if not images_fld or not cameraname or not isinstance(images_fld, str) or not isinstance(cameraname, str):
                 raise ValueError('Either images fld or cameraname parameters not passed correctly')
@@ -214,11 +222,13 @@ class FisheyeCorrection:
         np.save(os.path.join(self.images_fld, 'fisheye_maps_' +
                              self.cameraname + '.npy', self.maps))
 
-
-    def load_maps(self):
+    def load_maps(self, file=None):
         '''load_maps [load maps for a camera that has been calibrated already]
         '''
-        self.maps = np.load(os.path.join(self.images_fld, 'fisheye_maps_' + self.cameraname + '.npy'))
+        if file is not None:
+            self.maps = np.load(file)
+        else:
+            self.maps = np.load(os.path.join(self.images_fld, 'fisheye_maps_' + self.cameraname + '.npy'))
 
     def correct_video(self, video, save_path, is_path=False):
         '''correct_video [corrects fish eye aberrations from videofile]
@@ -237,15 +247,15 @@ class FisheyeCorrection:
         if is_path:
             if not isinstance(video, str): raise ValueError('is_path is set as True but the video argument is not a string')
             if not 'avi' in video and not 'mp4' in video: raise ValueError('unrecognised video format for video to correct: ', video)
-            video = cv2.VideoFileCapture(video)
+            video = cv2.VideoCapture(video)
 
         # load correction maps
         if self.maps is None: self.load_maps()
 
         # set up video writer
-        width = video.get(3)
-        height = video.get(4)
-        fps = video.get(5)
+        width = int(video.get(3))
+        height = int(video.get(4))
+        fps = int(video.get(5))
 
         fourcc = cv2.VideoWriter_fourcc(*'MP4V')
         videowriter = cv2.VideoWriter(save_path, fourcc, fps, (width, height), False)
@@ -259,6 +269,11 @@ class FisheyeCorrection:
 
             undistorted = cv2.remap(gray, self.maps[:, :, 0:2], self.maps[:, :, 2],
                                     interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+
+            if undistorted.shape != (height, width): 
+                print('image shape {}, video shape {}'.format(undistorted.shape, (width, height)))
+                print('Nicht gut')
+                break
 
             videowriter.write(undistorted)
         videowriter.release()
@@ -290,3 +305,13 @@ class FisheyeCorrection:
                                 interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
         return undistorted
 
+
+
+if __name__ == "__main__":
+    videos_fld = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Training_videos'
+    video_name = os.listdir(videos_fld)[np.random.randint(len(videos_fld))]
+    video = os.path.join(videos_fld, video_name)
+    save_path = os.path.join(videos_fld, video_name.split('.')[0]+'_corected.mp4')
+
+    corrector = FisheyeCorrection(load_maps=True)
+    corrector.correct_video(video, save_path=save_path, is_path=True)

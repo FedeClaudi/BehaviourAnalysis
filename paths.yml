@@ -1,5 +1,5 @@
-mice_records: 'C:\Users\Federico\Downloads\FC_animals_records.xlsx'
-exp_records: 'D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\analysis\datalog.xls'
+mice_records: 'D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\FC_animals_records.xlsx'
+exp_records: 'D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\datalog.xls'
 
 raw_data_folder: 'D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\raw_data'
 raw_metadata_folder: 'metadata'   # appended to raw data folder
