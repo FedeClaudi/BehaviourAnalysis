@@ -1,5 +1,6 @@
 import numpy as np; import os; import glob; import cv2
 
+# TODO give credit to philip
 
 class FisheyeCorrection:
     ''' 
