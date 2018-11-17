@@ -3,22 +3,22 @@
 # project_path -> dlc project working directory (where the project will be stored)
 # cfg_path -> path to the configure yaml file
 paths-windows: 
-  dr: D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\deepmouse_edited         
+  dr: D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Training_videos         
   project_path: D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets
-  cfg_path: D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets\deepmouse-Federico-2018-11-16\config.yaml
+  cfg_path: D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets\Maze-Federico-2018-11-16\config.yaml
 paths-mac: 
   cfg_path: "/Users/federicoclaudi/Desktop/testgui-Federico-2018-11-12/config.yaml"
   dr: "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/raw_data/video"
   project_path: 'Users/federicoclaudi/Desktop'
 
 # DLC project NAME
-experiment: 'deepmouse'
+experiment: 'Maze'
 experimenter: 'Federico'
 
 # DLC select videos options
-number_of_training_videos: 11  # prop of videos to use to generate the training set [roughly]
-min_num_vids: 100              # min number of videos to be used
+number_of_training_videos: 31  # prop of videos to use to generate the training set [roughly]
+min_num_vids: 30              # min number of videos to be used
 video_format: 'mp4'
 
 # DLC behaviour
-extract_frames_mode: 'uniform'    # 'uniform' vs 'kmeans'
+extract_frames_mode: 'kmeans'    # 'uniform' vs 'kmeans'

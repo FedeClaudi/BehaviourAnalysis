@@ -91,7 +91,7 @@ class DLCManager:
 
     def add_videos_to_project(self):
         vids_to_add = self.sel_videos_in_folder()
-        deeplabcut.add_new_videos(cfg_path, traivids_to_addning_videos, copy_videos=True)
+        deeplabcut.add_new_videos(self.dlc_paths['cfg_path'], vids_to_add, copy_videos=True)
 
     def extract_frames(self):
         deeplabcut.extract_frames(self.dlc_paths['cfg_path'], 'automatic', self.settings['extract_frames_mode'], crop=False, checkcropping=False)
@@ -139,7 +139,6 @@ class DLCManager:
 if __name__ == "__main__":
     manager = DLCManager()
 
-    # manager.create_project()
     manager.label_frames()
 
     # manager.train_network()
