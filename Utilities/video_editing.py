@@ -52,7 +52,7 @@ class VideoConverter:
         cap = cv2.VideoCapture(videopath)
         if not cap.isOpened():
             print('Could not process this one')
-            raise ValueError('Could not load video file')
+            # raise ValueError('Could not load video file')
 
         fps = cap.get(cv2.CAP_PROP_FPS)
         width, height = int(cap.get(3)), int(cap.get(4))
@@ -62,7 +62,7 @@ class VideoConverter:
         print('Converting video: ', videopath)
         framen = 0
         while True:
-            if framen % 100 == 0: print('Frame: ', framen)
+            if framen % 1000 == 0: print('Frame: ', framen)
             framen += 1
             ret, frame = cap.read()
             if not ret:
@@ -243,8 +243,11 @@ if __name__ == '__main__':
         if not '.avi' in v: continue
         
         ori = os.path.join(origin, v)
-        dest =  os.path.join(destination, v.split('.')[0]+'.mp4')
-        converter.opencv_mp4_to_avi_converter(ori, dest)
+        new_name = v.split('.')[0]+'.mp4'
+        dest =  os.path.join(destination, new_name)
+
+        if not new_name in os.listdir(destination):
+            converter.opencv_mp4_to_avi_converter(ori, dest)
 
         
 

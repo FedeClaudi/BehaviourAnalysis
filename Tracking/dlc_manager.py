@@ -89,16 +89,17 @@ class DLCManager:
         deeplabcut.create_new_project(self.settings['experiment'], self.settings['experimenter'], 
                                       training_videos, working_directory=self.dlc_paths['project_path'], copy_videos=True)
 
-    def add_videos_to_project(self):
-        vids_to_add = self.sel_videos_in_folder()
-        deeplabcut.add_new_videos(self.dlc_paths['cfg_path'], vids_to_add, copy_videos=True)
+    def add_videos_to_project(self, videos=None):     
+        if videos is None:
+            videos = self.sel_videos_in_folder()
+        deeplabcut.add_new_videos(self.dlc_paths['cfg_path'], videos, copy_videos=True)
 
     def extract_frames(self):
         deeplabcut.extract_frames(self.dlc_paths['cfg_path'], 'automatic', self.settings['extract_frames_mode'], crop=False, checkcropping=False)
 
     def label_frames(self):
         print('Getting ready to label frames')
-        deeplabcut.label_frames(self.dlc_paths['cfg_path'], Screens=2)
+        deeplabcut.label_frames(self.dlc_paths['cfg_path']) #, Screens=1, winHack=1)
 
     def check_labels(self):
         deeplabcut.check_labels(self.dlc_paths['cfg_path'])
@@ -107,7 +108,7 @@ class DLCManager:
         deeplabcut.create_training_dataset(self.dlc_paths['cfg_path'])
 
     def train_network(self):
-        deeplabcut.train_network(self.dlc_paths['cfg_path'], shuffle=1)
+        deeplabcut.train_network(self.dlc_paths['cfg_path'], shuffle=1, gputouse=0)
 
     def evaluate_network(self):
         deeplabcut.evaluate_network(self.dlc_paths['cfg_path'], plotting=True)
@@ -139,13 +140,7 @@ class DLCManager:
 if __name__ == "__main__":
     manager = DLCManager()
 
-    # manager.label_frames()
     vids = manager.sel_videos_in_folder(all=True, min_n=2)
-    # manager.extract_outliers(videos=vids)
-    # manager.refine_labels()
-
-    # manager.analyze_videos(videos=vids)
-    # manager.create_labeled_videos(videos=vids)
     
-    manager.train_network()
+    manager.label_frames()
 
