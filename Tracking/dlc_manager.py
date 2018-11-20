@@ -39,8 +39,8 @@ class DLCManager:
 
     def __init__(self):
         # Get paths and settings
-        with open('paths.yml', 'r') as f:
-            self.paths = yaml.load(f)
+        # with open('paths.yml', 'r') as f:
+        #    self.paths = yaml.load(f)
 
         with open('Tracking\dlcproject_config.yml', 'r') as f:
             self.settings = yaml.load(f)
@@ -98,7 +98,7 @@ class DLCManager:
 
     def label_frames(self):
         print('Getting ready to label frames')
-        deeplabcut.label_frames(self.dlc_paths['cfg_path'])
+        deeplabcut.label_frames(self.dlc_paths['cfg_path'], Screens=2)
 
     def check_labels(self):
         deeplabcut.check_labels(self.dlc_paths['cfg_path'])
@@ -130,7 +130,7 @@ class DLCManager:
 
     def extract_outliers(self, videos=None):
         if videos is None: videos = self.sel_videos_in_folder()
-        deeplabcut.extract_outlier_frames(self.dlc_paths['cfg_path'], videos)
+        deeplabcut.extract_outlier_frames(self.dlc_paths['cfg_path'], videos, outlieralgorithm='uncertain', p_bound=.01)
 
     def refine_labels(self):
         deeplabcut.refine_labels(self.dlc_paths['cfg_path'])
@@ -139,13 +139,13 @@ class DLCManager:
 if __name__ == "__main__":
     manager = DLCManager()
 
-    manager.label_frames()
-
-    # manager.train_network()
-
-    # vids = manager.sel_videos_in_folder(all=True, min_n=2)
-    # manager.analyze_videos(videos=vids)
-    # manager.create_labeled_videos(videos=vids)cls
-    
+    # manager.label_frames()
+    vids = manager.sel_videos_in_folder(all=True, min_n=2)
     # manager.extract_outliers(videos=vids)
+    # manager.refine_labels()
+
+    # manager.analyze_videos(videos=vids)
+    # manager.create_labeled_videos(videos=vids)
+    
+    manager.train_network()
 

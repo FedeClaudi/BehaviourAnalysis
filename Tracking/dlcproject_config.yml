@@ -16,8 +16,8 @@ experiment: 'Maze'
 experimenter: 'Federico'
 
 # DLC select videos options
-number_of_training_videos: 31  # prop of videos to use to generate the training set [roughly]
-min_num_vids: 30              # min number of videos to be used
+number_of_training_videos: 3  # prop of videos to use to generate the training set [roughly]
+min_num_vids: 3              # min number of videos to be used
 video_format: 'mp4'
 
 # DLC behaviour

@@ -17,34 +17,60 @@ import shutil
 
 class VideoConverter:
     def __init__(self, filepath, output='.mp4', output_folder=None):
+
         self.editor = Editor()
+        if filepath is not None:
+            self.filep = filepath
+            self.output = output
 
-        self.filep = filepath
-        self.output = output
+            self.folder, self.filename = os.path.split(self.filep)
+            self.filename, self.extention = os.path.splitext(self.filename)
 
-        self.folder, self.filename = os.path.split(self.filep)
-        self.filename, self.extention = os.path.splitext(self.filename)
+            if output_folder is not None:
+                self.folder = output_folder
+            self.codecs = dict(avi='png', mp4='mpeg4')
 
-        if output_folder is not None:
-            self.folder = output_folder
-        self.codecs = dict(avi='png', mp4='mpeg4')
-
-        if output in self.filep:
-            warn.warn('The file is already in the desired format {}'.format(output))
-        else:
-            # Check format of original file and call appropriate converter
-            if self.extention in ['.avi', '.mp4', '.mov']: self.videotovideo_converter()
-            elif self.extention == '.tdms':
-                if not self.output == '.mp4':
-                    raise ValueError('TDMS --> Video conversion only supports .mp4 format for output video')
-                self.tdmstovideo_converter()
+            if output in self.filep:
+                warn.warn('The file is already in the desired format {}'.format(output))
             else:
-                raise ValueError('Unrecognised file format {}'.format(self.extention))
+                # Check format of original file and call appropriate converter
+                if self.extention in ['.avi', '.mp4', '.mov']: self.videotovideo_converter()
+                elif self.extention == '.tdms':
+                    if not self.output == '.mp4':
+                        raise ValueError('TDMS --> Video conversion only supports .mp4 format for output video')
+                    self.tdmstovideo_converter()
+                else:
+                    raise ValueError('Unrecognised file format {}'.format(self.extention))
 
     def videotovideo_converter(self):
         clip = VideoFileClip(self.filep)
         fps = clip.fps
         self.editor.save_clip(clip, self.folder, self.filename, self.output, fps)
+
+    @staticmethod
+    def opencv_mp4_to_avi_converter(videopath, savepath):
+        cap = cv2.VideoCapture(videopath)
+        if not cap.isOpened():
+            print('Could not process this one')
+            raise ValueError('Could not load video file')
+
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        width, height = int(cap.get(3)), int(cap.get(4))
+        fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+
+        videowriter = cv2.VideoWriter(savepath, fourcc, fps, (width , height ), False)
+        print('Converting video: ', videopath)
+        framen = 0
+        while True:
+            if framen % 100 == 0: print('Frame: ', framen)
+            framen += 1
+            ret, frame = cap.read()
+            if not ret:
+                break
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            videowriter.write(gray)
+        videowriter.release()
+
 
     def tdmstovideo_converter(self):
         def write_clip(arguments, limits=None):
@@ -208,16 +234,22 @@ class Editor:
 
 
 if __name__ == '__main__':
-    raw_fld = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\DLC_nets\\deepmouse_raw'
-    edited_fld = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\deepmouse_edited'
-    raw_name = 'test_man_tis_v-default-104926442-cam2-0.avi'
+    origin = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\video'
+    destination = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\video_mp4'
 
-    compress_factor = 0.75
-    split_in = 4
-
-    editor = Editor()
+    converter = VideoConverter(None)
     
-    resized = editor.compress_clip(os.path.join(raw_fld, raw_name), compress_factor, os.path.join(edited_fld, 'dariocompressed_6.mp4'), start_frame=23000, stop_frame=25000)
+    for v in os.listdir(origin):
+        if not '.avi' in v: continue
+        
+        ori = os.path.join(origin, v)
+        dest =  os.path.join(destination, v.split('.')[0]+'.mp4')
+        converter.opencv_mp4_to_avi_converter(ori, dest)
+
+        
+
+
+
 
 
 
