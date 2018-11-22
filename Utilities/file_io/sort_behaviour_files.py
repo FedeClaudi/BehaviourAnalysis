@@ -1,4 +1,6 @@
-import os    
+import os
+from shutil import copyfile
+
     
 def sort_behaviour_files(tosort_fld, video_fld, metadata_fld):
     yn = input('WARNING! this function only works with Behaviour software, NOT Mantis.\n Continue? y/n')
@@ -18,3 +20,12 @@ def sort_behaviour_files(tosort_fld, video_fld, metadata_fld):
             else:
                 raise ValueError('Could not proess file with format: ', os.path.split(f)[-1])
     print('... task completed')
+
+
+if __name__ == "__main__":
+    from files_load_save import load_yaml
+    paths = load_yaml('../../paths.yml')
+    sort_behaviour_files(os.path.join(paths['raw_data_folder'], paths['raw_to_sort']),
+                         os.path.join(paths['raw_data_folder'], paths['raw_video_folder']),
+                         os.path.join(paths['raw_data_folder'], paths['raw_metadata_folder']))
+

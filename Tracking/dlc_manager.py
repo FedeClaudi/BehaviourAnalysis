@@ -141,25 +141,25 @@ class DLCManager:
         deeplabcut.merge_datasets(self.dlc_paths['cfg_path'])
 
     def update_training_video_list(self):
-            '''
-            Updates the config.yaml file to include all videos in your labeled-data folder
-            '''
-            # load config file
-            with open(self.dlc_paths['cfg_path']) as f:
-                config_file = yaml.load(f)
+        '''
+        Updates the config.yaml file to include all videos in your labeled-data folder
+        '''
+        # load config file
+        with open(self.dlc_paths['cfg_path']) as f:
+            config_file = yaml.load(f)
 
-            # create dict of labelled data folders
-            updated_video_list = {}
-            crop_dict_to_use = config_file['video_sets'][list(config_file['video_sets'].keys())[0]]
-            training_images_folder = os.path.join(os.path.dirname(self.dlc_paths['cfg_path']), 'labeled-data')
-            for i, folder in enumerate(os.listdir(training_images_folder)):
-                if folder.find('labeled') < 0:
-                    updated_video_list[os.path.join(self.dlc_paths['dr'], folder+'.'+self.settings['video_format'])] = crop_dict_to_use
+        # create dict of labelled data folders
+        updated_video_list = {}
+        crop_dict_to_use = config_file['video_sets'][list(config_file['video_sets'].keys())[0]]
+        training_images_folder = os.path.join(os.path.dirname(self.dlc_paths['cfg_path']), 'labeled-data')
+        for i, folder in enumerate(os.listdir(training_images_folder)):
+            if folder.find('labeled') < 0:
+                updated_video_list[os.path.join(self.dlc_paths['dr'], folder+'.'+self.settings['video_format'])] = crop_dict_to_use
 
-            # replace video list in config file with new list
-            config_file['video_sets'] = updated_video_list
-            with open(self.dlc_paths['cfg_path'], "w") as f:
-                yaml.dump(config_file, f)
+        # replace video list in config file with new list
+        config_file['video_sets'] = updated_video_list
+        with open(self.dlc_paths['cfg_path'], "w") as f:
+            yaml.dump(config_file, f)
 
         def delete_labeled_outlier_frames(self):
             '''
@@ -174,7 +174,7 @@ class DLCManager:
                     for image in os.listdir(trial_images_folder):
                         if image.find('labeled.png')>=0:
                             os.remove(os.path.join(trial_images_folder, image))
-                            
+
 if __name__ == "__main__":
     manager = DLCManager()
 
@@ -186,10 +186,10 @@ if __name__ == "__main__":
 
     # manager.refine_labels()
 
-    manager.merge_datasets()
+    # manager.update_training_video_list()
     # manager.create_training_dataset()
 
-    # manager.train_network()
+    manager.train_network()
 
 """
 
