@@ -131,16 +131,74 @@ class DLCManager:
 
     def extract_outliers(self, videos=None):
         if videos is None: videos = self.sel_videos_in_folder()
-        deeplabcut.extract_outlier_frames(self.dlc_paths['cfg_path'], videos, outlieralgorithm='uncertain', p_bound=.01)
+        deeplabcut.extract_outlier_frames(self.dlc_paths['cfg_path'], videos, automatic=True, 
+                                          outlieralgorithm='jump', epsilon=20, p_bound=.01)
 
     def refine_labels(self):
         deeplabcut.refine_labels(self.dlc_paths['cfg_path'])
 
+    def merge_datasets(self):
+        deeplabcut.merge_datasets(self.dlc_paths['cfg_path'])
 
+    def update_training_video_list(self):
+            '''
+            Updates the config.yaml file to include all videos in your labeled-data folder
+            '''
+            # load config file
+            with open(self.dlc_paths['cfg_path']) as f:
+                config_file = yaml.load(f)
+
+            # create dict of labelled data folders
+            updated_video_list = {}
+            crop_dict_to_use = config_file['video_sets'][list(config_file['video_sets'].keys())[0]]
+            training_images_folder = os.path.join(os.path.dirname(self.dlc_paths['cfg_path']), 'labeled-data')
+            for i, folder in enumerate(os.listdir(training_images_folder)):
+                if folder.find('labeled') < 0:
+                    updated_video_list[os.path.join(self.dlc_paths['dr'], folder+'.'+self.settings['video_format'])] = crop_dict_to_use
+
+            # replace video list in config file with new list
+            config_file['video_sets'] = updated_video_list
+            with open(self.dlc_paths['cfg_path'], "w") as f:
+                yaml.dump(config_file, f)
+
+        def delete_labeled_outlier_frames(self):
+            '''
+            Deletes the img.png files that are called 'labeled'
+            '''
+            # go through folders containing training images
+            training_images_folder = os.path.join(os.path.dirname(self.dlc_paths['cfg_path']),'labeled-data')
+            for i, folder in enumerate(os.listdir(training_images_folder)):
+                if folder.find('labeled') < 0:
+                    # for the unlabeled folders, delete the png images that are labeled
+                    trial_images_folder = os.path.join(training_images_folder, folder)
+                    for image in os.listdir(trial_images_folder):
+                        if image.find('labeled.png')>=0:
+                            os.remove(os.path.join(trial_images_folder, image))
+                            
 if __name__ == "__main__":
     manager = DLCManager()
 
-    vids = manager.sel_videos_in_folder(all=True, min_n=2)
-    
-    manager.label_frames()
+    vids = manager.sel_videos_in_folder(all=False, min_n=2)
 
+    # manager.analyze_videos(videos=vids)
+    # manager.create_labeled_videos(videos=vids)
+    # manager.extract_outliers(videos=vids)
+
+    # manager.refine_labels()
+
+    manager.merge_datasets()
+    # manager.create_training_dataset()
+
+    # manager.train_network()
+
+"""
+
+import tensorflow as tf
+with tf.device('/gpu:0'):
+    a = tf.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], shape=[2, 3], name='a')
+    b = tf.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], shape=[3, 2], name='b')
+    c = tf.matmul(a, b)
+
+with tf.Session() as sess:
+    print (sess.run(c))
+"""
