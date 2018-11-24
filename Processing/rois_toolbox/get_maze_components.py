@@ -48,7 +48,7 @@ def get_maze_configuration_transitions(video_path):
 
 
 if __name__ == "__main__":
-    test_file = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\to_sort\\181114_CA3155_1\\cam1.avi'
+    test_file = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\to_sort\\181114_CA3155_1\\cam1.mp4'
     # os.chd('Users/federicoclaudi/Desktop')
     get_maze_configuration_transitions(test_file)
 

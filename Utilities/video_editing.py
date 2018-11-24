@@ -34,7 +34,7 @@ class VideoConverter:
                 warn.warn('The file is already in the desired format {}'.format(output))
             else:
                 # Check format of original file and call appropriate converter
-                if self.extention in ['.avi', '.mp4', '.mov']: self.videotovideo_converter()
+                if self.extention in ['.mp4', '.mp4', '.mov']: self.videotovideo_converter()
                 elif self.extention == '.tdms':
                     if not self.output == '.mp4':
                         raise ValueError('TDMS --> Video conversion only supports .mp4 format for output video')
@@ -240,7 +240,7 @@ if __name__ == '__main__':
     converter = VideoConverter(None)
     
     for v in os.listdir(origin):
-        if not '.avi' in v: continue
+        if not '.mp4' in v: continue
         
         ori = os.path.join(origin, v)
         new_name = v.split('.')[0]+'.mp4'

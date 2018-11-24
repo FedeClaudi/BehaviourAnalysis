@@ -94,8 +94,12 @@ class DLCManager:
             videos = self.sel_videos_in_folder()
         deeplabcut.add_new_videos(self.dlc_paths['cfg_path'], videos, copy_videos=True)
 
-    def extract_frames(self):
-        deeplabcut.extract_frames(self.dlc_paths['cfg_path'], 'automatic', self.settings['extract_frames_mode'], crop=False, checkcropping=False)
+    def extract_frames(self, manual=False):
+        if not manual:
+            deeplabcut.extract_frames(self.dlc_paths['cfg_path'], 'automatic', self.settings['extract_frames_mode'], crop=False, checkcropping=False)
+        else:
+            deeplabcut.extract_frames(self.dlc_paths['cfg_path'], 'manual', self.settings['extract_frames_mode'], crop=False, checkcropping=False)
+
 
     def label_frames(self):
         print('Getting ready to label frames')
@@ -161,7 +165,7 @@ class DLCManager:
         with open(self.dlc_paths['cfg_path'], "w") as f:
             yaml.dump(config_file, f)
 
-        def delete_labeled_outlier_frames(self):
+    def delete_labeled_outlier_frames(self):
             '''
             Deletes the img.png files that are called 'labeled'
             '''
@@ -175,21 +179,33 @@ class DLCManager:
                         if image.find('labeled.png')>=0:
                             os.remove(os.path.join(trial_images_folder, image))
 
+    def add_new_videos(self, videos=None):
+        if videos is None: raise ValueError('No videos')
+        deeplabcut.add_new_videos(self.dlc_paths['cfg_path'], videos ,copy_videos=True)
+            
 if __name__ == "__main__":
     manager = DLCManager()
 
     vids = manager.sel_videos_in_folder(all=False, min_n=2)
 
+
+    # manager.extract_outliers(videos=vids)
+
+    # manager.check_labels()
+
     # manager.analyze_videos(videos=vids)
     # manager.create_labeled_videos(videos=vids)
     # manager.extract_outliers(videos=vids)
 
-    # manager.refine_labels()
+    # manager.label_frames()
 
     # manager.update_training_video_list()
+    # manager.merge_datasets()
     # manager.create_training_dataset()
 
     manager.train_network()
+
+    
 
 """
 
