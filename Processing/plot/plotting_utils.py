@@ -18,13 +18,15 @@ def get_bps_as_points_dict(frame_pose):
 
     names = []
     pointsdict = {}
-    for bpname in frame_pose.keys():
-        bpname = bpname[0]
+    bodyparts = frame_pose.index.levels[1]
+    scorer = frame_pose.index.levels[0]
+    a = frame_pose.index.get_level_values(1)
+    for bpname in bodyparts:
         if bpname in names:  # dont take twice
             continue
         else:
             names.append(bpname)
-            bp_pos = frame_pose[bpname]
+            bp_pos = frame_pose[scorer[0], bpname]
             pointsdict[bpname] = np.int32([bp_pos.x, bp_pos.y])
     return pointsdict
 

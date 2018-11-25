@@ -2,6 +2,8 @@ import cv2
 import pandas as pd
 import numpy as np
 import os
+from collections import namedtuple
+import matplotlib.pyplot as plt
 
 from Processing.plot.plotting_utils import *
 
@@ -31,6 +33,37 @@ def cv2_plot_mouse_bps(frame, points_dict, color_dict=None, s=5):
         cv2.circle(frame, (np.int32(bp_pos.x),
                            np.int32(bp_pos.y)), s, color, -1)
 
+def custom_plot_poly(frame, points_dict):
+    def plot_segments(frame, points_dict, segments, color, lw):
+        # cv2.line(image, (x1, y1), (x2, y2), (0,255,0), lineThickness)
+        for seg in segments:
+            bp1 = points_dict[seg.bp1]
+            bp2 = points_dict[seg.bp2]
+
+            cv2.line(frame, (bp1[0], bp1[1]), (bp2[0], bp2[1]), color, lw)
+
+    segment = namedtuple('segment', 'bp1 bp2')
+    head_segments = [segment('left_ear', 'snout'), segment('snout', 'right_ear'),
+                     segment('right_ear','neck'), segment('neck', 'left_ear')]
+
+    body_axis = [segment('neck', 'body'), segment('body', 'tail_base')]
+    body_contour = [segment('left_ear', 'left_shoulder'), segment('left_shoulder', 'left_hip'),
+                    segment('left_hip', 'tail_base'), segment('tail_base', 'right_hip'),
+                    segment('right_hip', 'right_should'), segment('right_should', 'right_ear')]
+    tail = [segment('tail_base', 'tail_2'), segment('tail_2', 'tail_3')]
+
+    colors = dict(
+                  head = [255, 200, 200],
+                  body_axis = [200, 200, 255],
+                  body_contour=[200, 255, 200],
+                  tail = [180, 180, 120])
+  
+    plot_segments(frame, points_dict, head_segments, colors['head'], 2)
+    plot_segments(frame, points_dict, body_axis, colors['body_axis'], 2)
+    plot_segments(frame, points_dict, body_contour, colors['body_contour'], 1)
+    plot_segments(frame, points_dict, tail, colors['tail'], 1)
+
+
 
 def cv2_plot_mouse_poly(frame, points_dict, include_names=None, color=None, mode='fill'):
     if color is None: color = [0, 0, 0]
@@ -40,18 +73,18 @@ def cv2_plot_mouse_poly(frame, points_dict, include_names=None, color=None, mode
         if not isinstance(include_names, list): include_names = [include_names]
 
     if mode == 'fill':
-        cv2.fillPoly(blkframe, [np.int32([pointsdict[k] for k in include_names])],
+        cv2.fillPoly(blkframe, [np.int32([points_dict[k] for k in include_names])],
                         color=colors.head)
     elif mode == 'lines':
-        cv2.polylines(frame, [np.int32([pointsdict[k] for k in include_names])],
-                        color=color, isClosed=True)
+        cv2.polylines(frame, [np.int32([points_dict[k] for k in include_names])],
+                        color=color, isClosed=False)
     else:
         raise ValueError('Unrecognised plotting mode: ', mode)
 
 
-def overy_tracking_on_video(videopath=None, posepath=None, posedata=None, output_format = 'mp4', savepath=None,
-                                blk_frame=False, plot_points=False, plot_poly=True, poly_mode='fill',
-                                colors_dict=None, cap=None, cv_writer=None):
+def overlay_tracking_on_video(videopath=None, posepath=None, posedata=None, output_format = 'mp4', savepath=None,
+                                blk_frame=False, plot_points=False, plot_poly=False, poly_mode='fill',
+                                plot_custom=True, colors_dict=None, cap=None, cv_writer=None):
     '''overy_tracking_on_video [overlays plots of mouse pose over a video]
     
     Keyword Arguments:
@@ -118,14 +151,16 @@ def overy_tracking_on_video(videopath=None, posepath=None, posedata=None, output
         fourcc = cv2.VideoWriter_fourcc(*'X264')
         w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        cv_writer = cv2.VideoWriter(savepath, fourcc, 30, (h, w), False)
+        cv_writer = cv2.VideoWriter(savepath, fourcc, 30, (w, h), False)
 
     # Start looping over frames
     framen = 0  
-    cap.set(cv2.CV_CAP_PROP_POS_FRAMES, framen)  # ? start from the beginning
+    cap.set(cv2.CAP_PROP_POS_FRAMES, framen)  # ? start from the beginning
     while True:
         # Get frame and pose data
-        print('frame n: ', framen)
+        if framen > 0 and framen % 100 == 0:
+            print('frame n: ', framen)
+
         ret, frame = cap.read()
         if not ret:
             break
@@ -140,10 +175,15 @@ def overy_tracking_on_video(videopath=None, posepath=None, posedata=None, output
             cv2_plot_mouse_bps(frame, points_dict, include_names=None, colors_dict=colors_dict, s=5)
 
         if plot_poly:
-            cv2_plot_mouse_poly(frame, points_dict, include_names=None, colors_dict=colors_dict, mode=poly_mode)
+            cv2_plot_mouse_poly(frame, points_dict, include_names=None, mode=poly_mode)
 
+        if plot_custom:
+            custom_plot_poly(frame, points_dict, )
 
+        cv_writer.write(frame)
 
+        framen += 1
+    cv_writer.release()
 
 
 

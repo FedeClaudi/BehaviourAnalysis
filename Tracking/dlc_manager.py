@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import sys
+sys.path.append('./') 
 
 print('Importing deeplabcut takes a while...')
 import os
@@ -9,6 +11,9 @@ import platform
 
 import deeplabcut
 import yaml
+
+import Processing.plot.video_plotting_toolbox as pl
+
 print(' ... ready!')
 
 
@@ -133,8 +138,25 @@ class DLCManager:
                 videos = [videos]
         deeplabcut.create_labeled_video(self.dlc_paths['cfg_path'],  videos)
 
+    def create_labeled_videos_fc(self, videos=None):
+        if videos is None:
+            videos = self.sel_videos_in_folder()
+        else: 
+            if not isinstance(videos, list):
+                videos = [videos]
+
+        for video in videos:
+            fld, vid = os.path.split(video)
+            posename = vid.split('.')[0]+'DeepCut_resnet50_MazeNov24shuffle1_115000.h5'
+            pose = os.path.join(fld, posename)
+            savepath = os.path.join(fld, vid.split('.')[0]+'_labeled.mp4')
+
+            pl.overlay_tracking_on_video(videopath=video, posepath=pose,  output_format = 'mp4', savepath=savepath,
+                                plot_poly=False, poly_mode='lines', plot_custom=True)
+
     def extract_outliers(self, videos=None):
         if videos is None: videos = self.sel_videos_in_folder()
+
         deeplabcut.extract_outlier_frames(self.dlc_paths['cfg_path'], videos, automatic=True, 
                                           outlieralgorithm='jump', epsilon=20, p_bound=.01)
 
@@ -186,21 +208,15 @@ class DLCManager:
 if __name__ == "__main__":
     manager = DLCManager()
 
-    vids = manager.sel_videos_in_folder(all=False, min_n=2)
+    # vids = manager.sel_videos_in_folder(all=False, min_n=2)
 
-
-    # manager.extract_outliers(videos=vids)
-
-    # manager.check_labels()
+  
 
     # manager.analyze_videos(videos=vids)
-    # manager.create_labeled_videos(videos=vids)
-    # manager.extract_outliers(videos=vids)
+    # manager.create_labeled_videos_fc(videos=vids)
 
     # manager.label_frames()
 
-    # manager.update_training_video_list()
-    # manager.merge_datasets()
     # manager.create_training_dataset()
 
     manager.train_network()

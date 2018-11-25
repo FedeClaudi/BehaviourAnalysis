@@ -5,7 +5,7 @@
 paths-windows: 
   dr: D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Training_videos         
   project_path: D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets
-  cfg_path: D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets\Maze-Federico-2018-11-20\config.yaml
+  cfg_path: D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets\Maze-Federico-2018-11-24\config.yaml
 paths-mac: 
   cfg_path: "/Users/federicoclaudi/Desktop/testgui-Federico-2018-11-12/config.yaml"
   dr: "/Users/federicoclaudi/Rotation_vte/raw_data/video"
@@ -16,7 +16,7 @@ experiment: 'Maze'
 experimenter: 'Federico'
 
 # DLC select videos options
-number_of_training_videos: 10 # prop of videos to use to generate the training set [roughly]
+number_of_training_videos: 7 # prop of videos to use to generate the training set [roughly]
 min_num_vids: 3              # min number of videos to be used
 video_format: 'mp4'
 
