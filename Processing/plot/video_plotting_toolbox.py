@@ -19,19 +19,17 @@ def cv2_plot_mouse_bps(frame, points_dict, color_dict=None, s=5):
         color_dict {[dict]} -- [dictionary of color_name-color_value for each bodypart] (default: {None})
         s {int} -- [size of the circle being plotted] (default: {5})
     '''
-
-    if color_dict is None:
-        color_dict = {n: [0, 0, 0] for n in frame_pose.keys()}
+    if color_dict is None: color_dict = {}
 
     for name, (x, y) in points_dict.items():
         # Get color
         if name in color_dict.keys():
             color = color_dict[name]
         else:
-            color = [0, 0, 0]
+            color = [0, 255, 0]
         # Plot circle
-        cv2.circle(frame, (np.int32(bp_pos.x),
-                           np.int32(bp_pos.y)), s, color, -1)
+        cv2.circle(frame, (np.int32(x),
+                           np.int32(y)), s, color, -1)
 
 def custom_plot_poly(frame, points_dict):
     def plot_segments(frame, points_dict, segments, color, lw):
@@ -56,14 +54,12 @@ def custom_plot_poly(frame, points_dict):
                   head = [255, 200, 200],
                   body_axis = [200, 200, 255],
                   body_contour=[200, 255, 200],
-                  tail = [180, 180, 120])
+                  tail = [200, 150, 120])
   
-    plot_segments(frame, points_dict, head_segments, colors['head'], 2)
-    plot_segments(frame, points_dict, body_axis, colors['body_axis'], 2)
-    plot_segments(frame, points_dict, body_contour, colors['body_contour'], 1)
-    plot_segments(frame, points_dict, tail, colors['tail'], 1)
-
-
+    plot_segments(frame, points_dict, head_segments, colors['head'], 3)
+    plot_segments(frame, points_dict, body_axis, colors['body_axis'], 3)
+    plot_segments(frame, points_dict, body_contour, colors['body_contour'], 2)
+    plot_segments(frame, points_dict, tail, colors['tail'], 3)
 
 def cv2_plot_mouse_poly(frame, points_dict, include_names=None, color=None, mode='fill'):
     if color is None: color = [0, 0, 0]
@@ -172,7 +168,7 @@ def overlay_tracking_on_video(videopath=None, posepath=None, posedata=None, outp
         points_dict = get_bps_as_points_dict(frame_pose)
 
         if plot_points:
-            cv2_plot_mouse_bps(frame, points_dict, include_names=None, colors_dict=colors_dict, s=5)
+            cv2_plot_mouse_bps(frame, points_dict, s=5)
 
         if plot_poly:
             cv2_plot_mouse_poly(frame, points_dict, include_names=None, mode=poly_mode)

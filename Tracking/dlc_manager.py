@@ -147,11 +147,16 @@ class DLCManager:
 
         for video in videos:
             fld, vid = os.path.split(video)
-            posename = vid.split('.')[0]+'DeepCut_resnet50_MazeNov24shuffle1_115000.h5'
-            pose = os.path.join(fld, posename)
+            posename = [f for f in os.listdir(fld) if vid.split('.')[0] in f and '.h5' in f]
+
+            if not posename:
+                print('Pose data not found')
+                continue
+            
+            pose = os.path.join(fld, posename[0])
             savepath = os.path.join(fld, vid.split('.')[0]+'_labeled.mp4')
 
-            pl.overlay_tracking_on_video(videopath=video, posepath=pose,  output_format = 'mp4', savepath=savepath,
+            pl.overlay_tracking_on_video(videopath=video, posepath=pose,  output_format = 'mp4', savepath=savepath, plot_points=True,
                                 plot_poly=False, poly_mode='lines', plot_custom=True)
 
     def extract_outliers(self, videos=None):
@@ -208,18 +213,18 @@ class DLCManager:
 if __name__ == "__main__":
     manager = DLCManager()
 
-    # vids = manager.sel_videos_in_folder(all=False, min_n=2)
+    vids = manager.sel_videos_in_folder(all=True, min_n=2)
 
   
 
     # manager.analyze_videos(videos=vids)
-    # manager.create_labeled_videos_fc(videos=vids)
+    manager.create_labeled_videos_fc(videos=vids)
 
     # manager.label_frames()
 
     # manager.create_training_dataset()
-
-    manager.train_network()
+ 
+    # manager.train_network()
 
     
 
