@@ -25,21 +25,19 @@ class SetUpTracking:
             to_process_videos = [f for f in os.listdir(self.raw) if f.split('.')[-1] in ['mp4', 'avi', 'tdms']]
 
         # Convert all to mp4
-        to_convert = [f for f in to_process_videos if 'avi' in f or 'tdms' in f]
+        to_convert = [f for f in to_process_videos if 'tdms' in f]
         if to_convert: raise ValueError('Feature not yet implemented: videoconversion to mp4')
         
         # Analyze
-        deeplabcut.analyze_videos(self.cfg, to_process_videos, gputouse=0, save_as_csv=False)
+        print('Analysing {} videos with DeepLabCut'.format(len(to_process_videos)))
+        deeplabcut.analyze_videos(self.cfg, [os.path.join(self.raw, f) for f in to_process_videos], gputouse=0, save_as_csv=False)
 
        
-
-
 if __name__ == "__main__":
-    paths = load_yaml('../paths.yml')
+    paths = load_yaml('paths.yml')
 
     SetUpTracking(os.path.join(paths['raw_data_folder'], paths['raw_video_folder']), 
-                  os.path.join(paths['raw_data_folder'], paths['raw_metadata_folder']),
-                  paths['dlc_config'])
+                  paths['dlc_config'], processedfolder= os.path.join(paths['raw_data_folder'], paths['raw_metadata_folder']))
 
 
 
