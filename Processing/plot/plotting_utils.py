@@ -68,7 +68,7 @@ def create_figure(subplots=True, share_x=False, share_y=False,nrows=1, ncols=1, 
         f = plt.figure(facecolor=facecolor)
         axarr = None
     else:
-        f, axarr = plt.subplots(nrows, ncols, facecolor=facecolor,  sharex=share_x, sharey=share_y)
+        f, axarr = plt.subplots(nrows, ncols, facecolor=facecolor,  sharex=share_x, sharey=share_y, figsize=(22,13))
     return f, axarr
 
 

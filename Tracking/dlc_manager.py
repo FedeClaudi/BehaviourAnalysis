@@ -9,7 +9,7 @@ import random
 import sys
 import platform
 
-import deeplabcut
+# import deeplabcut
 import yaml
 
 import Processing.plot.video_plotting_toolbox as pl
@@ -213,11 +213,11 @@ class DLCManager:
 if __name__ == "__main__":
     manager = DLCManager()
 
-    vids = manager.sel_videos_in_folder(all=False, min_n=2)
+    vids = manager.sel_videos_in_folder(all=True, min_n=2)
 
   
 
-    manager.analyze_videos(videos=vids)
+    # manager.analyze_videos(videos=vids)
     manager.create_labeled_videos_fc(videos=vids)
 
     # manager.label_frames()
