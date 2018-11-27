@@ -213,20 +213,8 @@ class DLCManager:
 if __name__ == "__main__":
     manager = DLCManager()
 
-    vids = manager.sel_videos_in_folder(all=True, min_n=2)
+    vids = manager.sel_videos_in_folder(all=False, min_n=2)
 
-    manager.create_project()
+    manager.train_network()
 
-    
 
-"""
-
-import tensorflow as tf
-with tf.device('/gpu:0'):
-    a = tf.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], shape=[2, 3], name='a')
-    b = tf.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], shape=[3, 2], name='b')
-    c = tf.matmul(a, b)
-
-with tf.Session() as sess:
-    print (sess.run(c))
-"""
