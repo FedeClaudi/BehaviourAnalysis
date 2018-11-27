@@ -3,22 +3,22 @@
 # project_path -> dlc project working directory (where the project will be stored)
 # cfg_path -> path to the configure yaml file
 paths-windows: 
-  dr: D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Training_videos         
+  dr: D:\Dropbox (UCL - SWC)\Rotation_vte\3dcam_test         
   project_path: D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets
-  cfg_path: D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets\Maze-Federico-2018-11-24\config.yaml
+  cfg_path: D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets\3d-Federico-2018-11-27\config.yaml
 paths-mac: 
   cfg_path: "/Users/federicoclaudi/Desktop/testgui-Federico-2018-11-12/config.yaml"
   dr: "/Users/federicoclaudi/Rotation_vte/raw_data/video"
   project_path: 'Users/federicoclaudi/Desktop'
 
 # DLC project NAME
-experiment: 'Maze'
+experiment: '3d'
 experimenter: 'Federico'
 
 # DLC select videos options
-number_of_training_videos: 1 # prop of videos to use to generate the training set [roughly]
+number_of_training_videos: 10 # prop of videos to use to generate the training set [roughly]
 min_num_vids: 3              # min number of videos to be used
-video_format: 'mp4'
+video_format: 'avi'
 
 # DLC behaviour
 extract_frames_mode: 'kmeans'    # 'uniform' vs 'kmeans'

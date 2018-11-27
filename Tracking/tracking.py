@@ -3,7 +3,7 @@ sys.path.append('./')
 
 import os
 print('Importing dlc takes a while')
-import deeplabcut
+from deeplabcut import analyze_videos
 
 from Utilities.video_editing import VideoConverter
 from Utilities.file_io.files_load_save import load_yaml
@@ -22,7 +22,7 @@ class SetUpTracking:
         self.cfg = config_file
 
         to_process_videos = 1
-        while to_process_videos:
+        while True:
             """
                 When the data are on winstore, because the connection is unstable the streaming of the video can be interrupted during the analysis, 
                 resulting in an error. For this reason, we keep calling the analyse function untill all the videos in the fodler have
@@ -43,7 +43,7 @@ class SetUpTracking:
             # Analyze
             print('Analysing {} videos with DeepLabCut'.format(len(to_process_videos)))
             try:
-                deeplabcut.analyze_videos(self.cfg, [os.path.join(self.raw, f) for f in to_process_videos], gputouse=0, save_as_csv=False)
+                analyze_videos(self.cfg, [os.path.join(self.raw, f) for f in to_process_videos], gputouse=0, save_as_csv=False)
             except:
                 print('\n\nSomething went wrong, starting again\n\n')
 

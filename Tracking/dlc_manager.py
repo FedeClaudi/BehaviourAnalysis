@@ -9,7 +9,7 @@ import random
 import sys
 import platform
 
-# import deeplabcut
+import deeplabcut
 import yaml
 
 import Processing.plot.video_plotting_toolbox as pl
@@ -215,16 +215,7 @@ if __name__ == "__main__":
 
     vids = manager.sel_videos_in_folder(all=True, min_n=2)
 
-  
-
-    # manager.analyze_videos(videos=vids)
-    manager.create_labeled_videos_fc(videos=vids)
-
-    # manager.label_frames()
-
-    # manager.create_training_dataset()
- 
-    # manager.train_network()
+    manager.create_project()
 
     
 
