@@ -7,7 +7,7 @@ def start_connection():
     """
     dbname = 'fede_database_181112'
     dj.config['database.user'] = 'root'
-    dj.config['database.password'] = 'fede123'
+    dj.config['database.password'] = 'tutorial'
     schema = dj.schema(dbname, locals())
     dj.conn()
     return dbname

@@ -34,27 +34,27 @@ class Templates(dj.Manual):
     # stores the position of each maze template for one experiment
     -> Experiments
     ---
-    S: blob  # Shelter platform template position
-    T: blob  # Threat platform
-    P1: blob  # Other platforms
-    P2: blob
-    P3: blob
-    P4: blob
-    P5: blob
-    P6: blob
-    B1: blob  # Bridges
-    B2: blob
-    B3: blob
-    B4: blob
-    B5: blob
-    B6: blob
-    B7: blob
-    B8: blob
-    B9: blob
-    B10: blob
-    B11 blob
-    B12: blob
-    B13: blob
+    s: longblob  # Shelter platform template position
+    t: longblob  # Threat platform
+    p1: longblob  # Other platforms
+    p2: longblob
+    p3: longblob
+    p4: longblob
+    p5: longblob
+    p6: longblob
+    b1: longblob  # Bridges
+    b2: longblob
+    b3: longblob
+    b4: longblob
+    b5: longblob
+    b6: longblob
+    b7: longblob
+    b8: longblob
+    b9: longblob
+    b10: longblob
+    b11: longblob
+    b12: longblob
+    b13: longblob
     """
 
 @schema
@@ -422,7 +422,16 @@ class TrackingData(dj.Computed):
             maze_components: varchar(256)
             """
 
-        class Body(dj.Part):
+        class Body(dj.Part):definition = """
+            # where the data are actually stored
+            -> TopView
+            ---
+            x: longblob
+            y: longblob
+            likelihood: longblob
+            velocity: longblob
+            maze_components: varchar(256)
+            """
 
     class TopView(dj.Part):
         definition = """
