@@ -38,6 +38,8 @@ class PopulateDatabase:
         with open('paths.yml', 'r') as f:
             paths = yaml.load(f)
 
+        self.paths = paths
+
         self.mice_records = paths['mice_records']
         self.exp_records = paths['exp_records']
 
@@ -51,10 +53,14 @@ class PopulateDatabase:
 
         # Load tables definitions
         self.mice = Mice()
+        self.experiments = Experiments()
+        self.templates = Templates()
         self.sessions = Sessions()
         self.recordings = Recordings()
-        self.trials = Trials()
-        self.all_tables = dict(mice=self.mice, sessions= self.sessions, recordings=self.recordings, trials=self.trials)
+        self.stimuli = Stimuli()
+        self.tracking_data = TrackingData()
+        self.all_tables = dict(mice=self.mice, sessions= self.sessions, experiments=self.experiments, recordings=self.recordings,
+                               stimuli=self.stimuli, tracking_data = self.tracking_data, templates=self.templates)
 
     def display_tables_headings(self):
         """
@@ -99,6 +105,18 @@ class PopulateDatabase:
             )
             self.insert_entry_in_table(mouse_data['mouse_id'], 'mouse_id', mouse_data, table)
 
+    def populate_experiments_table(self):
+        table = self.experiments
+
+        exp_names = [d for d in os.listdir(self.paths['maze_templates']) if d != 'ignored']
+
+        for exp in exp_names:
+            data_to_input = dict(
+                name=exp,
+                templates_folder = os.path.join(self.paths['maze_templates'], exp)
+            )
+            self.insert_entry_in_table(data_to_input['name'], 'name', data_to_input, table)
+
     def populate_sessions_table(self):
         """  Populates the sessions table """
         table = self.sessions
@@ -124,8 +142,6 @@ class PopulateDatabase:
                 mouse_id=original_idd,
                 date=session_date,
                 num_recordings = 0,
-                experiment_name=session['Experiment'],
-                experimenter='Federico'
             )
             self.insert_entry_in_table(session_data['name'], 'name', session_data, table)
 
@@ -265,17 +281,22 @@ class PopulateDatabase:
                 else:
                     print('Entry with id: {} already in table'.format(dataname))
             else:
-                raise ValueError('Failed to add data entry {} to {} table'.format(dataname, table.full_table_name[-1]))
+                print(table)
+                raise ValueError('Failed to add data entry {}-{} to {} table'.format(checktag, dataname, table.full_table_name))
+
 
 if __name__ == '__main__':
     p = PopulateDatabase()
 
+    # print(p.mice)
+    # print(p.experiments)
 
-    # p.remove_table('mice')
+    # p.remove_table('experiments')
     # sys.exit()
 
-    p.populate_mice_table()
-    p.populate_sessions_table()
-    p.populate_recordings_table()
-    p.populate_trials_table()
-    p.display_tables_headings()
+    # p.populate_mice_table()
+    # p.populate_experiments_table()
+    # p.populate_sessions_table()
+    # p.populate_recordings_table()
+    # p.populate_trials_table()
+    # p.display_tables_headings()
