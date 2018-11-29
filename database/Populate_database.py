@@ -112,10 +112,10 @@ class PopulateDatabase:
 
         for exp in exp_names:
             data_to_input = dict(
-                name=exp,
+                experiment_name=exp,
                 templates_folder = os.path.join(self.paths['maze_templates'], exp)
             )
-            self.insert_entry_in_table(data_to_input['name'], 'name', data_to_input, table)
+            self.insert_entry_in_table(data_to_input['experiment_name'], 'experiment_name', data_to_input, table)
 
     def populate_sessions_table(self):
         """  Populates the sessions table """
@@ -124,6 +124,7 @@ class PopulateDatabase:
         loaded_excel = pyexcel.get_records(file_name=self.exp_records)
 
         for session in loaded_excel:
+            # Get mouse name
             mouse_id = session['MouseID']
             for mouse in mice:
                 idd = mouse['mouse_id']
@@ -133,17 +134,22 @@ class PopulateDatabase:
                 if idd.lower() == mouse_id.lower():
                     break
 
+            # Get session name
             session_name = '{}_{}'.format(session['Date'], session['MouseID'])
             session_date = '20'+str(session['Date'])
 
+            # Get experiment name
+            experiment_name = session['Experiment']
+
+            # Insert into table
             session_data = dict(
                 uid = str(session['Sess.ID']),
-                name=session_name,
+                session_name=session_name,
                 mouse_id=original_idd,
                 date=session_date,
-                num_recordings = 0,
+                experiment_name = experiment_name
             )
-            self.insert_entry_in_table(session_data['name'], 'name', session_data, table)
+            self.insert_entry_in_table(session_data['session_name'], 'session_name', session_data, table)
 
     def populate_recordings_table(self):
         """ Populate the Recordings table """
@@ -289,14 +295,14 @@ if __name__ == '__main__':
     p = PopulateDatabase()
 
     # print(p.mice)
-    # print(p.experiments)
+    print(p.experiments)
 
     # p.remove_table('experiments')
     # sys.exit()
 
     # p.populate_mice_table()
-    # p.populate_experiments_table()
-    # p.populate_sessions_table()
+    p.populate_experiments_table()
+    p.populate_sessions_table()
     # p.populate_recordings_table()
     # p.populate_trials_table()
     # p.display_tables_headings()

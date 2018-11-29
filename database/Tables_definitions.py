@@ -23,7 +23,7 @@ class Mice(dj.Manual):
 class Experiments(dj.Manual):
     definition = """
     # Name of the experiments and location of components templates
-    name: varchar(128)
+    experiment_name: varchar(128)
     ---
     templates_folder: varchar(256)
     """
@@ -63,11 +63,10 @@ class Sessions(dj.Manual):
     definition = """
     # A session is one behavioural experiment performed on one mouse on one day
     uid: smallint     # unique number that defines each session
-    name: varchar(128)  # unique name that defines each session - YYMMDD_MOUSEID
+    session_name: varchar(128)  # unique name that defines each session - YYMMDD_MOUSEID
     ---
     -> Mice
     date: date             # date in the YYYY-MM-DD format
-    num_recordings: smallint   # number of recordings performed within that session
     experiment_name: varchar(128)  # name of the experiment the session is part of 
     -> Experiments      # name of the person performing the experiment
     """
