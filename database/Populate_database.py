@@ -158,19 +158,23 @@ class PopulateDatabase:
         table = self.recordings
 
         for session in tqdm(sessions):
-            print('Getting recordings for session: ', session['uid'], ' - ', session['name'])
+            print('Getting recordings for session: ', session['uid'], ' - ', session['session_name'])
             # get video and metadata files
             videos = sorted([f for f in os.listdir(self.raw_video_folder)
-                             if session['name'].lower() in f.lower() and 'test' not in f])
+                             if session['session_name'].lower() in f.lower() and 'test' not in f
+                             and '.h5' not in f and '.pickle' not in f])
             metadatas = sorted([f for f in os.listdir(self.raw_metadata_folder)
-                                if session['name'].lower() in f.lower() and 'test' not in f])
+                                if session['session_name'].lower() in f.lower() and 'test' not in f and '.tdms' in f])
 
             if not videos or not metadatas:
                 if not videos and not metadatas: continue
-                print('couldnt find files for session: ', session['name'])
+                print('couldnt find files for session: ', session['session_name'])
+                raise FileNotFoundError('dang')
             else:
                 if len(videos) != len(metadatas):
-                    raise ValueError('Something went wront while trying to get the files')
+                    print('Found {} videos files: {}'.format(len(videos), videos))
+                    print('Found {} metadatas files: {}'.format(len(metadatas), metadatas))
+                    raise ValueError('Something went wront wrong trying to get the files')
 
                 num_recs = len(videos)
                 print(' ... found {} recs'.format(num_recs))
@@ -189,7 +193,7 @@ class PopulateDatabase:
                     if rec_num+1 != recnum:
                         raise ValueError('Something went wrong while getting recording number within the session')
 
-                    rec_name = session['name']+'_'+str(recnum)
+                    rec_name = session['session_name']+'_'+str(recnum)
                     format = vid.split('.')[-1]
                     converted = 'nan'
 
@@ -199,7 +203,7 @@ class PopulateDatabase:
                     if not posefile:
                         print('didnt find pose file, trying harder')
                         posefile = [os.path.join(self.tracked_data_folder, f) for f in os.listdir(self.tracked_data_folder)
-                                   if session['name'] in f]
+                                   if session['session_name'] in f]
 
                     if len(posefile) != 1:
                         if rec_name in table.fetch('recording_uid'): continue  # no need to worry about it
@@ -223,7 +227,6 @@ class PopulateDatabase:
                             except:
                                 raise ValueError('Failed to load pose data, found {} files for recording --- \n         {}\n{}'.format(len(posefile), 
                                                                                                                             rec_name, posefile))
-                    # pose_data = pd.read_hdf(posefile)
 
                     # insert recording in table
                     data_to_input = dict(
@@ -301,8 +304,8 @@ if __name__ == '__main__':
     # sys.exit()
 
     # p.populate_mice_table()
-    p.populate_experiments_table()
-    p.populate_sessions_table()
-    # p.populate_recordings_table()
+    # p.populate_experiments_table()
+    # p.populate_sessions_table()
+    p.populate_recordings_table()
     # p.populate_trials_table()
     # p.display_tables_headings()
