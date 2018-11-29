@@ -248,6 +248,9 @@ class PopulateDatabase:
 
                     self.insert_entry_in_table(rec_name, 'recording_uid', data_to_input, table, overwrite=False)
 
+    def populate_templates_table(self):
+        self.templates.populate()
+
     def populate_trials_table(self):
         print('Populating Trials Table')
         recordings = self.recordings.fetch(as_dict=True)
@@ -305,12 +308,12 @@ if __name__ == '__main__':
     # print(p.mice)
     # print(p.experiments)
 
-    # p.remove_table('recordings')
-    # sys.exit()
+    p.remove_table('templates')
+    sys.exit()
 
     # p.populate_mice_table()
     # p.populate_experiments_table()
     # p.populate_sessions_table()
-    p.populate_recordings_table()
+    # p.populate_recordings_table()
     # p.populate_trials_table()
     # p.display_tables_headings()

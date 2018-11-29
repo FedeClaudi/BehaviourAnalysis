@@ -104,7 +104,7 @@ def get_rois_from_templates(session_name, videopath, templates_fld):
     dic = {**platforms, **bridges}
     return dic
 
-
+# Test in prorgess
 def get_maze_configuration_transitions(video_path):
     cap = cv2.VideoCapture(video_path)
 
