@@ -213,8 +213,8 @@ class DLCManager:
 if __name__ == "__main__":
     manager = DLCManager()
 
-    vids = manager.sel_videos_in_folder(all=False, min_n=2)
+    vids = manager.sel_videos_in_folder(all=True, min_n=2)
 
-    manager.train_network()
 
+    manager.label_frames()
 
