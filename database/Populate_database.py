@@ -198,12 +198,13 @@ class PopulateDatabase:
                     converted = 'nan'
 
                     # Get deeplabcut data
+                    print(rec_name)
                     posefile = [os.path.join(self.tracked_data_folder, f) for f in os.listdir(self.tracked_data_folder)
-                                if rec_name == os.path.splitext(f)[0]]
+                                if rec_name == os.path.splitext(f)[0].split('Deep')[0] and '.pickle' not in f]
                     if not posefile:
                         print('didnt find pose file, trying harder')
                         posefile = [os.path.join(self.tracked_data_folder, f) for f in os.listdir(self.tracked_data_folder)
-                                   if session['session_name'] in f]
+                                   if session['session_name'] in f and '.pickle' not in f]
 
                     if len(posefile) != 1:
                         if rec_name in table.fetch('recording_uid'): continue  # no need to worry about it
@@ -216,7 +217,11 @@ class PopulateDatabase:
                         else:
                             yn = input('\nNo .h5 file found, continue anyways??  y/n  ')
                         if yn == 'n': 
-                            raise ValueError('Failed to load pose data, found {} files for recording --- \n         {}\n{}'.format(len(posefile), 
+                            yn = input('\nDo you want to instert this recording withouth a pose file??  y/n  ')
+                            if yn == 'y':
+                                posefile = 'nan'
+                            else:
+                                raise ValueError('Failed to load pose data, found {} files for recording --- \n         {}\n{}'.format(len(posefile), 
                                                                                                                             rec_name, posefile))
                         elif yn == 'y':
                             continue
@@ -232,7 +237,7 @@ class PopulateDatabase:
                     data_to_input = dict(
                         recording_uid=rec_name,
                         uid=session['uid'],
-                        name=session['name'],
+                        session_name=session['session_name'],
                         rec_num=rec_num,
                         video_file_path=os.path.join(self.raw_video_folder, vid),
                         video_format=format,
@@ -298,9 +303,9 @@ if __name__ == '__main__':
     p = PopulateDatabase()
 
     # print(p.mice)
-    print(p.experiments)
+    # print(p.experiments)
 
-    # p.remove_table('experiments')
+    # p.remove_table('recordings')
     # sys.exit()
 
     # p.populate_mice_table()
