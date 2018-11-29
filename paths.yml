@@ -2,6 +2,7 @@ mice_records: 'D:\Dropbox (UCL - SWC)\Rotation_vte\FC_animals_records.xlsx'
 exp_records: 'D:\Dropbox (UCL - SWC)\Rotation_vte\datalog.xls'
 
 maze_templates: D:\Dropbox (UCL - SWC)\Rotation_vte\Maze_templates
+templates_matched: D:\Dropbox (UCL - SWC)\Rotation_vte\Maze_templates\ignored\Matched
 
 raw_data_folder: Z:\branco\Federico\raw_behaviour\maze
 raw_metadata_folder: 'metadata'   # appended to raw data folder
