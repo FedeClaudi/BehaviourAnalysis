@@ -251,30 +251,9 @@ class PopulateDatabase:
     def populate_templates_table(self):
         self.templates.populate()
 
-    def populate_trials_table(self):
-        print('Populating Trials Table')
-        recordings = self.recordings.fetch(as_dict=True)
-        table = self.trials
+    def populate_stimuli_table(self):
+        self.stimuli.populate()
 
-        for rec in tqdm(recordings):
-            print('\n\nprocessing recording: ', rec['recording_uid'])
-            trial_num = 0
-            stims = load_stimuli_from_tdms(rec['metadata_file_path'])
-            for stim_type, stims_frames in stims.items():
-                if not stims_frames: continue
-                for stim in stims_frames:
-                    name = rec['recording_uid'] + '_' + str(trial_num)
-                    if stim_type == 'visual': dur = 5*30  # TODO this stuff is hardocoded
-                    else: dur = 9*30
-                    warnings.warn('Hardcoded variables: stim duration and video fps\n\n')
-
-                    data_to_input = dict(recording_uid=rec['recording_uid'],
-                                         uid=name,
-                                         stim_type=stim_type,
-                                         stim_start=stim,
-                                         stim_duration=dur)
-
-                    self.insert_entry_in_table(name, 'uid', data_to_input, table, overwrite=False)
 
     @staticmethod
     def insert_entry_in_table(dataname, checktag, data, table, overwrite=False):

@@ -177,7 +177,6 @@ class Stimuli(dj.Computed):
             )
             self.insert1(data_to_input)
 
-
 @schema
 class TrackingData(dj.Computed):
     definition = """
@@ -190,684 +189,148 @@ class TrackingData(dj.Computed):
     side_mirror_dataframe: varchar(256)  # path to dlc .h5 file
 
     """
-    class OverView(dj.Part):
+    # Docs on parts table 
+    # https://docs.datajoint.io/computation/Part-tables.html
+
+    class LeftEar(dj.Part):
         definition = """
-        # Tracking data from overview camera
-        -> TrackingData
+            -> TrackingData
+            ---
+            overview: longblob     # pose data extracted from overview camera
+            threat: longblob       # pose data extracted from threat camear (main view)
+            top_mirror: longblob   # pose data extracted from threat camera top mirror
+            side_mirror: longblob  # pose data extracted from threat camera side mirror
         """
-        class LeftEar(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> OverView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
 
-        class LeftEye(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> OverView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class Snout(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> OverView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class RightEye(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> OverView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class RightEar(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> OverView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-        
-        class Neck(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> OverView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class RightShoulder(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> OverView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class RightHip(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> OverView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class TailBase(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> OverView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class Tail1(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> OverView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-            
-        class Tail2(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> OverView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class LeftHip(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> OverView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class LeftShoulder(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> OverView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-    
-    class MainView(dj.Part):
+    class LeftEye(dj.Part):
         definition = """
-        # Tracking data from main camera
-        -> TrackingData
+            -> TrackingData
+            ---
+            overview: longblob     # pose data extracted from overview camera
+            threat: longblob       # pose data extracted from threat camear (main view)
+            top_mirror: longblob   # pose data extracted from threat camera top mirror
+            side_mirror: longblob  # pose data extracted from threat camera side mirror
         """
-        class LeftEar(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> MainView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
 
-        class LeftEye(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> MainView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class Snout(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> MainView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class RightEye(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> MainView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class RightEar(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> MainView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-        
-        class Neck(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> MainView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class RightShoulder(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> MainView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class RightHip(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> MainView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class TailBase(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> MainView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class Tail1(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> MainView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-            
-        class Tail2(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> MainView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class LeftHip(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> MainView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class LeftShoulder(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> MainView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class Body(dj.Part):definition = """
-            # where the data are actually stored
-            -> TopView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-    class TopView(dj.Part):
+    class Snout(dj.Part):
         definition = """
-        # Tracking data from top-view mirror
-        -> TrackingData
+            -> TrackingData
+            ---
+            overview: longblob     # pose data extracted from overview camera
+            threat: longblob       # pose data extracted from threat camear (main view)
+            top_mirror: longblob   # pose data extracted from threat camera top mirror
+            side_mirror: longblob  # pose data extracted from threat camera side mirror
         """
-        class LeftEar(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> TopView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
 
-        class LeftEye(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> TopView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class Snout(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> TopView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class RightEye(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> TopView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class RightEar(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> TopView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-        
-        class Neck(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> TopView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class RightShoulder(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> TopView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class RightHip(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> TopView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class TailBase(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> TopView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class Tail1(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> TopView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-            
-        class Tail2(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> TopView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class LeftHip(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> TopView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class LeftShoulder(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> TopView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class Body(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> TopView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-    class SideView(dj.Part):
+    class RightEye(dj.Part):
         definition = """
-        # Tracking data (from DLC) for the side view mirror
-        -> TrackingData
+            -> TrackingData
+            ---
+            overview: longblob     # pose data extracted from overview camera
+            threat: longblob       # pose data extracted from threat camear (main view)
+            top_mirror: longblob   # pose data extracted from threat camera top mirror
+            side_mirror: longblob  # pose data extracted from threat camera side mirror
         """
-        class LeftEar(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> SideView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
 
-        class LeftEye(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> SideView
+    class RightEar(dj.Part):
+        definition = """
+            -> TrackingData
             ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
+            overview: longblob     # pose data extracted from overview camera
+            threat: longblob       # pose data extracted from threat camear (main view)
+            top_mirror: longblob   # pose data extracted from threat camera top mirror
+            side_mirror: longblob  # pose data extracted from threat camera side mirror
+        """
 
-        class Snout(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> SideView
+    class Neck(dj.Part):
+        definition = """
+            -> TrackingData
             ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
+            overview: longblob     # pose data extracted from overview camera
+            threat: longblob       # pose data extracted from threat camear (main view)
+            top_mirror: longblob   # pose data extracted from threat camera top mirror
+            side_mirror: longblob  # pose data extracted from threat camera side mirror
+        """
 
-        class RightEye(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> SideView
+    class RightShoulder(dj.Part):
+        definition = """
+            -> TrackingData
             ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
+            overview: longblob     # pose data extracted from overview camera
+            threat: longblob       # pose data extracted from threat camear (main view)
+            top_mirror: longblob   # pose data extracted from threat camera top mirror
+            side_mirror: longblob  # pose data extracted from threat camera side mirror
+        """
 
-        class RightEar(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> SideView
+    class RightHip(dj.Part):
+        definition = """
+            -> TrackingData
             ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-        
-        class Neck(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> SideView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
+            overview: longblob     # pose data extracted from overview camera
+            threat: longblob       # pose data extracted from threat camear (main view)
+            top_mirror: longblob   # pose data extracted from threat camera top mirror
+            side_mirror: longblob  # pose data extracted from threat camera side mirror
+        """
 
-        class RightShoulder(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> SideView
+    class TailBase(dj.Part):
+        definition = """
+            -> TrackingData
             ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
+            overview: longblob     # pose data extracted from overview camera
+            threat: longblob       # pose data extracted from threat camear (main view)
+            top_mirror: longblob   # pose data extracted from threat camera top mirror
+            side_mirror: longblob  # pose data extracted from threat camera side mirror
+        """
 
-        class RightHip(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> SideView
+    class Tail2(dj.Part):
+        definition = """
+            -> TrackingData
             ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
+            overview: longblob     # pose data extracted from overview camera
+            threat: longblob       # pose data extracted from threat camear (main view)
+            top_mirror: longblob   # pose data extracted from threat camera top mirror
+            side_mirror: longblob  # pose data extracted from threat camera side mirror
+        """
+    class Tail3(dj.Part):
+        definition = """
+            -> TrackingData
+            ---
+            overview: longblob     # pose data extracted from overview camera
+            threat: longblob       # pose data extracted from threat camear (main view)
+            top_mirror: longblob   # pose data extracted from threat camera top mirror
+            side_mirror: longblob  # pose data extracted from threat camera side mirror
+        """
 
-        class TailBase(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> SideView
+    class LeftHip(dj.Part):
+        definition = """
+            -> TrackingData
             ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
+            overview: longblob     # pose data extracted from overview camera
+            threat: longblob       # pose data extracted from threat camear (main view)
+            top_mirror: longblob   # pose data extracted from threat camera top mirror
+            side_mirror: longblob  # pose data extracted from threat camera side mirror
+        """
 
-        class Tail1(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> SideView
+    class LeftShoulder(dj.Part):
+        definition = """
+            -> TrackingData
             ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-            
-        class Tail2(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> SideView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
+            overview: longblob     # pose data extracted from overview camera
+            threat: longblob       # pose data extracted from threat camear (main view)
+            top_mirror: longblob   # pose data extracted from threat camera top mirror
+            side_mirror: longblob  # pose data extracted from threat camera side mirror
+        """
 
-        class LeftHip(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> SideView
+    class Body(dj.Part):
+        definition = """
+            -> TrackingData
             ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
+            overview: longblob     # pose data extracted from overview camera
+            threat: longblob       # pose data extracted from threat camear (main view)
+            top_mirror: longblob   # pose data extracted from threat camera top mirror
+            side_mirror: longblob  # pose data extracted from threat camera side mirror
+        """
 
-        class LeftShoulder(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> SideView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
-
-        class Body(dj.Part):
-            definition = """
-            # where the data are actually stored
-            -> SideView
-            ---
-            x: longblob
-            y: longblob
-            likelihood: longblob
-            velocity: longblob
-            maze_components: varchar(256)
-            """
 
 if __name__ == "__main__":
     import sys
