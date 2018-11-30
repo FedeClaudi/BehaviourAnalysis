@@ -108,7 +108,7 @@ class Templates(dj.Imported):
 
         # Prepare data to insert into the table
         data_to_input =  {(n if n in matched.keys() else n):(matched[n] if n in matched.keys() else 0)
-                           for n in allcomponents}
+                           for n in all_components}
         for k,v in data_to_input:
             key[k] = v
 
@@ -125,8 +125,58 @@ class Stimuli(dj.Computed):
     stim_type: varchar(128)
     stim_start: int   # number of frame at start of stim
     stim_duration: int   # duration in frames
-    stim_metadta: longblob  # list of other stuff ? 
+    stim_metadata: longblob  # list of other stuff ? 
     """
+
+    def _make_tuple(self, key):
+        # TODO Mantis
+        # TODO more metadata
+        tdmspath = key['metadata_file_path']
+        recording_uid = key['recording_uid']
+
+         # Try to load a .tdms
+        try:
+            print('           ... loading metadata from .tdms: {}'.format(os.path.split(tdmspath)[-1]))
+            tdms = TdmsFile(tdmspath)
+        except FileNotFoundError:
+            raise FileNotFoundError(' Could not load tdms file')
+
+        # Get all stimuli in .tdms
+        stimuli = {}
+        for group in tdms.groups():
+            for obj in tdms.group_channels(group):
+                for idx in obj.as_dataframe().loc[0].index:
+                    if 'stimulis' in str(obj).lower():
+                        # Get stim type
+                        if 'visual' in str(obj).lower():
+                            stim_type = 'visual'
+                            stim_duration = 5 * 30  # ! <-
+                        elif 'audio' in str(obj).lower():
+                            stim_type = 'audio'
+                            stim_duration = 9 * 30  # ! <-
+
+
+                        # Get stim frame
+                        if '  ' in idx:
+                            framen = int(idx.split('  ')[1].split('-')[0])
+                        else:
+                            framen = int(idx.split(' ')[2].split('-')[0])
+
+                        stimuli[str(framen)] = stim_type
+
+        # Insert entries in table
+        for i, k in enumerate(sorted(stimuli.keys())):
+            stim = stimuli[k]
+
+            data_to_input = dict(
+                uid=recording_uid + '_{}'.format(i),
+                stim_type = stim_type,
+                stim_start = int(framen),
+                stim_duration = stim_duration,
+                stim_metadata = 0  # ! <- 
+            )
+            self.insert1(data_to_input)
+
 
 @schema
 class TrackingData(dj.Computed):
@@ -818,40 +868,6 @@ class TrackingData(dj.Computed):
             velocity: longblob
             maze_components: varchar(256)
             """
-
-    def _make_tuples(self, key):
-        # TODO
-        # Get pose data 
-        recording = (Recordings & key).fetch1['pose_data']
-
-        if recording is None: raise ValueError('Could not load pose data while populating table')
-        
-        pose = pd.read_hdf(recording)
-        print(pose.index.names)
-
-        # get subclass corresponding to BP
-        for bp in pose:  
-            methodname = [s.capitalize() for s in bp.split('_')].join()
-            method = getattr(self, methodname)
-
-            try:
-                data = dict(
-                    key,
-                    x=pose[bp].x,
-                    y=pose[bp].y,
-                    likelihood=pose[bp].likelihood,
-                    velocity=pose[bp].velocity
-                )
-            except:
-                if not velocity in pose[bp].keys():
-                    # need to process the data forst
-                    # TODO process
-                    pass
-                else:
-                    raise ValueError('Something went wrong while preparing data for bodypart: ', bp)
-
-            method().insert1(data)
-
 
 if __name__ == "__main__":
     import sys
