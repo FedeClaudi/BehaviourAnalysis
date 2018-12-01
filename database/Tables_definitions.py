@@ -8,6 +8,7 @@ schema = dj.schema(dbname, locals())
 
 import pandas as pd
 import os
+from collections import namedtuple
 
 from Utilities.file_io import load_yaml
 
@@ -96,6 +97,17 @@ class Recordings(dj.Imported):
             overview: varchar(256)          # overview camera
             threat: varchar(256)            # threat camera
             """
+
+    class AnalogInputs(dj.Part):
+        definition = """
+            # Stores data from relevant AI channels recorded with NI board
+            -> Recordings
+            ---
+            overview_camera_triggers: longblob      # Frame triggers signals efferent copy
+            threat_camera_triggers: longblob
+            speaker_signal: longblob                # HIGH when ultrasound being produced
+        """
+
 
     def _make_tuple(self, session):
         """ Populate the Recordings table """
@@ -203,10 +215,6 @@ class Recordings(dj.Imported):
                 Recordings.PoseFiles.insert1(posefiles)
                 Recordings.MetadataFiles.insert1(metadatafiles)
 
-
-                
-
-
 @schema
 class Templates(dj.Imported):
     definition = """
@@ -280,7 +288,7 @@ class Stimuli(dj.Computed):
     def _make_tuple(self, key):
         # TODO Mantis
         # TODO more metadata
-        tdmspath = key['metadata_file_path']
+        tdmspath = Recordings.MetadataFiles['overview']
         recording_uid = key['recording_uid']
 
          # Try to load a .tdms
@@ -433,6 +441,7 @@ class TrackingData(dj.Computed):
             top_mirror: longblob   # pose data extracted from threat camera top mirror
             side_mirror: longblob  # pose data extracted from threat camera side mirror
         """
+    
     class Tail3(dj.Part):
         definition = """
             -> TrackingData
@@ -473,6 +482,32 @@ class TrackingData(dj.Computed):
             side_mirror: longblob  # pose data extracted from threat camera side mirror
         """
 
+    def _make_tuple(self, key):
+        rec_name = key['recording_uid']
+        pose_files = Recordings.PoseFiles.fetch(rec_name, as_dict=True)
+
+        # initialise empty dict of dict
+        allbp = {}
+        cameras = ['overview', 'threat', 'top_mirror', 'side_mirror']
+        bodyparts = ['left_ear', 'left_eye', 'snout', 'right_eye', 'right_ear', 'neck', 'right_shoulder',
+                     'right_hip', 'tail_base', 'tail_2', 'tail_3', 'left_hip', 'left_shoulder', 'body']
+        for bp in bodyparts:
+            allbp[bp] = {cam:None for cam in cameras}
+
+        # now fill that dict with dem data
+        for camera, pfile in pose_files.items():
+            pose = pd.read_hdf(pfile)
+            bodyparts = pose.index.levels[1]
+            scorer = pose.index.levels[0]
+
+            for bpname in bodyparts:
+                allbp[bpname] = pose[scorer[0], bpname].values()
+
+        # now insert dem data in those tables
+        for bodypart in allbp.keys():
+            classname = [s.capitalize() for s in bodypart.split('_')]
+            part = self.getattr(classname)
+            part.insert1(allbp[bodypart])
 
 if __name__ == "__main__":
     import sys
