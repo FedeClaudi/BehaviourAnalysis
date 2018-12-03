@@ -17,31 +17,36 @@ import shutil
 # TODO add video cropper to Misc
 
 class VideoConverter:
-    def __init__(self, filepath, output='.mp4', output_folder=None):
+    def __init__(self, filepath, output='.mp4', output_folder=None, extract_framesize=True):
 
         self.editor = Editor()
         if filepath is not None:
-            self.filep = filepath
-            self.output = output
+            if not isinstance(filepath, list):
+                filepath = [filepath]
+            # Loop over each file in list of paths
+            for fpath in filepath:
+                self.filep = fpath
+                self.output = output
+                self.extract_framesize = extract_framesize
 
-            self.folder, self.filename = os.path.split(self.filep)
-            self.filename, self.extention = os.path.splitext(self.filename)
+                self.folder, self.filename = os.path.split(self.filep)
+                self.filename, self.extention = os.path.splitext(self.filename)
 
-            if output_folder is not None:
-                self.folder = output_folder
-            self.codecs = dict(avi='png', mp4='mpeg4')
+                if output_folder is not None:
+                    self.folder = output_folder
+                self.codecs = dict(avi='png', mp4='mpeg4')
 
-            if output in self.filep:
-                warn.warn('The file is already in the desired format {}'.format(output))
-            else:
-                # Check format of original file and call appropriate converter
-                if self.extention in ['.mp4', '.mp4', '.mov']: self.videotovideo_converter()
-                elif self.extention == '.tdms':
-                    if not self.output == '.mp4':
-                        raise ValueError('TDMS --> Video conversion only supports .mp4 format for output video')
-                    self.tdmstovideo_converter()
+                if output in self.filep:
+                    warn.warn('The file is already in the desired format {}'.format(output))
                 else:
-                    raise ValueError('Unrecognised file format {}'.format(self.extention))
+                    # Check format of original file and call appropriate converter
+                    if self.extention in ['.mp4', '.mp4', '.mov']: self.videotovideo_converter()
+                    elif self.extention == '.tdms':
+                        if not self.output == '.mp4':
+                            raise ValueError('TDMS --> Video conversion only supports .mp4 format for output video')
+                        self.tdmstovideo_converter()
+                    else:
+                        raise ValueError('Unrecognised file format {}'.format(self.extention))
 
     def videotovideo_converter(self):
         clip = VideoFileClip(self.filep)
@@ -86,25 +91,47 @@ class VideoConverter:
                 videowriter.write(data[framen])
             videowriter.release()
 
-        warn.warn('\nCurrently TDMS conversion depends on hardcoded variables !!')
-        tempdir = os.path.join(self.folder, 'Temp')
 
-        # HARDCODED variables about the video recorded
-        skip_data_points = 4094
-        real_width = 1936
-        width = real_width + 48
-        height = 1216
-        frame_size = width * height
-        real_frame_size = real_width * height
-        f_size = os.path.getsize(self.filep)  # size in bytes
-        tot_frames = int((f_size - skip_data_points) / frame_size)  # num frames
-        fps = 100
+        def extract_framesize_from_metadata(videotdms):
+            """extract_framesize_from_metadata [takes the path to the video to be connverted and 
+               uses it to extract metadata about the acquired video (frame widht and height...)]
+            
+            Arguments:
+                videotdms {[str]} -- [path to video.tdms]
+            Returns:
+                frame width, height and number of frames in the video to be converted
+            """
+
+            pth = os.path.split(videotdms)[0]
+            metadata_name = videotdms.split('.')[0] + 'meta.tdms'
+            
+            metadata = TdmsFile(os.path.join(pth, metadata_name))
+            print(metadata)
+
+        if not self.extract_framesize:
+            warn.warn('\nCurrently TDMS conversion depends on hardcoded variables !!')
+    
+            # ! HARDCODED variables about the video recorded
+            skip_data_points = 4094
+            real_width = 1936
+            width = real_width + 48
+            height = 1216
+            frame_size = width * height
+            real_frame_size = real_width * height
+            f_size = os.path.getsize(self.filep)  # size in bytes
+            tot_frames = int((f_size - skip_data_points) / frame_size)  # num frames
+        else:
+            extract_framesize_from_metadata(self.filep)
 
         iscolor = False  # is the video RGB or greyscale
         print('Total number of frames {}'.format(tot_frames))
 
         # Number of parallel processes for faster writing to video
+        tempdir = os.path.join(self.folder, 'Temp')
+        fps = 100
         num_processes = 3
+
+        print('Preparing to convert video, saving .mp4 at {}fps using {} parallel processes'.format(fps, num_processes))
 
         # Open TDMS
         print('Opening TDMS: ', self.filename + self.extention)
