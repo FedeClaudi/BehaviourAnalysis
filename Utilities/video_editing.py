@@ -12,6 +12,7 @@ import numpy as np
 from multiprocessing.dummy import Pool as ThreadPool
 from functools import partial
 import shutil
+import matplotlib.pyplot as plt
 
 # TODO stitch videos together after tdms conversion
 # TODO add video cropper to Misc
@@ -101,12 +102,27 @@ class VideoConverter:
             Returns:
                 frame width, height and number of frames in the video to be converted
             """
-
+            # Get info about the video data
             pth = os.path.split(videotdms)[0]
+
+            video = TdmsFile(os.path.join(pth, videotdms))
+            video_bytes = video.object('cam0', 'data').data
+
+            #plt.plot(video_bytes[:10000])
+            #plt.show()
+
+            # Get info about the metadata
             metadata_name = videotdms.split('.')[0] + 'meta.tdms'
-            
             metadata = TdmsFile(os.path.join(pth, metadata_name))
-            print(metadata)
+
+            # Get values to return
+            h = metadata.object('keys', 'IMAQdxActualHeight').data[0]
+            real_w = 1920
+            w = 1920
+            skip = 0
+            tot = np.int(round(len(video_bytes)/(w*h)))
+
+            return h, real_w, w, skip, tot
 
         if not self.extract_framesize:
             warn.warn('\nCurrently TDMS conversion depends on hardcoded variables !!')
@@ -121,12 +137,16 @@ class VideoConverter:
             f_size = os.path.getsize(self.filep)  # size in bytes
             tot_frames = int((f_size - skip_data_points) / frame_size)  # num frames
         else:
-            extract_framesize_from_metadata(self.filep)
+            height, real_width, width, skip_data_points, tot_frames = extract_framesize_from_metadata(self.filep)
 
         iscolor = False  # is the video RGB or greyscale
         print('Total number of frames {}'.format(tot_frames))
 
         # Number of parallel processes for faster writing to video
+        try:
+            os.mkdir(os.path.join(self.folder, 'Temp'))
+        except:
+            pass
         tempdir = os.path.join(self.folder, 'Temp')
         fps = 100
         num_processes = 3
@@ -327,21 +347,12 @@ class Editor:
 
 
 if __name__ == '__main__':
-    origin = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\video'
-    destination = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\video_mp4'
-
-    converter = VideoConverter(None)
     
-    for v in os.listdir(origin):
-        if not '.mp4' in v: continue
-        
-        ori = os.path.join(origin, v)
-        new_name = v.split('.')[0]+'.mp4'
-        dest =  os.path.join(destination, new_name)
+    fld = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\camtest'
+    toconvert = 'ThreatCamera.tdms'
 
-        if not new_name in os.listdir(destination):
-            converter.opencv_mp4_to_avi_converter(ori, dest)
-
+    converter = VideoConverter(os.path.join(fld, toconvert), 
+                               extract_framesize=True)
         
 
 

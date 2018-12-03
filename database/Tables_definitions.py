@@ -5,6 +5,7 @@ import datajoint as dj
 from dj_config import start_connection
 dbname = start_connection()
 schema = dj.schema(dbname, locals())
+from nptdms import TdmsFile
 
 import pandas as pd
 import os
@@ -310,10 +311,17 @@ class Stimuli(dj.Computed):
     stim_metadata: longblob  # list of other stuff ? 
     """
 
-    def _make_tuple(self, key):
+    def make(self, key):
         # TODO Mantis
         # TODO more metadata
-        tdmspath = Recordings.MetadataFiles['overview']
+
+        videofile = [v for v in Recordings.MetadataFiles.fetch() if v['recording_uid'] == key['recording_uid']]
+        if not videofile or not isinstance(videofile, list):
+            raise ValueError('Could not fetch path')
+        else:
+            videofile = videofile[0]
+
+        tdmspath = videofile['overview']
         recording_uid = key['recording_uid']
 
          # Try to load a .tdms
@@ -354,8 +362,9 @@ class Stimuli(dj.Computed):
                 stim_type = stim_type,
                 stim_start = int(framen),
                 stim_duration = stim_duration,
-                stim_metadata = 0  # ! <- 
+                stim_metadata = [0]  # ! <- 
             )
+            print(data_to_input)
             self.insert1(data_to_input)
 
 @schema

@@ -160,6 +160,9 @@ class PopulateDatabase:
     def populate_stimuli_table(self):
         self.stimuli.populate()
 
+    def populate_tracking_data_table(self):
+        self.tracking_data.populat()
+
     @staticmethod
     def insert_entry_in_table(dataname, checktag, data, table, overwrite=False):
         """
@@ -197,7 +200,8 @@ if __name__ == '__main__':
     # p.populate_sessions_table()
     # p.populate_recordings_table()
     # p.populate_templates_table()
-    # p.populate_stimuli_table()
+    p.populate_stimuli_table()
+    # p.populate_tracking_data_table()
     
     # print(p.mice)
     # print(p.experiments)
