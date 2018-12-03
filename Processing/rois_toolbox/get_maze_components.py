@@ -7,19 +7,20 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import os
 import numpy as np
+from collections import namedtuple
 
 def get_rois_from_templates(session_name, videopath, templates_fld):
     """ Uses template matching to identify the different components of the maze and their location """
-   paths = load_yaml('../paths.yaml')
-   matched_fld = paths['templates_matched']
+    paths = load_yaml('paths.yml')
+    matched_fld = paths['templates_matched']
 
     # Finds the templates for the session being processed
     def get_templates(templates_fld):
+        print('Looking for templates in >>> ', templates_fld)
         # Get the templates
-        platf_templates = [os.path.join(templates_fld, f) for f in os.listdir(templates_fld) if 'platform' in f]
-        bridge_templates = [os.path.join(templates_fld, f) for f in os.listdir(templates_fld) if 'bridge' in f]
-        bridge_templates = [b for b in bridge_templates if 'closed' not in b]
-        maze_templates = [os.path.join(templates_fld, f) for f in os.listdir(templates_fld) if 'maze_config' in f]
+        platf_templates = [os.path.join(templates_fld, f) for f in os.listdir(templates_fld) if 'p' in f]
+        bridge_templates = [os.path.join(templates_fld, f) for f in os.listdir(templates_fld) if 'f' in f]
+        maze_templates = [os.path.join(templates_fld, f) for f in os.listdir(templates_fld) if 'bg' in f]
         return platf_templates, bridge_templates, maze_templates
 
     # This function actually does the template matching and returns the location of the best match
@@ -29,6 +30,8 @@ def get_rois_from_templates(session_name, videopath, templates_fld):
             img: background image
         """
         """ in bridge mode we use the info about the pre-supposed location of the bridge to increase accuracy """
+                
+        
         rois = {}
         point = namedtuple('point', 'topleft bottomright')
 
@@ -40,12 +43,12 @@ def get_rois_from_templates(session_name, videopath, templates_fld):
         # Loop over the templates
         for n, template in enumerate(templates):
             id = os.path.split(template)[1].split('_')[0]
-            col = self.colors[id.lower()]
+            col = [.2, .3, .5]
             templ = cv2.imread(template)
             if len(templ.shape) == 3: templ = cv2.cvtColor(templ, cv2.COLOR_BGR2GRAY)
             w, h = templ.shape[::-1]
 
-            res = cv2.matchTemplate(gray, templ, cv2.TM_CCOEFF_NORMED)  # ! <-- template matching here
+            res = cv2.matchTemplate(img, templ, cv2.TM_CCOEFF_NORMED)  # ! <-- template matching here
             rheight, rwidth = res.shape
             if not bridge_mode:  # platforms
                 min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)  # location of best template match
@@ -89,8 +92,7 @@ def get_rois_from_templates(session_name, videopath, templates_fld):
 
     # Get background
     if maze_templates:
-        img = [t for t in maze_templates if 'default' in t]
-        bg = cv2.imread(img[0])
+        bg = cv2.imread(maze_templates[0])
         if bg.shape[-1] > 2: bg = cv2.cvtColor(bg, cv2.COLOR_BGR2GRAY)
     else:
         raise ValueError('Could not find maze templates')
@@ -98,7 +100,7 @@ def get_rois_from_templates(session_name, videopath, templates_fld):
     # Calculate the position of the templates and save resulting image
     display, platforms = loop_over_templates(platf_templates, bg)
     display, bridges = loop_over_templates(bridge_templates, display, bridge_mode=True)
-    cv2.imwrite(os.path.join(matched_fld, 'Matched\\{}.png'.format(session_name)), display)
+    cv2.imwrite(os.path.join(matched_fld, '{}.png'.format(session_name[1])), display)
 
     # Return locations of the templates
     dic = {**platforms, **bridges}

@@ -67,9 +67,6 @@ class Recordings(dj.Imported):
             side_mirror: varchar(256)       # side mirror view
             """
 
-        def make(self, key):
-            print(key)
-
     class ConvertedVideoFiles(dj.Part):
         definition = """
             # stores paths to converted videos (from tdms to mp4), if no conversion is made then same as VideoFiles
@@ -80,8 +77,6 @@ class Recordings(dj.Imported):
             top_mirror: varchar(256)        # top mirror view
             side_mirror: varchar(256)       # side mirror view
             """
-        def make(self, key):
-            print(key)
 
     class PoseFiles(dj.Part):
         definition = """
@@ -93,8 +88,6 @@ class Recordings(dj.Imported):
             top_mirror: varchar(256)        # top mirror view
             side_mirror: varchar(256)       # side mirror view
             """
-        def make(self, key):
-            print(key)
 
     class MetadataFiles(dj.Part):
         definition = """
@@ -105,9 +98,6 @@ class Recordings(dj.Imported):
             threat: varchar(256)            # threat camera
             """
 
-        def make(self, key):
-            print(key)
-
     class AnalogInputs(dj.Part):
         definition = """
             # Stores data from relevant AI channels recorded with NI board
@@ -117,12 +107,6 @@ class Recordings(dj.Imported):
             threat_camera_triggers: longblob
             speaker_signal: longblob                # HIGH when ultrasound being produced
         """
-        def make(self, key):
-            print(key)
-
-    # def make(self, key):
-    #     print('r')
-    #     print(key)
 
 
     def make(self, session):
@@ -273,24 +257,41 @@ class Templates(dj.Imported):
         from Processing.rois_toolbox.get_maze_components import get_rois_from_templates
 
         # Get all possible components name
-        nplatf, nbridges = 9, 14
-        platforms = ['p'+str(i) for i in range(nplatf + 1)]
-        bridges = ['b'+str(i) for i in range(nbridges + 1)]
+        nplatf, nbridges = 6, 14
+        platforms = ['p'+str(i) for i in range(1, nplatf + 1)]
+        bridges = ['b'+str(i) for i in range(1, nbridges + 1)]
         all_components = ['s', 't']
         all_components.extend(platforms)
         all_components.extend(bridges)
 
+        # Get entries from related tables
+        session = [s for s in Sessions.fetch() if s['session_name']==key['session_name']][0]
+        recording = [r for r in Recordings.fetch() if r['recording_uid'] == key['recording_uid']][0]
+        experiment = [e for e in Experiments.fetch() if e['experiment_name']==session['experiment_name']]
+        if not experiment or not isinstance(experiment, list):
+            print(Experiments.fetch('experiment_name'))
+            raise ValueError('Could not find match for experiment: ', session['experiment_name'])
+        else:
+            experiment = experiment[0]
+
+        videofile = [v for v in Recordings.VideoFiles.fetch() if v['recording_uid'] == key['recording_uid']]
+        if not videofile or not isinstance(videofile, list):
+            return
+            raise FileNotFoundError(' could not find videofile, found: {} for recording {} in session {}'.format(
+                                    videofile, recording, session))
+        else:
+            videofile = videofile[0]
+
         # Get matched components for recording
-        session = key['session_name']
-        experiment = key['experiment_name']
-        templates_fld = key['templates_folder']
-        video = key['video_file_path']
+        templates_fld = experiment['templates_folder']
+        video = videofile['overview']
         matched = get_rois_from_templates(session, video, templates_fld)
 
         # Prepare data to insert into the table
         data_to_input =  {(n if n in matched.keys() else n):(matched[n] if n in matched.keys() else 0)
                            for n in all_components}
-        for k,v in data_to_input:
+
+        for k,v in data_to_input.items():
             key[k] = v
 
         # Insert

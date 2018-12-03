@@ -160,7 +160,6 @@ class PopulateDatabase:
     def populate_stimuli_table(self):
         self.stimuli.populate()
 
-
     @staticmethod
     def insert_entry_in_table(dataname, checktag, data, table, overwrite=False):
         """
@@ -190,15 +189,15 @@ class PopulateDatabase:
 if __name__ == '__main__':
     p = PopulateDatabase()
 
-    # p.remove_table('recordings')
+    # p.remove_table('experiments')
     # sys.exit()
 
     # p.populate_mice_table()
     # p.populate_experiments_table()
     # p.populate_sessions_table()
     # p.populate_recordings_table()
-    # p.populate_trials_table()
-    p.display_tables_headings()
+    # p.populate_templates_table()
+    # p.populate_stimuli_table()
     
     # print(p.mice)
     # print(p.experiments)
