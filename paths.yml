@@ -11,7 +11,7 @@ raw_to_sort: 'to_sort'   # appended to raw data folder
 
 trials_clips: 'trials_clips'   # appended to raw data folder
 
-tracked_data_folder: D:\Dropbox (UCL - SWC)\Rotation_vte\BehaviourData\pose
+tracked_data_folder: Z:\branco\Federico\raw_behaviour\maze\pose
 
 dlc_config: D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets\Maze-Federico-2018-11-24\config.yaml
 

@@ -190,15 +190,17 @@ class PopulateDatabase:
 if __name__ == '__main__':
     p = PopulateDatabase()
 
-    # print(p.mice)
-    # print(p.experiments)
-
-    p.remove_table('templates')
-    sys.exit()
+    # p.remove_table('recordings')
+    # sys.exit()
 
     # p.populate_mice_table()
     # p.populate_experiments_table()
     # p.populate_sessions_table()
     # p.populate_recordings_table()
     # p.populate_trials_table()
-    # p.display_tables_headings()
+    p.display_tables_headings()
+    
+    # print(p.mice)
+    # print(p.experiments)
+    # print(p.sessions)
+    # print(p.recordings)

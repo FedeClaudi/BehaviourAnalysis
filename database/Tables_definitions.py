@@ -10,7 +10,7 @@ import pandas as pd
 import os
 from collections import namedtuple
 
-from Utilities.file_io import load_yaml
+from Utilities.file_io.files_load_save import load_yaml
 
 @schema
 class Mice(dj.Manual):
@@ -52,8 +52,8 @@ class Recordings(dj.Imported):
     definition = """
     # Within one session one may perform several recordings. Each recording has its own video and metadata files
     recording_uid: varchar(128)   # uniquely identifying name for each recording YYMMDD_MOUSEID_RECNUM
-    ---
     -> Sessions
+    ---
     """
 
     class VideoFiles(dj.Part):
@@ -67,6 +67,9 @@ class Recordings(dj.Imported):
             side_mirror: varchar(256)       # side mirror view
             """
 
+        def make(self, key):
+            print(key)
+
     class ConvertedVideoFiles(dj.Part):
         definition = """
             # stores paths to converted videos (from tdms to mp4), if no conversion is made then same as VideoFiles
@@ -77,6 +80,8 @@ class Recordings(dj.Imported):
             top_mirror: varchar(256)        # top mirror view
             side_mirror: varchar(256)       # side mirror view
             """
+        def make(self, key):
+            print(key)
 
     class PoseFiles(dj.Part):
         definition = """
@@ -88,6 +93,8 @@ class Recordings(dj.Imported):
             top_mirror: varchar(256)        # top mirror view
             side_mirror: varchar(256)       # side mirror view
             """
+        def make(self, key):
+            print(key)
 
     class MetadataFiles(dj.Part):
         definition = """
@@ -98,6 +105,9 @@ class Recordings(dj.Imported):
             threat: varchar(256)            # threat camera
             """
 
+        def make(self, key):
+            print(key)
+
     class AnalogInputs(dj.Part):
         definition = """
             # Stores data from relevant AI channels recorded with NI board
@@ -107,14 +117,21 @@ class Recordings(dj.Imported):
             threat_camera_triggers: longblob
             speaker_signal: longblob                # HIGH when ultrasound being produced
         """
+        def make(self, key):
+            print(key)
+
+    # def make(self, key):
+    #     print('r')
+    #     print(key)
 
 
-    def _make_tuple(self, session):
+    def make(self, session):
         """ Populate the Recordings table """
         
         paths = load_yaml('paths.yml')
         raw_video_folder = os.path.join(paths['raw_data_folder'], paths['raw_video_folder'])
         raw_metadata_folder = os.path.join(paths['raw_data_folder'], paths['raw_metadata_folder'])
+        tracked_data_folder = paths['tracked_data_folder']
 
         # get video and metadata files
         videos = sorted([f for f in os.listdir(raw_video_folder)
@@ -156,11 +173,11 @@ class Recordings(dj.Imported):
                 converted = 'nan'
 
                 # Get deeplabcut data
-                posefile = [os.path.join(self.tracked_data_folder, f) for f in os.listdir(self.tracked_data_folder)
+                posefile = [os.path.join(tracked_data_folder, f) for f in os.listdir(tracked_data_folder)
                             if rec_name == os.path.splitext(f)[0].split('Deep')[0] and '.pickle' not in f]
                 if not posefile:
                     print('didnt find pose file, trying harder')
-                    posefile = [os.path.join(self.tracked_data_folder, f) for f in os.listdir(self.tracked_data_folder)
+                    posefile = [os.path.join(tracked_data_folder, f) for f in os.listdir(tracked_data_folder)
                                 if session['session_name'] in f and '.pickle' not in f]
 
                 if len(posefile) != 1:
@@ -199,17 +216,24 @@ class Recordings(dj.Imported):
                 cameras = ['overview', 'threat', 'top_mirror', 'side_mirror']
 
                 videofiles = {c:'nan' for c in cameras}
-                videofiles['overview'] = os.path.join(self.raw_video_folder, vid)
+                videofiles['overview'] = os.path.join(raw_video_folder, vid)
 
                 convertedvideofiles = videofiles.copy()
 
-                metadatafiles = {c: 'nan' for c in cameras}
-                metadatafiles['overview'] = os.path.join(self.raw_metadata_folder, met)
+                metadatafiles = {c: 'nan' for c in cameras if c not in ['top_mirror', 'side_mirror']}
+                metadatafiles['overview'] = os.path.join(raw_metadata_folder, met)
 
                 posefiles = {c: 'nan' for c in cameras}
                 posefiles['overview'] = posefile
 
+                all_dics = [videofiles, convertedvideofiles, metadatafiles, posefiles]
+                for d in all_dics:
+                    d['recording_uid']=rec_name 
+                    d['uid'] = session['uid']
+                    d['session_name'] = session['session_name']
+
                 # actually insert
+                print(videofiles, convertedvideofiles, metadatafiles)
                 Recordings.VideoFiles.insert1(videofiles)
                 Recordings.ConvertedVideoFiles.insert1(convertedvideofiles)
                 Recordings.PoseFiles.insert1(posefiles)
