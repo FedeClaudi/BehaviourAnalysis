@@ -20,7 +20,6 @@ def get_bps_as_points_dict(frame_pose):
     pointsdict = {}
     bodyparts = frame_pose.index.levels[1]
     scorer = frame_pose.index.levels[0]
-    a = frame_pose.index.get_level_values(1)
     for bpname in bodyparts:
         if bpname in names:  # dont take twice
             continue

@@ -10,6 +10,7 @@ from nptdms import TdmsFile
 import pandas as pd
 import os
 from collections import namedtuple
+import numpy as np
 
 from Utilities.file_io.files_load_save import load_yaml
 
@@ -303,7 +304,7 @@ class Stimuli(dj.Computed):
     definition = """
     # Metadata of each trial (e.g. stim type and frame of onset)
     -> Recordings
-    uid: varchar(128)  # uniquely identifuing ID for each trial YYMMDD_MOUSEID_RECNUM_TRIALNUM
+    stimulus_uid: varchar(128)  # uniquely identifuing ID for each trial YYMMDD_MOUSEID_RECNUM_TRIALNUM
     ---
     stim_type: varchar(128)
     stim_start: int   # number of frame at start of stim
@@ -324,7 +325,7 @@ class Stimuli(dj.Computed):
         tdmspath = videofile['overview']
         recording_uid = key['recording_uid']
 
-         # Try to load a .tdms
+        # Try to load a .tdms
         try:
             print('           ... loading metadata from .tdms: {}'.format(os.path.split(tdmspath)[-1]))
             tdms = TdmsFile(tdmspath)
@@ -353,19 +354,38 @@ class Stimuli(dj.Computed):
 
                         stimuli[str(framen)] = stim_type
 
-        # Insert entries in table
-        for i, k in enumerate(sorted(stimuli.keys())):
-            stim = stimuli[k]
 
+        # Insert entries in table
+        if len(list(stimuli.keys())) == 0:
+            # Insert void entry so that the empty tdms will not be loaded
+            # again the next time the make() attribute is called
             data_to_input = dict(
-                uid=recording_uid + '_{}'.format(i),
-                stim_type = stim_type,
-                stim_start = int(framen),
-                stim_duration = stim_duration,
-                stim_metadata = [0]  # ! <- 
-            )
-            print(data_to_input)
+                    recording_uid = recording_uid,
+                    uid = key['uid'],
+                    session_name = key['session_name'],
+                    stimulus_uid=recording_uid + '_{}'.format(-1),
+                    stim_type = 'visual',
+                    stim_start = -1,
+                    stim_duration = 0,
+                    stim_metadata = [0])
+            print(' inserting empty values', data_to_input)
             self.insert1(data_to_input)
+        else:
+            for i, k in enumerate(sorted(stimuli.keys())):
+                stim = stimuli[k]
+
+                data_to_input = dict(
+                    recording_uid = recording_uid,
+                    uid = key['uid'],
+                    session_name = key['session_name'],
+                    stimulus_uid=recording_uid + '_{}'.format(i),
+                    stim_type = stim_type,
+                    stim_start = int(k),
+                    stim_duration = stim_duration,
+                    stim_metadata = [0]  # ! <- 
+                )
+                print(data_to_input)
+                self.insert1(data_to_input)
 
 @schema
 class TrackingData(dj.Computed):
@@ -516,32 +536,100 @@ class TrackingData(dj.Computed):
             side_mirror: longblob  # pose data extracted from threat camera side mirror
         """
 
-    def _make_tuple(self, key):
+    def getattr(self, attrname):
+        attributes = dict(
+            LeftEar = self.LeftEar,
+            LeftEye = self.LeftEye,
+            Snout = self.Snout,
+            RightEye = self.RightEye,
+            RightEar = self.RightEar,
+            Neck = self.Neck,
+            RightShoulder = self.RightShoulder,
+            RightHip = self.RightHip,
+            TailBase = self.TailBase,
+            Tail2 = self.Tail2,
+            Tail3 = self.Tail3,
+            LeftHip = self.LeftHip,
+            LeftShoulder = self.LeftShoulder,
+            Body = self.Body,
+        )
+        try:
+            return attributes[attrname]
+        except:
+            if attrname == 'RightShould':
+                return attributes['RightShoulder']
+            else:
+                raise ValueError('Could not find attribute ', attrname)
+
+    def make(self, key):
+        print('\n\nPopulating Tracking data\n', key)
         rec_name = key['recording_uid']
-        pose_files = Recordings.PoseFiles.fetch(rec_name, as_dict=True)
+        pose_files = [ff for ff in Recordings.PoseFiles.fetch() if ff['recording_uid']==rec_name][0]
 
         # initialise empty dict of dict
         allbp = {}
         cameras = ['overview', 'threat', 'top_mirror', 'side_mirror']
-        bodyparts = ['left_ear', 'left_eye', 'snout', 'right_eye', 'right_ear', 'neck', 'right_shoulder',
+        bodyparts = ['left_ear', 'left_eye', 'snout', 'right_eye', 'right_ear', 'neck', 'right_should',
                      'right_hip', 'tail_base', 'tail_2', 'tail_3', 'left_hip', 'left_shoulder', 'body']
         for bp in bodyparts:
             allbp[bp] = {cam:None for cam in cameras}
 
         # now fill that dict with dem data
-        for camera, pfile in pose_files.items():
-            pose = pd.read_hdf(pfile)
-            bodyparts = pose.index.levels[1]
-            scorer = pose.index.levels[0]
+        for cam in cameras:
+            pfile = pose_files[cam]
+            if pfile == 'nan': continue
+
+            try:
+                pose = pd.read_hdf(pfile)  # ? load pose
+            except FileNotFoundError:
+                print('Could not open file: ', pfile)
+                print(pose_files)
+                raise FileExistsError()
+            
+            first_frame = pose.iloc[0]
+
+            bodyparts = first_frame.index.levels[1]
+            scorer = first_frame.index.levels[0]
+
+            print('Scorer: ', scorer)
+            print('Bodyparts ', bodyparts)
 
             for bpname in bodyparts:
-                allbp[bpname] = pose[scorer[0], bpname].values()
+                xypose = pose[scorer[0], bpname].drop(columns='likelihood')
+                allbp[bpname][cam] = xypose.values
+                if xypose.values is None:
+                    print(key)
+                    raise ValueError('Did not get pose value')
 
-        # now insert dem data in those tables
+        # Insert stuff into MAIN CLASS
+        self.insert1(key)
+
+        # Update KEY with the pose datavand insert into correct PART subclass
         for bodypart in allbp.keys():
-            classname = [s.capitalize() for s in bodypart.split('_')]
-            part = self.getattr(classname)
-            part.insert1(allbp[bodypart])
+            for cam in cameras:
+                if cam != 'overview': 
+                    key[cam] = np.array([0]) 
+                    continue
+
+                classname = [s.capitalize() for s in bodypart.split('_')]
+                classname = ''.join(classname)
+                part = self.getattr(classname)
+
+                cam_pose_data = allbp[bodypart][cam]
+                if cam_pose_data is None:
+                    Warning('No pose data detected', cam_pose_data, bodypart, cam)
+                    key[cam] = np.array([0]) 
+                else:
+                    key[cam] = allbp[bodypart][cam]
+
+            try:
+                part.insert1(key)
+            except:
+                print('\n\nkey', key, '\n\n')
+                print(self)
+                part.insert1(key)
+
+
 
 if __name__ == "__main__":
     import sys

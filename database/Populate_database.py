@@ -27,13 +27,6 @@ class PopulateDatabase:
         """
         Collection of methods to populate the datajoint database
         """
-        print("""
-        Ready to populate database. Available classes:
-                * Mice
-                * Sessions
-                * Recordings
-                * Trials""")
-
         # Hard coded paths to relevant files and folders
         with open('paths.yml', 'r') as f:
             paths = yaml.load(f)
@@ -161,7 +154,7 @@ class PopulateDatabase:
         self.stimuli.populate()
 
     def populate_tracking_data_table(self):
-        self.tracking_data.populat()
+        self.tracking_data.populate()
 
     @staticmethod
     def insert_entry_in_table(dataname, checktag, data, table, overwrite=False):
@@ -192,18 +185,27 @@ class PopulateDatabase:
 if __name__ == '__main__':
     p = PopulateDatabase()
 
-    # p.remove_table('experiments')
+    # p.remove_table('stimuli')
     # sys.exit()
 
-    p.populate_mice_table()
-    p.populate_experiments_table()
-    p.populate_sessions_table()
+    # p.populate_mice_table()
+    # p.populate_experiments_table()
+    # p.populate_sessions_table()
     # p.populate_recordings_table()
     # p.populate_templates_table()
-    # p.populate_stimuli_table()
+
+    p.populate_stimuli_table()
     # p.populate_tracking_data_table()
-    
-    print(p.mice)
-    print(p.experiments)
-    print(p.sessions)
-    print(p.recordings)
+
+
+    # print(p.mice)
+    # print(p.experiments)
+    # print(p.sessions)
+    # print(p.recordings)
+    # print(p.templates)
+    # print(p.stimuli)
+    print(p.tracking_data)
+
+
+    print(sorted(p.sessions.fetch('uid')))
+
