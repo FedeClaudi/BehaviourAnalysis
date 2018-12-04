@@ -185,7 +185,7 @@ class PopulateDatabase:
 if __name__ == '__main__':
     p = PopulateDatabase()
 
-    # p.remove_table('stimuli')
+    # p.remove_table('tracking_data')
     # sys.exit()
 
     # p.populate_mice_table()
@@ -193,9 +193,8 @@ if __name__ == '__main__':
     # p.populate_sessions_table()
     # p.populate_recordings_table()
     # p.populate_templates_table()
-
-    p.populate_stimuli_table()
-    # p.populate_tracking_data_table()
+    # p.populate_stimuli_table()
+    p.populate_tracking_data_table()
 
 
     # print(p.mice)
@@ -205,7 +204,7 @@ if __name__ == '__main__':
     # print(p.templates)
     # print(p.stimuli)
     print(p.tracking_data)
+    print(pd.DataFrame(p.tracking_data.Body.fetch()))
 
-
-    print(sorted(p.sessions.fetch('uid')))
+    # print(sorted(p.sessions.fetch('uid')))
 

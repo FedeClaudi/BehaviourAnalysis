@@ -2,7 +2,7 @@ import sys
 sys.path.append('./')  
 
 import datajoint as dj
-from dj_config import start_connection
+from database.dj_config import start_connection
 dbname = start_connection()
 schema = dj.schema(dbname, locals())
 from nptdms import TdmsFile
@@ -393,10 +393,61 @@ class TrackingData(dj.Computed):
     # Stores the DLC recording data for one Recording entry
     -> Recordings
     """
+
+    def define_attrs(self):
+        self.attributes = dict(
+            LeftEar = self.LeftEar,
+            LeftEye = self.LeftEye,
+            Snout = self.Snout,
+            RightEye = self.RightEye,
+            RightEar = self.RightEar,
+            Neck = self.Neck,
+            RightShoulder = self.RightShoulder,
+            RightHip = self.RightHip,
+            TailBase = self.TailBase,
+            Tail2 = self.Tail2,
+            Tail3 = self.Tail3,
+            LeftHip = self.LeftHip,
+            LeftShoulder = self.LeftShoulder,
+            Body = self.Body,
+        )
+
+    def getallattr(self):
+        self.define_attrs()
+        return self.attributes
+
+    def getattr(self, attrname):
+        self.define_attrs()
+        try:
+            return self.attributes[attrname]
+        except:
+            if attrname == 'RightShould':
+                return self.attributes['RightShoulder']
+            else:
+                raise ValueError('Could not find attribute ', attrname)
+                
     # Docs on parts table 
     # https://docs.datajoint.io/computation/Part-tables.html
 
     class LeftEar(dj.Part):
+        """
+            attributes = dict(
+                        LeftEar = self.LeftEar,
+                        LeftEye = self.LeftEye,
+                        Snout = self.Snout,
+                        RightEye = self.RightEye,
+                        RightEar = self.RightEar,
+                        Neck = self.Neck,
+                        RightShoulder = self.RightShoulder,
+                        RightHip = self.RightHip,
+                        TailBase = self.TailBase,
+                        Tail2 = self.Tail2,
+                        Tail3 = self.Tail3,
+                        LeftHip = self.LeftHip,
+                        LeftShoulder = self.LeftShoulder,
+                        Body = self.Body,
+                    )
+        """
         definition = """
             -> TrackingData
             ---
@@ -535,31 +586,6 @@ class TrackingData(dj.Computed):
             top_mirror: longblob   # pose data extracted from threat camera top mirror
             side_mirror: longblob  # pose data extracted from threat camera side mirror
         """
-
-    def getattr(self, attrname):
-        attributes = dict(
-            LeftEar = self.LeftEar,
-            LeftEye = self.LeftEye,
-            Snout = self.Snout,
-            RightEye = self.RightEye,
-            RightEar = self.RightEar,
-            Neck = self.Neck,
-            RightShoulder = self.RightShoulder,
-            RightHip = self.RightHip,
-            TailBase = self.TailBase,
-            Tail2 = self.Tail2,
-            Tail3 = self.Tail3,
-            LeftHip = self.LeftHip,
-            LeftShoulder = self.LeftShoulder,
-            Body = self.Body,
-        )
-        try:
-            return attributes[attrname]
-        except:
-            if attrname == 'RightShould':
-                return attributes['RightShoulder']
-            else:
-                raise ValueError('Could not find attribute ', attrname)
 
     def make(self, key):
         print('\n\nPopulating Tracking data\n', key)
