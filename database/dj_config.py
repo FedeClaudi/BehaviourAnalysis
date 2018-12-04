@@ -17,6 +17,8 @@ def start_connection():
     dj.config['database.user'] = 'root'
     dj.config['database.password'] = 'fede'
     schema = dj.schema(dbname, locals())
+
+    print('Connecting to server')
     dj.conn()
     return dbname
 

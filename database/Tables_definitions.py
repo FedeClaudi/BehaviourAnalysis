@@ -425,7 +425,7 @@ class TrackingData(dj.Computed):
                 return self.attributes['RightShoulder']
             else:
                 raise ValueError('Could not find attribute ', attrname)
-                
+
     # Docs on parts table 
     # https://docs.datajoint.io/computation/Part-tables.html
 
@@ -592,15 +592,10 @@ class TrackingData(dj.Computed):
         rec_name = key['recording_uid']
         pose_files = [ff for ff in Recordings.PoseFiles.fetch() if ff['recording_uid']==rec_name][0]
 
-        # initialise empty dict of dict
-        allbp = {}
-        cameras = ['overview', 'threat', 'top_mirror', 'side_mirror']
-        bodyparts = ['left_ear', 'left_eye', 'snout', 'right_eye', 'right_ear', 'neck', 'right_should',
-                     'right_hip', 'tail_base', 'tail_2', 'tail_3', 'left_hip', 'left_shoulder', 'body']
-        for bp in bodyparts:
-            allbp[bp] = {cam:None for cam in cameras}
 
-        # now fill that dict with dem data
+        cameras = ['overview', 'threat', 'top_mirror', 'side_mirror']
+        allbp = None
+        # Create a dictionary with the data for each bp and each camera
         for cam in cameras:
             pfile = pose_files[cam]
             if pfile == 'nan': continue
@@ -620,6 +615,12 @@ class TrackingData(dj.Computed):
             print('Scorer: ', scorer)
             print('Bodyparts ', bodyparts)
 
+            if allbp is None:
+                # initialise empty dict of dict
+                allbp = {}
+                for bp in bodyparts:
+                    allbp[bp] = {cam:None for cam in cameras}
+
             for bpname in bodyparts:
                 xypose = pose[scorer[0], bpname].drop(columns='likelihood')
                 allbp[bpname][cam] = xypose.values
@@ -630,7 +631,7 @@ class TrackingData(dj.Computed):
         # Insert stuff into MAIN CLASS
         self.insert1(key)
 
-        # Update KEY with the pose datavand insert into correct PART subclass
+        # Update KEY with the pose data and insert into correct PART subclass
         for bodypart in allbp.keys():
             for cam in cameras:
                 if cam != 'overview': 
@@ -651,6 +652,7 @@ class TrackingData(dj.Computed):
             try:
                 part.insert1(key)
             except:
+                # Check what went wrong (print and reproduce error)
                 print('\n\nkey', key, '\n\n')
                 print(self)
                 part.insert1(key)

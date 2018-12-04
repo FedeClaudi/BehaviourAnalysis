@@ -193,8 +193,8 @@ if __name__ == '__main__':
     # p.populate_sessions_table()
     # p.populate_recordings_table()
     # p.populate_templates_table()
-    # p.populate_stimuli_table()
-    p.populate_tracking_data_table()
+    p.populate_stimuli_table()
+    # p.populate_tracking_data_table()
 
 
     # print(p.mice)
