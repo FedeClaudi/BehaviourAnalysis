@@ -1,2 +1,4 @@
-    # p.remove_table('recordings')
-    # sys.exit()
+    print(p.mice)
+    print(p.experiments)
+    print(p.sessions)
+    print(p.recordings)
