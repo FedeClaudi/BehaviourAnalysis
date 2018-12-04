@@ -13,12 +13,15 @@ from multiprocessing.dummy import Pool as ThreadPool
 from functools import partial
 import shutil
 import matplotlib.pyplot as plt
+import time
 
 # TODO stitch videos together after tdms conversion
 # TODO add video cropper to Misc
 
 class VideoConverter:
     def __init__(self, filepath, output='.mp4', output_folder=None, extract_framesize=True):
+
+        self.tdms_converter_parallel_processes = 1
 
         self.editor = Editor()
         if filepath is not None:
@@ -88,10 +91,9 @@ class VideoConverter:
             videowriter = cv2.VideoWriter(os.path.join(self.folder, vidname), fourcc,
                                           framerate, (w, h), iscolor)
 
-            for framen in tqdm(range(limits[0], limits[1])):
+            for framen in tqdm(range(limits[0], limits[1]+1)):
                 videowriter.write(data[framen])
             videowriter.release()
-
 
         def extract_framesize_from_metadata(videotdms):
             """extract_framesize_from_metadata [takes the path to the video to be connverted and 
@@ -102,6 +104,7 @@ class VideoConverter:
             Returns:
                 frame width, height and number of frames in the video to be converted
             """
+    
             # Get info about the video data
             pth = os.path.split(videotdms)[0]
 
@@ -116,13 +119,25 @@ class VideoConverter:
             metadata = TdmsFile(os.path.join(pth, metadata_name))
 
             # Get values to return
-            h = metadata.object('keys', 'IMAQdxActualHeight').data[0]
-            real_w = 1920
-            w = 1920
-            skip = 0
-            tot = np.int(round(len(video_bytes)/(w*h)))
+            metadata_object = metadata.object()
+            props = {n:v for n,v in metadata_object.properties.items()} # fps, width, ...  code below is to print props out
 
-            return h, real_w, w, skip, tot
+            # for name, value in metadata_object.properties.items():
+            #     print("{0}: {1}".format(name, value))
+            # return
+
+            tot = np.int(round(len(video_bytes)/(props['width']*props['height'])))  # tot number of frames 
+
+            if tot != props['last']:
+                raise ValueError('Calculated number of frames doesnt match what is stored in the metadata: {} vs {}'.format(tot, props['last']))
+
+            return props, tot
+
+        ###################################################################################################################################
+
+        # TODO check tot number of frames
+        # TODO concatenate MP4s
+        start = time.time()
 
         if not self.extract_framesize:
             warn.warn('\nCurrently TDMS conversion depends on hardcoded variables !!')
@@ -130,61 +145,84 @@ class VideoConverter:
             # ! HARDCODED variables about the video recorded
             skip_data_points = 4094
             real_width = 1936
-            width = real_width + 48
+            paddig = 48
+            width = real_width + padding
             height = 1216
             frame_size = width * height
             real_frame_size = real_width * height
             f_size = os.path.getsize(self.filep)  # size in bytes
             tot_frames = int((f_size - skip_data_points) / frame_size)  # num frames
+            fps = 100
+            raise ValueError('This code is updated, it WILL give errors, needs to be checked first')
         else:
-            height, real_width, width, skip_data_points, tot_frames = extract_framesize_from_metadata(self.filep)
+            props, tot_frames = extract_framesize_from_metadata(self.filep)
 
         iscolor = False  # is the video RGB or greyscale
         print('Total number of frames {}'.format(tot_frames))
 
         # Number of parallel processes for faster writing to video
-        try:
+        num_processes = self.tdms_converter_parallel_processes
+        print('Preparing to convert video, saving .mp4 at {}fps using {} parallel processes'.format(props['fps'], num_processes))
+
+        # Open video TDMS 
+        try:    # Make a temporary directory where to store memmapped tdms
             os.mkdir(os.path.join(self.folder, 'Temp'))
         except:
             pass
         tempdir = os.path.join(self.folder, 'Temp')
-        fps = 100
-        num_processes = 3
-
-        print('Preparing to convert video, saving .mp4 at {}fps using {} parallel processes'.format(fps, num_processes))
-
-        # Open TDMS
         print('Opening TDMS: ', self.filename + self.extention)
         bfile = open(self.filep, 'rb')
         print('  ...binary opened, opening mmemmapped')
         tdms = TdmsFile(bfile, memmap_dir=tempdir)  # open tdms binary file as a memmapped object
 
         print('Extracting data')
-        tdms = tdms.__dict__['objects']["/'cam0'/'data'"].data.reshape((tot_frames, height, width), order='C')
-        tdms = tdms[:, :, :real_width]  # reshape
+        tdms = tdms.__dict__['objects']["/'cam0'/'data'"].data.reshape((tot_frames, props['height'], props['width']), order='C')
+        tdms = tdms[:, :, :(props['width']+props['padding'])]  # reshape
 
         # Write to Video
         print('Writing to Video - {} parallel processes'.format(num_processes))
-        params = (self.filename, real_width, height, fps, tdms)
+        params = (self.filename, props['width'], props['height'], props['fps'], tdms)  # To create a partial of the writer func
 
         if num_processes == 1:
-            write_clip(params, [0, tot_frames])
+            limits = [0, tot_frames-1]
+            write_clip(params, limits)
+            clip_names = ['{}__{}.mp4'.format(self.filename, limits[0])]
         else:
             # Get frames range for each video writer that will run in parallel
-            steps = np.linspace(0, tot_frames, num_processes + 1).astype(int)
-            step = steps[1]
-            steps2 = np.asarray([x + step for x in steps])
-            limits = [s for s in zip(steps, steps2)][:-1]
+            # vid 1 will do A->B, vid2 B+1->C ...
+            frame_numbers = [i for i in range(int(tot_frames))]
+            splitted = np.array_split(frame_numbers, num_processes)
+            limits = [(int(x[0]), int(x[-1])) for x in splitted]
+            print(limits)
+            
+            # Create partial function
             partial_writer = partial(write_clip, params)
-            # vidname, w, h, framerate, data, limits
+
             # start writing
             pool = ThreadPool(num_processes)
             _ = pool.map(partial_writer, limits)
+            clip_names = ['{}__{}.mp4'.format(self.filename, lim[0]) for lim in limits]
 
-        # shutil.rmtree(tempdir)
 
-        # TODO fetch clips names and concatenate them
+        # Check if all the frames have been converted
+        readers = {}
+        print('\n\n\nSaved clips: ', clip_names)
+        frames_counter = 0
+        for clip in clip_names:  
+            # Open each clip and get number of frames
+            cap = cv2.VideoCapture(os.path.join(self.folder, clip))
+            nframes = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            frames_counter += nframes
+            print(clip, ' has frames: ', nframes)
+        print('Converted clips have {} frames, original clip had: {}'.format(frames_counter, tot_frames))
+        if not tot_frames == frames_counter:
+            raise ValueError('Number of frames in converted clip doesnt match that of original clip')
 
+        # stitch videos together
+
+
+        end = time.time()
+        print('Converted {} frames in {}s'.format(tot_frames, round(end-start)))
 
 class Editor:
     @staticmethod
