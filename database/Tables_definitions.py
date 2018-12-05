@@ -65,6 +65,7 @@ class Recordings(dj.Imported):
             ---
             overview: varchar(256)          # overview camera
             threat: varchar(256)            # threat camera
+            threat_catwalk: varchar(256)    # cropped version of threat on catwalk 
             top_mirror: varchar(256)        # top mirror view
             side_mirror: varchar(256)       # side mirror view
             """
@@ -98,6 +99,7 @@ class Recordings(dj.Imported):
             ---
             overview: varchar(256)          # overview camera
             threat: varchar(256)            # threat camera
+            analog_inputs: varchar(256)     # .tdms with readings from analog inputs
             """
 
     class AnalogInputs(dj.Part):
@@ -123,119 +125,159 @@ class Recordings(dj.Imported):
 
     def make(self, session):
         """ Populate the Recordings table """
+        """ 
+            If the session was acquired with Behaviour Software:
+                Finds the .avi and stores it in VideoFiles and ConvertedVideoFiles
+                Finds the .tdms with the stims and stores it in MetadataFiles
+                Finds the .h5 with the pose data and stores it in PoseFiles
+
+            else if MANTIS was used:
+                Finds the 2 .tmds video files and stores them in VideoFiles
+                Finds the 2 .mp4 video files and stores them in ConvertedVideoFiles
+                Finds the 2 .tdms video metadata files and stores them in MetadataFiles
+                Finds the 1 .tdms analog inputs files and stores it in MetadataFiles
+
+            If any file is not found or missing 'nan' is inserted in the table entry
+            as a place holder
+        """
+        # Two different subfunctions are used to get the data depending on the software used for the exp
+        def behaviour_software_files_finder(raw_video_folder, raw_metadata_folder):
+            # get video and metadata files
+            videos = sorted([f for f in os.listdir(raw_video_folder)
+                            if session['session_name'].lower() in f.lower() and 'test' not in f
+                            and '.h5' not in f and '.pickle' not in f])
+            metadatas = sorted([f for f in os.listdir(raw_metadata_folder)
+                                if session['session_name'].lower() in f.lower() and 'test' not in f and '.tdms' in f])
+
+            # Make sure we got the correct number of files, otherwise ask for user input
+            if not videos or not metadatas:
+                if not videos and not metadatas:
+                    return
+                print('couldnt find files for session: ', session['session_name'])
+                raise FileNotFoundError('dang')
+            else:
+                if len(videos) != len(metadatas):
+                    print('Found {} videos files: {}'.format(len(videos), videos))
+                    print('Found {} metadatas files: {}'.format(
+                        len(metadatas), metadatas))
+                    raise ValueError(
+                        'Something went wront wrong trying to get the files')
+
+                num_recs = len(videos)
+                print(' ... found {} recs'.format(num_recs))
+
+                # Loop over the files for each recording and extract info
+                for rec_num, (vid, met) in enumerate(zip(videos, metadatas)):
+                    if vid.split('.')[0].lower() != met.split('.')[0].lower():
+                        raise ValueError('Files dont match!')
+
+                    name = vid.split('.')[0]
+                    try:
+                        recnum = int(name.split('_')[2])
+                    except:
+                        recnum = 1
+
+                    if rec_num+1 != recnum:
+                        raise ValueError(
+                            'Something went wrong while getting recording number within the session')
+
+                    rec_name = session['session_name']+'_'+str(recnum)
+                    format = vid.split('.')[-1]
+                    converted = 'nan'
+
+                    # Get deeplabcut data
+                    posefile = [os.path.join(tracked_data_folder, f) for f in os.listdir(tracked_data_folder)
+                                if rec_name == os.path.splitext(f)[0].split('Deep')[0] and '.pickle' not in f]
+                    if not posefile:
+                        print('didnt find pose file, trying harder')
+                        posefile = [os.path.join(tracked_data_folder, f) for f in os.listdir(tracked_data_folder)
+                                    if session['session_name'] in f and '.pickle' not in f]
+
+                    if len(posefile) != 1:
+                        if rec_name in self.fetch('recording_uid'):
+                            continue  # no need to worry about it
+
+                        print(
+                            "\n\n\nCould not find pose data for recording {}".format(rec_name))
+                        if posefile:
+                            print('Found these possible matches: ')
+                            [print('\n[{}] - {}'.format(i, f))
+                            for i, f in enumerate(posefile)]
+                            yn = input(
+                                "\nPlease select file [or type 'y' if none matches and you wish to continue anyways, n otherwise]:  int/y/n  ")
+                        else:
+                            yn = input(
+                                '\nNo .h5 file found, continue anyways??  y/n  ')
+                        if yn == 'n':
+                            yn = input(
+                                '\nDo you want to instert this recording withouth a pose file??  y/n  ')
+                            if yn == 'y':
+                                posefile = 'nan'
+                            else:
+                                raise ValueError('Failed to load pose data, found {} files for recording --- \n         {}\n{}'.format(len(posefile),
+                                                                                                                                    rec_name, posefile))
+                        elif yn == 'y':
+                            continue
+                        else:
+                            try:
+                                sel = int(yn)
+                                posefile = posefile[sel]
+                            except:
+                                raise ValueError('Failed to load pose data, found {} files for recording --- \n         {}\n{}'.format(len(posefile),
+                                                                                                                                    rec_name, posefile))
+
+                    # insert recording in main table
+                    session['recording_uid'] = rec_name
+                    self.insert1(session)
+
+                    # Insert stuff into part tables
+                    # prep
+                    cameras = ['overview', 'threat', 'top_mirror', 'side_mirror']
+
+                    videofiles = {c: 'nan' for c in cameras}
+                    videofiles['overview'] = os.path.join(raw_video_folder, vid)
+
+                    convertedvideofiles = videofiles.copy()
+
+                    metadatafiles = {c: 'nan' for c in cameras if c not in [
+                        'top_mirror', 'side_mirror']}
+                    metadatafiles['overview'] = os.path.join(
+                        raw_metadata_folder, met)
+
+                    posefiles = {c: 'nan' for c in cameras}
+                    posefiles['overview'] = posefile
+
+                    all_dics = [videofiles, convertedvideofiles,
+                                metadatafiles, posefiles]
+                    for d in all_dics:
+                        d['recording_uid'] = rec_name
+                        d['uid'] = session['uid']
+                        d['session_name'] = session['session_name']
+
+                    # actually insert
+                    print(videofiles, convertedvideofiles, metadatafiles)
+                    Recordings.VideoFiles.insert1(videofiles)
+                    Recordings.ConvertedVideoFiles.insert1(convertedvideofiles)
+                    Recordings.PoseFiles.insert1(posefiles)
+                    Recordings.MetadataFiles.insert1(metadatafiles)
+
+        # Load paths to data folders
         paths = load_yaml('paths.yml')
         raw_video_folder = os.path.join(paths['raw_data_folder'], paths['raw_video_folder'])
         raw_metadata_folder = os.path.join(paths['raw_data_folder'], paths['raw_metadata_folder'])
         tracked_data_folder = paths['tracked_data_folder']
 
-        if session['uid'] > 184:
-            raise ValueError('This session has been acquired using MANTIS, this type of data is not yet supported')
-
-        # get video and metadata files
-        videos = sorted([f for f in os.listdir(raw_video_folder)
-                            if session['session_name'].lower() in f.lower() and 'test' not in f
-                            and '.h5' not in f and '.pickle' not in f])
-        metadatas = sorted([f for f in os.listdir(raw_metadata_folder)
-                            if session['session_name'].lower() in f.lower() and 'test' not in f and '.tdms' in f])
-
-        # Make sure we got the correct number of files, otherwise ask for user input
-        if not videos or not metadatas:
-            if not videos and not metadatas: return
-            print('couldnt find files for session: ', session['session_name'])
-            raise FileNotFoundError('dang')
+        # Check if the session being processed was in the "mantis era"
+        if session['uid'] > 184:  # ? 184 is the last session acquired with behaviour software
+            software = 'mantis'
         else:
-            if len(videos) != len(metadatas):
-                print('Found {} videos files: {}'.format(len(videos), videos))
-                print('Found {} metadatas files: {}'.format(len(metadatas), metadatas))
-                raise ValueError('Something went wront wrong trying to get the files')
+            software = 'behaviour'
+            behaviour_software_files_finder(raw_video_folder=raw_video_folder, raw_metadata_folder=raw_metadata_folder)
+            
 
-            num_recs = len(videos)
-            print(' ... found {} recs'.format(num_recs))
 
-            # Loop over the files for each recording and extract info
-            for rec_num, (vid, met) in enumerate(zip(videos, metadatas)):
-                if vid.split('.')[0].lower() != met.split('.')[0].lower():
-                    raise ValueError('Files dont match!')
 
-                name = vid.split('.')[0]
-                try:
-                    recnum = int(name.split('_')[2])
-                except:
-                    recnum = 1
-
-                if rec_num+1 != recnum:
-                    raise ValueError('Something went wrong while getting recording number within the session')
-
-                rec_name = session['session_name']+'_'+str(recnum)
-                format = vid.split('.')[-1]
-                converted = 'nan'
-
-                # Get deeplabcut data
-                posefile = [os.path.join(tracked_data_folder, f) for f in os.listdir(tracked_data_folder)
-                            if rec_name == os.path.splitext(f)[0].split('Deep')[0] and '.pickle' not in f]
-                if not posefile:
-                    print('didnt find pose file, trying harder')
-                    posefile = [os.path.join(tracked_data_folder, f) for f in os.listdir(tracked_data_folder)
-                                if session['session_name'] in f and '.pickle' not in f]
-
-                if len(posefile) != 1:
-                    if rec_name in self.fetch('recording_uid'): continue  # no need to worry about it
-
-                    print("\n\n\nCould not find pose data for recording {}".format(rec_name))
-                    if posefile:
-                        print('Found these possible matches: ')
-                        [print('\n[{}] - {}'.format(i,f)) for i,f in enumerate(posefile)]
-                        yn = input("\nPlease select file [or type 'y' if none matches and you wish to continue anyways, n otherwise]:  int/y/n  ")
-                    else:
-                        yn = input('\nNo .h5 file found, continue anyways??  y/n  ')
-                    if yn == 'n': 
-                        yn = input('\nDo you want to instert this recording withouth a pose file??  y/n  ')
-                        if yn == 'y':
-                            posefile = 'nan'
-                        else:
-                            raise ValueError('Failed to load pose data, found {} files for recording --- \n         {}\n{}'.format(len(posefile), 
-                                                                                                                        rec_name, posefile))
-                    elif yn == 'y':
-                        continue
-                    else:
-                        try:
-                            sel = int(yn)
-                            posefile = posefile[sel]
-                        except:
-                            raise ValueError('Failed to load pose data, found {} files for recording --- \n         {}\n{}'.format(len(posefile), 
-                                                                                                                        rec_name, posefile))
-
-                # insert recording in main table
-                session['recording_uid'] = rec_name
-                self.insert1(session)
-
-                # Insert stuff into part tables
-                # prep
-                cameras = ['overview', 'threat', 'top_mirror', 'side_mirror']
-
-                videofiles = {c:'nan' for c in cameras}
-                videofiles['overview'] = os.path.join(raw_video_folder, vid)
-
-                convertedvideofiles = videofiles.copy()
-
-                metadatafiles = {c: 'nan' for c in cameras if c not in ['top_mirror', 'side_mirror']}
-                metadatafiles['overview'] = os.path.join(raw_metadata_folder, met)
-
-                posefiles = {c: 'nan' for c in cameras}
-                posefiles['overview'] = posefile
-
-                all_dics = [videofiles, convertedvideofiles, metadatafiles, posefiles]
-                for d in all_dics:
-                    d['recording_uid']=rec_name 
-                    d['uid'] = session['uid']
-                    d['session_name'] = session['session_name']
-
-                # actually insert
-                print(videofiles, convertedvideofiles, metadatafiles)
-                Recordings.VideoFiles.insert1(videofiles)
-                Recordings.ConvertedVideoFiles.insert1(convertedvideofiles)
-                Recordings.PoseFiles.insert1(posefiles)
-                Recordings.MetadataFiles.insert1(metadatafiles)
+        
 
 @schema
 class Templates(dj.Imported):
