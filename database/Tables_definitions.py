@@ -16,6 +16,8 @@ import cv2
 from Utilities.file_io.files_load_save import load_yaml
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 
+from Processing.tracking_stats.extract_velocities_from_tracking import complete_bp_with_velocity, get_body_segment_stats
+
 @schema
 class Mice(dj.Manual):
     definition = """
@@ -485,6 +487,9 @@ class Stimuli(dj.Computed):
 
 @schema
 class TrackingData(dj.Computed):
+    # Pose data for individual bp store X Y and Velocity
+    # Pose data for body segments store Length,Angle, and Ang vel
+
     definition = """
     # Stores the DLC recording data for one Recording entry
     -> Recordings
@@ -521,6 +526,16 @@ class TrackingData(dj.Computed):
                 return self.attributes['RightShoulder']
             else:
                 raise ValueError('Could not find attribute ', attrname)
+
+    def get_body_segments(self):
+        segments = dict(
+            Head=(self.attributes['Snout'], self.attributes['Neck']),
+            Ears=(self.attributes['LeftEar'], self.attributes['RightEar']),
+            UpperBody=(self.attributes['Neck'], self.attributes['Body']),
+            LowerBody=(self.attributes['Body'], self.attributes['TailBase']),
+            Tail=(self.attributes['TailBase'], self.attributes['Tail2']),
+        )
+        return segments
 
     # Docs on parts table 
     # https://docs.datajoint.io/computation/Part-tables.html
@@ -678,17 +693,80 @@ class TrackingData(dj.Computed):
             maze_position: blob    # position in px distance from shelter 
         """
 
-    def make(self, key):
-        print('\n\nPopulating Tracking data\n', key)
-        rec_name = key['recording_uid']
-        pose_files = [ff for ff in Recordings.PoseFiles.fetch() if ff['recording_uid']==rec_name][0]
+    class HeadSegment(dj.Part):
+        definition = """
+            # From the snout to the neck
+            -> TrackingData
+            ---
+            bp1: varchar(128)  # name of bodyparts
+            bp2: varchar(128)
+            length: blob       # length in pixels
+            theta: blob        # clockwise angle relative to frame
+            angvel: blob       # angular velocity
+        """
+
+    class EarsSegment(dj.Part):
+        definition = """
+            # From the left ear to the right ear
+            -> TrackingData
+            ---
+            bp1: varchar(128)  # name of bodyparts
+            bp2: varchar(128)
+            length: blob       # length in pixels
+            theta: blob        # clockwise angle relative to frame
+            angvel: blob       # angular velocity
+        """
+
+    class UpperBodySegment(dj.Part):
+        definition = """
+            # From the neck to the body
+            -> TrackingData
+            ---
+            bp1: varchar(128)  # name of bodyparts
+            bp2: varchar(128)
+            length: blob       # length in pixels
+            theta: blob        # clockwise angle relative to frame
+            angvel: blob       # angular velocity
+        """
+
+    class LowerBodySegment(dj.Part):
+        definition = """
+            # From the body to tail base
+            -> TrackingData
+            ---
+            bp1: varchar(128)  # name of bodyparts
+            bp2: varchar(128)
+            length: blob       # length in pixels
+            theta: blob        # clockwise angle relative to frame
+            angvel: blob       # angular velocity
+        """
+
+    class TailSegment(dj.Part):
+        definition = """
+            # From the tail base to the tail2
+            -> TrackingData
+            ---
+            bp1: varchar(128)  # name of bodyparts
+            bp2: varchar(128)
+            length: blob       # length in pixels
+            theta: blob        # clockwise angle relative to frame
+            angvel: blob       # angular velocity
+        """
+
+    def fill_bp_data(self, pose_files, key):
+        """fill_bp_data [fills in BP part classes with pose data]
+        
+        Arguments:
+            pose_files {[list]} -- [list of .h5 pose files for a recording]
+        """
 
         cameras = ['overview', 'threat', 'top_mirror', 'side_mirror']
         allbp = None
         # Create a dictionary with the data for each bp and each camera
         for cam in cameras:
             pfile = pose_files[cam]
-            if pfile == 'nan': continue
+            if pfile == 'nan':
+                continue
 
             try:
                 pose = pd.read_hdf(pfile)  # ? load pose
@@ -696,7 +774,7 @@ class TrackingData(dj.Computed):
                 print('Could not open file: ', pfile)
                 print(pose_files)
                 raise FileExistsError()
-            
+
             first_frame = pose.iloc[0]
 
             bodyparts = first_frame.index.levels[1]
@@ -709,66 +787,95 @@ class TrackingData(dj.Computed):
                 # initialise empty dict of dict
                 allbp = {}
                 for bp in bodyparts:
-                    allbp[bp] = {cam:None for cam in cameras}
+                    allbp[bp] = {cam: None for cam in cameras}
 
             for bpname in bodyparts:
                 xypose = pose[scorer[0], bpname].drop(columns='likelihood')
-                allbp[bpname][cam] = xypose.values
+                xyvpose = complete_bp_with_velocity(xypose)
+                allbp[bpname][cam] = xyvpose.values
                 if xypose.values is None:
                     print(key)
                     raise ValueError('Did not get pose value')
 
-        # Insert stuff into MAIN CLASS
-        self.insert1(key)
+            # Insert stuff into MAIN CLASS
+            self.insert1(key)
 
-        # Update KEY with the pose data and insert into correct PART subclass
-        for bodypart in allbp.keys():
-            for cam in cameras:
-                if cam != 'overview': 
-                    key[cam] = np.array([0]) 
-                    continue
+            # Update KEY with the pose data and insert into correct PART subclass
+            for bodypart in allbp.keys():
+                for cam in cameras:
+                    if cam != 'overview':
+                        key[cam] = np.array([0])
+                        continue
 
-                classname = [s.capitalize() for s in bodypart.split('_')]
-                classname = ''.join(classname)
-                part = self.getattr(classname)
+                    classname = [s.capitalize() for s in bodypart.split('_')]
+                    classname = ''.join(classname)
+                    part = self.getattr(classname)
 
-                cam_pose_data = allbp[bodypart][cam]
-                if cam_pose_data is None:
-                    Warning('No pose data detected', cam_pose_data, bodypart, cam)
-                    key[cam] = np.array([0]) 
-                else:
-                    key[cam] = allbp[bodypart][cam]
+                    cam_pose_data = allbp[bodypart][cam]
+                    if cam_pose_data is None:
+                        Warning('No pose data detected',
+                                cam_pose_data, bodypart, cam)
+                        key[cam] = np.array([0])
+                    else:
+                        key[cam] = allbp[bodypart][cam]
 
-            try:
-                part.insert1(key)
-            except:
-                # Check what went wrong (print and reproduce error)
-                print('\n\nkey', key, '\n\n')
-                print(self)
-                part.insert1(key)
+                try:
+                    part.insert1(key)
+                except:
+                    # Check what went wrong (print and reproduce error)
+                    print('\n\nkey', key, '\n\n')
+                    print(self)
+                    part.insert1(key)
 
-        # Get the position of the mouse on the maze and insert into correct part table
-        body_tracking = allbp['body']['overview']
+            # Get the position of the mouse on the maze and insert into correct part table
+            body_tracking = allbp['body']['overview']
 
-        rois = [t for t in Templates.fetch() if t['recording_uid'] == key['recording_uid']]
+            rois = [t for t in Templates.fetch() if t['recording_uid']
+                    == key['recording_uid']]
 
-        if not rois or not isinstance(rois, list):
-            raise ValueError('Could not find templates to fill in mouse position table')
-        else:
-            rois = dict(rois[0])
-        shelter_roi_pos = rois['s']
+            if not rois or not isinstance(rois, list):
+                raise ValueError(
+                    'Could not find templates to fill in mouse position table')
+            else:
+                rois = dict(rois[0])
+            shelter_roi_pos = rois['s']
 
-        roi_at_each_frame = get_roi_at_each_frame(body_tracking, rois) # roi name
-        position_at_each_frame = [(rois[r][0]-shelter_roi_pos[0],
-                                   rois[r][1]-shelter_roi_pos[1])
-                                   for r in roi_at_each_frame] # distance from shelter
-        data_to_input = dict(
-            recording_uid = key['recording_uid'],
-            maze_component = roi_at_each_frame, 
-            maze_position = position_at_each_frame,
-        )
-        self.PositionOnMaze.insert1(data_to_input)
+            roi_at_each_frame = get_roi_at_each_frame(
+                body_tracking, rois)  # roi name
+            position_at_each_frame = [(rois[r][0]-shelter_roi_pos[0],
+                                    rois[r][1]-shelter_roi_pos[1])
+                                    for r in roi_at_each_frame]  # distance from shelter
+            data_to_input = dict(
+                recording_uid=key['recording_uid'],
+                maze_component= roi_at_each_frame,
+                maze_position=position_at_each_frame,
+            )
+            self.PositionOnMaze.insert1(data_to_input)
 
+    def fill_segments_data(self, key):
+        segments = self.get_body_segments()
+
+        for name, segment in segments.items():
+            positions = []
+            for bp in segment:
+                xy = [p for p in bp if p['recording_uid'] == key['recording_uid']][0]
+                if xy.shape[1] > 2:
+                    xy = xy[:, :1]
+                positions.append(xy)
+            
+        # TODO extract stats from the tracking data and fillin 
+        raise NotImplementedError('to finish')
+
+    def make(self, key):
+        print('\n\nPopulating Tracking data\n', key)
+        rec_name = key['recording_uid']
+        pose_files = [ff for ff in Recordings.PoseFiles.fetch() if ff['recording_uid']==rec_name][0]
+
+        # Fill in the MAIN table and BodyParts PART tables
+        self.fill_bp_data(pose_files, key)
+        
+        # FIll in the SEGMENTS PART tables
+        self.fill_segments_data(key)
 
 
 if __name__ == "__main__":

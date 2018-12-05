@@ -33,13 +33,31 @@ def complete_bp_with_velocity(bp_pose):
     
     Arguments:
         bp_pose {[pandas.DataFrame]} -- [pose for one bodypart]
+    
+    Return:
+        bp_pose
     """
 
+    from Processing.tracking_stats.math_utils import calc_distance_between_points_in_a_vector_2d as dist
+
+    velocity = dist(bp_pose.values)
+    bp_pose['velocity'] = velocity # in pixels
+    return bp_pose
+
+def get_body_segment_stats(bp1, bp2):
+    """get_body_segment_stats [takes two body parts
+    and extracts stats from the segment uniting them]
     
+    Arguments:
+        bp1 {[np.ndarray]} -- [2d array with tracking data for bp1, X,Y]
+        bp2 {[np.ndarray]} -- [same but for bp2]
+    
+    Returns:
+        [dict] -- [dictionary with the stats for the body segment]
+    """
 
 
-
-
+    return segment
 
 def extract_velocities_from_pose(pose):
     '''extract_velocities_from_pose [see above]
