@@ -173,15 +173,19 @@ class PopulateDatabase:
 
 
     def __repr__(self):
-        toprint = {}
-        tabledata = namedtuple('data', 'numofentries')
+        tabledata = namedtuple('data', 'name numofentries lastentry')
         for name, table in self.all_tables.items():
+            fetched = table.fetch()
+            toprint = tabledata(name, len(fetched),
+                                pd.DataFrame(fetched).loc[len(fetched)])
+            print(toprint)
 
 
 if __name__ == '__main__':
     p = PopulateDatabase()
 
-    p.display_tables_headings()
+    print(p)
+
 
     # p.remove_table('recordings')
     # sys.exit()
