@@ -20,6 +20,8 @@ import time
 
 class VideoConverter:
     def __init__(self, filepath, output='.mp4', output_folder=None, extract_framesize=True):
+        if filepath is None:
+            return
 
         self.tdms_converter_parallel_processes = 1
 
@@ -52,6 +54,14 @@ class VideoConverter:
                     else:
                         raise ValueError('Unrecognised file format {}'.format(self.extention))
 
+    def __repr__(self):
+        functions = [
+            'def videotovideo_converter(self)', 'def opencv_mp4_to_avi_converter(videopath, savepath)', 'def tdmstovideo_converter(self)']
+
+        print('\n\n\nThe VideoConverter class has functions:\n')
+        [print('FUNCTION: ', f, '\n\n') for f in functions]
+        return ''
+
     def videotovideo_converter(self):
         clip = VideoFileClip(self.filep)
         fps = clip.fps
@@ -80,7 +90,6 @@ class VideoConverter:
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             videowriter.write(gray)
         videowriter.release()
-
 
     def tdmstovideo_converter(self):
         def write_clip(arguments, limits=None):
@@ -225,6 +234,16 @@ class VideoConverter:
         print('Converted {} frames in {}s'.format(tot_frames, round(end-start)))
 
 class Editor:
+    def __repr__(self):
+        functions = [
+            'def concatenate_clips(paths_tuple)', 'def save_clip(clip, folder, name, format, fps)',
+            'def split_clip(clip, number_of_clips=4, ispath=False)', 'def opencv_write_clip(videopath, frames_data, ...)',
+            'def open_cvwriter(filepath...)', 'def compress_clip(videopath, compress_factor...)', 'def mirros_cropper()']
+
+        print('The Editor class has functions:\n')
+        [print('FUNCTION: ', f, '\n\n') for f in functions]
+        return ''
+
     @staticmethod
     def concatenate_clips(paths_tuple):
         clips = [VideoFileClip(p) for p in paths_tuple]
@@ -329,7 +348,8 @@ class Editor:
 
         videowriter.release()
 
-    def mirros_cropper(self):
+    @ staticmethod
+    def mirros_cropper():
         fld = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\\3dcam_test'
 
 
@@ -386,6 +406,12 @@ class Editor:
 
 if __name__ == '__main__':
     
+    converter = VideoConverter(None, None)
+    editor = Editor()
+    print(converter, '\n\n', editor)
+
+    ###############
+
     fld = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\camtest'
     toconvert = 'ThreatCamera.tdms'
 
