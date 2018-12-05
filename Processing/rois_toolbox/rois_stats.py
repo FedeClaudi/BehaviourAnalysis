@@ -46,11 +46,14 @@ def get_roi_at_each_frame(bp_data, rois):
 
     # Get the center of each roi
     centers = []
-    for points in rois.values():
-        center_x = (points.topleft[0] + points.bottomright[0]) / 2
-        center_y = (points.topleft[1] + points.bottomright[1]) / 2
-        center = np.asarray([center_x, center_y])
-        centers.append(center)
+    try:
+        for points in rois.values():
+            center_x = (points.topleft[0] + points.bottomright[0]) / 2
+            center_y = (points.topleft[1] + points.bottomright[1]) / 2
+            center = np.asarray([center_x, center_y])
+            centers.append(center)
+    except:
+        raise NotImplementedError('If the mouse is not in the frame this might yield erroneous results')
 
     roi_names = list(rois.keys())
 

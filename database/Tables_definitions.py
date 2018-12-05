@@ -14,6 +14,7 @@ import numpy as np
 import cv2
 
 from Utilities.file_io.files_load_save import load_yaml
+from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 
 @schema
 class Mice(dj.Manual):
@@ -311,11 +312,7 @@ class Recordings(dj.Imported):
         else:
             software = 'behaviour'
             behaviour_software_files_finder(raw_video_folder=raw_video_folder, raw_metadata_folder=raw_metadata_folder)
-            
-
-
-
-        
+                   
 
 @schema
 class Templates(dj.Imported):
@@ -686,7 +683,6 @@ class TrackingData(dj.Computed):
         rec_name = key['recording_uid']
         pose_files = [ff for ff in Recordings.PoseFiles.fetch() if ff['recording_uid']==rec_name][0]
 
-
         cameras = ['overview', 'threat', 'top_mirror', 'side_mirror']
         allbp = None
         # Create a dictionary with the data for each bp and each camera
@@ -752,7 +748,26 @@ class TrackingData(dj.Computed):
                 part.insert1(key)
 
         # Get the position of the mouse on the maze and insert into correct part table
-        raise NotImplementedError('Maze part stuff')
+        body_tracking = allbp['body']['overview']
+
+        rois = [t for t in Templates.fetch() if t['recording_uid'] == key['recording_uid']]
+
+        if not rois or not isinstance(rois, list):
+            raise ValueError('Could not find templates to fill in mouse position table')
+        else:
+            rois = dict(rois[0])
+        shelter_roi_pos = rois['s']
+
+        roi_at_each_frame = get_roi_at_each_frame(body_tracking, rois) # roi name
+        position_at_each_frame = [(rois[r][0]-shelter_roi_pos[0],
+                                   rois[r][1]-shelter_roi_pos[1])
+                                   for r in roi_at_each_frame] # distance from shelter
+        data_to_input = dict(
+            recording_uid = key['recording_uid'],
+            maze_component = roi_at_each_frame, 
+            maze_position = position_at_each_frame,
+        )
+        self.PositionOnMaze.insert1(data_to_input)
 
 
 

@@ -27,6 +27,19 @@ It also takes each pair of bps and calculates the distance between them, the ang
 
 """
 
+def complete_bp_with_velocity(bp_pose):
+    """complete_bp_with_velocity [takes the DF with the tracking data
+    for one body part and appends to it info about the velocity...]
+    
+    Arguments:
+        bp_pose {[pandas.DataFrame]} -- [pose for one bodypart]
+    """
+
+    
+
+
+
+
 
 def extract_velocities_from_pose(pose):
     '''extract_velocities_from_pose [see above]
