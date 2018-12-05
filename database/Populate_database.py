@@ -171,14 +171,29 @@ class PopulateDatabase:
                 print(table)
                 raise ValueError('Failed to add data entry {}-{} to {} table'.format(checktag, dataname, table.full_table_name))
 
+    def __str__(self):
+        self.__repr__()
+        return ''
 
     def __repr__(self):
+        summary = {}
         tabledata = namedtuple('data', 'name numofentries lastentry')
         for name, table in self.all_tables.items():
             fetched = table.fetch()
-            toprint = tabledata(name, len(fetched),
-                                pd.DataFrame(fetched).loc[len(fetched)])
-            print(toprint)
+            df = pd.DataFrame(fetched)
+            print('\n\n\n###### {} #######'.format(name))
+            toprint = tabledata(name, len(fetched), df.tail(1))
+
+            summary[name] = toprint.numofentries
+
+            print('Table {} has {} entries'.format(toprint.name, toprint.numofentries))
+            print('The last entry in the table is\n ', toprint.lastentry)
+
+        print('\n\nNumber of Entries per table')
+        sumdf = (pd.DataFrame.from_dict(summary, orient='index'))
+        sumdf.columns = ['NumOfEntries']
+        print(sumdf)
+        return ''
 
 
 if __name__ == '__main__':
