@@ -77,6 +77,7 @@ class Recordings(dj.Imported):
             ---
             overview: varchar(256)          # overview camera
             threat: varchar(256)            # threat camera
+            threat_catwalk: varchar(256)    # cropped version of threat on catwalk 
             top_mirror: varchar(256)        # top mirror view
             side_mirror: varchar(256)       # side mirror view
             """
@@ -88,6 +89,7 @@ class Recordings(dj.Imported):
             ---
             overview: varchar(256)          # overview camera
             threat: varchar(256)            # threat camera
+            threat_catwalk: varchar(256)    # cropped version of threat on catwalk 
             top_mirror: varchar(256)        # top mirror view
             side_mirror: varchar(256)       # side mirror view
             """
@@ -232,17 +234,18 @@ class Recordings(dj.Imported):
 
                     # Insert stuff into part tables
                     # prep
-                    cameras = ['overview', 'threat', 'top_mirror', 'side_mirror']
+                    cameras = ['overview', 'threat', 'threat_catwalk', 'top_mirror', 'side_mirror']
 
                     videofiles = {c: 'nan' for c in cameras}
                     videofiles['overview'] = os.path.join(raw_video_folder, vid)
 
                     convertedvideofiles = videofiles.copy()
 
-                    metadatafiles = {c: 'nan' for c in cameras if c not in [
+                    metadatafiles = {c: 'nan' for c in cameras if c not in ['threat_catwalk',
                         'top_mirror', 'side_mirror']}
                     metadatafiles['overview'] = os.path.join(
                         raw_metadata_folder, met)
+                    metadatafiles['analog_inputs'] = 'nan'
 
                     posefiles = {c: 'nan' for c in cameras}
                     posefiles['overview'] = posefile

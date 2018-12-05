@@ -1,8 +1,9 @@
+import sys
+sys.path.append('./')   # <- necessary to import packages from other directories within the project
+
 from database.dj_config import start_connection
 start_connection()
 
-import sys
-sys.path.append('./')   # <- necessary to import packages from other directories within the project
 
 import os
 import warnings
@@ -70,6 +71,8 @@ class PopulateDatabase:
         """
         tb = self.all_tables[tablename]
         tb.drop()
+        sys.exit()
+
 
     def populate_mice_table(self):
         """ Populates the Mice() table from the database"""
@@ -203,15 +206,14 @@ if __name__ == '__main__':
     print(p)
 
     # p.remove_table('recordings')
-    # sys.exit()
 
     # p.populate_mice_table()
     # p.populate_experiments_table()
     # p.populate_sessions_table()
-    # p.populate_recordings_table()
+    p.populate_recordings_table()
     # p.populate_templates_table()
     # p.populate_stimuli_table()
-    p.populate_tracking_data_table()
+    # p.populate_tracking_data_table()
 
 
     # print(p.mice)
