@@ -11,6 +11,7 @@ import pandas as pd
 import os
 from collections import namedtuple
 import numpy as np
+import cv2
 
 from Utilities.file_io.files_load_save import load_yaml
 
@@ -69,6 +70,21 @@ class Recordings(dj.Imported):
             top_mirror: varchar(256)        # top mirror view
             side_mirror: varchar(256)       # side mirror view
             """
+
+    class VideoMetadata(dj.Part):
+        definition = """
+            # It stores info about each video: frame size, fps...
+            -> Recordings
+            ---
+            overview_fps: int               # frames per second
+            overview_num_frames: int        # tot number of frames
+            overview_frame_size: blob       # (w, h) - width and height in pixels
+            overview_frame_offset: blobx    # (x, y) - frame offeset
+            threat_fps: int               # frames per second
+            threat_num_frames: int        # tot number of frames
+            threat_frame_size: blob       # (w, h) - width and height in pixels
+            threat_frame_offset: blobx    # (x, y) - frame offeset
+        """
 
     class ConvertedVideoFiles(dj.Part):
         definition = """
@@ -232,7 +248,7 @@ class Recordings(dj.Imported):
                     session['recording_uid'] = rec_name
                     self.insert1(session)
 
-                    # Insert stuff into part tables
+                    # Insert stuff into part tables - files
                     # prep
                     cameras = ['overview', 'threat', 'threat_catwalk', 'top_mirror', 'side_mirror']
 
@@ -263,6 +279,25 @@ class Recordings(dj.Imported):
                     Recordings.ConvertedVideoFiles.insert1(convertedvideofiles)
                     Recordings.PoseFiles.insert1(posefiles)
                     Recordings.MetadataFiles.insert1(metadatafiles)
+
+                    # Insert info about the frame size
+                    cap = cv2.VideoCapture(videofiles['overview'])
+                    num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+                    width = int(cap.get(3))
+                    height = int(cap.get(4))
+                    fps = int(cap.get(5))
+                    frame_info = dict(
+                        recording_uid = rec_name,
+                        overview_fps = fps,              
+                        overview_num_frames= num_frames,     
+                        overview_frame_size= (width, height),
+                        overview_frame_offset= (-1, -1),
+                        threat_fps= -1,               
+                        threat_num_frames= -1,       
+                        threat_frame_size=(-1, -1),
+                        threat_frame_offset=(-1, -1),
+                    )
+                    Recordings.VideoMetadata.insert1(frame_info)
 
         # Load paths to data folders
         paths = load_yaml('paths.yml')
