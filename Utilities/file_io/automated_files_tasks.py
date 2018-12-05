@@ -1,3 +1,5 @@
+import pandas as pd
+import os
 
 import sys
 sys.path.append('./') 
@@ -5,22 +7,30 @@ sys.path.append('./')
 from database.dj_config import start_connection
 start_connection()
 from database.Populate_database import PopulateDatabase
+from database.Tables_definitions import *
 
 from Utilities.video_and_plotting.video_editing import VideoConverter
+
+
 
 """ [Toolbox functions to automate handling of files (e.g. convert videos from .tdms to .avi...)]
 """
 
-class FilesAutomationToolbx:
+class FilesAutomationToolbox:
     def __init__(self):
         self.database = PopulateDatabase()
 
     def convert_tdms_to_mp4(self):
-        pass
         """
             checks for entries in Recordings that have .tdms videofiles and don't have a converted
             videofile entry and converts it + edits the entry so that the path to the new file is stored
         """
+
+        recordings = pd.DataFrame(Recordings.fetch())
+        videos = pd.DataFrame(Recordings.VideoFiles.fetch())
+        converted = pd.DataFrame(Recordings.ConvertedVideoFiles.fetch())
+        
+        print(recordings, videos, converted)
 
     def extract_postures(self):
         pass
@@ -30,5 +40,7 @@ class FilesAutomationToolbx:
             Then calls the auto populate method for the TrackingData table to fill these in
         """
 
-
+if __name__ == "__main__":
+    automation = FilesAutomationToolbox()
+    automation.convert_tdms_to_mp4()
 
