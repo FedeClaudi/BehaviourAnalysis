@@ -107,17 +107,29 @@ class Recordings(dj.Imported):
             ---
             overview_camera_triggers: longblob      # Frame triggers signals efferent copy
             threat_camera_triggers: longblob
-            speaker_signal: longblob                # HIGH when ultrasound being produced
+            speaker_signal: longblob                # HIGH when auditory stimulus being produced
+            stimuli: longblob                       # timestamp and stimulus protocol
+            ldr: longblob                           # light dependant resistor signal
         """
 
+    class FramesTimestamps(dj.Part):
+        definition = """
+        # Stores the timestamps of the frames of each camera for a recording
+        -> Recordings
+        ---
+        overview_camera_timestamps: longblob
+        threat_camera_timestamps: longblob
+        """
 
     def make(self, session):
         """ Populate the Recordings table """
-        
         paths = load_yaml('paths.yml')
         raw_video_folder = os.path.join(paths['raw_data_folder'], paths['raw_video_folder'])
         raw_metadata_folder = os.path.join(paths['raw_data_folder'], paths['raw_metadata_folder'])
         tracked_data_folder = paths['tracked_data_folder']
+
+        if session['uid'] > 184:
+            raise ValueError('This session has been acquired using MANTIS, this type of data is not yet supported')
 
         # get video and metadata files
         videos = sorted([f for f in os.listdir(raw_video_folder)
@@ -347,13 +359,20 @@ class Stimuli(dj.Computed):
                             stim_duration = 9 * 30  # ! <-
 
                         # Get stim frame
-                        if '  ' in idx:
-                            framen = int(idx.split('  ')[1].split('-')[0])
-                        else:
-                            framen = int(idx.split(' ')[2].split('-')[0])
-
+                        try:
+                            if '  ' in idx:
+                                    framen = int(idx.split('  ')[1].split('-')[0])
+                            else:
+                                framen = int(idx.split(' ')[2].split('-')[0])
+                        except:
+                            try:
+                                framen = int(idx.split('-C')[0].split("'/'")[-1])
+                            except:
+                                print('Could not load stimulus', idx)
+                                print(obj.as_dataframe().loc[0])
+                                print(obj.as_dataframe())
+                                raise ValueError('Stimulus not loaded correctly')
                         stimuli[str(framen)] = stim_type
-
 
         # Insert entries in table
         if len(list(stimuli.keys())) == 0:
@@ -430,24 +449,6 @@ class TrackingData(dj.Computed):
     # https://docs.datajoint.io/computation/Part-tables.html
 
     class LeftEar(dj.Part):
-        """
-            attributes = dict(
-                        LeftEar = self.LeftEar,
-                        LeftEye = self.LeftEye,
-                        Snout = self.Snout,
-                        RightEye = self.RightEye,
-                        RightEar = self.RightEar,
-                        Neck = self.Neck,
-                        RightShoulder = self.RightShoulder,
-                        RightHip = self.RightHip,
-                        TailBase = self.TailBase,
-                        Tail2 = self.Tail2,
-                        Tail3 = self.Tail3,
-                        LeftHip = self.LeftHip,
-                        LeftShoulder = self.LeftShoulder,
-                        Body = self.Body,
-                    )
-        """
         definition = """
             -> TrackingData
             ---

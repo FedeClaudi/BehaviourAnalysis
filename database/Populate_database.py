@@ -16,6 +16,7 @@ import pyexcel
 import yaml
 from moviepy.editor import VideoFileClip
 from tqdm import tqdm
+from collections import namedtuple
 
 from Tables_definitions import *
 from Utilities.video_editing import *
@@ -61,17 +62,6 @@ class PopulateDatabase:
         """
         for name, table in self.all_tables.items():
             print('\n\nTable definition for {}:\n{}'.format(name, table))
-
-    def reset_database(self):
-        """
-        tries to remove all tables from the database
-        """
-        print('ATTENTION: this might result in loss of data!!!')
-        q = input('Continue ? [Y/N]')
-        if not q.lower() == 'y':
-            return
-        else:
-            [table.drop() for table in self.all_tables.values()]
 
     def remove_table(self, tablename):
         """
@@ -182,10 +172,18 @@ class PopulateDatabase:
                 raise ValueError('Failed to add data entry {}-{} to {} table'.format(checktag, dataname, table.full_table_name))
 
 
+    def __repr__(self):
+        toprint = {}
+        tabledata = namedtuple('data', 'numofentries')
+        for name, table in self.all_tables.items():
+
+
 if __name__ == '__main__':
     p = PopulateDatabase()
 
-    # p.remove_table('tracking_data')
+    p.display_tables_headings()
+
+    # p.remove_table('recordings')
     # sys.exit()
 
     # p.populate_mice_table()
@@ -193,7 +191,7 @@ if __name__ == '__main__':
     # p.populate_sessions_table()
     # p.populate_recordings_table()
     # p.populate_templates_table()
-    p.populate_stimuli_table()
+    # p.populate_stimuli_table()
     # p.populate_tracking_data_table()
 
 
@@ -203,8 +201,8 @@ if __name__ == '__main__':
     # print(p.recordings)
     # print(p.templates)
     # print(p.stimuli)
-    print(p.tracking_data)
-    print(pd.DataFrame(p.tracking_data.Body.fetch()))
+    # print(p.tracking_data)
+    # print(pd.DataFrame(p.tracking_data.Body.fetch()))
 
     # print(sorted(p.sessions.fetch('uid')))
 
