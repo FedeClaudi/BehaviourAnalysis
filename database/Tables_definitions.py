@@ -79,11 +79,11 @@ class Recordings(dj.Imported):
             overview_fps: int               # frames per second
             overview_num_frames: int        # tot number of frames
             overview_frame_size: blob       # (w, h) - width and height in pixels
-            overview_frame_offset: blobx    # (x, y) - frame offeset
-            threat_fps: int               # frames per second
-            threat_num_frames: int        # tot number of frames
-            threat_frame_size: blob       # (w, h) - width and height in pixels
-            threat_frame_offset: blobx    # (x, y) - frame offeset
+            overview_frame_offset: blob    # (x, y) - frame offeset
+            threat_fps: int                 # frames per second
+            threat_num_frames: int          # tot number of frames
+            threat_frame_size: blob         # (w, h) - width and height in pixels
+            threat_frame_offset: blob       # (x, y) - frame offeset
         """
 
     class ConvertedVideoFiles(dj.Part):
@@ -668,6 +668,19 @@ class TrackingData(dj.Computed):
             side_mirror: longblob  # pose data extracted from threat camera side mirror
         """
 
+    class PositionOnMaze(dj.Part):
+        """
+            Pinpoints the position of the mouse on the maze by identifying which maze
+            component (localised using templates) is closest to the mouse body
+        """
+        definition = """
+            # Pinpoints the position of the mouse on the maze
+            -> TrackingData
+            ---
+            maze_component: blob   # Name of the maze component closest to the mouse at each frame
+            maze_position: blob    # position in px distance from shelter 
+        """
+
     def make(self, key):
         print('\n\nPopulating Tracking data\n', key)
         rec_name = key['recording_uid']
@@ -737,6 +750,9 @@ class TrackingData(dj.Computed):
                 print('\n\nkey', key, '\n\n')
                 print(self)
                 part.insert1(key)
+
+        # Get the position of the mouse on the maze and insert into correct part table
+        raise NotImplementedError('Maze part stuff')
 
 
 
