@@ -30,7 +30,15 @@ class FilesAutomationToolbox:
         videos = pd.DataFrame(Recordings.VideoFiles.fetch())
         converted = pd.DataFrame(Recordings.ConvertedVideoFiles.fetch())
         
-        print(recordings, videos, converted)
+        for row in recordings.itertuples(index=True, name='Pandas'):
+            rec = getattr(row, 'recording_uid')
+            print('Recording name: ', rec)
+
+            rec_vids = videos.loc[videos['recording_uid']==rec]
+            rec_conv_vids = converted.loc[videos['recording_uid']==rec]
+            print(rec_vids, rec_conv_vids)
+
+            # TODO use this information to convert missing videos.. 
 
     def extract_postures(self):
         pass
