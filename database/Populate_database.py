@@ -1,4 +1,4 @@
-from dj_config import start_connection
+from database.dj_config import start_connection
 start_connection()
 
 import sys
@@ -18,8 +18,9 @@ from moviepy.editor import VideoFileClip
 from tqdm import tqdm
 from collections import namedtuple
 
-from Tables_definitions import *
-from Utilities.video_editing import *
+from database.Tables_definitions import *
+
+from Utilities.video_and_plotting.video_editing import *
 from Utilities.stim_times_loader import *
 
 
@@ -201,7 +202,6 @@ if __name__ == '__main__':
 
     print(p)
 
-
     # p.remove_table('recordings')
     # sys.exit()
 
@@ -211,7 +211,7 @@ if __name__ == '__main__':
     # p.populate_recordings_table()
     # p.populate_templates_table()
     # p.populate_stimuli_table()
-    # p.populate_tracking_data_table()
+    p.populate_tracking_data_table()
 
 
     # print(p.mice)
@@ -225,3 +225,4 @@ if __name__ == '__main__':
 
     # print(sorted(p.sessions.fetch('uid')))
 
+    print(p)
