@@ -18,6 +18,7 @@ from Utilities.file_io.files_load_save import load_yaml
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 
 from Processing.tracking_stats.extract_velocities_from_tracking import complete_bp_with_velocity, get_body_segment_stats
+from Processing.tracing_stats.math_utils import *
 
 @schema
 class Mice(dj.Manual):
@@ -438,7 +439,7 @@ class Stimuli(dj.Computed):
                         elif 'audio' in str(obj).lower():
                             stim_type = 'audio'
                             stim_duration = 9 * 30  # ! <-
-
+                        warnings.warn('Stimulus duration is currently hardcoded')
                         # Get stim frame
                         try:
                             if '  ' in idx:
@@ -471,6 +472,7 @@ class Stimuli(dj.Computed):
             print(' inserting empty values', data_to_input)
             self.insert1(data_to_input)
         else:
+            # Insert real data
             for i, k in enumerate(sorted(stimuli.keys())):
                 stim = stimuli[k]
 
@@ -512,6 +514,11 @@ class TrackingData(dj.Computed):
             LeftHip = self.LeftHip,
             LeftShoulder = self.LeftShoulder,
             Body = self.Body,
+            HeadSegment = self.HeadSegment,
+            EarsSegment = self.EarsSegment,
+            UpperBodySegment = self.UpperBodySegment,
+            LowerBodySegment = self.LowerBodySegment,
+            TailSegment = self.TailSegment,
         )
 
     def getallattr(self):
@@ -856,6 +863,10 @@ class TrackingData(dj.Computed):
         segments = self.get_body_segments()
 
         for name, segment in segments.items():
+            segment_data = key.copy()
+            segment_data['bp1'] = segment[0].__name__ 
+            segment_data['bp2'] = segment[1].__name__
+
             positions = []
             for bp in segment:
                 xy = [p['overview'] for p in bp if p['recording_uid'] == key['recording_uid']][0]
@@ -863,8 +874,16 @@ class TrackingData(dj.Computed):
                     xy = xy[:, :2]
                 positions.append(xy)
             
-        # TODO extract stats from the tracking data and fillin 
-        raise NotImplementedError('to finish', [x.shape for x in positions], len(positions))
+            # Get length of the segments between bp1 and bp2
+            segment_data['length'] = calc_distance_between_points_two_vectors_2d(positions[0], positions[1])
+            segment_data['theta'] = calc_angle_between_vectors_of_points_2d(positions[0], positions[1])
+            segment_data['angvel'] = calc_ang_velocity(segment_data['theta'])
+
+            # Get PART subclass to add the segments to
+            part = self.getattr(name+'Segment')
+
+            # Insert the data in the table
+            part.insert1(segment_data)
 
     def make(self, key):
         print('\n\nPopulating Tracking data\n', key)
