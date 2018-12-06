@@ -169,9 +169,9 @@ def calc_angle_between_vectors_of_points_2d(v1, v2):
     if v1 is None or v2 is None or not isinstance(v1, np.ndarray) or not isinstance(v2, np.ndarray):
         raise ValueError('Invalid format for input arguments')
     if len(v1) != len(v2): 
-        raise ValueError('Input arrays should have the same length')
+        raise ValueError('Input arrays should have the same length, instead: ', len(v1), len(v2))
     if not v1.shape[0] == 2 or not v2.shape[0] == 2:
-        raise ValueError('Invalid shape for input arrays')
+        raise ValueError('Invalid shape for input arrays: ', v1.shape, v2.shape)
 
     # Calculate
     n_points = v1.shape[1]

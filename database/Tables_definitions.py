@@ -18,7 +18,7 @@ from Utilities.file_io.files_load_save import load_yaml
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 
 from Processing.tracking_stats.extract_velocities_from_tracking import complete_bp_with_velocity, get_body_segment_stats
-from Processing.tracing_stats.math_utils import *
+from Processing.tracking_stats.math_utils import *
 
 @schema
 class Mice(dj.Manual):
@@ -708,9 +708,9 @@ class TrackingData(dj.Computed):
             ---
             bp1: varchar(128)  # name of bodyparts
             bp2: varchar(128)
-            length: blob       # length in pixels
-            theta: blob        # clockwise angle relative to frame
-            angvel: blob       # angular velocity
+            length: longblob       # length in pixels
+            theta: longblob        # clockwise angle relative to frame
+            angvel: longblob       # angular velocity
         """
 
     class EarsSegment(dj.Part):
@@ -720,9 +720,9 @@ class TrackingData(dj.Computed):
             ---
             bp1: varchar(128)  # name of bodyparts
             bp2: varchar(128)
-            length: blob       # length in pixels
-            theta: blob        # clockwise angle relative to frame
-            angvel: blob       # angular velocity
+            length: longblob       # length in pixels
+            theta: longblob        # clockwise angle relative to frame
+            angvel: longblob       # angular velocity
         """
 
     class UpperBodySegment(dj.Part):
@@ -732,9 +732,9 @@ class TrackingData(dj.Computed):
             ---
             bp1: varchar(128)  # name of bodyparts
             bp2: varchar(128)
-            length: blob       # length in pixels
-            theta: blob        # clockwise angle relative to frame
-            angvel: blob       # angular velocity
+            length: longblob       # length in pixels
+            theta: longblob        # clockwise angle relative to frame
+            angvel: longblob       # angular velocity
         """
 
     class LowerBodySegment(dj.Part):
@@ -744,9 +744,9 @@ class TrackingData(dj.Computed):
             ---
             bp1: varchar(128)  # name of bodyparts
             bp2: varchar(128)
-            length: blob       # length in pixels
-            theta: blob        # clockwise angle relative to frame
-            angvel: blob       # angular velocity
+            length: longblob       # length in pixels
+            theta: longblob        # clockwise angle relative to frame
+            angvel: longblob       # angular velocity
         """
 
     class TailSegment(dj.Part):
@@ -756,9 +756,9 @@ class TrackingData(dj.Computed):
             ---
             bp1: varchar(128)  # name of bodyparts
             bp2: varchar(128)
-            length: blob       # length in pixels
-            theta: blob        # clockwise angle relative to frame
-            angvel: blob       # angular velocity
+            length: longblob       # length in pixels
+            theta: longblob        # clockwise angle relative to frame
+            angvel: longblob       # angular velocity
         """
 
     def fill_bp_data(self, pose_files, key):
@@ -864,6 +864,7 @@ class TrackingData(dj.Computed):
 
         for name, segment in segments.items():
             segment_data = key.copy()
+            del segment_data['overview'], segment_data['threat'], segment_data['top_mirror'], segment_data['side_mirror']
             segment_data['bp1'] = segment[0].__name__ 
             segment_data['bp2'] = segment[1].__name__
 
@@ -872,10 +873,10 @@ class TrackingData(dj.Computed):
                 xy = [p['overview'] for p in bp if p['recording_uid'] == key['recording_uid']][0]
                 if xy.shape[1] > 2:
                     xy = xy[:, :2]
-                positions.append(xy)
+                positions.append(xy.T)
             
             # Get length of the segments between bp1 and bp2
-            segment_data['length'] = calc_distance_between_points_two_vectors_2d(positions[0], positions[1])
+            segment_data['length'] = calc_distance_between_points_two_vectors_2d(positions[0].T, positions[1].T)
             segment_data['theta'] = calc_angle_between_vectors_of_points_2d(positions[0], positions[1])
             segment_data['angvel'] = calc_ang_velocity(segment_data['theta'])
 
@@ -883,7 +884,10 @@ class TrackingData(dj.Computed):
             part = self.getattr(name+'Segment')
 
             # Insert the data in the table
-            part.insert1(segment_data)
+            try:
+                part.insert1(segment_data)
+            except:
+                raise ValueError('Faile to insert: ', segment_data,  '\nWith Keys: ',segment_data.keys(), '\nInto: ', part.heading)
 
     def make(self, key):
         print('\n\nPopulating Tracking data\n', key)
