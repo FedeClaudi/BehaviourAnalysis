@@ -839,7 +839,6 @@ class TrackingData(dj.Computed):
             shelter_roi_pos = rois['s']
 
             roi_at_each_frame = get_roi_at_each_frame(body_tracking, dict(rois))  # roi name
-
             position_at_each_frame = [(rois[r][0]-shelter_roi_pos[0],
                                     rois[r][1]-shelter_roi_pos[1])
                                     for r in roi_at_each_frame]  # distance from shelter
@@ -859,13 +858,13 @@ class TrackingData(dj.Computed):
         for name, segment in segments.items():
             positions = []
             for bp in segment:
-                xy = [p for p in bp if p['recording_uid'] == key['recording_uid']][0]
+                xy = [p['overview'] for p in bp if p['recording_uid'] == key['recording_uid']][0]
                 if xy.shape[1] > 2:
-                    xy = xy[:, :1]
+                    xy = xy[:, :2]
                 positions.append(xy)
             
         # TODO extract stats from the tracking data and fillin 
-        raise NotImplementedError('to finish')
+        raise NotImplementedError('to finish', [x.shape for x in positions], len(positions))
 
     def make(self, key):
         print('\n\nPopulating Tracking data\n', key)

@@ -63,12 +63,10 @@ def get_roi_at_each_frame(bp_data, rois):
 
     for idx, center in enumerate(centers):
         cnt = np.tile(center, data_length).reshape((data_length, 2))
-        print(cnt.shape, bp_data.shape)
         dist = np.hypot(np.subtract(cnt[:, 0], bp_data[:, 0]), np.subtract(cnt[:, 1], bp_data[:, 1]))
         distances[:, idx] = dist
 
     # Get which roi the mouse is in at each frame
-    print(distances)
     sel_rois = np.argmin(distances, 1)
     roi_at_each_frame = tuple([roi_names[x] for x in sel_rois])
     print('the mouse has visited these platforms ', set(roi_at_each_frame))
