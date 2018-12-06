@@ -767,7 +767,7 @@ class TrackingData(dj.Computed):
         Arguments:
             pose_files {[list]} -- [list of .h5 pose files for a recording]
         """
-
+        print('     ... filling in bodyparts PARTs classes')
         cameras = ['overview', 'threat', 'top_mirror', 'side_mirror']
         allbp = None
         # Create a dictionary with the data for each bp and each camera
@@ -860,9 +860,12 @@ class TrackingData(dj.Computed):
             self.PositionOnMaze.insert1(data_to_input)
 
     def fill_segments_data(self, key):
+        print('     ... filling in segments PARTs classes')
+
         segments = self.get_body_segments()
 
         for name, segment in segments.items():
+            print('             ... ', name)
             segment_data = key.copy()
             del segment_data['overview'], segment_data['threat'], segment_data['top_mirror'], segment_data['side_mirror']
             segment_data['bp1'] = segment[0].__name__ 
@@ -874,8 +877,7 @@ class TrackingData(dj.Computed):
                 if xy.shape[1] > 2:
                     xy = xy[:, :2]
                 positions.append(xy.T)
-            
-            # Get length of the segments between bp1 and bp2
+
             segment_data['length'] = calc_distance_between_points_two_vectors_2d(positions[0].T, positions[1].T)
             segment_data['theta'] = calc_angle_between_vectors_of_points_2d(positions[0], positions[1])
             segment_data['angvel'] = calc_ang_velocity(segment_data['theta'])

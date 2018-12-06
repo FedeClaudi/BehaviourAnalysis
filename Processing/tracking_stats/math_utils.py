@@ -99,14 +99,18 @@ def calc_distance_between_points_two_vectors_2d(v1, v2):
         raise ValueError('Error: input arrays should have the same length')
 
     # Calculate distance
-    dist = distance.cdist(v1, v2, 'euclidean')
-    dist = dist[0, :]  # ! <-- need to check this behaviour
+    if v1.shape[1]<20000 and v1.shape[0]<20000: 
+        # For short vectors use cdist
+        dist = distance.cdist(v1, v2, 'euclidean')
+        dist = dist[0, :]  
+    else:
+        dist = [calc_distance_between_points_2d(p1, p2) for p1, p2 in zip(v1, v2)]
     return dist
 
 
 def angle_between_points_2d_clockwise(p1, p2):
     '''angle_between_points_2d_clockwise [summary]
-     calculates the clockwise angle between two points and the Y axis
+    calculates the clockwise angle between two points and the Y axis
     --> if the determinant of the two vectors is < 0 then p2 is clowise of p1
 
     Arguments:
