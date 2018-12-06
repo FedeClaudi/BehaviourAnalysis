@@ -45,29 +45,34 @@ def get_roi_at_each_frame(bp_data, rois):
             bp_data = pos
 
     # Get the center of each roi
-    centers = []
-    try:
-        for points in rois.values():
-            center_x = (points.topleft[0] + points.bottomright[0]) / 2
-            center_y = (points.topleft[1] + points.bottomright[1]) / 2
-            center = np.asarray([center_x, center_y])
-            centers.append(center)
-    except:
-        raise NotImplementedError('If the mouse is not in the frame this might yield erroneous results')
+    centers, roi_names = [], [] 
+    for name, points in rois.items():  # a pointa is  two 2d XY coords for top left and bottom right points of roi
+        if not isinstance(points, np.ndarray): continue # maze component not present in maze for this experiment
+        try:
+            center_x = (points[0][0] + points[1][0]) / 2
+        except:
+            raise ValueError('Couldnt find center for points: ',points, type(points))
+        center_y = (points[0][1] + points[1][1]) / 2
+        center = np.asarray([center_x, center_y])
+        centers.append(center)
+        roi_names.append(name)
 
-    roi_names = list(rois.keys())
-
-    # Calc distance toe ach roi for each frame
-    data_length = len(bp_data[0])
+    # Calc distance to each roi for each frame
+    data_length = bp_data.shape[0]
     distances = np.zeros((data_length, len(centers)))
+
     for idx, center in enumerate(centers):
         cnt = np.tile(center, data_length).reshape((data_length, 2))
+        print(cnt.shape, bp_data.shape)
         dist = np.hypot(np.subtract(cnt[:, 0], bp_data[:, 0]), np.subtract(cnt[:, 1], bp_data[:, 1]))
         distances[:, idx] = dist
 
     # Get which roi the mouse is in at each frame
+    print(distances)
     sel_rois = np.argmin(distances, 1)
     roi_at_each_frame = tuple([roi_names[x] for x in sel_rois])
+    print('the mouse has visited these platforms ', set(roi_at_each_frame))
+    print('and has spent this time in shelter ', roi_at_each_frame.count('s'))
     return roi_at_each_frame
 
 

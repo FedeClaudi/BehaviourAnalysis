@@ -12,6 +12,7 @@ import os
 from collections import namedtuple
 import numpy as np
 import cv2
+import warnings
 
 from Utilities.file_io.files_load_save import load_yaml
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
@@ -21,15 +22,15 @@ from Processing.tracking_stats.extract_velocities_from_tracking import complete_
 @schema
 class Mice(dj.Manual):
     definition = """
-      # Mouse table lists all the mice used and the relevant attributes
-      mouse_id: varchar(128)                        # unique mouse id
-      ---
-      strain:   varchar(128)                        # genetic strain
-      dob: varchar(128)                             # mouse date of birth 
-      sex: enum('M', 'F', 'U')                      # sex of mouse - Male, Female, or Unknown/Unclassified
-      single_housed: enum('Y', 'N')                 # single housed or group caged
-      enriched_cage: enum('Y', 'N')                 # presence of wheel or other stuff in the cage
-      """
+        # Mouse table lists all the mice used and the relevant attributes
+        mouse_id: varchar(128)                        # unique mouse id
+        ---
+        strain:   varchar(128)                        # genetic strain
+        dob: varchar(128)                             # mouse date of birth 
+        sex: enum('M', 'F', 'U')                      # sex of mouse - Male, Female, or Unknown/Unclassified
+        single_housed: enum('Y', 'N')                 # single housed or group caged
+        enriched_cage: enum('Y', 'N')                 # presence of wheel or other stuff in the cage
+    """
 
 @schema
 class Experiments(dj.Manual):
@@ -291,7 +292,9 @@ class Recordings(dj.Imported):
                     fps = int(cap.get(5))
                     frame_info = dict(
                         recording_uid = rec_name,
-                        overview_fps = fps,              
+                        overview_fps = fps,    
+                        uid = session['uid'],
+                        session_name = session['session_name'],          
                         overview_num_frames= num_frames,     
                         overview_frame_size= (width, height),
                         overview_frame_offset= (-1, -1),
@@ -314,7 +317,6 @@ class Recordings(dj.Imported):
         else:
             software = 'behaviour'
             behaviour_software_files_finder(raw_video_folder=raw_video_folder, raw_metadata_folder=raw_metadata_folder)
-                   
 
 @schema
 class Templates(dj.Imported):
@@ -484,7 +486,6 @@ class Stimuli(dj.Computed):
                 )
                 print(data_to_input)
                 self.insert1(data_to_input)
-
 @schema
 class TrackingData(dj.Computed):
     # Pose data for individual bp store X Y and Velocity
@@ -829,26 +830,26 @@ class TrackingData(dj.Computed):
 
             # Get the position of the mouse on the maze and insert into correct part table
             body_tracking = allbp['body']['overview']
+            if body_tracking.shape[1] > 2: body_tracking = body_tracking[:, :2]
 
-            rois = [t for t in Templates.fetch() if t['recording_uid']
-                    == key['recording_uid']]
+            templates_idx = [i for i,t in enumerate(Templates.fetch()) if t['recording_uid'] == key['recording_uid']][0]
+            rois = pd.DataFrame(Templates.fetch()).iloc[templates_idx]
+            del rois['uid'], rois['session_name'], rois['recording_uid']
 
-            if not rois or not isinstance(rois, list):
-                raise ValueError(
-                    'Could not find templates to fill in mouse position table')
-            else:
-                rois = dict(rois[0])
             shelter_roi_pos = rois['s']
 
-            roi_at_each_frame = get_roi_at_each_frame(
-                body_tracking, rois)  # roi name
+            roi_at_each_frame = get_roi_at_each_frame(body_tracking, dict(rois))  # roi name
+
             position_at_each_frame = [(rois[r][0]-shelter_roi_pos[0],
                                     rois[r][1]-shelter_roi_pos[1])
                                     for r in roi_at_each_frame]  # distance from shelter
+            warnings.warn('Currently DJ canot store string of lists so roi_at_each_Frame is not saved in the databse')
             data_to_input = dict(
                 recording_uid=key['recording_uid'],
-                maze_component= roi_at_each_frame,
-                maze_position=position_at_each_frame,
+                uid=key['uid'],
+                session_name=key['session_name'],
+                maze_component= -1,
+                maze_position= position_at_each_frame,
             )
             self.PositionOnMaze.insert1(data_to_input)
 

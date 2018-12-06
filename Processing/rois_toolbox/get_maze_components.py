@@ -95,7 +95,7 @@ def get_rois_from_templates(session_name, videopath, templates_fld):
         bg = cv2.imread(maze_templates[0])
         if bg.shape[-1] > 2: bg = cv2.cvtColor(bg, cv2.COLOR_BGR2GRAY)
     else:
-        raise ValueError('Could not find maze templates')
+        raise ValueError('Could not find maze templates', templates_fld)
 
     # Calculate the position of the templates and save resulting image
     display, platforms = loop_over_templates(platf_templates, bg)
