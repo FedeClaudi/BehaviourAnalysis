@@ -1,3 +1,6 @@
+import sys
+sys.path.append('./')  
+
 import warnings as warn
 try: import cv2
 except: pass
@@ -15,8 +18,7 @@ import shutil
 import matplotlib.pyplot as plt
 import time
 
-# TODO stitch videos together after tdms conversion
-# TODO add video cropper to Misc
+from Utilities.file_io.files_load_save import load_yaml
 
 class VideoConverter:
     def __init__(self, filepath, output='.mp4', output_folder=None, extract_framesize=True):
@@ -98,7 +100,7 @@ class VideoConverter:
             vidname = '{}__{}.mp4'.format(vidname, limits[0])
             fourcc = cv2.VideoWriter_fourcc(*'MP4V')
             videowriter = cv2.VideoWriter(os.path.join(self.folder, vidname), fourcc,
-                                          framerate, (w, h), iscolor)
+                                            framerate, (w, h), iscolor)
 
             for framen in tqdm(range(limits[0], limits[1]+1)):
                 videowriter.write(data[framen])
@@ -106,26 +108,31 @@ class VideoConverter:
 
         def extract_framesize_from_metadata(videotdms):
             """extract_framesize_from_metadata [takes the path to the video to be connverted and 
-               uses it to extract metadata about the acquired video (frame widht and height...)]
+                uses it to extract metadata about the acquired video (frame widht and height...)]
             
             Arguments:
                 videotdms {[str]} -- [path to video.tdms]
             Returns:
                 frame width, height and number of frames in the video to be converted
             """
-    
+            # Find the tdms video
+            paths = load_yaml('paths.yml')
+            
+            metadata_fld = os.path.join(paths['raw_data_folder'], paths['raw_metadata_folder'])
+
+            videoname = os.path.split(videotdms)[-1]
+            metadata_file = [os.path.join(metadata_fld, f) for f in os.listdir(metadata_fld)
+                                if videoname in f][0]
+
             # Get info about the video data
-            pth = os.path.split(videotdms)[0]
-
-            video = TdmsFile(os.path.join(pth, videotdms))
-            video_bytes = video.object('cam0', 'data').data
-
+            # video = TdmsFile(videotdms)
+            # video_bytes = video.object('cam0', 'data').data
+            video_size = os.path.getsize(videotdms)
             #plt.plot(video_bytes[:10000])
             #plt.show()
 
             # Get info about the metadata
-            metadata_name = videotdms.split('.')[0] + 'meta.tdms'
-            metadata = TdmsFile(os.path.join(pth, metadata_name))
+            metadata = TdmsFile(metadata_file)
 
             # Get values to return
             metadata_object = metadata.object()
@@ -135,7 +142,7 @@ class VideoConverter:
             #     print("{0}: {1}".format(name, value))
             # return
 
-            tot = np.int(round(len(video_bytes)/(props['width']*props['height'])))  # tot number of frames 
+            tot = np.int(round(video_size/(props['width']*props['height'])))  # tot number of frames 
 
             if tot != props['last']:
                 raise ValueError('Calculated number of frames doesnt match what is stored in the metadata: {} vs {}'.format(tot, props['last']))
@@ -412,11 +419,10 @@ if __name__ == '__main__':
 
     ###############
 
-    fld = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\camtest'
-    toconvert = 'ThreatCamera.tdms'
-
-    converter = VideoConverter(os.path.join(fld, toconvert), 
-                               extract_framesize=True)
+    fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video'
+    toconvert = [f for f in os.listdir(fld) if '.tdms' in f]
+    for f in toconvert:
+        converter = VideoConverter(os.path.join(fld, f), extract_framesize=True)
         
 
 
