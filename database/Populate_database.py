@@ -215,22 +215,15 @@ if __name__ == '__main__':
     # p.populate_mice_table()
     # p.populate_experiments_table()
     # p.populate_sessions_table()
+
     # p.populate_recordings_table()
-    p.populate_ccm_table()
+
+    # p.populate_ccm_table()
     # p.populate_templates_table()
+    
     # p.populate_stimuli_table()
     # p.populate_tracking_data_table()
 
 
-    # print(p.mice)
-    # print(p.experiments)
-    # print(p.sessions)
-    # print(p.recordings)
-    # print(p.templates)
-    # print(p.stimuli)
-    # print(p.tracking_data)
-    # print(pd.DataFrame(p.tracking_data.Body.fetch()))
-
-    # print(sorted(p.sessions.fetch('uid')))
 
     print(p)

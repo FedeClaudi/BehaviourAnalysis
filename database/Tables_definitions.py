@@ -306,6 +306,45 @@ class Recordings(dj.Imported):
                     )
                     Recordings.VideoMetadata.insert1(frame_info)
 
+        def mantis_software_files_finder(session, video_folder, metadata_folder, ai_folder):
+            # get all files from folders
+            all_files = {}
+            all_files['video'] = [f for f in os.listdir(video_folder) if 'mp4' in f or 'avi' in f]
+            all_files['video_tdms'] = [f for f in os.listdir(video_folder) if 'tmds' in f]
+            all_files['metadata'] = [f for f in os.listdir(metadata_folder) if 'tmds' in f]
+            all_files['ai'] = [f for f in os.listdir(ai_folder) if 'tmds' in f]
+
+            # Only keep those with the sessions name in it
+            session_files = {k:[f for f in v if session['session_name'] in f] for k,v in all_files.items()}
+
+            # Loop over each OVERVIEW video file and create an entry in the table
+            for i, overview_video in enumerate(sorted([f for f in all_files['video_tdms'] if 'overview' in f.lower()])):
+                pass
+                """
+                    TODO
+                    
+                    create entry into Recordings
+
+                    Get Overview, THreat and Splitted videos 
+                    insert into VideoFiles
+
+                    Extract metdata (fps...) from video and 
+                    insert into VideoMetadata
+
+                    Look For Converted Videos
+                    insert into ConvertedVideos
+
+                    Get Metadata and AI files
+                    insert into MetadataFiles
+                    
+                    Populate AI table and TimeStamps table
+
+
+                """
+
+                
+
+
         # Load paths to data folders
         paths = load_yaml('paths.yml')
         raw_video_folder = os.path.join(paths['raw_data_folder'], paths['raw_video_folder'])
