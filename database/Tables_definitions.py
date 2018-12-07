@@ -488,6 +488,52 @@ class Stimuli(dj.Computed):
                 )
                 print(data_to_input)
                 self.insert1(data_to_input)
+
+@schema
+class CommonCoordinateMatrices(dj.Computed):
+    definition = """
+        # Stores matrixes used to align video and tracking data to standard maze model
+        -> Sessions
+        ---
+        maze_model: longblob   # 2d array with image used for correction
+        correction_matrix: longblob  # 2x3 Matrix used for correction
+        alignment_points: longblob     # array of X,Y coords of points used for affine transform
+    """
+    def get_model(self):
+        import cv2
+        # Get the maze model template
+        maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')
+        maze_model = cv2.resize(maze_model, (1000, 1000))
+        maze_model = cv2.cv2.cvtColor(maze_model,cv2.COLOR_RGB2GRAY)
+        self.model = maze_model
+
+    def make(self, key):
+        from Utilities.video_and_plotting.commoncoordinatebehaviour import run as get_matrix
+
+        # import maze model
+        self.get_model()
+
+        # Get path to video of first recording
+        rec = [r for r in Recordings.VideoFiles if r['session_name'] == key['session_name']]
+
+        if not rec:
+            raise ValueError('Did not find recording while populating CCM table. Populate recordings first! Session: ', key['session_name'])
+        else:
+            videopath = rec[0]['overview']
+        
+        # Apply the transorm [Call function that prepares data to feed to Philip's function]
+        """ 
+            The correction code is from here: https://github.com/BrancoLab/Common-Coordinate-Behaviour
+        """ 
+        matrix, points = get_matrix(videopath, maze_model = self.model)
+
+        # Insert data into table
+        key['maze_model'] = self.model
+        key['correction_matrix'] = matrix
+        key['alignment_points'] = points
+
+        self.insert1(key)
+
 @schema
 class TrackingData(dj.Computed):
     # Pose data for individual bp store X Y and Velocity
@@ -552,7 +598,7 @@ class TrackingData(dj.Computed):
         definition = """
             -> TrackingData
             ---
-            overview: longblob     # pose data extracted from overview camera
+            overview: longblob     # pose data extracted from overview camera - X,Y,VELOCITY
             threat: longblob       # pose data extracted from threat camear (main view)
             top_mirror: longblob   # pose data extracted from threat camera top mirror
             side_mirror: longblob  # pose data extracted from threat camera side mirror
@@ -777,60 +823,69 @@ class TrackingData(dj.Computed):
                 continue
 
             try:
-                pose = pd.read_hdf(pfile)  # ? load pose
+                pose = pd.read_hdf(pfile)  # ? load pose data
             except FileNotFoundError:
                 print('Could not open file: ', pfile)
                 print(pose_files)
                 raise FileExistsError()
 
+            # Get the scorer name and the name of the bodyparts
             first_frame = pose.iloc[0]
-
             bodyparts = first_frame.index.levels[1]
             scorer = first_frame.index.levels[0]
-
             print('Scorer: ', scorer)
             print('Bodyparts ', bodyparts)
 
-            if allbp is None:
+            if allbp is None:  # at the first iteration
                 # initialise empty dict of dict
                 allbp = {}
                 for bp in bodyparts:
                     allbp[bp] = {cam: None for cam in cameras}
 
+            # Get pose with X,Y coordinates
             for bpname in bodyparts:
                 xypose = pose[scorer[0], bpname].drop(columns='likelihood')
-                xyvpose = complete_bp_with_velocity(xypose)
-                allbp[bpname][cam] = xyvpose.values
-                if xypose.values is None:
-                    print(key)
-                    raise ValueError('Did not get pose value')
+                allbp[bpname][cam] = xypose.values
 
-            # Insert stuff into MAIN CLASS
+            # Insert entry into MAIN CLASS for this recording
             self.insert1(key)
 
             # Update KEY with the pose data and insert into correct PART subclass
+            # ? first insert data into KEY
             for bodypart in allbp.keys():
                 for cam in cameras:
                     if cam != 'overview':
                         key[cam] = np.array([0])
                         continue
 
+                    # Get the PART subclass using the bodyparts name
                     classname = [s.capitalize() for s in bodypart.split('_')]
                     classname = ''.join(classname)
                     part = self.getattr(classname)
 
+                    # Retrieve the data from the dictionary and insert
                     cam_pose_data = allbp[bodypart][cam]
                     if cam_pose_data is None:
                         Warning('No pose data detected',
                                 cam_pose_data, bodypart, cam)
                         key[cam] = np.array([0])
                     else:
-                        key[cam] = allbp[bodypart][cam]
+                        # Correct the tracking data to make it fit the standard maze model
+                        uncorrected_bpdata = allbp[bodypart][cam]
+                        ccm_entry = [c for c in CommonCoordinateMatrices if c['uid'] == key['uid']]
+                        if not ccm_entry: 
+                            raise FileNotFoundError('Couldnt find matching entry in CommonCoordinateMatrixes for recording: ', key['recording_uid'])
+                        else:
+                            M = ccm_entry[0]['correction_matrix']
 
+                        corrected_bpdata = correct_tracking_data(uncorrected_bpdata, M)
+                        key[cam] = corrected_bpdata
+
+                # ? Insert happens here
                 try:
                     part.insert1(key)
                 except:
-                    # Check what went wrong (print and reproduce error)
+                    # * Check what went wrong (print and reproduce error)
                     print('\n\nkey', key, '\n\n')
                     print(self)
                     part.insert1(key)
@@ -845,10 +900,10 @@ class TrackingData(dj.Computed):
 
             shelter_roi_pos = rois['s']
 
-            roi_at_each_frame = get_roi_at_each_frame(body_tracking, dict(rois))  # roi name
+            roi_at_each_frame = get_roi_at_each_frame(body_tracking, dict(rois))  # ? roi name
             position_at_each_frame = [(rois[r][0]-shelter_roi_pos[0],
                                     rois[r][1]-shelter_roi_pos[1])
-                                    for r in roi_at_each_frame]  # distance from shelter
+                                    for r in roi_at_each_frame]  # ? distance from shelter
             warnings.warn('Currently DJ canot store string of lists so roi_at_each_Frame is not saved in the databse')
             data_to_input = dict(
                 recording_uid=key['recording_uid'],
@@ -892,7 +947,6 @@ class TrackingData(dj.Computed):
                 raise ValueError('Faile to insert: ', segment_data,  '\nWith Keys: ',segment_data.keys(), '\nInto: ', part.heading)
 
     def make(self, key):
-        # TODO apply correction from CCM table to tracking data
         print('\n\nPopulating Tracking data\n', key)
         rec_name = key['recording_uid']
         pose_files = [ff for ff in Recordings.PoseFiles.fetch() if ff['recording_uid']==rec_name][0]
@@ -902,51 +956,6 @@ class TrackingData(dj.Computed):
         
         # FIll in the SEGMENTS PART tables
         self.fill_segments_data(key)
-
-@schema
-class CommonCoordinateMatrixes(dj.Computed):
-    definition = """
-        # Stores matrixes used to align video and tracking data to standard maze model
-        -> Sessions
-        ---
-        maze_model: longblob   # 2d array with image used for correction
-        correction_matrix: longblob  # 2x3 Matrix used for correction
-        alignment_points: longblob     # array of X,Y coords of points used for affine transform
-    """
-    def get_model(self):
-        import cv2
-        # Get the maze model template
-        maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')
-        maze_model = cv2.resize(maze_model, (1000, 1000))
-        maze_model = cv2.cv2.cvtColor(maze_model,cv2.COLOR_RGB2GRAY)
-        self.model = maze_model
-
-    def make(self, key):
-        from Utilities.video_and_plotting.commoncoordinatebehaviour import run as get_matrix
-
-        # import maze model
-        self.get_model()
-
-        # Get path to video of first recording
-        rec = [r for r in Recordings.VideoFiles if r['session_name'] == key['session_name']]
-
-        if not rec:
-            raise ValueError('Did not find recording while populating CCM table. Populate recordings first! Session: ', key['session_name'])
-        else:
-            videopath = rec[0]['overview']
-        
-        # Apply the transorm [Call function that prepares data to feed to Philip's function]
-        """ 
-            The correction code is from here: https://github.com/BrancoLab/Common-Coordinate-Behaviour
-        """ 
-        matrix, points = get_matrix(videopath, maze_model = self.model)
-
-        # Insert data into table
-        key['maze_model'] = self.model
-        key['correction_matrix'] = matrix
-        key['alignment_points'] = points
-
-        self.insert1(key)
 
 
 if __name__ == "__main__":

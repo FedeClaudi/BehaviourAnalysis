@@ -211,6 +211,28 @@ def calc_ang_velocity(angles):
     return np.degrees(ang_vel_rads)
     
 
+def correct_tracking_data(uncorrected, M):
+
+    """[Corrects tracking data (as extracted by DLC) using a transform Matrix obtained via the CommonCoordinateBehaviour
+        toolbox. ]
+
+    Arguments:
+        uncorrected {[np.ndarray]} -- [n-by-2 or n-by-3 array where n is number of frames and the columns have X,Y and Velocity ]
+        M {[np.ndarray]} -- [2-by-3 transformation matrix: https://github.com/BrancoLab/Common-Coordinate-Behaviour]
+
+    Returns:
+        corrected {[np.ndarray]} -- [n-by-3 array with corrected X,Y tracking and Velocity data]
+    """     
+
+    # Do the correction
+    x,y = uncorrected[:, 0], uncorrected[:, 1]
+    corrected = np.matmul(np.append(M,np.zeros((1,3)),0), [x, y, 1])
+
+    # Calculate velocity 
+    corrected[:, 3] = calc_distance_between_points_in_a_vector_2d(corrected)
+
+    return corrected
+
 if __name__ == "__main__":
     import doctest
     doctest.testmod(verbose=True)

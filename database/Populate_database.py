@@ -55,10 +55,10 @@ class PopulateDatabase:
         self.recordings = Recordings()
         self.stimuli = Stimuli()
         self.tracking_data = TrackingData()
-        self.commoncoordinatematrixes = CommonCoordinateMatrixes()
+        self.commoncoordinatematrices = CommonCoordinateMatrices()
         self.all_tables = dict(mice=self.mice, sessions= self.sessions, experiments=self.experiments, recordings=self.recordings,
                                stimuli=self.stimuli, tracking_data = self.tracking_data, templates=self.templates,
-                               commoncoordinatematrixes=self.commoncoordinatematrixes)
+                               commoncoordinatematrices=self.commoncoordinatematrices)
 
     def display_tables_headings(self):
         """
@@ -210,7 +210,7 @@ if __name__ == '__main__':
 
     print(p)
 
-    # p.remove_table('commoncoordinatematrixes')
+    p.remove_table('commoncoordinatematrices')
 
     # p.populate_mice_table()
     # p.populate_experiments_table()
