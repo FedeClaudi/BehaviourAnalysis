@@ -8,11 +8,12 @@ import os
 import numpy as np
 import cv2
 
-def run(videopath):
-    # Get the maze model template
-    maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')
-    maze_model = cv2.resize(maze_model, (1000, 1000))
-    maze_model = cv2.cv2.cvtColor(maze_model,cv2.COLOR_RGB2GRAY)
+def run(videopath, maze_model=None):
+    if maze_model is None:
+        # Get the maze model template
+        maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')
+        maze_model = cv2.resize(maze_model, (1000, 1000))
+        maze_model = cv2.cv2.cvtColor(maze_model,cv2.COLOR_RGB2GRAY)
 
     # Define points to be used for alignemt
     points = np.array([[435, 290], [565, 290], [435, 710], [565, 710]])

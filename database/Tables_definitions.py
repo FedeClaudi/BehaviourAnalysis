@@ -903,6 +903,52 @@ class TrackingData(dj.Computed):
         self.fill_segments_data(key)
 
 
+class CommonCoordinateMatrixes(Dj.Computed):
+    definition = """
+        # Stores matrixes used to align video and tracking data to standard maze model
+        -> Sessions
+        ---
+        maze_model: longblob   # 2d array with image used for correction
+        correction_matrix: longblob  # 2x3 Matrix used for correction
+        aligmend_points: longblob     # array of X,Y coords of points used for affine transform
+    """
+    def get_model(self):
+        import cv2
+        # Get the maze model template
+        maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')
+        maze_model = cv2.resize(maze_model, (1000, 1000))
+        maze_model = cv2.cv2.cvtColor(maze_model,cv2.COLOR_RGB2GRAY)
+        self.model = maze_model
+
+
+    def make(self, key):
+        from Utilities.video_and_plotting.commoncoordinatebehaviour import run as get_matrix
+
+        # import maze model
+        self.get_model()
+
+        # Get path to video of first recording
+        rec = [r for r in Recordings.VideoFiles if r['session_name'] == key['session_name']]
+
+        if not rec:
+            raise ValueError('Did not find recording while populating CCM table. Populate recordings first! Session: ', key['session_name'])
+        else:
+            videopath = rec[0]['overview']
+        
+        # Apply the transorm [Call function that prepares data to feed to Philip's function]
+        """ 
+            The correction code is from here: https://github.com/BrancoLab/Common-Coordinate-Behaviour
+        """ 
+        matrix, points = get_matrix(videopath, maze_model = self.model)
+
+        # Insert data into table
+        key['maze_model'] = self.model
+        key['correction_matrix'] = matrix
+        key['alignment_points'] = points
+
+        self.insert1(key)
+
+
 if __name__ == "__main__":
     import sys
     sys.path.append('./')
