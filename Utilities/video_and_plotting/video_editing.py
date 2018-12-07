@@ -151,8 +151,6 @@ class VideoConverter:
 
         ###################################################################################################################################
 
-        # TODO check tot number of frames
-        # TODO concatenate MP4s
         start = time.time()
 
         if not self.extract_framesize:
@@ -410,6 +408,64 @@ class Editor:
             for wr in writers:
                 wr.release()
 
+    @staticmethod
+    def manual_video_inspect(videofilepath):
+        """[loads a video and lets the user select manually which frames to show]
+
+                Arguments:
+                        videofilepath {[str]} -- [path to video to be opened]
+
+                key bindings:
+                        - d: advance to next frame
+                        - a: go back to previous frame
+                        - s: select frmae
+        """        
+        def get_selected_frame(cap, show_frame):
+                cap.set(1, show_frame)
+                ret, frame = cap.read() # read the first frame
+                return frame
+
+        import cv2   # import opencv
+        
+        cap = cv2.VideoCapture(videofilepath)
+        if not cap.isOpened():
+                raise FileNotFoundError('Couldnt load the file')
+        
+        print(""" Instructions
+                        - d: advance to next frame
+                        - a: go back to previous frame
+                        - s: select frmae
+        """)
+
+        number_of_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        
+        # Initialise showing the first frame
+        show_frame = 0
+        frame = get_selected_frame(cap, show_frame)
+
+        while True:
+                cv2.imshow('frame', frame)
+
+                k = cv2.waitKey(10)
+
+                if k == ord('d'):
+                        # Display next frame
+                        if show_frame < number_of_frames:
+                                show_frame += 1
+                elif k == ord('a'):
+                        # Display the previous frame
+                        if show_frame > 1:
+                                show_frame -= 1
+                elif k ==ord('s'):
+                        selected_frame = int(input('Enter frame number: '))
+                        if selected_frame > number_of_frames or selected_frame < 0:
+                                print(selected_frame, ' is an invalid option')
+                        show_frame = int(selected_frame)
+
+                try:
+                        frame = get_selected_frame(cap, show_frame)
+                except:
+                        raise ValueError('Could not display frame ', show_frame)
 
 if __name__ == '__main__':
     

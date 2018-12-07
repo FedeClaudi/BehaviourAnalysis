@@ -62,7 +62,8 @@ def run(videopath, maze_model=None):
     """
     paths = load_yaml('paths.yml')
     savepath = paths['commoncoordinatebehaviourmatrices']
-    registration = register_arena(padded, 'nofisheye', 0, 0, maze_model, points, savepath)
+    savename = os.path.split(videopath)[-1]
+    registration = register_arena(padded, 'nofisheye', 0, 0, maze_model, points, savepath, savename)
 
     return registration[0], points
 
