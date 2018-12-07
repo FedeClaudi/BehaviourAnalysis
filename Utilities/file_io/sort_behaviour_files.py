@@ -4,7 +4,7 @@ sys.path.append('./')
 import os
 from shutil import copyfile
 
-from Utilities.file_io.files_load_save import laod_yaml
+from Utilities.file_io.files_load_save import load_yaml
 
 def sort_behaviour_files(tosort_fld, video_fld, metadata_fld):
     yn = input('WARNING! this function only works with Behaviour software, NOT Mantis.\n Continue? y/n       ')
@@ -42,19 +42,52 @@ def sort_mantis_files():
     metadata_fld = os.path.join(raw, paths['raw_metadata_folder'])
     video_fld = os.path.join(raw, paths['raw_video_folder'])
     tosort_fld = os.path.join(raw, paths['raw_to_sort'])
+    ai_fld = os.path.join(raw, paths['raw_analoginput_folder'])
 
+    log = open(os.path.join(tosort_fld, 'log.txt'), 'w+')
+    log.write('\n\n\n\n')
     # Loop over subfolders in tosort_fld
     for fld in os.listdir(tosort_fld):
+        log.write('Processing Folder {}'.format(fld))
+        print('Processing Folder ', fld)
         # Loop over individual files in subfolder
-        for f in os.listdir(fld):
-            pass
-            # TODO
+        for f in os.listdir(os.path.join(tosort_fld, fld)):
+            print('     Moving: ', f)
+            # Get the new name and destination for each file
+            if 'Maze' in f:
+                # Its the file with the AI
+                newname = fld+'.tdms'
+                dest = ai_fld
+            elif 'Overview' in f:
+                newname = fld+'Overview.tdms'
+                if 'meta' in f:
+                    # Overview Camera Metadata file
+                    dest = metadata_fld
+                else:
+                    # Overview Camera Data file
+                    dest = video_fld
+            elif 'Threat' in f:
+                newname = fld+'Threat.tdms'
+                if 'meta' in f:
+                    # Threat Camera Metadata file
+                    dest = metadata_fld
+                else:
+                    # Threat Camera Data file
+                    dest = video_fld
+            else:
+                raise ValueError('Unexpected file: ', os.path.join(fld, f))
 
+            original = os.path.join(tosort_fld, fld, f)
+            moved = os.path.join(dest, newname)
+            try:
+                os.rename(original, moved)
+                log.write('Moved {} to {}'.format(original, moved))
+            except:
+                print('         Didnt move file because already exists')
+                log.write('!!NOT!!! Moved {} to {}'.format(original, moved))
+        log.write('Completed Folder {}\n\n'.format(fld))
+    log.close()
 
 if __name__ == "__main__":
-    from files_load_save import load_yaml
-    paths = load_yaml('../../paths.yml')
-    sort_behaviour_files(os.path.join(paths['raw_data_folder'], paths['raw_to_sort']),
-                        os.path.join(paths['raw_data_folder'], paths['raw_video_folder']),
-                        os.path.join(paths['raw_data_folder'], paths['raw_metadata_folder']))
+    sort_mantis_files()
 
