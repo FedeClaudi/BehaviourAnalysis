@@ -8,6 +8,8 @@ import os
 import numpy as np
 import cv2
 
+from Utilities.file_io.files_load_save import load_yaml
+
 def run(videopath, maze_model=None):
     if maze_model is None:
         # Get the maze model template
@@ -54,11 +56,16 @@ def run(videopath, maze_model=None):
     # Get fisheye correction matriz path
     fisheye = 'Utilities\\video_and_plotting\\fisheye_maps.npy'
 
-    # Call the registration functino
+    # Call the registration function
     """
         Credit to Philip Shamas (Branco Lab) -  https://github.com/BrancoLab/Common-Coordinate-Behaviour
     """
-    register_arena(padded, 'nofisheye', 0, 0, maze_model, points)
+    paths = load_yaml('paths.yml')
+    savepath = paths['commoncoordinatebehaviourmatrixes']
+    registration = register_arena(padded, 'nofisheye', 0, 0, maze_model, points, savepath)
+
+    return registration[0], points
+
 
 if __name__ == "__main__":
     testfile = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video\\180606_CA2762.avi'

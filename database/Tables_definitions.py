@@ -892,6 +892,7 @@ class TrackingData(dj.Computed):
                 raise ValueError('Faile to insert: ', segment_data,  '\nWith Keys: ',segment_data.keys(), '\nInto: ', part.heading)
 
     def make(self, key):
+        # TODO apply correction from CCM table to tracking data
         print('\n\nPopulating Tracking data\n', key)
         rec_name = key['recording_uid']
         pose_files = [ff for ff in Recordings.PoseFiles.fetch() if ff['recording_uid']==rec_name][0]
@@ -902,15 +903,15 @@ class TrackingData(dj.Computed):
         # FIll in the SEGMENTS PART tables
         self.fill_segments_data(key)
 
-
-class CommonCoordinateMatrixes(Dj.Computed):
+@schema
+class CommonCoordinateMatrixes(dj.Computed):
     definition = """
         # Stores matrixes used to align video and tracking data to standard maze model
         -> Sessions
         ---
         maze_model: longblob   # 2d array with image used for correction
         correction_matrix: longblob  # 2x3 Matrix used for correction
-        aligmend_points: longblob     # array of X,Y coords of points used for affine transform
+        alignment_points: longblob     # array of X,Y coords of points used for affine transform
     """
     def get_model(self):
         import cv2
@@ -919,7 +920,6 @@ class CommonCoordinateMatrixes(Dj.Computed):
         maze_model = cv2.resize(maze_model, (1000, 1000))
         maze_model = cv2.cv2.cvtColor(maze_model,cv2.COLOR_RGB2GRAY)
         self.model = maze_model
-
 
     def make(self, key):
         from Utilities.video_and_plotting.commoncoordinatebehaviour import run as get_matrix
