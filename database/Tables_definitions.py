@@ -323,7 +323,7 @@ class Recordings(dj.Imported):
 class Templates(dj.Imported):
     definition = """
     # stores the position of each maze template for one experiment
-    -> Recordings
+    -> Sessions
     ---
     s: longblob  # Shelter platform template position
     t: longblob  # Threat platform
@@ -347,51 +347,41 @@ class Templates(dj.Imported):
     b12: longblob
     b13: longblob
     b14: longblob
+    b15: longblob
     """
 
-    def _make_tuples(self, key):
-        from Processing.rois_toolbox.get_maze_components import get_rois_from_templates
-
+    def define_names(self):
         # Get all possible components name
-        nplatf, nbridges = 6, 14
+        nplatf, nbridges = 6, 15
         platforms = ['p'+str(i) for i in range(1, nplatf + 1)]
         bridges = ['b'+str(i) for i in range(1, nbridges + 1)]
         all_components = ['s', 't']
         all_components.extend(platforms)
         all_components.extend(bridges)
 
-        # Get entries from related tables
-        session = [s for s in Sessions.fetch() if s['session_name']==key['session_name']][0]
-        recording = [r for r in Recordings.fetch() if r['recording_uid'] == key['recording_uid']][0]
-        experiment = [e for e in Experiments.fetch() if e['experiment_name']==session['experiment_name']]
-        if not experiment or not isinstance(experiment, list):
-            print(Experiments.fetch('experiment_name'))
-            raise ValueError('Could not find match for experiment: ', session['experiment_name'])
+        return all_components
+
+    def get_maze_model(self, key):
+        mmc = [m for m in CommonCoordinateMatrices if m['uid'] == key['uid']]
+        if not mmc:
+            raise ValueError('Could not find CommonCoordinateBehaviour Matrix for this entry: ', key)
         else:
-            experiment = experiment[0]
+            return mmc[0]['maze_model']
 
-        videofile = [v for v in Recordings.VideoFiles.fetch() if v['recording_uid'] == key['recording_uid']]
-        if not videofile or not isinstance(videofile, list):
-            return
-            raise FileNotFoundError(' could not find videofile, found: {} for recording {} in session {}'.format(
-                                    videofile, recording, session))
-        else:
-            videofile = videofile[0]
+    def _make_tuples(self, key):
+        """[allows user to define ROIs on the standard maze model that match the ROIs]
+        """
+        components = self.define_names()
+        model = self.get_maze_model(key)
 
-        # Get matched components for recording
-        templates_fld = experiment['templates_folder']
-        video = videofile['overview']
-        matched = get_rois_from_templates(session, video, templates_fld)
-
-        # Prepare data to insert into the table
-        data_to_input =  {(n if n in matched.keys() else n):(matched[n] if n in matched.keys() else 0)
-                           for n in all_components}
-
-        for k,v in data_to_input.items():
-            key[k] = v
+        # Load yaml with rois coordinates
+        from Utilities.file_io.files_load_save import load_yaml
+        paths = load_yaml('paths.yml')
+        rois = load_yaml(paths['maze_model_templates'])
 
         # Insert
-        self.insert1(key)
+        to_insert = {**key, **rois}
+        self.insert1(to_insert)
 
 @schema
 class Stimuli(dj.Computed):

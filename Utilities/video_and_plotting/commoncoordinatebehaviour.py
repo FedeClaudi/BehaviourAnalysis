@@ -61,7 +61,7 @@ def run(videopath, maze_model=None):
         Credit to Philip Shamas (Branco Lab) -  https://github.com/BrancoLab/Common-Coordinate-Behaviour
     """
     paths = load_yaml('paths.yml')
-    savepath = paths['commoncoordinatebehaviourmatrixes']
+    savepath = paths['commoncoordinatebehaviourmatrices']
     registration = register_arena(padded, 'nofisheye', 0, 0, maze_model, points, savepath)
 
     return registration[0], points

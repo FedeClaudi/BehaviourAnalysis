@@ -223,14 +223,20 @@ def correct_tracking_data(uncorrected, M):
     Returns:
         corrected {[np.ndarray]} -- [n-by-3 array with corrected X,Y tracking and Velocity data]
     """     
-
     # Do the correction
-    x,y = uncorrected[:, 0], uncorrected[:, 1]
-    corrected = np.matmul(np.append(M,np.zeros((1,3)),0), [x, y, 1])
+    m3d = np.append(M, np.zeros((1,3)),0)
+    corrected = np.zeros((uncorrected.shape[0], 3))
+    for framen in range(uncorrected.shape[0]):
+        x,y = uncorrected[framen, 0], uncorrected[framen, 1]
+        corrected[framen, :2]= (np.matmul(m3d, [x, y, 1]))[:2]
 
     # Calculate velocity 
-    corrected[:, 3] = calc_distance_between_points_in_a_vector_2d(corrected)
+    corrected[:, 2] = calc_distance_between_points_in_a_vector_2d(corrected[:, :2])
 
+    import matplotlib.pyplot as plt
+    plt.plot(uncorrected[:, 0], uncorrected[:, 1])
+    plt.plot(corrected[:, 0], corrected[:, 1])    
+    plt.show()
     return corrected
 
 if __name__ == "__main__":

@@ -49,10 +49,10 @@ def get_roi_at_each_frame(bp_data, rois):
     for name, points in rois.items():  # a pointa is  two 2d XY coords for top left and bottom right points of roi
         if not isinstance(points, np.ndarray): continue # maze component not present in maze for this experiment
         try:
-            center_x = (points[0][0] + points[1][0]) / 2
+            center_x = (points[0] + points[1]) / 2
         except:
             raise ValueError('Couldnt find center for points: ',points, type(points))
-        center_y = (points[0][1] + points[1][1]) / 2
+        center_y = (points[2] + points[3]) / 2
         center = np.asarray([center_x, center_y])
         centers.append(center)
         roi_names.append(name)

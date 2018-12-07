@@ -141,7 +141,7 @@ class PopulateDatabase:
             self.insert_entry_in_table(session_data['session_name'], 'session_name', session_data, table)
 
     def populate_ccm_table(self):
-        self.commoncoordinatematrixes.populate()
+        self.commoncoordinatematrices.populate()
 
     def populate_recordings_table(self):
         self.recordings.populate()
@@ -210,13 +210,13 @@ if __name__ == '__main__':
 
     print(p)
 
-    p.remove_table('commoncoordinatematrices')
+    # p.remove_table('templates')
 
     # p.populate_mice_table()
     # p.populate_experiments_table()
     # p.populate_sessions_table()
     # p.populate_recordings_table()
-    p.populate_ccm_table()
+    # p.populate_ccm_table()
     # p.populate_templates_table()
     # p.populate_stimuli_table()
     # p.populate_tracking_data_table()

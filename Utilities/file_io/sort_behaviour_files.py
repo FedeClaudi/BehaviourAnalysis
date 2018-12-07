@@ -46,6 +46,9 @@ def sort_mantis_files():
     # Loop over subfolders in tosort_fld
     for fld in os.listdir(tosort_fld):
         # Loop over individual files in subfolder
+        for f in os.listdir(fld):
+            pass
+            # TODO
 
 
 if __name__ == "__main__":
