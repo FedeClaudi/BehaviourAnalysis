@@ -16,6 +16,7 @@ def load_tdms_from_winstore(filetomove):
         if name in os.listdir(temp_dest):
                 print('File was already there')
         else:
-                shutil.copy(filetomove, dest)
+                # shutil.copy(filetomove, dest)
+                os.system('xcopy"{}""{}"'.format(filetomove, dest))
                 print('Moved {} to {}'.format(filetomove, dest))
         return dest

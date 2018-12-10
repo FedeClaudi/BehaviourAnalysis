@@ -124,10 +124,13 @@ class Recordings(dj.Imported):
             # Stores data from relevant AI channels recorded with NI board
             -> Recordings
             ---
+            tstart: float                           # t0 from mantis manuals .tdms
             overview_camera_triggers: longblob      # Frame triggers signals efferent copy
             threat_camera_triggers: longblob
-            speaker_signal: longblob                # HIGH when auditory stimulus being produced
-            stimuli: longblob                       # timestamp and stimulus protocol
+            audio_IRLED: longblob                   # HIGH when auditory stimulus being produced
+            audio_signal: longblob                  # voltage from amplifier to speaker
+            manuals_names: longblob                 # list of strings of name of manual protocols
+            manuals_timestamps: longblob            # list of floats of timestamps of manual protocols
             ldr: longblob                           # light dependant resistor signal
         """
     def make(self, key):
@@ -145,7 +148,6 @@ class VideoFiles(dj.Imported):
         metadata_filepath: varchar(256)        # if acquired with mantis a .tdms metadata file was produced, path ot it.
         pose_filepath: varchar(256)           # path to .h5 pose file
         """
-
 
     class Metadata(dj.Part):
         definition = """

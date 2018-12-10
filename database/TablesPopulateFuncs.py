@@ -2,6 +2,7 @@ from Utilities.video_and_plotting.commoncoordinatebehaviour import run as get_ma
 import sys
 sys.path.append('./')
 
+import time
 import datajoint as dj
 from database.dj_config import start_connection
 from nptdms import TdmsFile
@@ -80,27 +81,39 @@ class ToolBox:
 
 
     def extract_ai_info(self, key, aifile):
-        print('opening ', aifile, ' with size {} bytes'.format(os.path.getsize(aifile)))
-        
+        # Download .tdms from winstore, and open as a DataFrame
         temp_file = load_tdms_from_winstore(aifile)  # ? download from winstore first and then open, faster?
-        
+        print('opening ', temp_file, ' with size {} bytes'.format(os.path.getsize(temp_file)))
         tdmsfile = TdmsFile(temp_file)
-        tdmsobj = tdmsfile.object()
-        props = {n:v for n,v in tdmsobj.properties.items()} 
+        tdms_df = tdmsfile.as_dataframe()
 
+        # Extract data and insert in key
+        cols = list(tdms_df.columns)
+        chs = ["/'OverviewCameraTrigger_AI'/'0'", "/'ThreatCameraTrigger_AI'/'0'", "/'AudioIRLED_AI'/'0'", "/'AudioFromSpeaker_AI'/'0'"]
 
-        for name, value in tdmsobj.properties.items():
-            print("{0}: {1}".format(name, value))
+        key['overview_camera_triggers'] = tdms_df["/'OverviewCameraTrigger_AI'/'0'"].values
+        key['threat_camera_triggers'] = tdms_df["/'ThreatCameraTrigger_AI'/'0'"].values
+        key['audio_IRLED'] = tdms_df["/'AudioIRLED_AI'/'0'"].values
+        if "/'AudioFromSpeaker_AI'/'0'" in cols:
+            key['audio_signal'] = tdms_df["/'AudioFromSpeaker_AI'/'0'"].values
+        else:
+            key['audio_signal'] = -1
+        key['ldr'] = -1  # ? insert here
 
-        print(tdmsfile.as_dataframe())
-        print(tdmsfile.as_dataframe().columns)
-        with open('C:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\database\\cols.txt', 'w+') as out:
-            for col in list(tdmsfile.as_dataframe().columns):
-                out.write(col)
+        # Extract manual timestamps and add to key
+        names, times = [], []
+        for c in cols:
+            if c in chs: continue
+            elif 't0' in c:
+                key['tstart'] = float(c.split("'/'")[-1][:-2])
+            else:
+                names.append(c.split("'/'")[0][2:])
+                times.append(float(c.split("'/'")[-1][:-2]))
+        key['manuals_names'] = -1
+        warnings.warn('List of strings not currently supported, cant insert manuals names')
+        key['manuals_times'] = times
 
-        print(tdmsfile.as_dataframe()["/'OverviewCameraTrigger_AI'/'0'"])
-
-        return {}
+        return key
 
 def make_commoncoordinatematrices_table(key):
     """make_commoncoordinatematrices_table [Allows user to align frame to model
@@ -201,13 +214,12 @@ def make_recording_table(table, key):
         tb = ToolBox()
         rec_name = key['session_name']
         aifile = [os.path.join(tb.analog_input_folder, f) for f 
-                  in os.listdir(tb.analog_input_folder) 
-                  if rec_name in f][0]
+                    in os.listdir(tb.analog_input_folder) 
+                    if rec_name in f][0]
         
         key['recording_uid'] = rec_name
         key['software'] = software
         key['ai_file_path'] = aifile
-
         table.insert1(key)
 
         # Extract info from aifile and populate part table
