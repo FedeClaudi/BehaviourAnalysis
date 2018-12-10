@@ -342,9 +342,6 @@ class Recordings(dj.Imported):
 
                 """
 
-                
-
-
         # Load paths to data folders
         paths = load_yaml('paths.yml')
         raw_video_folder = os.path.join(paths['raw_data_folder'], paths['raw_video_folder'])
