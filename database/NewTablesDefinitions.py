@@ -118,8 +118,6 @@ class Recordings(dj.Imported):
     -> Sessions
     ---
     """
-
-    @schema
     class VideoFiles(dj.Part):
         definition = """
             # stores paths to video files
@@ -129,7 +127,6 @@ class Recordings(dj.Imported):
             filepath: varchar(256)          # path to the videofile
             """
 
-    @schema
     class ConvertedVideoFiles(dj.Part):
         definition = """
             # stores paths to converted videos (from tdms to mp4), if no conversion is made then same as VideoFiles
@@ -138,7 +135,6 @@ class Recordings(dj.Imported):
             filepath: varchar(256)          # path to the new videofile
             """
 
-    @schema
     class VideoMetadata(dj.Part):
         definition = """
             # It stores info about each video: frame size, fps...
@@ -153,7 +149,6 @@ class Recordings(dj.Imported):
             camera_offset_y: int            # camera offset
         """
 
-    @schema
     class PoseFiles(dj.Part):
         definition = """
             # stores paths to converted videos (from tdms to mp4), if no conversion is made then same as VideoFiles
@@ -163,7 +158,6 @@ class Recordings(dj.Imported):
             """
 
 
-    @schema
     class MetadataFiles(dj.Part):
         definition = """
             # stores paths to metadta .tdms files with video recording metadata
@@ -172,7 +166,6 @@ class Recordings(dj.Imported):
             filepath: varchar(256)      # path to the .tdms file 
             """
 
-    @schema
     class AnalogInputFiles(dj.Part):
         definition = """
             # stores paths to AI .tdms files with analog input data
