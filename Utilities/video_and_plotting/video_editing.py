@@ -25,7 +25,7 @@ class VideoConverter:
         if filepath is None:
             return
 
-        self.tdms_converter_parallel_processes = 1
+        self.tdms_converter_parallel_processes = 6
 
         self.editor = Editor()
         if filepath is not None:
@@ -44,6 +44,11 @@ class VideoConverter:
                     self.folder = output_folder
                 self.codecs = dict(avi='png', mp4='mpeg4')
 
+                # check if converted video exists in the target folders
+                files_with_same_name = [f for f in os.listdir(self.folder) if self.filename in f and self.extention not in f]
+                if files_with_same_name:
+                    print('Fle {} was already converted. We found files like {} \n\n '.format(self.filename, files_with_same_name[0]))
+                    continue
                 if output in self.filep:
                     warn.warn('The file is already in the desired format {}'.format(output))
                 else:
@@ -236,7 +241,7 @@ class VideoConverter:
 
 
         end = time.time()
-        print('Converted {} frames in {}s'.format(tot_frames, round(end-start)))
+        print('Converted {} frames in {}s\n\n'.format(tot_frames, round(end-start)))
 
 class Editor:
     def __repr__(self):
@@ -303,6 +308,7 @@ class Editor:
             videowriter.write(frame)
         videowriter.release()
 
+    @staticmethod
     def open_cvwriter(filepath, w=None, h=None, framerate=None, format='.mp4', iscolor=False):
         if format != '.mp4':
             raise ValueError('Fileformat not yet supported by this function: {}'.format(format))
@@ -313,6 +319,62 @@ class Editor:
             raise ValueError('Could not create videowriter')
         else:
             return videowriter
+
+    @staticmethod
+    def get_video_params(cap):
+        nframes = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        fps    = cap.get(cv2.CAP_PROP_FPS)
+        return nframes, width, height, fps 
+
+    def concated_tdms_to_mp4_clips(self):
+        """[Concatenates the clips create from the tdms video converter in the class above]
+        """
+        # Get list of .tdms files that might have been converted
+        fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video'
+        tdms_names = [f.split('.')[0] for f in os.listdir(fld) if 'tdms' in f]
+        # Get names of converted clips
+        tdms_videos_names = [f for f in os.listdir(fld) if f.split('__')[0] in tdms_names]
+
+        # For each tdms create joined clip
+        for tdmsname in tdms_names:
+            # Check if a "joined" clip already exists and skip if so
+            matches = sorted([v for v in tdms_videos_names if tdmsname in v])
+            joined = [m for m in matches if '__joined' in m]
+            if joined: continue
+            print('Joining clips for {} - {}'.format(tdmsname, matches))
+
+            # Get video params and open writer
+            cap = cv2.VideoCapture(os.path.join(fld, matches[0]))
+            nframes, width, height, fps = self.get_video_params(cap)
+            dest = os.path.join(fld, tdmsname+'__joined.mp4')
+
+            writer = self.open_cvwriter(dest, w=width, h=height, framerate=fps, format='.mp4', iscolor=False)
+
+            # Loop over videos and write them to joined
+            all_frames_count = 0
+            for vid in matches:
+                print('     ... joining: ', vid)
+                cap = cv2.VideoCapture(os.path.join(fld, vid))
+                nframes, width, height, fps = self.get_video_params(cap)
+                all_frames_count += nframes
+                framecounter = 0
+                while True:
+                    if framecounter % 5000 == 0:
+                        print('             ... frame ', framecounter)
+                    framecounter += 1
+                    ret, frame = cap.read()
+                    if not ret: break
+                    writer.write(frame)
+            cap.release()
+            writer.release()
+
+            # Re open joined clip and check if total number of frames is correct
+            cap = cv2.VideoCapture(dest)
+            nframesjoined, width, height, fps = self.get_video_params(cap)
+            if nframesjoined != all_frames_count:
+                raise ValueError('Joined clip umber of frames doesnt match total of individual clips')
 
     @staticmethod
     def compress_clip(videopath, compress_factor, save_path=None, start_frame=0, stop_frame=None):
@@ -475,11 +537,13 @@ if __name__ == '__main__':
 
     ###############
 
-    fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video'
-    toconvert = [f for f in os.listdir(fld) if '.tdms' in f]
-    for f in toconvert:
-        converter = VideoConverter(os.path.join(fld, f), extract_framesize=True)
+    # fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video'
+    # toconvert = [f for f in os.listdir(fld) if '.tdms' in f]
+    # print(toconvert)
+    # for f in toconvert:
+    #     converter = VideoConverter(os.path.join(fld, f), extract_framesize=True)
         
+    editor.concated_tdms_to_mp4_clips()
 
 
 
