@@ -80,16 +80,22 @@ class ToolBox:
 
 
     def extract_ai_info(self, key, aifile):
-
-        tdmsfile = TdmsFile(aifile)
+        print('opening ', aifile, ' with size {} bytes'.format(os.path.getsize(aifile)))
+        tdmsfile = TdmsFile(aifile, memmap_dir='M:\\')
         tdmsobj = tdmsfile.object()
-        props = {n:v for n,v in metadata_object.properties.items()} 
+        props = {n:v for n,v in tdmsobj.properties.items()} 
 
 
-        for name, value in metadata_object.properties.items():
+        for name, value in tdmsobj.properties.items():
             print("{0}: {1}".format(name, value))
 
         print(tdmsfile.as_dataframe())
+        print(tdmsfile.as_dataframe().columns)
+        with open('C:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\database\\cols.txt', 'w+') as out:
+            for col in list(tdmsfile.as_dataframe().columns):
+                out.write(col)
+
+        print(tdmsfile.as_dataframe()["/'OverviewCameraTrigger_AI'/'0'"])
 
         return {}
 

@@ -223,7 +223,7 @@ if __name__ == '__main__':
     # p.populate_sessions_table()
 
     # p.populate_videofiles_table()
-    # p.populate_recordings_table()
+    p.populate_recordings_table()
 
     # p.populate_ccm_table()
     # p.populate_templates_table()
