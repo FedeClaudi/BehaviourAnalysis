@@ -11,7 +11,7 @@ from collections import namedtuple
 import numpy as np
 import cv2
 import warnings
-from Utilities.file_io.files_load_save import load_yaml
+from Utilities.file_io.files_load_save import load_yaml, load_tdms_from_winstore
 
 
 from database.NewTablesDefinitions import *
@@ -81,7 +81,10 @@ class ToolBox:
 
     def extract_ai_info(self, key, aifile):
         print('opening ', aifile, ' with size {} bytes'.format(os.path.getsize(aifile)))
-        tdmsfile = TdmsFile(aifile, memmap_dir='M:\\')
+        
+        temp_file = load_tdms_from_winstore(aifile)  # ? download from winstore first and then open, faster?
+        
+        tdmsfile = TdmsFile(temp_file)
         tdmsobj = tdmsfile.object()
         props = {n:v for n,v in tdmsobj.properties.items()} 
 
