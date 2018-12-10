@@ -15,7 +15,7 @@ from Utilities.file_io.files_load_save import load_yaml
 
 
 from database.NewTablesDefinitions import *
-from Utilities.video_and_plotting.video_editing import get_video_params
+from Utilities.video_and_plotting.video_editing import Editor
 
 
 """ 
@@ -40,10 +40,10 @@ class ToolBox:
         self.raw_metadata_folder = os.path.join(
             self.paths['raw_data_folder'], self.paths['raw_metadata_folder'])
         self.tracked_data_folder = self.paths['tracked_data_folder']
-        self.analog_input_folder = os.path.join(self.paths['raw_dat_folder'], 
+        self.analog_input_folder = os.path.join(self.paths['raw_data_folder'], 
                                                 self.paths['raw_analoginput_folder'])
 
-        self.pose_folder = paths['tracked_data_folder']
+        self.pose_folder = self.paths['tracked_data_folder']
 
     def get_behaviour_recording_files(self, session):
         raw_video_folder = self.raw_video_folder
@@ -56,10 +56,13 @@ class ToolBox:
         metadatas = sorted([f for f in os.listdir(raw_metadata_folder)
                             if session['session_name'].lower() in f.lower() and 'test' not in f and '.tdms' in f])
 
+        if videos is None or metadatas is None:
+            raise FileNotFoundError(videos, metadatas)
+
         # Make sure we got the correct number of files, otherwise ask for user input
         if not videos or not metadatas:
             if not videos and not metadatas:
-                return
+                raise ValueError('Found no files for ', session['session_name'])
             print('couldnt find files for session: ',
                     session['session_name'])
             raise FileNotFoundError('dang')
@@ -164,7 +167,7 @@ def make_recording_table(table, key):
                 raise ValueError(
                     'Something went wrong while getting recording number within the session')
 
-            rec_name = session['session_name']+'_'+str(recnum)
+            rec_name = key['session_name']+'_'+str(recnum)
             
             # Insert into table
             rec_key = key.copy()
@@ -201,24 +204,29 @@ def make_recording_table(table, key):
         mantis(table, key, software)
 
 
-def make_videofiles_table(table, key):
+def make_videofiles_table(table, key, recordings):
     def make_videometadata_table(filepath, key):
         # Get videometadata
         cap = cv2.VideoCapture(filepath)
-        key['tot_frames'], key['width'], key['height'], key['fps'] = get_video_params(
+        key['tot_frames'], key['frame_width'], key['frame_height'], key['fps'] = Editor.get_video_params(
             cap)
-        key['frame_size'] = width*height
+        key['frame_size'] =  key['frame_width']* key['frame_height']
         key['camera_offset_x'], key['camera_offset_y'] = -1, -1
         return key
 
     def behaviour(table, key):
         tb  = ToolBox()
-        videos, metadatas = tb.get_behaviour_recording_files()
+        videos, metadatas = tb.get_behaviour_recording_files(key)
         
-        rec_num = int(key['recording_uid'].split('_')[-1])
+        if key['recording_uid'].count('_') == 1:
+            recnum = 1
+        else:
+            rec_num = int(key['recording_uid'].split('_')[-1])
         rec_name = key['recording_uid']
-        vid, met = videos[rec_num], metadats[rec_num]
-
+        try:
+            vid, met = videos[rec_num-1], metadatas[rec_num-1]
+        except:
+            raise ValueError(rec_num-1, rec_name, videos)
         # Get deeplabcut data
         posefile = [os.path.join(tb.tracked_data_folder, f) for f in os.listdir(tb.tracked_data_folder)
                     if rec_name == os.path.splitext(f)[0].split('Deep')[0] and '.pickle' not in f]
@@ -239,7 +247,7 @@ def make_videofiles_table(table, key):
         new_key['video_filepath'] = vid
         new_key['converted_filepath'] = 'nan'
         new_key['metadata_filepath'] = 'nan'
-        new_key['posefilepath'] = posefile
+        new_key['pose_filepath'] = posefile
         table.insert1(new_key)
 
         return vid
@@ -301,18 +309,23 @@ def make_videofiles_table(table, key):
                               os.path.join(tb.pose_folder, posedata[0]))
 
 
+    print(key)
+
     # Call functions to handle insert in main table
-    if key['software'] == 'behaviour':
+    software = [r['software'] for r in recordings.fetch(as_dict=True) if r['recording_uid']==key['recording_uid']][0]
+    if not software:
+        raise ValueError()
+    if software == 'behaviour':
         videopath = behaviour(table, key)
         # Insert into part table
         metadata_key = make_videometadata_table(videopath, key)
-        VideoFiles.VideoMetadata.insert1(metadata_key)
+        metadata_key['camera_name'] = 'overview'
+        table.Metadata.insert1(metadata_key)
     else:
         videopath = mantis(table, key)
 
     
     
-                                                                                                                        rec_name, posefile))
 
     
 

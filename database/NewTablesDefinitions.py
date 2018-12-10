@@ -146,10 +146,13 @@ class VideoFiles(dj.Imported):
         pose_filepath: varchar(256)           # path to .h5 pose file
         """
 
-    class VideoMetadata(dj.Part):
+
+    class Metadata(dj.Part):
         definition = """
             # contains info about each video
-            fps: int
+            -> VideoFiles
+            ---
+            fps: int                # fps
             tot_frames: int
             frame_width: int
             frame_height: int
@@ -158,8 +161,9 @@ class VideoFiles(dj.Imported):
             camera_offset_y: int            # camera offset
         """
 
+
     def make(self, key):
-        make_videofiles_table(self, key)
+        make_videofiles_table(self, key, Recordings)
 
 
 
@@ -168,3 +172,6 @@ if __name__ == "__main__":
     sys.path.append('./')
     from dj_config import start_connection
     start_connection()
+
+    # VideoFiles.drop_quick()
+    print(VideoFiles.Metadata.heading)
