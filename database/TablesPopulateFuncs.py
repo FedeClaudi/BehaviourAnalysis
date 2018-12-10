@@ -80,7 +80,17 @@ class ToolBox:
 
 
     def extract_ai_info(self, key, aifile):
-        raise NotImplementedError
+
+        tdmsfile = TdmsFile(aifile)
+        tdmsobj = tdmsfile.object()
+        props = {n:v for n,v in metadata_object.properties.items()} 
+
+
+        for name, value in metadata_object.properties.items():
+            print("{0}: {1}".format(name, value))
+
+        print(tdmsfile.as_dataframe())
+
         return {}
 
 def make_commoncoordinatematrices_table(key):
@@ -265,7 +275,6 @@ def make_videofiles_table(table, key, recordings):
             metadata_key = make_videometadata_table(video_key['converted_filepath'], key)
             VideoFiles.VideoMetadata.insert1(metadata_key)
 
-
         tb = ToolBox()
 
         # Get video Files
@@ -284,13 +293,13 @@ def make_videofiles_table(table, key, recordings):
             metadata = [f for f in os.listdir(tb.raw_metadata_folder)
                          if videoname in f and 'tdms' in f]
             if not metadata or len(metadata) > 1:
-                raise FileNotFoundError('Metadata videos ', converted)
+                raise FileNotFoundError('Metadata  ', converted)
 
             posedata = [os.path.splitext(f)[0].split('Deep')[0]+'.h5' 
                         for f in os.listdir(tb.pose_folder)
                         if videoname in f and 'h5' in f]
             if not posedata or len(posedata) > 1:
-                raise FileNotFoundError('Metadata videos ', converted)
+                raise FileNotFoundError('Pose Data ', posedata)
             
             # Get Camera Name
             if 'Overview' in vid:
@@ -309,8 +318,7 @@ def make_videofiles_table(table, key, recordings):
                               os.path.join(tb.pose_folder, posedata[0]))
 
 
-    print(key)
-
+    print('Processing:  ', key)
     # Call functions to handle insert in main table
     software = [r['software'] for r in recordings.fetch(as_dict=True) if r['recording_uid']==key['recording_uid']][0]
     if not software:
