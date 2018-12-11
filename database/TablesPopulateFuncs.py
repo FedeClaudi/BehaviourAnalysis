@@ -43,7 +43,6 @@ class ToolBox:
         self.tracked_data_folder = self.paths['tracked_data_folder']
         self.analog_input_folder = os.path.join(self.paths['raw_data_folder'], 
                                                 self.paths['raw_analoginput_folder'])
-
         self.pose_folder = self.paths['tracked_data_folder']
 
     def get_behaviour_recording_files(self, session):
@@ -114,6 +113,12 @@ class ToolBox:
         key['manuals_times'] = times
 
         return key
+
+""" 
+##################################################
+
+##################################################
+"""
 
 def make_commoncoordinatematrices_table(key):
     """make_commoncoordinatematrices_table [Allows user to align frame to model
@@ -327,8 +332,32 @@ def make_videofiles_table(table, key, recordings):
                 camera = 'overview'
             elif 'Threat' in vid:
                 camera = 'threat'
-                # Get info and insert views file in table
-                raise NotImplementedError
+                # ? work on views videos
+                # Get file names and create cropped videos if dont exist
+                catwalk, side, top = Editor.mirros_cropper(os.path.join(tb.raw_video_folder,vid),
+                                                            os.path.join(tb.raw_video_folder, 'Mirrors'))
+                views_videos = [catwalk, side, top]
+
+                # Get pose names
+                views_poses = {}
+                for vh in views_videos:
+                    n = os.path.split(vh)[-1].split('.')[0]
+                    pd = [os.path.splitext(f)[0].split('Deep')[0]+'.h5'
+                                for f in os.listdir(os.path.join(tb.pose_folder, 'Mirros'))
+                                if n in f and 'h5' in f]
+                    if pd and len(pd) == 1:
+                        views_poses[vh] = os.path.join(tb.pose_folder, 'Mirrors', pd[0])
+                    else: raise FileNotFoundError('Found viewvs posedata: ', pd)
+
+                # Insert into table [video and converted are the same here]
+                view = namedtuple('view', 'camera video metadata pose')
+                views = [view('catwalk', catwalk, 'nan', views_poses[catwalk]),
+                         view('side_mirror', side, 'nan', views_poses[side]),
+                        view('top_mirror', top, 'nan', views_poses[top])]
+                for insert in views:
+                    insert_for_mantis(table, key, insert.camer, insert.video,
+                                        insert.video, insert.metadata, insert.pose)
+            
             else:
                 raise ValueError('Unexpected videoname ', vid)
 

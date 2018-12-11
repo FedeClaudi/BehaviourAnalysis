@@ -31,7 +31,7 @@ def load_tdms_from_winstore(filetomove):
                         cmd = ['xcopy', filetomove, dest, '/K/O/X']
                 else:
                         cmd = ['cp', filetomove, dest]
-
+                print(cmd)
                 copyWithSubprocess(cmd) # * moving here
 
                 print('Moved {} to {}'.format(filetomove, dest))
