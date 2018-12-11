@@ -312,7 +312,7 @@ def make_videofiles_table(table, key, recordings):
                 raise FileNotFoundError('Converted videos ', converted)
 
             metadata = [f for f in os.listdir(tb.raw_metadata_folder)
-                         if videoname in f and 'tdms' in f]
+                        if videoname in f and 'tdms' in f]
             if not metadata or len(metadata) > 1:
                 raise FileNotFoundError('Metadata  ', converted)
 
@@ -334,9 +334,9 @@ def make_videofiles_table(table, key, recordings):
 
             # Insert Main Video (threat or overview) in table
             insert_for_mantis(table, key, camera, os.path.join(tb.raw_video_folder, vid),
-                              os.path.join(tb.raw_video_folder, converted[0]),
-                              os.path.join(tb.raw_metadata_folder, metadata[0]),
-                              os.path.join(tb.pose_folder, posedata[0]))
+                                os.path.join(tb.raw_video_folder, converted[0]),
+                                os.path.join(tb.raw_metadata_folder, metadata[0]),
+                                os.path.join(tb.pose_folder, posedata[0]))
 
 
     print('Processing:  ', key)
