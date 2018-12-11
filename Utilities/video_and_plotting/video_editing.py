@@ -1,3 +1,4 @@
+from Utilities.file_io.files_load_save import load_yaml, load_tdms_from_winstore
 import sys
 sys.path.append('./')  
 
@@ -18,7 +19,6 @@ import shutil
 import matplotlib.pyplot as plt
 import time
 
-from Utilities.file_io.files_load_save import load_yaml
 
 class VideoConverter:
     def __init__(self, filepath, output='.mp4', output_folder=None, extract_framesize=True):
@@ -176,21 +176,28 @@ class VideoConverter:
         else:
             props, tot_frames = extract_framesize_from_metadata(self.filep)
 
-        iscolor = False  # is the video RGB or greyscale
-        print('Total number of frames {}'.format(tot_frames))
 
+        # ? set up options
         # Number of parallel processes for faster writing to video
         num_processes = self.tdms_converter_parallel_processes
+        iscolor = False  # is the video RGB or greyscale
         print('Preparing to convert video, saving .mp4 at {}fps using {} parallel processes'.format(props['fps'], num_processes))
+        print('Total number of frames {}'.format(tot_frames))
 
-        # Open video TDMS 
-        try:    # Make a temporary directory where to store memmapped tdms
-            os.mkdir(os.path.join(self.folder, 'Temp'))
-        except:
-            pass
-        tempdir = os.path.join(self.folder, 'Temp')
+        # * Get file from winstore
+        temp_file = load_tdms_from_winstore(self.filep)
+        tempdir = os.path.split(temp_file)[0]
+
+        # ? alternatively just create a temp folder where to store the memmapped tdms
+        # # Open video TDMS 
+        # try:    # Make a temporary directory where to store memmapped tdms
+        #     os.mkdir(os.path.join(temp_folder, 'Temp'))
+        # except:
+        #     pass
+        # tempdir = os.path.join(temp_folder, 'Temp')
+
         print('Opening TDMS: ', self.filename + self.extention)
-        bfile = open(self.filep, 'rb')
+        bfile = open(temp_file, 'rb')
         print('  ...binary opened, opening mmemmapped')
         tdms = TdmsFile(bfile, memmap_dir=tempdir)  # open tdms binary file as a memmapped object
 
@@ -238,8 +245,6 @@ class VideoConverter:
             raise ValueError('Number of frames in converted clip doesnt match that of original clip')
 
         # stitch videos together
-
-
         end = time.time()
         print('Converted {} frames in {}s\n\n'.format(tot_frames, round(end-start)))
 
