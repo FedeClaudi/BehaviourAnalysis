@@ -200,8 +200,10 @@ class VideoConverter:
         print('Opening TDMS: ', self.filename + self.extention)
         bfile = open(self.filep, 'rb')
         print('  ...binary opened, opening mmemmapped')
+        openstart = time.time()
         tdms = TdmsFile(bfile, memmap_dir=tempdir)  # open tdms binary file as a memmapped object
-
+        openingend = time.time()
+        print('     ... memmap opening took: ', np.round(openingend-openstart, 2))
         print('Extracting data')
         tdms = tdms.__dict__['objects']["/'cam0'/'data'"].data.reshape((tot_frames, props['height'], props['width']), order='C')
         tdms = tdms[:, :, :(props['width']+props['padding'])]  # reshape
@@ -249,6 +251,7 @@ class VideoConverter:
 
         # fin
         end = time.time()
+        print('Video writing and extra handling tooK : ', np.round(end-openingend, 2))
         print('Converted {} frames in {}s\n\n'.format(tot_frames, round(end-start)))
 
 class Editor:
