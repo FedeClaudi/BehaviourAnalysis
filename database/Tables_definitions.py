@@ -20,40 +20,40 @@ from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 from Processing.tracking_stats.extract_velocities_from_tracking import complete_bp_with_velocity, get_body_segment_stats
 from Processing.tracking_stats.math_utils import *
 
-@schema
-class Mice(dj.Manual):
-    definition = """
-        # Mouse table lists all the mice used and the relevant attributes
-        mouse_id: varchar(128)                        # unique mouse id
-        ---
-        strain:   varchar(128)                        # genetic strain
-        dob: varchar(128)                             # mouse date of birth 
-        sex: enum('M', 'F', 'U')                      # sex of mouse - Male, Female, or Unknown/Unclassified
-        single_housed: enum('Y', 'N')                 # single housed or group caged
-        enriched_cage: enum('Y', 'N')                 # presence of wheel or other stuff in the cage
-    """
+# @schema
+# class Mice(dj.Manual):
+#     definition = """
+#         # Mouse table lists all the mice used and the relevant attributes
+#         mouse_id: varchar(128)                        # unique mouse id
+#         ---
+#         strain:   varchar(128)                        # genetic strain
+#         dob: varchar(128)                             # mouse date of birth 
+#         sex: enum('M', 'F', 'U')                      # sex of mouse - Male, Female, or Unknown/Unclassified
+#         single_housed: enum('Y', 'N')                 # single housed or group caged
+#         enriched_cage: enum('Y', 'N')                 # presence of wheel or other stuff in the cage
+#     """
 
-@schema
-class Experiments(dj.Manual):
-    definition = """
-    # Name of the experiments and location of components templates
-    experiment_name: varchar(128)
-    ---
-    templates_folder: varchar(256)
-    """
+# @schema
+# class Experiments(dj.Manual):
+#     definition = """
+#     # Name of the experiments and location of components templates
+#     experiment_name: varchar(128)
+#     ---
+#     templates_folder: varchar(256)
+#     """
 
-@schema
-class Sessions(dj.Manual):
-    definition = """
-    # A session is one behavioural experiment performed on one mouse on one day
-    uid: smallint     # unique number that defines each session
-    session_name: varchar(128)  # unique name that defines each session - YYMMDD_MOUSEID
-    ---
-    -> Mice
-    date: date             # date in the YYYY-MM-DD format
-    experiment_name: varchar(128)  # name of the experiment the session is part of 
-    -> Experiments      # name of the person performing the experiment
-    """
+# @schema
+# class Sessions(dj.Manual):
+#     definition = """
+#     # A session is one behavioural experiment performed on one mouse on one day
+#     uid: smallint     # unique number that defines each session
+#     session_name: varchar(128)  # unique name that defines each session - YYMMDD_MOUSEID
+#     ---
+#     -> Mice
+#     date: date             # date in the YYYY-MM-DD format
+#     experiment_name: varchar(128)  # name of the experiment the session is part of 
+#     -> Experiments      # name of the person performing the experiment
+#     """
 
 @schema
 class Recordings(dj.Imported):
@@ -355,69 +355,69 @@ class Recordings(dj.Imported):
             software = 'behaviour'
             behaviour_software_files_finder(raw_video_folder=raw_video_folder, raw_metadata_folder=raw_metadata_folder)
 
-@schema
-class Templates(dj.Imported):
-    definition = """
-    # stores the position of each maze template for one experiment
-    -> Sessions
-    ---
-    s: longblob  # Shelter platform template position
-    t: longblob  # Threat platform
-    p1: longblob  # Other platforms
-    p2: longblob
-    p3: longblob
-    p4: longblob
-    p5: longblob
-    p6: longblob
-    b1: longblob  # Bridges
-    b2: longblob
-    b3: longblob
-    b4: longblob
-    b5: longblob
-    b6: longblob
-    b7: longblob
-    b8: longblob
-    b9: longblob
-    b10: longblob
-    b11: longblob
-    b12: longblob
-    b13: longblob
-    b14: longblob
-    b15: longblob
-    """
+# @schema
+# class Templates(dj.Imported):
+#     definition = """
+#     # stores the position of each maze template for one experiment
+#     -> Sessions
+#     ---
+#     s: longblob  # Shelter platform template position
+#     t: longblob  # Threat platform
+#     p1: longblob  # Other platforms
+#     p2: longblob
+#     p3: longblob
+#     p4: longblob
+#     p5: longblob
+#     p6: longblob
+#     b1: longblob  # Bridges
+#     b2: longblob
+#     b3: longblob
+#     b4: longblob
+#     b5: longblob
+#     b6: longblob
+#     b7: longblob
+#     b8: longblob
+#     b9: longblob
+#     b10: longblob
+#     b11: longblob
+#     b12: longblob
+#     b13: longblob
+#     b14: longblob
+#     b15: longblob
+#     """
 
-    def define_names(self):
-        # Get all possible components name
-        nplatf, nbridges = 6, 15
-        platforms = ['p'+str(i) for i in range(1, nplatf + 1)]
-        bridges = ['b'+str(i) for i in range(1, nbridges + 1)]
-        all_components = ['s', 't']
-        all_components.extend(platforms)
-        all_components.extend(bridges)
+#     def define_names(self):
+#         # Get all possible components name
+#         nplatf, nbridges = 6, 15
+#         platforms = ['p'+str(i) for i in range(1, nplatf + 1)]
+#         bridges = ['b'+str(i) for i in range(1, nbridges + 1)]
+#         all_components = ['s', 't']
+#         all_components.extend(platforms)
+#         all_components.extend(bridges)
 
-        return all_components
+#         return all_components
 
-    def get_maze_model(self, key):
-        mmc = [m for m in CommonCoordinateMatrices if m['uid'] == key['uid']]
-        if not mmc:
-            raise ValueError('Could not find CommonCoordinateBehaviour Matrix for this entry: ', key)
-        else:
-            return mmc[0]['maze_model']
+#     def get_maze_model(self, key):
+#         mmc = [m for m in CommonCoordinateMatrices if m['uid'] == key['uid']]
+#         if not mmc:
+#             raise ValueError('Could not find CommonCoordinateBehaviour Matrix for this entry: ', key)
+#         else:
+#             return mmc[0]['maze_model']
 
-    def _make_tuples(self, key):
-        """[allows user to define ROIs on the standard maze model that match the ROIs]
-        """
-        components = self.define_names()
-        model = self.get_maze_model(key)
+#     def _make_tuples(self, key):
+#         """[allows user to define ROIs on the standard maze model that match the ROIs]
+#         """
+#         components = self.define_names()
+#         model = self.get_maze_model(key)
 
-        # Load yaml with rois coordinates
-        from Utilities.file_io.files_load_save import load_yaml
-        paths = load_yaml('paths.yml')
-        rois = load_yaml(paths['maze_model_templates'])
+#         # Load yaml with rois coordinates
+#         from Utilities.file_io.files_load_save import load_yaml
+#         paths = load_yaml('paths.yml')
+#         rois = load_yaml(paths['maze_model_templates'])
 
-        # Insert
-        to_insert = {**key, **rois}
-        self.insert1(to_insert)
+#         # Insert
+#         to_insert = {**key, **rois}
+#         self.insert1(to_insert)
 
 @schema
 class Stimuli(dj.Computed):
@@ -515,50 +515,50 @@ class Stimuli(dj.Computed):
                 print(data_to_input)
                 self.insert1(data_to_input)
 
-@schema
-class CommonCoordinateMatrices(dj.Computed):
-    definition = """
-        # Stores matrixes used to align video and tracking data to standard maze model
-        -> Sessions
-        ---
-        maze_model: longblob   # 2d array with image used for correction
-        correction_matrix: longblob  # 2x3 Matrix used for correction
-        alignment_points: longblob     # array of X,Y coords of points used for affine transform
-    """
-    def get_model(self):
-        import cv2
-        # Get the maze model template
-        maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')
-        maze_model = cv2.resize(maze_model, (1000, 1000))
-        maze_model = cv2.cv2.cvtColor(maze_model,cv2.COLOR_RGB2GRAY)
-        self.model = maze_model
+# @schema
+# class CommonCoordinateMatrices(dj.Computed):
+#     definition = """
+#         # Stores matrixes used to align video and tracking data to standard maze model
+#         -> Sessions
+#         ---
+#         maze_model: longblob   # 2d array with image used for correction
+#         correction_matrix: longblob  # 2x3 Matrix used for correction
+#         alignment_points: longblob     # array of X,Y coords of points used for affine transform
+#     """
+#     def get_model(self):
+#         import cv2
+#         # Get the maze model template
+#         maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')
+#         maze_model = cv2.resize(maze_model, (1000, 1000))
+#         maze_model = cv2.cv2.cvtColor(maze_model,cv2.COLOR_RGB2GRAY)
+#         self.model = maze_model
 
-    def make(self, key):
-        from Utilities.video_and_plotting.commoncoordinatebehaviour import run as get_matrix
+#     def make(self, key):
+#         from Utilities.video_and_plotting.commoncoordinatebehaviour import run as get_matrix
 
-        # import maze model
-        self.get_model()
+#         # import maze model
+#         self.get_model()
 
-        # Get path to video of first recording
-        rec = [r for r in Recordings.VideoFiles if r['session_name'] == key['session_name']]
+#         # Get path to video of first recording
+#         rec = [r for r in Recordings.VideoFiles if r['session_name'] == key['session_name']]
 
-        if not rec:
-            raise ValueError('Did not find recording while populating CCM table. Populate recordings first! Session: ', key['session_name'])
-        else:
-            videopath = rec[0]['overview']
+#         if not rec:
+#             raise ValueError('Did not find recording while populating CCM table. Populate recordings first! Session: ', key['session_name'])
+#         else:
+#             videopath = rec[0]['overview']
         
-        # Apply the transorm [Call function that prepares data to feed to Philip's function]
-        """ 
-            The correction code is from here: https://github.com/BrancoLab/Common-Coordinate-Behaviour
-        """ 
-        matrix, points = get_matrix(videopath, maze_model = self.model)
+#         # Apply the transorm [Call function that prepares data to feed to Philip's function]
+#         """ 
+#             The correction code is from here: https://github.com/BrancoLab/Common-Coordinate-Behaviour
+#         """ 
+#         matrix, points = get_matrix(videopath, maze_model = self.model)
 
-        # Insert data into table
-        key['maze_model'] = self.model
-        key['correction_matrix'] = matrix
-        key['alignment_points'] = points
+#         # Insert data into table
+#         key['maze_model'] = self.model
+#         key['correction_matrix'] = matrix
+#         key['alignment_points'] = points
 
-        self.insert1(key)
+#         self.insert1(key)
 
 @schema
 class TrackingData(dj.Computed):

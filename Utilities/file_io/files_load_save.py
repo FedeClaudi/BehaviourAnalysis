@@ -1,9 +1,10 @@
+import shlex
 import yaml
 import shutil
 import os
 import subprocess
 import sys
-import pyfastcopy
+# import pyfastcopy
 
 def load_yaml(file):
         if not isinstance(file, str): raise ValueError('Invalid input argument')
@@ -31,7 +32,7 @@ def load_tdms_from_winstore(filetomove):
         else:
                 # ? python file copying is slow, using subprocess instead
                 # ? but suprocess is platform dependant so get right command 
-                shutil.copy(filetomove, dest)
+                # shutil.copy(filetomove, dest)
 
                 # if sys.platform.startswith("win"):
                 #         cmd = ['mv', filetomove, temp_dest]
@@ -39,6 +40,12 @@ def load_tdms_from_winstore(filetomove):
                 #         cmd = ['cp', filetomove, dest]
                 # print(cmd)
                 # copyWithSubprocess(cmd) # * moving here
+
+
+                file_list = [filetomove]
+                cmd = 'find test_folder -iname %s -exec cp {} dest_folder ;'
+                for files in file_list:
+                        subprocess.Popen(shlex.split(cmd % files))
 
                 print('Moved {} to {}'.format(filetomove, dest))
         return dest
