@@ -8,6 +8,7 @@ from database.dj_config import start_connection
 start_connection()
 from database.Populate_database import PopulateDatabase
 from database.Tables_definitions import *
+import time
 
 from Utilities.video_and_plotting.video_editing import VideoConverter
 
@@ -18,27 +19,24 @@ from Utilities.video_and_plotting.video_editing import VideoConverter
 
 class FilesAutomationToolbox:
     def __init__(self):
-        self.database = PopulateDatabase()
+        # self.database = PopulateDatabase()
+        pass
 
     def convert_tdms_to_mp4(self):
         """
-            checks for entries in Recordings that have .tdms videofiles and don't have a converted
-            videofile entry and converts it + edits the entry so that the path to the new file is stored
+        Keeps calling video conversion tool, regardless of what happens
         """
-
-        recordings = pd.DataFrame(Recordings.fetch())
-        videos = pd.DataFrame(Recordings.VideoFiles.fetch())
-        converted = pd.DataFrame(Recordings.ConvertedVideoFiles.fetch())
+        fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video'
+        toconvert = [f for f in os.listdir(fld) if '.tdms' in f]
         
-        for row in recordings.itertuples(index=True, name='Pandas'):
-            rec = getattr(row, 'recording_uid')
-            print('Recording name: ', rec)
-
-            rec_vids = videos.loc[videos['recording_uid']==rec]
-            rec_conv_vids = converted.loc[videos['recording_uid']==rec]
-            print(rec_vids, rec_conv_vids)
-
-            # TODO use this information to convert missing videos.. 
+        while True:
+            try:
+                for f in toconvert:
+                    converter = VideoConverter(os.path.join(fld, f), extract_framesize=True)
+                print('All files converted, yay!')
+                break
+            except: # ignore exception and try again
+                print('Failed again at {}, trying again..\n\n'.format(time.localtime))
 
     def extract_postures(self):
         pass

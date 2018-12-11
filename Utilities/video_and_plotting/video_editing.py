@@ -186,19 +186,19 @@ class VideoConverter:
         print('Total number of frames {}'.format(tot_frames))
 
         # * Get file from winstore
-        temp_file = load_tdms_from_winstore(self.filep)
-        tempdir = os.path.split(temp_file)[0]
+        # temp_file = load_tdms_from_winstore(self.filep)
+        # tempdir = os.path.split(temp_file)[0]
 
         # ? alternatively just create a temp folder where to store the memmapped tdms
-        # # Open video TDMS 
-        # try:    # Make a temporary directory where to store memmapped tdms
-        #     os.mkdir(os.path.join(temp_folder, 'Temp'))
-        # except:
-        #     pass
-        # tempdir = os.path.join(temp_folder, 'Temp')
+        # Open video TDMS 
+        try:    # Make a temporary directory where to store memmapped tdms
+            os.mkdir(os.path.join("M:\\", 'Temp'))
+        except:
+            pass
+        tempdir = os.path.join("M:\\", 'Temp')
 
         print('Opening TDMS: ', self.filename + self.extention)
-        bfile = open(temp_file, 'rb')
+        bfile = open(self.filep, 'rb')
         print('  ...binary opened, opening mmemmapped')
         tdms = TdmsFile(bfile, memmap_dir=tempdir)  # open tdms binary file as a memmapped object
 
@@ -230,7 +230,6 @@ class VideoConverter:
             _ = pool.map(partial_writer, limits)
             clip_names = ['{}__{}.mp4'.format(self.filename, lim[0]) for lim in limits]
 
-
         # Check if all the frames have been converted
         readers = {}
         print('\n\n\nSaved clips: ', clip_names)
@@ -245,7 +244,10 @@ class VideoConverter:
         if not tot_frames == frames_counter:
             raise ValueError('Number of frames in converted clip doesnt match that of original clip')
 
-        # stitch videos together
+        # Remove temp file
+        os.remove(temp_file)
+
+        # fin
         end = time.time()
         print('Converted {} frames in {}s\n\n'.format(tot_frames, round(end-start)))
 
