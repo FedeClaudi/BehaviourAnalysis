@@ -118,7 +118,6 @@ class Recordings(dj.Imported):
         software: enum('behaviour', 'mantis')
         ai_file_path: varchar(256)    # path to mantis .tdms file with analog inputs and stims infos
     """
-
     class AnalogInputs(dj.Part):
         definition = """
             # Stores data from relevant AI channels recorded with NI board
@@ -166,6 +165,21 @@ class VideoFiles(dj.Imported):
 
     def make(self, key):
         make_videofiles_table(self, key, Recordings)
+
+
+@schema
+class BehaviourStimuli(dj.Computed):
+    definition = """
+    # Stimuli of sessions recorded with old behaviour software
+    -> Recordings
+    stimulus_uid: varchar(128)  # uniquely identifying ID for each trial YYMMDD_MOUSEID_RECNUM_TRIALNUM
+    ---
+    stim_type: varchar(128)
+    stim_start: int                 # number of frame at start of stim
+    stim_duration: int              # duration in frames
+    stim_metadata: longblob         # list of other stuff ? 
+    video: varchar(256)             # name of corresponding video
+    """
 
 
 

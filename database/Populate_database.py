@@ -55,7 +55,7 @@ class PopulateDatabase:
         self.recordings = Recordings()
         self.videofiles = VideoFiles()
 
-        self.stimuli = None # Stimuli()
+        self.stimuli = BehaviourStimuli()
         self.tracking_data = None # TrackingData()
         self.commoncoordinatematrices = CommonCoordinateMatrices()
         self.all_tables = dict(mice=self.mice, sessions= self.sessions, experiments=self.experiments, recordings=self.recordings,

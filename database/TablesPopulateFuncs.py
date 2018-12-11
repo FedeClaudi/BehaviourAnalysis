@@ -79,17 +79,55 @@ class ToolBox:
             return videos, metadatas
 
 
-    def extract_ai_info(self, key, aifile):
+    def open_temp_tdms_as_df(path):
+        """open_temp_tdms_as_df [gets a file from winstore, opens it and returns the dataframe]
+        
+        Arguments:
+            path {[str]} -- [path to a .tdms]
+        """
         # Download .tdms from winstore, and open as a DataFrame
-        temp_file = load_tdms_from_winstore(aifile)  # ? download from winstore first and then open, faster?
-        print('opening ', temp_file, ' with size {} bytes'.format(os.path.getsize(temp_file)))
+        # ? download from winstore first and then open, faster?
+        temp_file = load_tdms_from_winstore(path)
+        print('opening ', temp_file, ' with size {} bytes'.format(
+            os.path.getsize(temp_file)))
         tdmsfile = TdmsFile(temp_file)
         tdms_df = tdmsfile.as_dataframe()
 
         # Extract data and insert in key
         cols = list(tdms_df.columns)
+        return tdms_df, cols
+
+    def extract_behaviour_stimuli(self, aifile):
+        """extract_behaviour_stimuli [given the path to a .tdms file with session metadata extract
+         stim names and timestamp (in frames)]
+        
+        Arguments:
+            aifile {[str]} -- [path to .tdms file]
+        """
+        # Get .tdms as a dataframe
+        tdms_df, cols = self.open_temp_tdms_as_df(aifile)
+        with open('behav_cols.txt', 'w+') as out:
+            for c in cols:
+                out.write(c+'\n\n')
+
+        raise NotImplementedError
+
+        return {}
+
+    def extract_ai_info(self, key, aifile):
+        """
+        aifile: str path to ai.tdms
+
+        extract channels values from file and returns a key dict for dj table insertion
+
+        """
+
+
+        # Get .tdms as a dataframe
+        tdms_df, cols = self.open_temp_tdms_as_df(aifile)
         chs = ["/'OverviewCameraTrigger_AI'/'0'", "/'ThreatCameraTrigger_AI'/'0'", "/'AudioIRLED_AI'/'0'", "/'AudioFromSpeaker_AI'/'0'"]
 
+        # Get the channels we care about
         key['overview_camera_triggers'] = tdms_df["/'OverviewCameraTrigger_AI'/'0'"].values
         key['threat_camera_triggers'] = tdms_df["/'ThreatCameraTrigger_AI'/'0'"].values
         key['audio_IRLED'] = tdms_df["/'AudioIRLED_AI'/'0'"].values
@@ -192,7 +230,7 @@ def make_recording_table(table, key):
         # Loop over the files for each recording and extract info
         for rec_num, (vid, met) in enumerate(zip(videos, metadatas)):
             if vid.split('.')[0].lower() != met.split('.')[0].lower():
-                raise ValueError('Files dont match!')
+                raise ValueError('Files dont match!', vid, met)
 
             name = vid.split('.')[0]
             try:
@@ -209,7 +247,7 @@ def make_recording_table(table, key):
             # Insert into table
             rec_key = key.copy()
             rec_key['recording_uid'] = rec_name
-            rec_key['ai_file_path'] = 'nan'
+            rec_key['ai_file_path'] = os.path.join(tb.raw_metadata_folder, met)
             rec_key['software'] = software
             table.insert1(rec_key)
 
@@ -384,8 +422,17 @@ def make_videofiles_table(table, key, recordings):
 
     
     
-
+def make_behaviourstimuli_table(table, key, recordings):
+    if key['uid'] > 184:
+        print('session was not recorded with behaviour software')
+    else:
+        print('Extracting stimuli info for recording: ', key['recording_uid'])
     
+    rec = [r for r in recordings.fetch(as_dict=True) if r['recording_uid']==key['recording_uid']][0]
+    tdms_path = rec['ai_file_path']
+
+    tb = ToolBox
+    stimuli = tb.extract_behaviour_stimuli(tdms_path)
 
 
 

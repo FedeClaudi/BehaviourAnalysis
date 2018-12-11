@@ -419,6 +419,7 @@ class Recordings(dj.Imported):
 #         to_insert = {**key, **rois}
 #         self.insert1(to_insert)
 
+
 @schema
 class Stimuli(dj.Computed):
     definition = """
