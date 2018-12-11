@@ -36,7 +36,7 @@ class FilesAutomationToolbox:
                 print('All files converted, yay!')
                 break
             except: # ignore exception and try again
-                print('Failed again at {}, trying again..\n\n'.format(time.localtime))
+                print('Failed again at {}, trying again..\n\n'.format(time.localtime()))
 
     def extract_postures(self):
         pass

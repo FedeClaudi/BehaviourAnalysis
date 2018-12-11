@@ -247,7 +247,7 @@ class VideoConverter:
             raise ValueError('Number of frames in converted clip doesnt match that of original clip')
 
         # Remove temp file
-        os.remove(temp_file)
+        ##os.remove(temp_file)
 
         # fin
         end = time.time()
