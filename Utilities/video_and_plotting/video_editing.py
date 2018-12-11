@@ -1,4 +1,3 @@
-from Utilities.file_io.files_load_save import load_yaml, load_tdms_from_winstore
 import sys
 sys.path.append('./')  
 
@@ -18,6 +17,8 @@ from functools import partial
 import shutil
 import matplotlib.pyplot as plt
 import time
+
+from Utilities.file_io.files_load_save import load_yaml, load_tdms_from_winstore
 
 
 class VideoConverter:
