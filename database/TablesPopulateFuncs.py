@@ -27,8 +27,9 @@ from Utilities.video_and_plotting.video_editing import Editor
     Templates                   ok
     Recordings                  ok
     VideoFiles                  ok
-    VideoMetadata               ok
-    Stimuli
+    IncompleteVideoFiles        ok
+    BehaviourStimuli
+    MantisStimuli
     TrackingData
 """
 
@@ -121,7 +122,6 @@ class ToolBox:
         extract channels values from file and returns a key dict for dj table insertion
 
         """
-
 
         # Get .tdms as a dataframe
         tdms_df, cols = self.open_temp_tdms_as_df(aifile)
@@ -278,7 +278,7 @@ def make_recording_table(table, key):
         mantis(table, key, software)
 
 
-def make_videofiles_table(table, key, recordings):
+def make_videofiles_table(table, key, recordings, videosincomplete):
     def make_videometadata_table(filepath, key):
         # Get videometadata
         cap = cv2.VideoCapture(filepath)
@@ -288,7 +288,7 @@ def make_videofiles_table(table, key, recordings):
         key['camera_offset_x'], key['camera_offset_y'] = -1, -1
         return key
 
-    def behaviour(table, key):
+    def behaviour(table, key, videosincomplete):
         tb  = ToolBox()
         videos, metadatas = tb.get_behaviour_recording_files(key)
         
@@ -300,18 +300,30 @@ def make_videofiles_table(table, key, recordings):
         try:
             vid, met = videos[rec_num-1], metadatas[rec_num-1]
         except:
-            raise ValueError(rec_num-1, rec_name, videos)
+            raise ValueError('Could not collect video and metadata files:' , rec_num-1, rec_name, videos)
         # Get deeplabcut data
         posefile = [os.path.join(tb.tracked_data_folder, f) for f in os.listdir(tb.tracked_data_folder)
-                    if rec_name == os.path.splitext(f)[0].split('Deep')[0] and '.pickle' not in f]
+                    if rec_name == os.path.splitext(f)[0].split('_pose')[0] and '.pickle' not in f]
         
         if not posefile:
             new_rec_name = rec_name[:-2]
             posefile = [os.path.join(tb.tracked_data_folder, f) for f in os.listdir(tb.tracked_data_folder)
-                        if new_rec_name == os.path.splitext(f)[0].split('Deep')[0] and '.pickle' not in f]
+                        if new_rec_name == os.path.splitext(f)[0].split('_pose')[0] and '.pickle' not in f]
 
-        if not posefile or len(posefile)>1:
-            raise FileNotFoundError('Pose files found: ', posefile)
+        if not posefile:
+            # ! pose file was not found, create entry in incompletevideos table to mark we need dlc analysis on this
+            incomplete_key = key.copy()
+            incomplete_key['conversion_needed'] = 'false'
+            incomplete_key['dlc_needed'] = 'true'
+            incomplete_key['camera_name'] = 'overview'
+            videosincomplete.insert1(incomplete_key)
+
+            # ? Create dummy posefile name which will be replaced with real one in the future
+            vid_name, ext = vid.split('.')
+            posefile = vid_name+'_pose'+ext
+
+        elif len(posefile) > 1:
+            raise FileNotFoundError('Found too many pose files: ', posefile)
         else:
             posefile = posefile[0]
 
@@ -326,7 +338,7 @@ def make_videofiles_table(table, key, recordings):
 
         return vid
 
-    def mantis(table, key):
+    def mantis(table, key, videosincomplete):
         def insert_for_mantis(table, key, camera, vid, conv, met, pose):
             video_key = key.copy()
             video_key['camera_name'] = camera
@@ -339,7 +351,55 @@ def make_videofiles_table(table, key, recordings):
             metadata_key = make_videometadata_table(video_key['converted_filepath'], key)
             VideoFiles.VideoMetadata.insert1(metadata_key)
 
-        tb = ToolBox()
+        def check_files_correct(ls, name):
+            """check_files_correct [check if we found the expected number of files]
+            
+            Arguments:
+                ls {[list]} -- [list of file names]
+                name {[str]} -- [name of the type of file we are looking for ]
+            
+            Raises:
+                FileNotFoundError -- [description]
+            
+            Returns:
+                [bool] -- [return true if everuything is fine else is false]
+            """
+
+            if not ls:
+                print('Did not find ', name)
+                return False
+            elif len(ls)>1:
+                raise FileNotFoundError('Found too many ', name, ls)
+            else:
+                return True
+
+        def add_videosincomplete_entry(videosincomplete, key, vid, converted_check, pose_check):
+            """add_videosincomplete_entry [adds entry to videos incompelte table to mark that stuff needs to be done ]
+            
+            Arguments:
+                videosincomplete {[obj]} -- [dj table]
+                key {[dict]} -- [key]
+                vid {[str]} -- [name of video]
+                converted_check {[bool]} -- [conversion needed]
+                pose_check {[bool]} -- [dlc eneeded]
+            """
+
+            cameras = ['overview', 'threat', 'catwalk', 'top_mirror', 'side_mirror']
+            camera = [c for c in cameras if c in vid][0]
+            key['camera_name'] = camera
+            if converted_check:
+                key['conversion_needed'] = 'false'
+            else:
+                key['conversion_needed'] = 'true'
+            if pose_check:
+                key['dlc_needed'] = 'false'
+            else:
+                key['dlc_needed'] = 'true'
+            videosincomplete.insert1(camera)
+
+        #############################################################################################
+
+        tb = ToolBox()  # toolbox
 
         # Get video Files
         videos = [f for f in os.listdir(tb.raw_video_folder)
@@ -347,45 +407,58 @@ def make_videofiles_table(table, key, recordings):
         
         # Loop and get matching files
         for vid in videos:
-            videoname = vid.split('.')[0]
-
+            # Get videos
+            videoname, ext = vid.split('.')
             converted = [f for f in os.listdir(tb.raw_video_folder)
                         if videoname in f and '__joined' in f]
-            if not converted or len(converted)> 1:
-                raise FileNotFoundError('Converted videos ', converted)
+            converted_check = check_files_correct(converted, 'converted')
 
             metadata = [f for f in os.listdir(tb.raw_metadata_folder)
                         if videoname in f and 'tdms' in f]
-            if not metadata or len(metadata) > 1:
-                raise FileNotFoundError('Metadata  ', converted)
+            metadata_check = check_files_correct(metadata, 'metadata')
 
-            posedata = [os.path.splitext(f)[0].split('Deep')[0]+'.h5' 
+            posedata = [os.path.splitext(f)[0].split('_pose')[0]+'.h5' 
                         for f in os.listdir(tb.pose_folder)
                         if videoname in f and 'h5' in f]
-            if not posedata or len(posedata) > 1:
-                raise FileNotFoundError('Pose Data ', posedata)
+            pose_check = check_files_correct(posedata, 'pose data')
             
-            # Get Camera Name
+            # Check if anything is missing
+            if not metadata_check: raise FileNotFoundError('Could not find metadata file!!')
+            if not converted_check or not pose_check:
+                add_videosincomplete_entry(videosincomplete, key, vid, converted_check, pose_check)
+                # ? add dummy files names which will be replaced with real ones in the future
+                if not converted_check:
+                    converted = vidoename+'__joined'+ext
+                if not pose_check:
+                    posedata = videoname+'_pose.h5'
+
+            # Get Camera Name and views videos
             if 'Overview' in vid:
                 camera = 'overview'
             elif 'Threat' in vid:
                 camera = 'threat'
+
                 # ? work on views videos
                 # Get file names and create cropped videos if dont exist
                 catwalk, side, top = Editor.mirros_cropper(os.path.join(tb.raw_video_folder,vid),
                                                             os.path.join(tb.raw_video_folder, 'Mirrors'))
                 views_videos = [catwalk, side, top]
-
+                views_names = ['catwalk', 'side_mirror', 'top_mirror']
                 # Get pose names
                 views_poses = {}
-                for vh in views_videos:
+                for vh, view_name in zip(views_videos, views_names):
                     n = os.path.split(vh)[-1].split('.')[0]
-                    pd = [os.path.splitext(f)[0].split('Deep')[0]+'.h5'
+                    pd = [os.path.splitext(f)[0].split('_pose')[0]+'.h5'
                                 for f in os.listdir(os.path.join(tb.pose_folder, 'Mirros'))
                                 if n in f and 'h5' in f]
-                    if pd and len(pd) == 1:
-                        views_poses[vh] = os.path.join(tb.pose_folder, 'Mirrors', pd[0])
-                    else: raise FileNotFoundError('Found viewvs posedata: ', pd)
+                    
+                    pd_check: check_files_correct(pd, 'cropped video pose file')
+                    if not pd_check:  
+                        add_videosincomplete_entry(videosincomplete, key, view_name, True, pd_check)
+                        # ? add dummy file name 
+                        pd = n+'_pose.h5'
+                    else: pd = pd[0]
+                    views_poses[view_name] = pd
 
                 # Insert into table [video and converted are the same here]
                 view = namedtuple('view', 'camera video metadata pose')
@@ -395,7 +468,6 @@ def make_videofiles_table(table, key, recordings):
                 for insert in views:
                     insert_for_mantis(table, key, insert.camer, insert.video,
                                         insert.video, insert.metadata, insert.pose)
-            
             else:
                 raise ValueError('Unexpected videoname ', vid)
 
@@ -405,6 +477,9 @@ def make_videofiles_table(table, key, recordings):
                                 os.path.join(tb.raw_metadata_folder, metadata[0]),
                                 os.path.join(tb.pose_folder, posedata[0]))
 
+    #####################################################################################################################
+    #####################################################################################################################
+    #####################################################################################################################
 
     print('Processing:  ', key)
     # Call functions to handle insert in main table
@@ -424,7 +499,8 @@ def make_videofiles_table(table, key, recordings):
     
 def make_behaviourstimuli_table(table, key, recordings):
     if key['uid'] > 184:
-        print('session was not recorded with behaviour software')
+        print(key['recording_uid'], '  was not recorded with behaviour software')
+        return
     else:
         print('Extracting stimuli info for recording: ', key['recording_uid'])
     
