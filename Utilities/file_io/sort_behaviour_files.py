@@ -34,7 +34,6 @@ def sort_behaviour_files(tosort_fld, video_fld, metadata_fld):
                 raise ValueError('Could not proess file with format: ', os.path.split(f)[-1])
     print('... task completed')
 
-
 def sort_mantis_files():
     # Get folders paths
     paths = load_yaml('paths.yml')
@@ -90,6 +89,15 @@ def sort_mantis_files():
         log.write('Completed Folder {}\n\n'.format(fld))
     log.close()
 
+
+def rename_pose_files():
+    fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\pose'
+
+    for f in os.listdir(fld):
+        name, ext = f.split('.')
+        vid_name = name.split('DeepCut')[0]
+        os.rename(os.path.join(fld, f), os.path.join(fld, vid_name+'_pose.'+ext))
+
 if __name__ == "__main__":
-    sort_mantis_files()
+    rename_pose_files()
 

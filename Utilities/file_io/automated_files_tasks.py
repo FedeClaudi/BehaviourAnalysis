@@ -11,7 +11,7 @@ from database.Tables_definitions import *
 import time
 
 from Utilities.video_and_plotting.video_editing import VideoConverter, Editor
-
+from Utilities.file_io.sort_behaviour_files import sort_mantis_files
 
 
 """ [Toolbox functions to automate handling of files (e.g. convert videos from .tdms to .avi...)]
@@ -26,6 +26,11 @@ class FilesAutomationToolbox:
         """
         Keeps calling video conversion tool, regardless of what happens
         """
+        try:
+            sort_mantis_files()
+        except:
+            pass
+
         fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video'
         toconvert = [f for f in os.listdir(fld) if '.tdms' in f]
         

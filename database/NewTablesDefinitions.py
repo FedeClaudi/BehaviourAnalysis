@@ -142,6 +142,18 @@ class Recordings(dj.Imported):
     def make(self, key):
         make_recording_table(self, key)
 
+
+
+@schema
+class IncompleteRecordings(dj.Imported):
+    definition = """
+        -> Recordings
+        ----
+        needs_conversion: enum('true', 'false')
+        needs_dlc: enum('true', 'false')
+    """
+
+
 @schema
 class VideoFiles(dj.Imported):
     definition = """

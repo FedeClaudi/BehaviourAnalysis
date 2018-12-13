@@ -308,12 +308,12 @@ def make_videofiles_table(table, key, recordings):
             raise ValueError(rec_num-1, rec_name, videos)
         # Get deeplabcut data
         posefile = [os.path.join(tb.tracked_data_folder, f) for f in os.listdir(tb.tracked_data_folder)
-                    if rec_name == os.path.splitext(f)[0].split('Deep')[0] and '.pickle' not in f]
+                    if rec_name == os.path.splitext(f)[0].split('_pose')[0] and '.pickle' not in f]
         
         if not posefile:
             new_rec_name = rec_name[:-2]
             posefile = [os.path.join(tb.tracked_data_folder, f) for f in os.listdir(tb.tracked_data_folder)
-                        if new_rec_name == os.path.splitext(f)[0].split('Deep')[0] and '.pickle' not in f]
+                        if new_rec_name == os.path.splitext(f)[0].split('_pose')[0] and '.pickle' not in f]
 
         if not posefile or len(posefile)>1:
             raise FileNotFoundError('Pose files found: ', posefile)
@@ -364,7 +364,7 @@ def make_videofiles_table(table, key, recordings):
             if not metadata or len(metadata) > 1:
                 raise FileNotFoundError('Metadata  ', converted)
 
-            posedata = [os.path.splitext(f)[0].split('Deep')[0]+'.h5' 
+            posedata = [os.path.splitext(f)[0].split('_pose')[0]+'.h5' 
                         for f in os.listdir(tb.pose_folder)
                         if videoname in f and 'h5' in f]
             if not posedata or len(posedata) > 1:
@@ -390,17 +390,16 @@ def make_videofiles_table(table, key, recordings):
                                 if n in f and 'h5' in f]
                     if pd and len(pd) == 1:
                         views_poses[vh] = os.path.join(tb.pose_folder, 'Mirrors', pd[0])
-                    else: raise FileNotFoundError('Found viewvs posedata: ', pd)
+                    else: raise FileNotFoundError('Found views posedata: ', pd)
 
                 # Insert into table [video and converted are the same here]
                 view = namedtuple('view', 'camera video metadata pose')
                 views = [view('catwalk', catwalk, 'nan', views_poses[catwalk]),
-                         view('side_mirror', side, 'nan', views_poses[side]),
+                        view('side_mirror', side, 'nan', views_poses[side]),
                         view('top_mirror', top, 'nan', views_poses[top])]
                 for insert in views:
                     insert_for_mantis(table, key, insert.camer, insert.video,
                                         insert.video, insert.metadata, insert.pose)
-            
             else:
                 raise ValueError('Unexpected videoname ', vid)
 
