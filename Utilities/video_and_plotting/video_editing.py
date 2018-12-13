@@ -283,6 +283,51 @@ class Editor:
             """.format(name + format, outputname))
         clip.write_videofile(outputname, codec=codec, fps=fps)
 
+    def trim_clip(self, videopath, savepath, frame_mode=False, start=0.0, stop=0.0,
+                    start_frame=None, stop_frame=None, sel_fps=None):
+        """trim_clip [take a videopath, open it and save a trimmed version between start and stop. Either 
+        looking at a proportion of video (e.g. second half) or at start and stop frames]
+        
+        Arguments:
+            videopath {[str]} -- [video to process]
+            savepath {[str]} -- [where to save]
+        
+        Keyword Arguments:
+            frame_mode {bool} -- [define start and stop time as frame numbers] (default: {False})
+            start {float} -- [video proportion to start at ] (default: {0.0})
+            end {float} -- [video proportion to stop at ] (default: {0.0})
+            start_frame {[type]} -- [video frame to stat at ] (default: {None})
+            end_frame {[type]} -- [videoframe to stop at ] (default: {None})
+        """
+
+        # Open reader and writer
+        cap = cv2.VideoCapture(videopath)
+        nframes, width, height, fps  = self.get_video_params(cap)
+    
+        if sel_fps is not None:
+            fps = sel_fps
+        writer = self.open_cvwriter(savepath, w=width, h=height, framerate=int(fps), format='.mp4', iscolor=False)
+
+        # if in proportion mode get start and stop mode
+        if not frame_mode:
+            start_frame = int(round(nframes*start))
+            stop_frame = int(round(nframes*stop))
+        
+        # Loop over frames and save the ones that matter
+        print('Processing: ', videopath)
+        cur_frame = 0
+        while True:
+            cur_frame += 1
+            if cur_frame % 100 == 0: print('Current frame: ', cur_frame)
+            if cur_frame <= start_frame: continue
+            elif cur_frame >= stop_frame: break
+            else:
+                ret, frame = cap.read()
+                if not ret: break
+                else:
+                    writer.write(frame)
+        writer.release()
+
     @staticmethod
     def split_clip(clip, number_of_clips=4, ispath=False):
             if ispath: clip = VideoFileClip(clip)
@@ -321,10 +366,11 @@ class Editor:
 
     @staticmethod
     def open_cvwriter(filepath, w=None, h=None, framerate=None, format='.mp4', iscolor=False):
-        if format != '.mp4':
-            raise ValueError('Fileformat not yet supported by this function: {}'.format(format))
         try:
-            fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+            if 'avi' in format:
+                fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')    # (*'MP4V')
+            else:
+                fourcc = cv2.VideoWriter_fourcc(*'MP4V')
             videowriter = cv2.VideoWriter(filepath, fourcc, framerate, (w, h), iscolor)
         except:
             raise ValueError('Could not create videowriter')
@@ -435,7 +481,6 @@ class Editor:
             v {[str]} -- [path to video file]
             fld {[str]} -- [path to destination folder]
         """
-
 
         # cropping params
         crop = namedtuple('coords', 'x0 x1 y0 y1')
@@ -562,16 +607,18 @@ if __name__ == '__main__':
 
     ###############
 
-    fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video'
-    toconvert = [f for f in os.listdir(fld) if '.tdms' in f]
-    print(toconvert)
-    for f in toconvert:
-        converter = VideoConverter(os.path.join(fld, f), extract_framesize=True)
+    # fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video'
+    # toconvert = [f for f in os.listdir(fld) if '.tdms' in f]
+    # print(toconvert)
+    # for f in toconvert:
+    #     converter = VideoConverter(os.path.join(fld, f), extract_framesize=True)
         
     # editor.concated_tdms_to_mp4_clips()
 
-
-
+    vid = '/Users/federicoclaudi/Desktop/181211_CA3693_1Threat__0.mp4'
+    savename = '/Users/federicoclaudi/Desktop/clip2.mp4'
+    editor.trim_clip(vid, savename, frame_mode=False, start=0.5, stop=0.75)
+    # editor.manual_video_inspect(savename)
 
 
 

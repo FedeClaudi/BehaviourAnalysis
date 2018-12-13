@@ -28,7 +28,7 @@ from Utilities.video_and_plotting.video_editing import Editor
     Recordings                  ok
     VideoFiles                  ok
     IncompleteVideoFiles        ok
-    BehaviourStimuli
+    BehaviourStimuli            ok
     MantisStimuli
     TrackingData
 """
@@ -106,11 +106,11 @@ class ToolBox:
         stim names and timestamp (in frames)]
         
         Arguments:
-            aifile {[str]} -- [path to .tdms file]
+            aifile {[str]} -- [path to .tdms file] 
         """
         # Get .tdms as a dataframe
         tdms_df, cols = self.open_temp_tdms_as_df(aifile, move=False)
-        ? Print out content of the dataframe
+        # ? Print out content of the dataframe
         # with open('behav_cols.txt', 'w+') as out:
         #     for c in cols:
         #         out.write(c+'\n\n')
@@ -515,19 +515,21 @@ def make_behaviourstimuli_table(table, key, videofiles):
         return
     else:
         print('Extracting stimuli info for recording: ', key['recording_uid'])
-    
+
+    # Get file paths    
     rec = [r for r in recordings.fetch(as_dict=True) if r['recording_uid']==key['recording_uid']][0]
     tdms_path = rec['ai_file_path']
+    videopath = rec['converted_filepath']
 
+    # Get stimuli
     tb = ToolBox()
     stimuli = tb.extract_behaviour_stimuli(tdms_path)
 
+    # Add in table
     for i, stim in enumerate(stimuli):
         stim_key = key.copy()
         stim_key['stimulus_uid'] = key['recording_uid']+'_{}'.format(i)
 
-        vid = [v for v in videofiles if v['recording_uid']==key['recording_uid']][0]
-        videopath = vid['converted_filepath']
 
         if 'audio' in stim.name: stim_key['stim_duration'] = 9 # ! hardcoded
         else: stim_key['stim_duration']  = 5
@@ -540,11 +542,24 @@ def make_behaviourstimuli_table(table, key, videofiles):
 
 
 
+def make_mantistimuli_table(table, key, recordings):
+    tb = ToolBox()
+    rec = [r for r in recordings if r['recording_uid']==key['recording_uid']]
+    aifile = rec['ai_file_path']
 
 
+    # Get stimuli names from the ai file
+    tdms_df, cols = tb.open_temp_tdms_as_df(aifile, move=True)
 
+    # Get analog channel to use 
+    if 'AudioFromSpeaker_AI' in cols:
+        ch = 'AudioFromSpeaker_AI'
+    else:
+        ch = 'AudioIRLED_analog'
 
-
+    # Get names of stimuli
+    to_ignore = ['t0','AudioIRLED_analog']  # TODO
+    stim_names = [c.split("'/'")[0][2:] for c in cols if 'not in ignored ']
 
 
 
