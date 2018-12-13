@@ -110,15 +110,23 @@ class ToolBox:
         """
         # Get .tdms as a dataframe
         tdms_df, cols = self.open_temp_tdms_as_df(aifile, move=False)
-        with open('behav_cols.txt', 'w+') as out:
-            for c in cols:
-                out.write(c+'\n\n')
+        ? Print out content of the dataframe
+        # with open('behav_cols.txt', 'w+') as out:
+        #     for c in cols:
+        #         out.write(c+'\n\n')
 
-        print(tdms_df)
-
-        raise NotImplementedError
-
-        return {}
+        # Loop over the dataframe columns named like : 
+        # /'Visual Stimulis'/' 20130-FC_slowloom'
+        stim_cols = [c for c in cols if 'Stimulis' in c]
+        stimuli = []
+        stim = namedtuple('stim', 'type name frame')
+        for c in stim_cols:
+            stim_type = c.split(' Stimulis')[0][2:].lower()
+            if 'digit' in stim_type: continue
+            stim_name = c.split('-')[-1][:-2].lower()
+            stim_frame = int(c.split("'/' ")[-1].split('-')[0])
+            stimuli.append(stim(stim_type, stim_name, stim_frame))
+        return stimuli
 
     def extract_ai_info(self, key, aifile):
         """
@@ -456,11 +464,6 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
                     pd = [os.path.splitext(f)[0].split('_pose')[0]+'.h5'
                                 for f in os.listdir(os.path.join(tb.pose_folder, 'Mirros'))
                                 if n in f and 'h5' in f]
-<<<<<<< HEAD
-                    if pd and len(pd) == 1:
-                        views_poses[vh] = os.path.join(tb.pose_folder, 'Mirrors', pd[0])
-                    else: raise FileNotFoundError('Found views posedata: ', pd)
-=======
                     
                     pd_check: check_files_correct(pd, 'cropped video pose file')
                     if not pd_check:  
@@ -469,7 +472,6 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
                         pd = n+'_pose.h5'
                     else: pd = pd[0]
                     views_poses[view_name] = pd
->>>>>>> a5e67756e6ca0f6ac159ceb1669262b042d84ad0
 
                 # Insert into table [video and converted are the same here]
                 view = namedtuple('view', 'camera video metadata pose')
@@ -507,8 +509,7 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
         videopath = mantis(table, key)
 
     
-    
-def make_behaviourstimuli_table(table, key, recordings):
+def make_behaviourstimuli_table(table, key, videofiles):
     if key['uid'] > 184:
         print(key['recording_uid'], '  was not recorded with behaviour software')
         return
@@ -520,6 +521,24 @@ def make_behaviourstimuli_table(table, key, recordings):
 
     tb = ToolBox()
     stimuli = tb.extract_behaviour_stimuli(tdms_path)
+
+    for i, stim in enumerate(stimuli):
+        stim_key = key.copy()
+        stim_key['stimulus_uid'] = key['recording_uid']+'_{}'.format(i)
+
+        vid = [v for v in videofiles if v['recording_uid']==key['recording_uid']][0]
+        videopath = vid['converted_filepath']
+
+        if 'audio' in stim.name: stim_key['stim_duration'] = 9 # ! hardcoded
+        else: stim_key['stim_duration']  = 5
+        
+        stim_key['video'] = videopath
+        stim_key['stim_type'] = stim.type
+        stim_key['stim_start'] = stim.frame
+        stim_key['stim_name'] = stim.name
+        table.insert1(stim_key)
+
+
 
 
 

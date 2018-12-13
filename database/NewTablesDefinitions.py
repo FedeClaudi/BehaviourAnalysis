@@ -169,7 +169,6 @@ class VideoFiles(dj.Imported):
             camera_offset_y: int            # camera offset
         """
 
-
     def make(self, key):
         make_videofiles_table(self, key, Recordings, VideosIncomplete)
 
@@ -189,13 +188,13 @@ class VideosIncomplete(dj.Imported):
 class BehaviourStimuli(dj.Computed):
     definition = """
     # Stimuli of sessions recorded with old behaviour software
-    -> Recordings
+    -> VideoFiles
     stimulus_uid: varchar(128)  # uniquely identifying ID for each trial YYMMDD_MOUSEID_RECNUM_TRIALNUM
     ---
     stim_type: varchar(128)
     stim_start: int                 # number of frame at start of stim
     stim_duration: int              # duration in frames
-    stim_metadata: longblob         # list of other stuff ? 
+    stim_name: varchar(128)         # list of other stuff ? 
     video: varchar(256)             # name of corresponding video
     """
 
