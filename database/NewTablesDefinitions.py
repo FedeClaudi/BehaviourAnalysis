@@ -142,18 +142,6 @@ class Recordings(dj.Imported):
     def make(self, key):
         make_recording_table(self, key)
 
-
-
-@schema
-class IncompleteRecordings(dj.Imported):
-    definition = """
-        -> Recordings
-        ----
-        needs_conversion: enum('true', 'false')
-        needs_dlc: enum('true', 'false')
-    """
-
-
 @schema
 class VideoFiles(dj.Imported):
     definition = """
@@ -163,7 +151,7 @@ class VideoFiles(dj.Imported):
         ---
         video_filepath: varchar(256)          # path to the videofile
         converted_filepath: varchar(256)      # path to converted .mp4 video, if any, else is same as video filepath    
-        metadata_filepath: varchar(256)        # if acquired with mantis a .tdms metadata file was produced, path ot it.
+        metadata_filepath: varchar(256)       # if acquired with mantis a .tdms metadata file was produced, path ot it.
         pose_filepath: varchar(256)           # path to .h5 pose file
         """
 
@@ -183,7 +171,18 @@ class VideoFiles(dj.Imported):
 
 
     def make(self, key):
-        make_videofiles_table(self, key, Recordings)
+        make_videofiles_table(self, key, Recordings, VideosIncomplete)
+
+
+@schema
+class VideosIncomplete(dj.Imported):
+    definition = """
+        # Stores the ID of Videos that have missing files or items and what is missing
+        -> VideoFiles
+        ---
+        conversion_needed: enum('true', 'false')
+        dlc_needed: enum('true', 'false')
+    """
 
 
 @schema
