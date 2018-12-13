@@ -80,7 +80,7 @@ class ToolBox:
             return videos, metadatas
 
 
-    def open_temp_tdms_as_df(path):
+    def open_temp_tdms_as_df(self, path, move=True):
         """open_temp_tdms_as_df [gets a file from winstore, opens it and returns the dataframe]
         
         Arguments:
@@ -88,7 +88,10 @@ class ToolBox:
         """
         # Download .tdms from winstore, and open as a DataFrame
         # ? download from winstore first and then open, faster?
-        temp_file = load_tdms_from_winstore(path)
+        if move:
+            temp_file = load_tdms_from_winstore(path)
+        else:
+            temp_file = path
         print('opening ', temp_file, ' with size {} bytes'.format(
             os.path.getsize(temp_file)))
         tdmsfile = TdmsFile(temp_file)
@@ -100,16 +103,18 @@ class ToolBox:
 
     def extract_behaviour_stimuli(self, aifile):
         """extract_behaviour_stimuli [given the path to a .tdms file with session metadata extract
-         stim names and timestamp (in frames)]
+        stim names and timestamp (in frames)]
         
         Arguments:
             aifile {[str]} -- [path to .tdms file]
         """
         # Get .tdms as a dataframe
-        tdms_df, cols = self.open_temp_tdms_as_df(aifile)
+        tdms_df, cols = self.open_temp_tdms_as_df(aifile, move=False)
         with open('behav_cols.txt', 'w+') as out:
             for c in cols:
                 out.write(c+'\n\n')
+
+        print(tdms_df)
 
         raise NotImplementedError
 
@@ -124,7 +129,7 @@ class ToolBox:
         """
 
         # Get .tdms as a dataframe
-        tdms_df, cols = self.open_temp_tdms_as_df(aifile)
+        tdms_df, cols = self.open_temp_tdms_as_df(aifile, move=True)
         chs = ["/'OverviewCameraTrigger_AI'/'0'", "/'ThreatCameraTrigger_AI'/'0'", "/'AudioIRLED_AI'/'0'", "/'AudioFromSpeaker_AI'/'0'"]
 
         # Get the channels we care about
@@ -267,7 +272,7 @@ def make_recording_table(table, key):
 
         # Extract info from aifile and populate part table
         ai_key = tb.extract_ai_info(key, aifile)
-        Recordings.AnalogInputs.insert1(ai_key)
+        table.AnalogInputs.insert1(ai_key)
 
     # See which software was used and call corresponding function
     if key['uid'] < 184:
@@ -507,8 +512,11 @@ def make_behaviourstimuli_table(table, key, recordings):
     rec = [r for r in recordings.fetch(as_dict=True) if r['recording_uid']==key['recording_uid']][0]
     tdms_path = rec['ai_file_path']
 
-    tb = ToolBox
+    tb = ToolBox()
     stimuli = tb.extract_behaviour_stimuli(tdms_path)
+
+
+
 
 
 

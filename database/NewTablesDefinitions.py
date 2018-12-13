@@ -125,13 +125,20 @@ class Recordings(dj.Imported):
             ---
             tstart: float                           # t0 from mantis manuals .tdms
             overview_camera_triggers: longblob      # Frame triggers signals efferent copy
-            threat_camera_triggers: longblob
-            audio_IRLED: longblob                   # HIGH when auditory stimulus being produced
+            threat_camera_triggers: longblob            # a
+            audio_irled: longblob                   # HIGH when auditory stimulus being produced
             audio_signal: longblob                  # voltage from amplifier to speaker
             manuals_names: longblob                 # list of strings of name of manual protocols
             manuals_timestamps: longblob            # list of floats of timestamps of manual protocols
             ldr: longblob                           # light dependant resistor signal
         """
+
+    def print(self):
+        print(self.AnalogInputs.heading)
+        for line in self.AnalogInputs.fetch():
+            print('tule', line)
+
+
     def make(self, key):
         make_recording_table(self, key)
 
@@ -193,6 +200,8 @@ class BehaviourStimuli(dj.Computed):
     video: varchar(256)             # name of corresponding video
     """
 
+    def make(self, key):
+        make_behaviourstimuli_table(self, key, Recordings)
 
 
 if __name__ == "__main__":

@@ -51,7 +51,9 @@ def sort_mantis_files():
         log.write('Processing Folder {}'.format(fld))
         print('Processing Folder ', fld)
         # Loop over individual files in subfolder
+        if  '.txt' in fld: continue # skip log file
         for f in os.listdir(os.path.join(tosort_fld, fld)):
+            if '.txt' in f: continue # skip log file
             print('     Moving: ', f)
             # Get the new name and destination for each file
             if 'Maze' in f:

@@ -216,21 +216,23 @@ if __name__ == '__main__':
 
     print(p)
 
-    # p.remove_table('videofiles')
+    # p.remove_table('recordings')
 
     # p.populate_mice_table()
     # p.populate_experiments_table()
     # p.populate_sessions_table()
 
     # p.populate_videofiles_table()
-    p.populate_recordings_table()
+    # p.populate_recordings_table()
 
     # p.populate_ccm_table()
     # p.populate_templates_table()
+
+    p.populate_stimuli_table()
 
     # p.populate_stimuli_table()
     # p.populate_tracking_data_table()
 
 
-
-    print(p)
+    print( p.videofiles)
+    # print(p)

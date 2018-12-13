@@ -247,7 +247,7 @@ class VideoConverter:
             raise ValueError('Number of frames in converted clip doesnt match that of original clip')
 
         # Remove temp file
-        os.remove(temp_file)
+        ##os.remove(temp_file)
 
         # fin
         end = time.time()
@@ -339,11 +339,10 @@ class Editor:
         fps    = cap.get(cv2.CAP_PROP_FPS)
         return nframes, width, height, fps 
 
-    def concated_tdms_to_mp4_clips(self):
+    def concated_tdms_to_mp4_clips(self, fld):
         """[Concatenates the clips create from the tdms video converter in the class above]
         """
         # Get list of .tdms files that might have been converted
-        fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video'
         tdms_names = [f.split('.')[0] for f in os.listdir(fld) if 'tdms' in f]
         # Get names of converted clips
         tdms_videos_names = [f for f in os.listdir(fld) if f.split('__')[0] in tdms_names]

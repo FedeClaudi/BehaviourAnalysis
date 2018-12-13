@@ -10,7 +10,7 @@ from database.Populate_database import PopulateDatabase
 from database.Tables_definitions import *
 import time
 
-from Utilities.video_and_plotting.video_editing import VideoConverter
+from Utilities.video_and_plotting.video_editing import VideoConverter, Editor
 
 
 
@@ -34,9 +34,13 @@ class FilesAutomationToolbox:
                 for f in toconvert:
                     converter = VideoConverter(os.path.join(fld, f), extract_framesize=True)
                 print('All files converted, yay!')
+
+                Editor.concated_tdms_to_mp4_clips(fld)
+                print('All clips joined, yay!')
+
                 break
             except: # ignore exception and try again
-                print('Failed again at {}, trying again..\n\n'.format(time.localtime))
+                print('Failed again at {}, trying again..\n\n'.format(time.localtime()))
 
     def extract_postures(self):
         pass
