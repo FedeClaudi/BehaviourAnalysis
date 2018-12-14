@@ -54,14 +54,16 @@ class PopulateDatabase:
         self.sessions = Sessions()
         self.recordings = Recordings()
         self.videofiles = VideoFiles()
-
-        self.stimuli = BehaviourStimuli()
+        self.behaviourstimuli = BehaviourStimuli()
+        self.mantisstimuli = MantisStimuli()
         self.tracking_data = None # TrackingData()
         self.commoncoordinatematrices = CommonCoordinateMatrices()
-        self.all_tables = dict(mice=self.mice, sessions= self.sessions, experiments=self.experiments, recordings=self.recordings,
+        self.all_tables = dict(mice=self.mice, sessions= self.sessions, experiments=self.experiments,
+                                recordings=self.recordings, behaviourstimuli = self.behaviourstimuli,
+                                mantisstimuli = self.mantisstimuli,
                                 templates=self.templates, videofiles = self.videofiles, 
-                               commoncoordinatematrices=self.commoncoordinatematrices)
-                               # stimuli=self.stimuli, tracking_data = self.tracking_data
+                               commoncoordinatematrices=self.commoncoordinatematrices,
+                               tracking_data = self.tracking_data)
 
     def display_tables_headings(self):
         """
@@ -143,24 +145,6 @@ class PopulateDatabase:
             )
             self.insert_entry_in_table(session_data['session_name'], 'session_name', session_data, table)
 
-    def populate_ccm_table(self):
-        self.commoncoordinatematrices.populate()
-
-    def populate_recordings_table(self):
-        self.recordings.populate()
-        
-    def populate_templates_table(self):
-        self.templates.populate()
-
-    def populate_stimuli_table(self):
-        self.stimuli.populate()
-
-    def populate_tracking_data_table(self):
-        self.tracking_data.populate()
-
-    def populate_videofiles_table(self):
-        self.videofiles.populate()
-
     @staticmethod
     def insert_entry_in_table(dataname, checktag, data, table, overwrite=False):
         """
@@ -222,16 +206,16 @@ if __name__ == '__main__':
     # p.populate_experiments_table()
     # p.populate_sessions_table()
 
-    # p.populate_videofiles_table()
-    p.populate_recordings_table()
+    # p.commoncoordinatematrices.populate()
+    # p.recordings.populate()
+    # p.templates.populate()
+    # p.stimuli.populate()
+    # p.tracking_data.populate()
+    # p.videofiles.populate()
+    # p.behaviourstimuli.populate()
 
-    # p.populate_ccm_table()
-    # p.populate_templates_table()
-
-    # p.populate_stimuli_table()
-
-    # p.populate_stimuli_table()
-    # p.populate_tracking_data_table()
+    p.mantisstimuli.populate()
+    
 
 
     print( p.videofiles)

@@ -1,4 +1,3 @@
-from Utilities.video_and_plotting.commoncoordinatebehaviour import run as get_matrix
 import sys
 sys.path.append('./')
 
@@ -12,9 +11,10 @@ from collections import namedtuple
 import numpy as np
 import cv2
 import warnings
+import matplotlib.pyplot as plt
+
 from Utilities.file_io.files_load_save import load_yaml, load_tdms_from_winstore
-
-
+from Utilities.video_and_plotting.commoncoordinatebehaviour import run as get_matrix
 from database.NewTablesDefinitions import *
 from Utilities.video_and_plotting.video_editing import Editor
 
@@ -28,7 +28,7 @@ from Utilities.video_and_plotting.video_editing import Editor
     Recordings                  ok
     VideoFiles                  ok
     IncompleteVideoFiles        ok
-    BehaviourStimuli
+    BehaviourStimuli            ok
     MantisStimuli
     TrackingData
 """
@@ -106,19 +106,27 @@ class ToolBox:
         stim names and timestamp (in frames)]
         
         Arguments:
-            aifile {[str]} -- [path to .tdms file]
+            aifile {[str]} -- [path to .tdms file] 
         """
         # Get .tdms as a dataframe
         tdms_df, cols = self.open_temp_tdms_as_df(aifile, move=False)
-        with open('behav_cols.txt', 'w+') as out:
-            for c in cols:
-                out.write(c+'\n\n')
+        # ? Print out content of the dataframe
+        # with open('behav_cols.txt', 'w+') as out:
+        #     for c in cols:
+        #         out.write(c+'\n\n')
 
-        print(tdms_df)
-
-        raise NotImplementedError
-
-        return {}
+        # Loop over the dataframe columns named like : 
+        # /'Visual Stimulis'/' 20130-FC_slowloom'
+        stim_cols = [c for c in cols if 'Stimulis' in c]
+        stimuli = []
+        stim = namedtuple('stim', 'type name frame')
+        for c in stim_cols:
+            stim_type = c.split(' Stimulis')[0][2:].lower()
+            if 'digit' in stim_type: continue
+            stim_name = c.split('-')[-1][:-2].lower()
+            stim_frame = int(c.split("'/' ")[-1].split('-')[0])
+            stimuli.append(stim(stim_type, stim_name, stim_frame))
+        return stimuli
 
     def extract_ai_info(self, key, aifile):
         """
@@ -501,27 +509,70 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
         videopath = mantis(table, key)
 
     
-    
-def make_behaviourstimuli_table(table, key, recordings):
+def make_behaviourstimuli_table(table, key, videofiles):
     if key['uid'] > 184:
         print(key['recording_uid'], '  was not recorded with behaviour software')
         return
     else:
         print('Extracting stimuli info for recording: ', key['recording_uid'])
-    
+
+    # Get file paths    
     rec = [r for r in recordings.fetch(as_dict=True) if r['recording_uid']==key['recording_uid']][0]
     tdms_path = rec['ai_file_path']
+    videopath = rec['converted_filepath']
 
+    # Get stimuli
     tb = ToolBox()
     stimuli = tb.extract_behaviour_stimuli(tdms_path)
 
+    # Add in table
+    for i, stim in enumerate(stimuli):
+        stim_key = key.copy()
+        stim_key['stimulus_uid'] = key['recording_uid']+'_{}'.format(i)
+
+
+        if 'audio' in stim.name: stim_key['stim_duration'] = 9 # ! hardcoded
+        else: stim_key['stim_duration']  = 5
+        
+        stim_key['video'] = videopath
+        stim_key['stim_type'] = stim.type
+        stim_key['stim_start'] = stim.frame
+        stim_key['stim_name'] = stim.name
+        table.insert1(stim_key)
 
 
 
+def make_mantistimuli_table(table, key, recordings):
+    if key['uid'] <= 184:
+        print(key['recording_uid'],
+              '  was not recorded with mantis software')
+        return
+    else:
+            print('Pop mantis stimuli for: ', key['recording_uid'])
 
 
+    tb = ToolBox()
+    rec = [r for r in recordings if r['recording_uid']==key['recording_uid']]
+    aifile = rec['ai_file_path']
 
 
+    # Get stimuli names from the ai file
+    tdms_df, cols = tb.open_temp_tdms_as_df(aifile, move=True)
+
+    # Get analog channel to use 
+    if 'AudioFromSpeaker_AI' in cols:
+        ch = 'AudioFromSpeaker_AI'
+    else:
+        ch = 'AudioIRLED_analog'
+
+    # Get names of stimuli
+    to_ignore = ['t0','AudioIRLED_analog']
+    stim_names = [c.split("'/'")[0][2:] for c in cols if not [i for i in to_ignore if i in c]]
+
+
+    # Get stim times from channel data
+    plt.plot(ch)
+    plt.plot(np.diff(ch))
 
 
 

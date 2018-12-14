@@ -616,17 +616,13 @@ if __name__ == '__main__':
 
     ###############
 
-<<<<<<< HEAD
-    fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video'
-=======
     # fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video'
->>>>>>> efb94cace934a891d48cd87be28fc2f7ff70ef11
     # toconvert = [f for f in os.listdir(fld) if '.tdms' in f]
     # print(toconvert)
     # for f in toconvert:
     #     converter = VideoConverter(os.path.join(fld, f), extract_framesize=True)
         
-    editor.concated_tdms_to_mp4_clips(fld)
+    # editor.concated_tdms_to_mp4_clips()
 
     vid = '/Users/federicoclaudi/Desktop/181211_CA3693_1Threat__0.mp4'
     savename = '/Users/federicoclaudi/Desktop/clip2.mp4'

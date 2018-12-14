@@ -16,6 +16,7 @@ def start_connection():
     dj.config['database.host'] = "127.0.0.1" 
     dj.config['database.user'] = 'root'
     dj.config['database.password'] = 'fede'
+    dj.config['database.safemode'] = False
     schema = dj.schema(dbname, locals())
 
     print('Connecting to server')

@@ -169,10 +169,8 @@ class VideoFiles(dj.Imported):
             camera_offset_y: int            # camera offset
         """
 
-
     def make(self, key):
         make_videofiles_table(self, key, Recordings, VideosIncomplete)
-
 
 @schema
 class VideosIncomplete(dj.Imported):
@@ -184,7 +182,6 @@ class VideosIncomplete(dj.Imported):
         dlc_needed: enum('true', 'false')
     """
 
-
 @schema
 class BehaviourStimuli(dj.Computed):
     definition = """
@@ -195,12 +192,33 @@ class BehaviourStimuli(dj.Computed):
     stim_type: varchar(128)
     stim_start: int                 # number of frame at start of stim
     stim_duration: int              # duration in frames
-    stim_metadata: longblob         # list of other stuff ? 
+    stim_name: varchar(128)         # list of other stuff ? 
     video: varchar(256)             # name of corresponding video
     """
 
     def make(self, key):
         make_behaviourstimuli_table(self, key, Recordings)
+
+
+@schema 
+class MantisStimuli(dj.Computed):
+    definition = """
+        # stores metadata regarding stimuli with Mantis software
+        -> Recordings
+        stimulus_uid: varchar(128)      # uniquely identifying ID for each trial YYMMDD_MOUSEID_RECNUM_TRIALNUM
+        ---
+        overview_frame: int             # frame number in overview camera (of onset)
+        threat_frame: int               # frame number in threat camera (of onset)
+        overview_frame_off: int
+        threat_frame_off: int
+        duration: int                   # duration in seconds
+        stim_type: varchar(128)         # audio vs visual
+        stim_name: varchar(128)         # name 
+    """
+
+    def make(self, key):
+        make_mantistimuli_table(self, key, Recordings)    
+
 
 
 if __name__ == "__main__":
