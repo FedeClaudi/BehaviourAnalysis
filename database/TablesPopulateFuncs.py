@@ -1,4 +1,3 @@
-from Utilities.video_and_plotting.commoncoordinatebehaviour import run as get_matrix
 import sys
 sys.path.append('./')
 
@@ -12,9 +11,10 @@ from collections import namedtuple
 import numpy as np
 import cv2
 import warnings
+import matplotlib.pyplot as plt
+
 from Utilities.file_io.files_load_save import load_yaml, load_tdms_from_winstore
-
-
+from Utilities.video_and_plotting.commoncoordinatebehaviour import run as get_matrix
 from database.NewTablesDefinitions import *
 from Utilities.video_and_plotting.video_editing import Editor
 
@@ -543,6 +543,14 @@ def make_behaviourstimuli_table(table, key, videofiles):
 
 
 def make_mantistimuli_table(table, key, recordings):
+    if key['uid'] <= 184:
+        print(key['recording_uid'],
+              '  was not recorded with mantis software')
+        return
+    else:
+            print('Pop mantis stimuli for: ', key['recording_uid'])
+
+
     tb = ToolBox()
     rec = [r for r in recordings if r['recording_uid']==key['recording_uid']]
     aifile = rec['ai_file_path']
@@ -558,10 +566,13 @@ def make_mantistimuli_table(table, key, recordings):
         ch = 'AudioIRLED_analog'
 
     # Get names of stimuli
-    to_ignore = ['t0','AudioIRLED_analog']  # TODO
-    stim_names = [c.split("'/'")[0][2:] for c in cols if 'not in ignored ']
+    to_ignore = ['t0','AudioIRLED_analog']
+    stim_names = [c.split("'/'")[0][2:] for c in cols if not [i for i in to_ignore if i in c]]
 
 
+    # Get stim times from channel data
+    plt.plot(ch)
+    plt.plot(np.diff(ch))
 
 
 
