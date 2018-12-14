@@ -40,7 +40,8 @@ class FilesAutomationToolbox:
                     converter = VideoConverter(os.path.join(fld, f), extract_framesize=True)
                 print('All files converted, yay!')
 
-                Editor.concated_tdms_to_mp4_clips(fld)
+                editor = Editor()
+                editor.concated_tdms_to_mp4_clips(fld)
                 print('All clips joined, yay!')
 
                 break

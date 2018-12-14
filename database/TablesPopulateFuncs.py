@@ -456,11 +456,6 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
                     pd = [os.path.splitext(f)[0].split('_pose')[0]+'.h5'
                                 for f in os.listdir(os.path.join(tb.pose_folder, 'Mirros'))
                                 if n in f and 'h5' in f]
-<<<<<<< HEAD
-                    if pd and len(pd) == 1:
-                        views_poses[vh] = os.path.join(tb.pose_folder, 'Mirrors', pd[0])
-                    else: raise FileNotFoundError('Found views posedata: ', pd)
-=======
                     
                     pd_check: check_files_correct(pd, 'cropped video pose file')
                     if not pd_check:  
@@ -469,7 +464,6 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
                         pd = n+'_pose.h5'
                     else: pd = pd[0]
                     views_poses[view_name] = pd
->>>>>>> a5e67756e6ca0f6ac159ceb1669262b042d84ad0
 
                 # Insert into table [video and converted are the same here]
                 view = namedtuple('view', 'camera video metadata pose')

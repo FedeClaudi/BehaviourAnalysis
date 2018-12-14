@@ -563,12 +563,12 @@ if __name__ == '__main__':
     ###############
 
     fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video'
-    toconvert = [f for f in os.listdir(fld) if '.tdms' in f]
-    print(toconvert)
-    for f in toconvert:
-        converter = VideoConverter(os.path.join(fld, f), extract_framesize=True)
+    # toconvert = [f for f in os.listdir(fld) if '.tdms' in f]
+    # print(toconvert)
+    # for f in toconvert:
+    #     converter = VideoConverter(os.path.join(fld, f), extract_framesize=True)
         
-    # editor.concated_tdms_to_mp4_clips()
+    editor.concated_tdms_to_mp4_clips(fld)
 
 
 
