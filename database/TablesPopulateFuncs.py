@@ -161,8 +161,7 @@ class ToolBox:
                 times.append(float(c.split("'/'")[-1][:-2]))
         key['manuals_names'] = -1
         warnings.warn('List of strings not currently supported, cant insert manuals names')
-        key['manuals_times'] = times
-
+        key['manuals_timestamps'] = times
         return key
 
 """ 
@@ -283,6 +282,7 @@ def make_recording_table(table, key):
         ai_key = tb.extract_ai_info(key, aifile)
         ai_key['recording_uid'] = rec_name
         table.AnalogInputs.insert1(ai_key)
+        return
 
     # See which software was used and call corresponding function
     if key['uid'] < 184:
