@@ -160,7 +160,7 @@ class ToolBox:
                 names.append(c.split("'/'")[0][2:])
                 times.append(float(c.split("'/'")[-1][:-2]))
         key['manuals_names'] = -1
-        warnings.warn('List of strings not currently supported, cant insert manuals names')
+        # warnings.warn('List of strings not currently supported, cant insert manuals names')
         key['manuals_timestamps'] = times
         return key
 
@@ -282,9 +282,11 @@ def make_recording_table(table, key):
         ai_key = tb.extract_ai_info(key, aifile)
         ai_key['recording_uid'] = rec_name
         table.AnalogInputs.insert1(ai_key)
-        return
+        
+        print('Succesfully inserted into mantis table')
 
     # See which software was used and call corresponding function
+    print(' Processing: ', key)
     if key['uid'] < 184:
         software = 'behaviour'
         behaviour(table, key, software)
@@ -502,13 +504,13 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
     if not software:
         raise ValueError()
     if software == 'behaviour':
-        videopath = behaviour(table, key)
+        videopath = behaviour(table, key, videosincomplete)
         # Insert into part table
         metadata_key = make_videometadata_table(videopath, key)
         metadata_key['camera_name'] = 'overview'
         table.Metadata.insert1(metadata_key)
     else:
-        videopath = mantis(table, key)
+        videopath = mantis(table, key, videosincomplete)
 
     
 def make_behaviourstimuli_table(table, key, videofiles):
@@ -519,7 +521,7 @@ def make_behaviourstimuli_table(table, key, videofiles):
         print('Extracting stimuli info for recording: ', key['recording_uid'])
 
     # Get file paths    
-    rec = [r for r in recordings.fetch(as_dict=True) if r['recording_uid']==key['recording_uid']][0]
+    rec = [r for r in videofiles.fetch(as_dict=True) if r['recording_uid']==key['recording_uid']][0]
     tdms_path = rec['ai_file_path']
     videopath = rec['converted_filepath']
 

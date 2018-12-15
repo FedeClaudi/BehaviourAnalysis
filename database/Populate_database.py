@@ -62,8 +62,8 @@ class PopulateDatabase:
                                 recordings=self.recordings, behaviourstimuli = self.behaviourstimuli,
                                 mantisstimuli = self.mantisstimuli,
                                 templates=self.templates, videofiles = self.videofiles, 
-                               commoncoordinatematrices=self.commoncoordinatematrices,
-                               tracking_data = self.tracking_data)
+                                commoncoordinatematrices=self.commoncoordinatematrices,
+                                tracking_data = self.tracking_data)
 
     def display_tables_headings(self):
         """
@@ -208,7 +208,7 @@ if __name__ == '__main__':
     # p.populate_sessions_table()
 
     # p.commoncoordinatematrices.populate()
-    p.recordings.populate()
+    # p.recordings.populate()
     # p.templates.populate()
     # p.stimuli.populate()
     # p.tracking_data.populate()

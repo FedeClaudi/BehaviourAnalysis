@@ -197,7 +197,7 @@ class BehaviourStimuli(dj.Computed):
     """
 
     def make(self, key):
-        make_behaviourstimuli_table(self, key, Recordings)
+        make_behaviourstimuli_table(self, key, VideoFiles)
 
 
 @schema 
