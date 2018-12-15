@@ -2,15 +2,106 @@ import sys
 sys.path.append('./') 
 
 import os 
-try:
-    import cv2
-except:
-    raise ImportError('Could not import openCV !!!!')
+import cv2
 from tqdm import tqdm
 
 from Utilities.file_io.files_load_save import load_yaml
+from Utilities.video_and_plotting.video_editing import Editor
+from database.NewTablesDefinitions import *
 
-from Utilities.stim_times_loader import load_stimuli_from_tdms
+
+def create_trials_clips(prestim=10, poststim=20, clean_vids=True):
+    def write_clip(video, savename, stim_frame, stim_duration, prestim, poststim, clean_vids):
+        # parameters to draw on frame
+        border_size = 20
+        color_on = [128, 128, 128]
+        color_off = [0, 0, 0]
+        curr_color = color_off
+
+        # Get video params and open opencv writer
+        editor = Editor()
+        cap = cv2.VideoCapture(video)
+        nframes, width, height, fps = editor.get_video_params(cap)
+
+        writer = editor.open_cvwriter(savename, w=width+border_size*2,
+                                      h=height+border_size*2, framerate=fps)
+
+        # Get start and stop frames
+        start = stim_frame - prestim*fps
+        stop = sitm_frame + poststim*fps
+        clip_number_of_frames = stop-start
+
+        # Get stimulus window
+        window = (prestim*fps, prestim*fps + stim_duration*fps)
+
+        # Write clip
+        for frame_counter in tqdm(range(clip_number_of_frames)):
+            ret, frame = cap.read()
+            if not ret:
+                if abs(frame_counter + start - nframes)<2:  # we are at the end of the clip
+                    break
+                else:
+                    raise ValueError('Something went wrong when opening next frame: {} of {}'.
+                                        format(frame_counter, nframes))
+
+            # Prep to display stim on
+            if frame_counter < window[0] or frame_counter > window[1]:
+                sign = ''
+                curr_color = color_off
+            else:
+                sign = '+'
+                curr_color = color_on
+                
+
+            # Make frame
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            if not clean_vids:
+                gray = cv2.copyMakeBorder(gray, border_size, border_size, border_size, border_size,
+                                            cv2.BORDER_CONSTANT, value=curr_color)
+
+                frame_time = (frame_counter - window[0]) / fps
+                frame_time = str(round(.2 * round(frame_time / .2), 1)) + '0' * (abs(frame_time) < 10)
+                cv2.putText(gray, sign + str(frame_time) + 's', (width - 110, height + 10), 0, 1,
+                            (180, 180, 180), thickness=2)
+
+            # Save to file
+            videowriter.write(gray)
+        videowriter.release()
+
+
+    # Get path to folder and list of previously saved videos
+    paths = load_yaml('./paths.yml')
+    save_fld = os.path.join(paths['raw_data_folder'], paths['trial_clips'])
+    saved_clips = [f for f in os.listdir(save_fld)]
+
+    # Start looping over Recordings()
+    recs = Recordings()
+    behav_stims = BehaviourStimuli()
+    mantis_simts = MantisStimuli()
+    videofiles = VideoFiles()
+
+    for rec in recs.fetc(as_dict=True):
+        # Get the stim table entry and clip ame
+        if rec['software'] == 'behaviour':
+            stims = [s for s in behav_stims if s['recording_uid']==rec['recording_uid']]
+        else:
+            stims = [s for s in mantis_simts if s['recording_uid'] == rec['recording_uid']]
+        
+        for stim in stims:
+            clip_name = stim['stimulus_uid']+'.mp4'
+            if clip_name in saved_clips: continue  # avoid doing again an old clip
+                
+            # Get frame time and video name for behaviour
+            if rec['software'] == 'behaviour':
+                videoname = stim['video']
+
+                write_clip(videoname, os.path.join(save_fld, clip_name),
+                            stim['stim_start'], stim['stim_duration'], 
+                            prestim, poststim, clean_vids)
+
+
+            else:
+                raise NotImplementedError
 
 def create_trials_clips(save_fld, rawvideo_fld, rawmetadata_fld, BehavRec=None, folder=None, prestim=10, poststim=20, clean_vids=True):
     """
