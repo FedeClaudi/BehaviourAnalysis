@@ -178,6 +178,7 @@ class PopulateDatabase:
         summary = {}
         tabledata = namedtuple('data', 'name numofentries lastentry')
         for name, table in self.all_tables.items():
+            if table is None: continue
             fetched = table.fetch()
             df = pd.DataFrame(fetched)
             print('\n\n\n###### {} #######'.format(name))
@@ -207,16 +208,16 @@ if __name__ == '__main__':
     # p.populate_sessions_table()
 
     # p.commoncoordinatematrices.populate()
-    # p.recordings.populate()
+    p.recordings.populate()
     # p.templates.populate()
     # p.stimuli.populate()
     # p.tracking_data.populate()
     # p.videofiles.populate()
-    # p.behaviourstimuli.populate()
+    p.behaviourstimuli.populate()
 
-    p.mantisstimuli.populate()
+    # p.mantisstimuli.populate()
     
 
 
     print( p.videofiles)
-    # print(p)
+    print(p.recordings)

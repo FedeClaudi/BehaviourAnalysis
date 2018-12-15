@@ -125,7 +125,7 @@ class Recordings(dj.Imported):
             ---
             tstart: float                           # t0 from mantis manuals .tdms
             overview_camera_triggers: longblob      # Frame triggers signals efferent copy
-            threat_camera_triggers: longblob            # a
+            threat_camera_triggers: longblob        # a
             audio_irled: longblob                   # HIGH when auditory stimulus being produced
             audio_signal: longblob                  # voltage from amplifier to speaker
             manuals_names: longblob                 # list of strings of name of manual protocols

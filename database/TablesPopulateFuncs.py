@@ -143,7 +143,7 @@ class ToolBox:
         # Get the channels we care about
         key['overview_camera_triggers'] = tdms_df["/'OverviewCameraTrigger_AI'/'0'"].values
         key['threat_camera_triggers'] = tdms_df["/'ThreatCameraTrigger_AI'/'0'"].values
-        key['audio_IRLED'] = tdms_df["/'AudioIRLED_AI'/'0'"].values
+        key['audio_irled'] = tdms_df["/'AudioIRLED_AI'/'0'"].values
         if "/'AudioFromSpeaker_AI'/'0'" in cols:
             key['audio_signal'] = tdms_df["/'AudioFromSpeaker_AI'/'0'"].values
         else:
@@ -273,13 +273,15 @@ def make_recording_table(table, key):
                     in os.listdir(tb.analog_input_folder) 
                     if rec_name in f][0]
         
-        key['recording_uid'] = rec_name
-        key['software'] = software
-        key['ai_file_path'] = aifile
-        table.insert1(key)
+        key_copy = key.copy()
+        key_copy['recording_uid'] = rec_name
+        key_copy['software'] = software
+        key_copy['ai_file_path'] = aifile
+        table.insert1(key_copy)
 
         # Extract info from aifile and populate part table
         ai_key = tb.extract_ai_info(key, aifile)
+        ai_key['recording_uid'] = rec_name
         table.AnalogInputs.insert1(ai_key)
 
     # See which software was used and call corresponding function
@@ -545,7 +547,7 @@ def make_behaviourstimuli_table(table, key, videofiles):
 def make_mantistimuli_table(table, key, recordings):
     if key['uid'] <= 184:
         print(key['recording_uid'],
-              '  was not recorded with mantis software')
+                '  was not recorded with mantis software')
         return
     else:
             print('Pop mantis stimuli for: ', key['recording_uid'])
@@ -554,7 +556,6 @@ def make_mantistimuli_table(table, key, recordings):
     tb = ToolBox()
     rec = [r for r in recordings if r['recording_uid']==key['recording_uid']]
     aifile = rec['ai_file_path']
-
 
     # Get stimuli names from the ai file
     tdms_df, cols = tb.open_temp_tdms_as_df(aifile, move=True)
@@ -573,6 +574,7 @@ def make_mantistimuli_table(table, key, recordings):
     # Get stim times from channel data
     plt.plot(ch)
     plt.plot(np.diff(ch))
+    plt.show()
 
 
 

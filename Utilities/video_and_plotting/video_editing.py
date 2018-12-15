@@ -616,11 +616,7 @@ if __name__ == '__main__':
 
     ###############
 
-<<<<<<< HEAD
     fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video'
-=======
-    # fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video'
->>>>>>> efb94cace934a891d48cd87be28fc2f7ff70ef11
     # toconvert = [f for f in os.listdir(fld) if '.tdms' in f]
     # print(toconvert)
     # for f in toconvert:
