@@ -173,7 +173,7 @@ class VideoFiles(dj.Imported):
         make_videofiles_table(self, key, Recordings, VideosIncomplete)
 
 @schema
-class VideosIncomplete(dj.Imported):
+class VideosIncomplete(dj.Manual):
     definition = """
         # Stores the ID of Videos that have missing files or items and what is missing
         -> VideoFiles
@@ -197,7 +197,7 @@ class BehaviourStimuli(dj.Computed):
     """
 
     def make(self, key):
-        make_behaviourstimuli_table(self, key, VideoFiles)
+        make_behaviourstimuli_table(self, key, Recordings, VideoFiles)
 
 
 @schema 

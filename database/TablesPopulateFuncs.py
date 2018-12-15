@@ -513,7 +513,7 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
         videopath = mantis(table, key, videosincomplete)
 
     
-def make_behaviourstimuli_table(table, key, videofiles):
+def make_behaviourstimuli_table(table, key, recordings, videofiles):
     if key['uid'] > 184:
         print(key['recording_uid'], '  was not recorded with behaviour software')
         return
@@ -521,9 +521,10 @@ def make_behaviourstimuli_table(table, key, videofiles):
         print('Extracting stimuli info for recording: ', key['recording_uid'])
 
     # Get file paths    
-    rec = [r for r in videofiles.fetch(as_dict=True) if r['recording_uid']==key['recording_uid']][0]
+    rec = [r for r in recordings.fetch(as_dict=True) if r['recording_uid']==key['recording_uid']][0]
     tdms_path = rec['ai_file_path']
-    videopath = rec['converted_filepath']
+    vid = [v for v in videofiles.fetch(as_dict=True) if v['recording_uid']==key['recording_uid']][0]
+    videopath = vid['converted_filepath']
 
     # Get stimuli
     tb = ToolBox()
