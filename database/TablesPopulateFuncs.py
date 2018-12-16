@@ -316,6 +316,7 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
         rec_name = key['recording_uid']
         try:
             vid, met = videos[rec_num-1], metadatas[rec_num-1]
+            vid, met = os.path.join(tb.raw_video_folder, vid), os.path.join(tb.raw_metadata_folder, vid)
         except:
             raise ValueError('Could not collect video and metadata files:' , rec_num-1, rec_name, videos)
         # Get deeplabcut data
@@ -524,7 +525,7 @@ def make_behaviourstimuli_table(table, key, recordings, videofiles):
     rec = [r for r in recordings.fetch(as_dict=True) if r['recording_uid']==key['recording_uid']][0]
     tdms_path = rec['ai_file_path']
     vid = [v for v in videofiles.fetch(as_dict=True) if v['recording_uid']==key['recording_uid']][0]
-    videopath = vid['converted_filepath']
+    videopath = vid['video_filepath']
 
     # Get stimuli
     tb = ToolBox()
