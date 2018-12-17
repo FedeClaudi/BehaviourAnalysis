@@ -312,8 +312,9 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
     def make_videometadata_table(filepath, key):
         # Get videometadata
         cap = cv2.VideoCapture(filepath)
-        key['tot_frames'], key['frame_width'], key['frame_height'], key['fps'] = Editor.get_video_params(
+        key['tot_frames'], fps, key['frame_height'], key['fps'] = Editor.get_video_params(
             cap)
+        key['frame_width'] = np.int(fps)
         key['frame_size'] =  key['frame_width']* key['frame_height']
         key['camera_offset_x'], key['camera_offset_y'] = -1, -1
         return key
@@ -375,6 +376,9 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
 
     def mantis(table, key, videosincomplete):
         def insert_for_mantis(table, key, camera, vid, conv, met, pose):
+            to_remove = ['tot_frames', 'frame_height', 'frame_width', 'frame_size',
+                        'camera_offset_x', 'camera_offset_y', 'fps']
+            
             video_key = key.copy()
             video_key['camera_name'] = camera
             video_key['video_filepath'] = vid
@@ -384,14 +388,20 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
             if 'conversion_needed' in video_key.keys():
                 del video_key['conversion_needed'], video_key['dlc_needed']
             try:
+                kk = tuple(video_key.keys())
+                for n in to_remove:
+                    if n in kk: del video_key[n]
                 table.insert1(video_key)
             except:
                 raise ValueError('Could not isnert ', video_key)
             metadata_key = make_videometadata_table(video_key['converted_filepath'], key)
             if 'conversion_needed' in metadata_key.keys():
                 del metadata_key['conversion_needed'], metadata_key['dlc_needed']
-            table.Metadata.insert1(metadata_key)
-
+            try:
+                table.Metadata.insert1(metadata_key)
+            except:
+                return
+            
         def check_files_correct(ls, name):
             """check_files_correct [check if we found the expected number of files]
             
@@ -506,7 +516,7 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
                                 for f in os.listdir(os.path.join(tb.pose_folder, 'Mirrors'))
                                 if n in f and 'h5' in f]
                     
-                    pd_check: check_files_correct(pd, 'cropped video pose file')
+                    pd_check = check_files_correct(pd, 'cropped video pose file')
                     if not pd_check:  
                         add_videosincomplete_entry(videosincomplete, key, view_name, True, pd_check)
                         # ? add dummy file name 
@@ -516,11 +526,11 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
 
                 # Insert into table [video and converted are the same here]
                 view = namedtuple('view', 'camera video metadata pose')
-                views = [view('catwalk', catwalk, 'nan', views_poses[catwalk]),
-                        view('side_mirror', side, 'nan', views_poses[side]),
-                        view('top_mirror', top, 'nan', views_poses[top])]
+                views = [view('catwalk', catwalk, 'nan', views_poses['catwalk']),
+                        view('side_mirror', side, 'nan', views_poses['side_mirror']),
+                        view('top_mirror', top, 'nan', views_poses['top_mirror'])]
                 for insert in views:
-                    insert_for_mantis(table, key, insert.camer, insert.video,
+                    insert_for_mantis(table, key, insert.camera, insert.video,
                                         insert.video, insert.metadata, insert.pose)
             else:
                 raise ValueError('Unexpected videoname ', vid)
