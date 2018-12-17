@@ -69,10 +69,7 @@ def create_trials_clips(prestim=10, poststim=20, clean_vids=True, plt_pose=True)
                 curr_color = color_on
                 
             # Make frame
-            try:
-                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            except:
-                gray = frame
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             if not clean_vids:
                 gray = cv2.copyMakeBorder(gray, border_size, border_size, border_size, border_size,
                                             cv2.BORDER_CONSTANT, value=curr_color)

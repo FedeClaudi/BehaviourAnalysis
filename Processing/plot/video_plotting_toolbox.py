@@ -30,6 +30,7 @@ def cv2_plot_mouse_bps(frame, points_dict, color_dict=None, s=2):
         # Plot circle
         cv2.circle(frame, (np.int32(x),
                            np.int32(y)), s, color, -1)
+    return frame
 
 def custom_plot_poly(frame, points_dict):
     def plot_segments(frame, points_dict, segments, color, lw):

@@ -137,7 +137,7 @@ class ToolBox:
         """
 
         # Get .tdms as a dataframe
-        tdms_df, cols = self.open_temp_tdms_as_df(aifile, move=True)
+        tdms_df, cols = self.open_temp_tdms_as_df(aifile, move=False)
         chs = ["/'OverviewCameraTrigger_AI'/'0'", "/'ThreatCameraTrigger_AI'/'0'", "/'AudioIRLED_AI'/'0'", "/'AudioFromSpeaker_AI'/'0'"]
 
         # Get the channels we care about
