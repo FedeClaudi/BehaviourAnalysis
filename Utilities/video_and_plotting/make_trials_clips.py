@@ -24,6 +24,7 @@ def create_trials_clips(prestim=10, poststim=20, clean_vids=True):
         # Get video params and open opencv writer
         editor = Editor()
         cap = cv2.VideoCapture(video)
+        if not cap.isOpened(): raise FileNotFoundError(video)
         nframes, width, height, fps = editor.get_video_params(cap)
 
         writer = editor.open_cvwriter(savename, w=width+border_size*2,
@@ -31,11 +32,15 @@ def create_trials_clips(prestim=10, poststim=20, clean_vids=True):
 
         # Get start and stop frames
         start = stim_frame - prestim*fps
-        stop = sitm_frame + poststim*fps
-        clip_number_of_frames = stop-start
+        stop = stim_frame + poststim*fps
+        clip_number_of_frames = int(stop-start)
 
         # Get stimulus window
         window = (prestim*fps, prestim*fps + stim_duration*fps)
+
+        # Set cap to correct frame number
+        cap.set(1,stim_frame - int(prestim*fps))
+
 
         # Write clip
         for frame_counter in tqdm(range(clip_number_of_frames)):
@@ -74,12 +79,12 @@ def create_trials_clips(prestim=10, poststim=20, clean_vids=True):
                             (180, 180, 180), thickness=2)
 
             # Save to file
-            videowriter.write(gray)
-        videowriter.release()
+            writer.write(gray)
+        writer.release()
 
     # Get path to folder and list of previously saved videos
     paths = load_yaml('./paths.yml')
-    save_fld = os.path.join(paths['raw_data_folder'], paths['trial_clips'])
+    save_fld = os.path.join(paths['raw_data_folder'], paths['trials_clips'])
     saved_clips = [f for f in os.listdir(save_fld)]
 
     # Start looping over Recordings()
@@ -88,8 +93,9 @@ def create_trials_clips(prestim=10, poststim=20, clean_vids=True):
     mantis_simts = MantisStimuli()
     videofiles = VideoFiles()
 
-    for rec in recs.fetc(as_dict=True):
+    for rec in recs.fetch(as_dict=True):
         # Get the stim table entry and clip ame
+
         if rec['software'] == 'behaviour':
             stims = [s for s in behav_stims if s['recording_uid']==rec['recording_uid']]
         else:
