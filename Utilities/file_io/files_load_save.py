@@ -17,7 +17,7 @@ def load_yaml(file):
 
 # def copyWithSubprocess(cmd, source, dest):
         # proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-         #                       stderr=subprocess.PIPE, shell=True)
+        #                       stderr=subprocess.PIPE, shell=True)
         # subprocess.call("mv {} {}".format(source, dest), shell=True)
         # p = subprocess.Popen(['mv', source, dest], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
 
@@ -25,7 +25,7 @@ def load_yaml(file):
 
 def load_tdms_from_winstore(filetomove):
         print('Moving ', filetomove, ' with size ', np.round(os.path.getsize(filetomove)/1000000000, 2), ' GB')
-        temp_dest = "M:\\"
+        temp_dest = "D:\\"
         origin, name = os.path.split(filetomove)
         dest = os.path.join(temp_dest, name)
         if name in os.listdir(temp_dest):

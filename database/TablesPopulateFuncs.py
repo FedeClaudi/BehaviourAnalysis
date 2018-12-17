@@ -93,10 +93,11 @@ class ToolBox:
         else:
             temp_file = path
         print('opening ', temp_file, ' with size {} bytes'.format(
-            os.path.getsize(temp_file)))
+            round(os.path.getsize(temp_file)/1000000000, 2)))
         tdmsfile = TdmsFile(temp_file)
+        print('     ... opened')
         tdms_df = tdmsfile.as_dataframe()
-
+        print('         ... as dataframe')
         # Extract data and insert in key
         cols = list(tdms_df.columns)
         return tdms_df, cols
@@ -137,7 +138,7 @@ class ToolBox:
         """
 
         # Get .tdms as a dataframe
-        tdms_df, cols = self.open_temp_tdms_as_df(aifile, move=False)
+        tdms_df, cols = self.open_temp_tdms_as_df(aifile, move=True)
         chs = ["/'OverviewCameraTrigger_AI'/'0'", "/'ThreatCameraTrigger_AI'/'0'", "/'AudioIRLED_AI'/'0'", "/'AudioFromSpeaker_AI'/'0'"]
 
         # Get the channels we care about
