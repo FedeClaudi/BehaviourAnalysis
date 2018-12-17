@@ -482,8 +482,8 @@ class Editor:
 
         videowriter.release()
 
-    @ staticmethod
-    def mirros_cropper(v, fld):
+    
+    def mirros_cropper(self, v, fld):
         """mirros_cropper [takes a video and saves 3 cropped versions of it with different views]
         
         Arguments:
@@ -505,13 +505,13 @@ class Editor:
         # Check if files already exists
         finfld = os.listdir(fld)
         names = [os.path.split(main_name)[-1], os.path.split(side_name)[-1], os.path.split(top_name)[-1]]
-        matched = [n for f in names if n in finfld]
+        matched = [n for n in names if n in finfld]
         if not matched:
             # Open opencv reader and writers
             cap = cv2.VideoCapture(v)
-            main_writer = edit.open_cvwriter(filepath=main_name, w=main.x1, h=main.y1, framerate=30)
-            side_writer = edit.open_cvwriter(filepath=side_name, h=side.x1, w=side.y1, framerate=30)
-            top_writer = edit.open_cvwriter(filepath=top_name, w=top.x1, h=top.y1, framerate=30)
+            main_writer = self.open_cvwriter(filepath=main_name, w=main.x1, h=main.y1, framerate=30)
+            side_writer = self.open_cvwriter(filepath=side_name, h=side.x1, w=side.y1, framerate=30)
+            top_writer = self.open_cvwriter(filepath=top_name, w=top.x1, h=top.y1, framerate=30)
             writers = [main_writer, side_writer, top_writer]
         elif len(matched) != len(names):
             raise FileNotFoundError('Found these videos in destination folder which would be overwritten: ', matched)

@@ -176,7 +176,8 @@ class VideoFiles(dj.Imported):
 class VideosIncomplete(dj.Manual):
     definition = """
         # Stores the ID of Videos that have missing files or items and what is missing
-        -> VideoFiles
+        -> Recordings
+        camera_name: enum('overview', 'threat', 'catwalk', 'top_mirror', 'side_mirror')       # name of the camera
         ---
         conversion_needed: enum('true', 'false')
         dlc_needed: enum('true', 'false')

@@ -202,7 +202,7 @@ if __name__ == '__main__':
 
     print(p)
 
-    # p.remove_table('videosincomplete')
+    # p.remove_table('recordings')
 
     # p.populate_mice_table()
     # p.populate_experiments_table()

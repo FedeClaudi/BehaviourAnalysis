@@ -344,11 +344,14 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
         if not posefile:
             # ! pose file was not found, create entry in incompletevideos table to mark we need dlc analysis on this
             incomplete_key = key.copy()
+            incomplete_key['camera_name'] = 'overview'
             incomplete_key['conversion_needed'] = 'false'
             incomplete_key['dlc_needed'] = 'true'
-            incomplete_key['camera_name'] = 'overview'
-            print(incomplete_key)
-            videosincomplete.insert1(incomplete_key)
+            try:
+                videosincomplete.insert1(incomplete_key)
+            except:
+                print(videosincomplete.describe())
+                raise ValueError('Could not insert: ', incomplete_key )
 
             # ? Create dummy posefile name which will be replaced with real one in the future
             vid_name, ext = vid.split('.')
@@ -378,10 +381,16 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
             video_key['converted_filepath'] = conv
             video_key['metadata_filepath'] = met
             video_key['pose_filepath'] = pose
-            table.insert1(video_key)
-
+            if 'conversion_needed' in video_key.keys():
+                del video_key['conversion_needed'], video_key['dlc_needed']
+            try:
+                table.insert1(video_key)
+            except:
+                raise ValueError('Could not isnert ', video_key)
             metadata_key = make_videometadata_table(video_key['converted_filepath'], key)
-            VideoFiles.VideoMetadata.insert1(metadata_key)
+            if 'conversion_needed' in metadata_key.keys():
+                del metadata_key['conversion_needed'], metadata_key['dlc_needed']
+            table.Metadata.insert1(metadata_key)
 
         def check_files_correct(ls, name):
             """check_files_correct [check if we found the expected number of files]
@@ -405,7 +414,7 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
             else:
                 return True
 
-        def add_videosincomplete_entry(videosincomplete, key, vid, converted_check, pose_check):
+        def add_videosincomplete_entry(videosincomplete, ikey, vid, converted_check, pose_check):
             """add_videosincomplete_entry [adds entry to videos incompelte table to mark that stuff needs to be done ]
             
             Arguments:
@@ -416,18 +425,30 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
                 pose_check {[bool]} -- [dlc eneeded]
             """
 
+            tokeep = ['recording_uid', 'uid', 'session_name']
+            kk = tuple(ikey.keys())
+            for k in kk:
+                if k not in tokeep: del ikey[k]
+
             cameras = ['overview', 'threat', 'catwalk', 'top_mirror', 'side_mirror']
-            camera = [c for c in cameras if c in vid][0]
+            camera = [c for c in cameras if c in vid.lower()]
+            if not camera:
+                raise ValueError('sometihngs wrong ', vid)
+            else:
+                camera = camera[0]
             key['camera_name'] = camera
             if converted_check:
-                key['conversion_needed'] = 'false'
+                ikey['conversion_needed'] = 'false'
             else:
-                key['conversion_needed'] = 'true'
+                ikey['conversion_needed'] = 'true'
             if pose_check:
-                key['dlc_needed'] = 'false'
+                ikey['dlc_needed'] = 'false'
             else:
-                key['dlc_needed'] = 'true'
-            videosincomplete.insert1(camera)
+                ikey['dlc_needed'] = 'true'
+            try:
+                videosincomplete.insert1(ikey)
+            except:
+                raise ValueError('Could not insert ', ikey, 'in', videosincomplete.heading)
 
         #############################################################################################
 
@@ -460,7 +481,7 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
                 add_videosincomplete_entry(videosincomplete, key, vid, converted_check, pose_check)
                 # ? add dummy files names which will be replaced with real ones in the future
                 if not converted_check:
-                    converted = vidoename+'__joined'+ext
+                    converted = videoname+'__joined'+ext
                 if not pose_check:
                     posedata = videoname+'_pose.h5'
 
@@ -472,7 +493,8 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
 
                 # ? work on views videos
                 # Get file names and create cropped videos if dont exist
-                catwalk, side, top = Editor.mirros_cropper(os.path.join(tb.raw_video_folder,vid),
+                ed = Editor()
+                catwalk, side, top = ed.mirros_cropper(os.path.join(tb.raw_video_folder,vid),
                                                             os.path.join(tb.raw_video_folder, 'Mirrors'))
                 views_videos = [catwalk, side, top]
                 views_names = ['catwalk', 'side_mirror', 'top_mirror']
@@ -481,7 +503,7 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
                 for vh, view_name in zip(views_videos, views_names):
                     n = os.path.split(vh)[-1].split('.')[0]
                     pd = [os.path.splitext(f)[0].split('_pose')[0]+'.h5'
-                                for f in os.listdir(os.path.join(tb.pose_folder, 'Mirros'))
+                                for f in os.listdir(os.path.join(tb.pose_folder, 'Mirrors'))
                                 if n in f and 'h5' in f]
                     
                     pd_check: check_files_correct(pd, 'cropped video pose file')
