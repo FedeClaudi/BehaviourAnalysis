@@ -13,7 +13,7 @@ from Processing.plot.plotting_utils import *
 from Processing.plot.video_plotting_toolbox import *
 
 
-def create_trials_clips(prestim=10, poststim=20, clean_vids=True):
+def create_trials_clips(prestim=10, poststim=20, clean_vids=True, plt_pose=True):
     def write_clip(video, savename, stim_frame, stim_duration, prestim, poststim, clean_vids, posedata):
         # parameters to draw on frame
         border_size = 20
@@ -54,11 +54,11 @@ def create_trials_clips(prestim=10, poststim=20, clean_vids=True):
                                         format(frame_counter, nframes))
 
             # Overylay bodypart position of frame
-            if posedata is not None:
+            if posedata is not None and not clean_vids:
                 real_frame_number = real_start_frame + frame_counter
-                frame_pose = pose.iloc[real_frame_number]
+                frame_pose = posedata.iloc[real_frame_number]
                 points_dict = get_bps_as_points_dict(frame_pose)
-                cv2_plot_mouse_bps(frame, points_dict, s=2)
+                frame = cv2_plot_mouse_bps(frame, points_dict, s=2)
 
             # Prep to display stim on
             if frame_counter < window[0] or frame_counter > window[1]:
@@ -69,7 +69,10 @@ def create_trials_clips(prestim=10, poststim=20, clean_vids=True):
                 curr_color = color_on
                 
             # Make frame
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            try:
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            except:
+                gray = frame
             if not clean_vids:
                 gray = cv2.copyMakeBorder(gray, border_size, border_size, border_size, border_size,
                                             cv2.BORDER_CONSTANT, value=curr_color)
@@ -110,11 +113,11 @@ def create_trials_clips(prestim=10, poststim=20, clean_vids=True):
             if rec['software'] == 'behaviour':
                 videoname = stim['video']
 
-                # Get pose data
-                videoentry = [v for v in videofiles
-                                 if v['video_filepath']==videoname or v['converted_filepath'] == videoentry][0]
                 
                 if plt_pose:
+                    # Get pose data
+                    videoentry = [v for v in videofiles if v['video_filepath']==videoname or v['converted_filepath'] == videoname][0]
+                
                     posefile = videoentry['pose_filepath']
                     try:
                         posedata = pd.read_hdf(posefile)
@@ -126,7 +129,7 @@ def create_trials_clips(prestim=10, poststim=20, clean_vids=True):
                 # Write clip
                 write_clip(videoname, os.path.join(save_fld, clip_name),
                             stim['stim_start'], stim['stim_duration'], 
-                            prestim, poststim, clean_vids)
+                            prestim, poststim, clean_vids, posedata)
 
 
             else:

@@ -208,7 +208,7 @@ if __name__ == '__main__':
     # p.populate_sessions_table()
 
     # p.commoncoordinatematrices.populate()
-    # p.recordings.populate()
+    p.recordings.populate()
     # p.templates.populate()
     # p.tracking_data.populate()
     # p.videofiles.populate()
@@ -216,6 +216,7 @@ if __name__ == '__main__':
 
     # p.mantisstimuli.populate()
     
+
 
 
     # print(p.videofiles)
