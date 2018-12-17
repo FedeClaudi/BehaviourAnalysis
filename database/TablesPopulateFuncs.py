@@ -63,7 +63,9 @@ class ToolBox:
         # Make sure we got the correct number of files, otherwise ask for user input
         if not videos or not metadatas:
             if not videos and not metadatas:
-                raise ValueError('Found no files for ', session['session_name'])
+                print('Couldnt find filessss')
+                return None, None
+                # raise ValueError('Found no files for ', session['session_name'])
             print('couldnt find files for session: ',
                     session['session_name'])
             raise FileNotFoundError('dang')
@@ -143,12 +145,13 @@ class ToolBox:
         tdms_df, cols = self.open_temp_tdms_as_df(aifile, move=True)
         chs = ["/'OverviewCameraTrigger_AI'/'0'", "/'ThreatCameraTrigger_AI'/'0'", "/'AudioIRLED_AI'/'0'", "/'AudioFromSpeaker_AI'/'0'"]
 
+        print('Ready to extract channels info')
         # Get the channels we care about
-        key['overview_camera_triggers'] = tdms_df["/'OverviewCameraTrigger_AI'/'0'"].values
-        key['threat_camera_triggers'] = tdms_df["/'ThreatCameraTrigger_AI'/'0'"].values
-        key['audio_irled'] = tdms_df["/'AudioIRLED_AI'/'0'"].values
+        key['overview_camera_triggers'] = np.round(tdms_df["/'OverviewCameraTrigger_AI'/'0'"].values, 2)
+        key['threat_camera_triggers'] = np.round(tdms_df["/'ThreatCameraTrigger_AI'/'0'"].values, 2)
+        key['audio_irled'] = np.round(tdms_df["/'AudioIRLED_AI'/'0'"].values, 2)
         if "/'AudioFromSpeaker_AI'/'0'" in cols:
-            key['audio_signal'] = tdms_df["/'AudioFromSpeaker_AI'/'0'"].values
+            key['audio_signal'] = np.round(tdms_df["/'AudioFromSpeaker_AI'/'0'"].values, 2)
         else:
             key['audio_signal'] = -1
         key['ldr'] = -1  # ? insert here
@@ -164,7 +167,8 @@ class ToolBox:
                 times.append(float(c.split("'/'")[-1][:-2]))
         key['manuals_names'] = -1
         # warnings.warn('List of strings not currently supported, cant insert manuals names')
-        key['manuals_timestamps'] = times
+        key['manuals_timestamps'] = np.array(times)
+        [print('\n\n',k,'\n', v) for k,v in key.items()]
         return key
 
 """ 
@@ -241,7 +245,7 @@ def make_recording_table(table, key):
     def behaviour(table, key, software):
         tb = ToolBox()
         videos, metadatas = tb.get_behaviour_recording_files(key)
-        
+        if videos is None: return
         # Loop over the files for each recording and extract info
         for rec_num, (vid, met) in enumerate(zip(videos, metadatas)):
             if vid.split('.')[0].lower() != met.split('.')[0].lower():
@@ -266,14 +270,18 @@ def make_recording_table(table, key):
             rec_key['software'] = software
             table.insert1(rec_key)
 
-
     def mantis(table, key, software):
         # Get AI file and insert in Recordings table
         tb = ToolBox()
         rec_name = key['session_name']
         aifile = [os.path.join(tb.analog_input_folder, f) for f 
                     in os.listdir(tb.analog_input_folder) 
-                    if rec_name in f][0]
+                    if rec_name in f]
+        if not aifile:
+            print('aifile not found for session: ', key)
+            return
+        else:
+            aifile = aifile[0]
         
         key_copy = key.copy()
         key_copy['recording_uid'] = rec_name
@@ -284,6 +292,8 @@ def make_recording_table(table, key):
         # Extract info from aifile and populate part table
         ai_key = tb.extract_ai_info(key, aifile)
         ai_key['recording_uid'] = rec_name
+
+        print('Key of size: ', sys.getsizeof(ai_key))
         table.AnalogInputs.insert1(ai_key)
         
         print('Succesfully inserted into mantis table')
@@ -337,6 +347,7 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
             incomplete_key['conversion_needed'] = 'false'
             incomplete_key['dlc_needed'] = 'true'
             incomplete_key['camera_name'] = 'overview'
+            print(incomplete_key)
             videosincomplete.insert1(incomplete_key)
 
             # ? Create dummy posefile name which will be replaced with real one in the future

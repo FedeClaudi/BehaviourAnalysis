@@ -56,6 +56,7 @@ class PopulateDatabase:
         self.videofiles = VideoFiles()
         self.behaviourstimuli = BehaviourStimuli()
         self.mantisstimuli = MantisStimuli()
+        self.videosincomplete = VideosIncomplete()
         self.tracking_data = None # TrackingData()
         self.commoncoordinatematrices = CommonCoordinateMatrices()
         self.all_tables = dict(mice=self.mice, sessions= self.sessions, experiments=self.experiments,
@@ -63,7 +64,7 @@ class PopulateDatabase:
                                 mantisstimuli = self.mantisstimuli,
                                 templates=self.templates, videofiles = self.videofiles, 
                                 commoncoordinatematrices=self.commoncoordinatematrices,
-                                tracking_data = self.tracking_data)
+                                tracking_data = self.tracking_data, videosincomplete = self.videosincomplete)
 
     def display_tables_headings(self):
         """
@@ -201,7 +202,7 @@ if __name__ == '__main__':
 
     print(p)
 
-    # p.remove_table('recordings')
+    # p.remove_table('videosincomplete')
 
     # p.populate_mice_table()
     # p.populate_experiments_table()
@@ -211,7 +212,7 @@ if __name__ == '__main__':
     p.recordings.populate()
     # p.templates.populate()
     # p.tracking_data.populate()
-    # p.videofiles.populate()
+    p.videofiles.populate()
     # p.behaviourstimuli.populate()
 
     # p.mantisstimuli.populate()
