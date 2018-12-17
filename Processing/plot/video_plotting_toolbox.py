@@ -171,7 +171,6 @@ def overlay_tracking_on_video(videopath=None, posepath=None, posedata=None, outp
         frame_pose = pose.iloc[framen]
         points_dict = get_bps_as_points_dict(frame_pose)
 
-       
 
         if plot_poly:
             cv2_plot_mouse_poly(frame, points_dict, include_names=None, mode=poly_mode)
