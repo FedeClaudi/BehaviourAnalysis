@@ -161,7 +161,7 @@ class VideoConverter:
 
         if not self.extract_framesize:
             warn.warn('\nCurrently TDMS conversion depends on hardcoded variables !!')
-    
+            paddig = 0
             # ! HARDCODED variables about the video recorded
             skip_data_points = 4094
             real_width = 1936

@@ -92,9 +92,11 @@ class ToolBox:
             temp_file = load_tdms_from_winstore(path)
         else:
             temp_file = path
+
         print('opening ', temp_file, ' with size {} bytes'.format(
             round(os.path.getsize(temp_file)/1000000000, 2)))
-        tdmsfile = TdmsFile(temp_file)
+        bfile = open(temp_file, 'rb')
+        tdmsfile = TdmsFile(bfile, memmap_dir="M:\\")
         print('     ... opened')
         tdms_df = tdmsfile.as_dataframe()
         print('         ... as dataframe')
