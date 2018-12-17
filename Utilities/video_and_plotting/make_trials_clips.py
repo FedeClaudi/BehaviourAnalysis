@@ -39,7 +39,8 @@ def create_trials_clips(prestim=10, poststim=20, clean_vids=True):
         window = (prestim*fps, prestim*fps + stim_duration*fps)
 
         # Set cap to correct frame number
-        cap.set(1,stim_frame - int(prestim*fps))
+        real_start_frame = stim_frame - int(prestim*fps)
+        cap.set(1, real_start_frame)
 
 
         # Write clip
@@ -54,7 +55,7 @@ def create_trials_clips(prestim=10, poststim=20, clean_vids=True):
 
             # Overylay bodypart position of frame
             if posedata is not None:
-                real_frame_number = stim_frame - prestim*fps + frame_counter
+                real_frame_number = real_start_frame + frame_counter
                 frame_pose = pose.iloc[real_frame_number]
                 points_dict = get_bps_as_points_dict(frame_pose)
                 cv2_plot_mouse_bps(frame, points_dict, s=2)
