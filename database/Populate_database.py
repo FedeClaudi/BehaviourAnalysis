@@ -213,11 +213,10 @@ if __name__ == '__main__':
     # p.templates.populate()
     # p.tracking_data.populate()
     # p.videofiles.populate()
-    p.behaviourstimuli.populate()
+    # p.behaviourstimuli.populate()
 
-    # p.mantisstimuli.populate()
+    p.mantisstimuli.populate()
     
-    print(p.behaviourstimuli)
 
 
 

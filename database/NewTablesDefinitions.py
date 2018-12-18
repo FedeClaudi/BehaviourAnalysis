@@ -104,8 +104,8 @@ class Templates(dj.Imported):
     b15: longblob
     """
 
-    def _make_tuple(self, key):
-        new_key = make_templates_table(key)
+    def make(self, key):
+        new_key = make_templates_table(key, CommonCoordinateMatrices)
         self.insert1(new_key)
 
 @schema

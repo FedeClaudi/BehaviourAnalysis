@@ -94,15 +94,16 @@ def create_trials_clips(prestim=10, poststim=20, clean_vids=True, plt_pose=False
     mantis_simts = MantisStimuli()
     videofiles = VideoFiles()
 
-    for rec in recs.fetch(as_dict=True):
+    for recn, rec in enumerate(recs.fetch(as_dict=True)):
         # Get the stim table entry and clip ame
-
+        print('Processing recording {} of {}'.format(recn, len(recs.fetch())))
         if rec['software'] == 'behaviour':
             stims = [s for s in behav_stims if s['recording_uid']==rec['recording_uid']]
         else:
             stims = [s for s in mantis_simts if s['recording_uid'] == rec['recording_uid']]
         
-        for stim in stims:
+        for stimn, stim in enumerate(stims):
+            print('     stim {} of {}'.format(stimn, len(stims)))
             clip_name = stim['stimulus_uid']+'.mp4'
             if clip_name in saved_clips: continue  # avoid doing again an old clip
                 

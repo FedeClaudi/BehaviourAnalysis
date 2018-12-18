@@ -129,7 +129,10 @@ class ToolBox:
             stim_type = c.split(' Stimulis')[0][2:].lower()
             if 'digit' in stim_type: continue
             stim_name = c.split('-')[-1][:-2].lower()
-            stim_frame = int(c.split("'/' ")[-1].split('-')[0])
+            try:
+                stim_frame = int(c.split("'/' ")[-1].split('-')[0])
+            except:
+                stim_frame = int(c.split("'/'")[-1].split('-')[0])
             stimuli.append(stim(stim_type, stim_name, stim_frame))
         return stimuli
 
@@ -145,7 +148,6 @@ class ToolBox:
         tdms_df, cols = self.open_temp_tdms_as_df(aifile, move=True)
         chs = ["/'OverviewCameraTrigger_AI'/'0'", "/'ThreatCameraTrigger_AI'/'0'", "/'AudioIRLED_AI'/'0'", "/'AudioFromSpeaker_AI'/'0'"]
 
-        print('Ready to extract channels info')
         # Get the channels we care about
         key['overview_camera_triggers'] = np.round(tdms_df["/'OverviewCameraTrigger_AI'/'0'"].values, 2)
         key['threat_camera_triggers'] = np.round(tdms_df["/'ThreatCameraTrigger_AI'/'0'"].values, 2)
@@ -168,7 +170,6 @@ class ToolBox:
         key['manuals_names'] = -1
         # warnings.warn('List of strings not currently supported, cant insert manuals names')
         key['manuals_timestamps'] = np.array(times)
-        [print('\n\n',k,'\n', v) for k,v in key.items()]
         return key
 
 """ 
@@ -213,7 +214,7 @@ def make_commoncoordinatematrices_table(key):
     return key
 
 
-def make_templates_table(key):
+def make_templates_table(key, ccm):
     """[allows user to define ROIs on the standard maze model that match the ROIs]
         """
 
@@ -226,7 +227,7 @@ def make_templates_table(key):
     components.extend(bridges)
 
     # Get maze model
-    mmc = [m for m in CommonCoordinateMatrices if m['uid'] == key['uid']]
+    mmc = [m for m in ccm if m['uid'] == key['uid']]
     if not mmc:
         raise ValueError(
             'Could not find CommonCoordinateBehaviour Matrix for this entry: ', key)
@@ -580,6 +581,7 @@ def make_behaviourstimuli_table(table, key, recordings, videofiles):
     # If no sti add empty entry to table to avoid re-loading everyt time pop method called
     if not stimuli:
         print('Adding fake placeholder entry')
+        stim_key = key.copy()
         stim_key['stimulus_uid'] = key['recording_uid']+'_{}'.format(0)
         stim_key['stim_duration']  = -1
         stim_key['video'] = videopath
@@ -614,7 +616,7 @@ def make_mantistimuli_table(table, key, recordings):
 
 
     tb = ToolBox()
-    rec = [r for r in recordings if r['recording_uid']==key['recording_uid']]
+    rec = [r for r in recordings if r['recording_uid']==key['recording_uid']][0]
     aifile = rec['ai_file_path']
 
     # Get stimuli names from the ai file
@@ -630,10 +632,10 @@ def make_mantistimuli_table(table, key, recordings):
     to_ignore = ['t0','AudioIRLED_analog']
     stim_names = [c.split("'/'")[0][2:] for c in cols if not [i for i in to_ignore if i in c]]
 
-
+    raise ValueError(cols)
     # Get stim times from channel data
-    plt.plot(ch)
-    plt.plot(np.diff(ch))
+    plt.plot(tdms_df["/'OverviewCameraTrigger_AI'/'0'"].values)
+    # plt.plot(np.diff(ch))
     plt.show()
 
 
