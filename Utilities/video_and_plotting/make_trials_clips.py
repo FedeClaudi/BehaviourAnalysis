@@ -13,7 +13,7 @@ from Processing.plot.plotting_utils import *
 from Processing.plot.video_plotting_toolbox import *
 
 
-def create_trials_clips(prestim=10, poststim=20, clean_vids=True, plt_pose=True):
+def create_trials_clips(prestim=10, poststim=20, clean_vids=True, plt_pose=False):
     def write_clip(video, savename, stim_frame, stim_duration, prestim, poststim, clean_vids, posedata):
         # parameters to draw on frame
         border_size = 20

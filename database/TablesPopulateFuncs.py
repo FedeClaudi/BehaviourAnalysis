@@ -577,20 +577,30 @@ def make_behaviourstimuli_table(table, key, recordings, videofiles):
     tb = ToolBox()
     stimuli = tb.extract_behaviour_stimuli(tdms_path)
 
-    # Add in table
-    for i, stim in enumerate(stimuli):
-        stim_key = key.copy()
-        stim_key['stimulus_uid'] = key['recording_uid']+'_{}'.format(i)
-
-
-        if 'audio' in stim.name: stim_key['stim_duration'] = 9 # ! hardcoded
-        else: stim_key['stim_duration']  = 5
-        
+    # If no sti add empty entry to table to avoid re-loading everyt time pop method called
+    if not stimuli:
+        print('Adding fake placeholder entry')
+        stim_key['stimulus_uid'] = key['recording_uid']+'_{}'.format(0)
+        stim_key['stim_duration']  = -1
         stim_key['video'] = videopath
-        stim_key['stim_type'] = stim.type
-        stim_key['stim_start'] = stim.frame
-        stim_key['stim_name'] = stim.name
+        stim_key['stim_type'] = 'nan'
+        stim_key['stim_start'] = -1
+        stim_key['stim_name'] = -1
         table.insert1(stim_key)
+    else:
+        # Add in table
+        for i, stim in enumerate(stimuli):
+            stim_key = key.copy()
+            stim_key['stimulus_uid'] = key['recording_uid']+'_{}'.format(i)
+
+            if 'audio' in stim.name: stim_key['stim_duration'] = 9 # ! hardcoded
+            else: stim_key['stim_duration']  = 5
+            
+            stim_key['video'] = videopath
+            stim_key['stim_type'] = stim.type
+            stim_key['stim_start'] = stim.frame
+            stim_key['stim_name'] = stim.name
+            table.insert1(stim_key)
 
 
 
