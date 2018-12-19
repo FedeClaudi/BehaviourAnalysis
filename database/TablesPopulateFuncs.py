@@ -638,14 +638,15 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
         sampling_rate = 500000
         audio_channel_data = tdms_df[ "/'AudioFromSpeaker_AI'/'0'"].values
         # stim_start_times, _ = signal.find_peaks(audio_channel_data, height=.2, distance=9.1*sampling_rate, width=(1, 100), wlen=100)  # ! hardcoded miimal distance: duration * sampling rate
-        above_th = np.where(audio_channel_data>.2)[0]
-        peak_starts = [x+1 for x in np.where(np.diff(above_th)>sampling_rate)]
-        stim_start_times = above_th[peak_starts]
-        stim_start_times = np.insert(stim_start_times, 0, above_th[0])
+        th = .2
     else:
         sampling_rate = 30000
-        audio_channel_data = np.diff(tdms_df["/'AudioIRLED_AI'/'0'"].values)
-        stim_start_times = np.where(audio_channel_data>1.5)[0]
+        th = 1.5
+    
+    above_th = np.where(audio_channel_data>th)[0]
+    peak_starts = [x+1 for x in np.where(np.diff(above_th)>sampling_rate)]
+    stim_start_times = above_th[peak_starts]
+    stim_start_times = np.insert(stim_start_times, 0, above_th[0])
 
     # ? to visualise the finding of stim times over the audio channel:
     # plot_signals(audio_channel_data, stim_start_times)
