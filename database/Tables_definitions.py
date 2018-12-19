@@ -55,305 +55,305 @@ from Processing.tracking_stats.math_utils import *
 #     -> Experiments      # name of the person performing the experiment
 #     """
 
-@schema
-class Recordings(dj.Imported):
-    definition = """
-    # Within one session one may perform several recordings. Each recording has its own video and metadata files
-    recording_uid: varchar(128)   # uniquely identifying name for each recording YYMMDD_MOUSEID_RECNUM
-    -> Sessions
-    ---
-    """
+# @schema
+# class Recordings(dj.Imported):
+#     definition = """
+#     # Within one session one may perform several recordings. Each recording has its own video and metadata files
+#     recording_uid: varchar(128)   # uniquely identifying name for each recording YYMMDD_MOUSEID_RECNUM
+#     -> Sessions
+#     ---
+#     """
 
-    class VideoFiles(dj.Part):
-        definition = """
-            # stores paths to video files
-            -> Recordings
-            ---
-            overview: varchar(256)          # overview camera
-            threat: varchar(256)            # threat camera
-            threat_catwalk: varchar(256)    # cropped version of threat on catwalk 
-            top_mirror: varchar(256)        # top mirror view
-            side_mirror: varchar(256)       # side mirror view
-            """
+#     class VideoFiles(dj.Part):
+#         definition = """
+#             # stores paths to video files
+#             -> Recordings
+#             ---
+#             overview: varchar(256)          # overview camera
+#             threat: varchar(256)            # threat camera
+#             threat_catwalk: varchar(256)    # cropped version of threat on catwalk 
+#             top_mirror: varchar(256)        # top mirror view
+#             side_mirror: varchar(256)       # side mirror view
+#             """
 
-    class VideoMetadata(dj.Part):
-        definition = """
-            # It stores info about each video: frame size, fps...
-            -> Recordings
-            ---
-            overview_fps: int               # frames per second
-            overview_num_frames: int        # tot number of frames
-            overview_frame_size: blob       # (w, h) - width and height in pixels
-            overview_frame_offset: blob    # (x, y) - frame offeset
-            threat_fps: int                 # frames per second
-            threat_num_frames: int          # tot number of frames
-            threat_frame_size: blob         # (w, h) - width and height in pixels
-            threat_frame_offset: blob       # (x, y) - frame offeset
-        """
+#     class VideoMetadata(dj.Part):
+#         definition = """
+#             # It stores info about each video: frame size, fps...
+#             -> Recordings
+#             ---
+#             overview_fps: int               # frames per second
+#             overview_num_frames: int        # tot number of frames
+#             overview_frame_size: blob       # (w, h) - width and height in pixels
+#             overview_frame_offset: blob    # (x, y) - frame offeset
+#             threat_fps: int                 # frames per second
+#             threat_num_frames: int          # tot number of frames
+#             threat_frame_size: blob         # (w, h) - width and height in pixels
+#             threat_frame_offset: blob       # (x, y) - frame offeset
+#         """
 
-    class ConvertedVideoFiles(dj.Part):
-        definition = """
-            # stores paths to converted videos (from tdms to mp4), if no conversion is made then same as VideoFiles
-            -> Recordings
-            ---
-            overview: varchar(256)          # overview camera
-            threat: varchar(256)            # threat camera
-            threat_catwalk: varchar(256)    # cropped version of threat on catwalk 
-            top_mirror: varchar(256)        # top mirror view
-            side_mirror: varchar(256)       # side mirror view
-            """
+#     class ConvertedVideoFiles(dj.Part):
+#         definition = """
+#             # stores paths to converted videos (from tdms to mp4), if no conversion is made then same as VideoFiles
+#             -> Recordings
+#             ---
+#             overview: varchar(256)          # overview camera
+#             threat: varchar(256)            # threat camera
+#             threat_catwalk: varchar(256)    # cropped version of threat on catwalk 
+#             top_mirror: varchar(256)        # top mirror view
+#             side_mirror: varchar(256)       # side mirror view
+#             """
 
-    class PoseFiles(dj.Part):
-        definition = """
-            # stores paths to converted videos (from tdms to mp4), if no conversion is made then same as VideoFiles
-            -> Recordings
-            ---
-            overview: varchar(256)          # overview camera
-            threat: varchar(256)            # threat camera
-            threat_catwalk: varchar(256)    # cropped version of threat on catwalk 
-            top_mirror: varchar(256)        # top mirror view
-            side_mirror: varchar(256)       # side mirror view
-            """
+#     class PoseFiles(dj.Part):
+#         definition = """
+#             # stores paths to converted videos (from tdms to mp4), if no conversion is made then same as VideoFiles
+#             -> Recordings
+#             ---
+#             overview: varchar(256)          # overview camera
+#             threat: varchar(256)            # threat camera
+#             threat_catwalk: varchar(256)    # cropped version of threat on catwalk 
+#             top_mirror: varchar(256)        # top mirror view
+#             side_mirror: varchar(256)       # side mirror view
+#             """
 
-    class MetadataFiles(dj.Part):
-        definition = """
-            # stores paths to metadta .tdms files with video recording metadata
-            -> Recordings
-            ---
-            overview: varchar(256)          # overview camera
-            threat: varchar(256)            # threat camera
-            analog_inputs: varchar(256)     # .tdms with readings from analog inputs
-            """
+#     class MetadataFiles(dj.Part):
+#         definition = """
+#             # stores paths to metadta .tdms files with video recording metadata
+#             -> Recordings
+#             ---
+#             overview: varchar(256)          # overview camera
+#             threat: varchar(256)            # threat camera
+#             analog_inputs: varchar(256)     # .tdms with readings from analog inputs
+#             """
 
-    class AnalogInputs(dj.Part):
-        definition = """
-            # Stores data from relevant AI channels recorded with NI board
-            -> Recordings
-            ---
-            overview_camera_triggers: longblob      # Frame triggers signals efferent copy
-            threat_camera_triggers: longblob
-            speaker_signal: longblob                # HIGH when auditory stimulus being produced
-            stimuli: longblob                       # timestamp and stimulus protocol
-            ldr: longblob                           # light dependant resistor signal
-        """
+#     class AnalogInputs(dj.Part):
+#         definition = """
+#             # Stores data from relevant AI channels recorded with NI board
+#             -> Recordings
+#             ---
+#             overview_camera_triggers: longblob      # Frame triggers signals efferent copy
+#             threat_camera_triggers: longblob
+#             speaker_signal: longblob                # HIGH when auditory stimulus being produced
+#             stimuli: longblob                       # timestamp and stimulus protocol
+#             ldr: longblob                           # light dependant resistor signal
+#         """
 
-    class FramesTimestamps(dj.Part):
-        definition = """
-        # Stores the timestamps of the frames of each camera for a recording
-        -> Recordings
-        ---
-        overview_camera_timestamps: longblob
-        threat_camera_timestamps: longblob
-        """
+#     class FramesTimestamps(dj.Part):
+#         definition = """
+#         # Stores the timestamps of the frames of each camera for a recording
+#         -> Recordings
+#         ---
+#         overview_camera_timestamps: longblob
+#         threat_camera_timestamps: longblob
+#         """
 
-    def make(self, session):
-        """ Populate the Recordings table """
-        """ 
-            If the session was acquired with Behaviour Software:
-                Finds the .avi and stores it in VideoFiles and ConvertedVideoFiles
-                Finds the .tdms with the stims and stores it in MetadataFiles
-                Finds the .h5 with the pose data and stores it in PoseFiles
+#     def make(self, session):
+#         """ Populate the Recordings table """
+#         """ 
+#             If the session was acquired with Behaviour Software:
+#                 Finds the .avi and stores it in VideoFiles and ConvertedVideoFiles
+#                 Finds the .tdms with the stims and stores it in MetadataFiles
+#                 Finds the .h5 with the pose data and stores it in PoseFiles
 
-            else if MANTIS was used:
-                Finds the 2 .tmds video files and stores them in VideoFiles
-                Finds the 2 .mp4 video files and stores them in ConvertedVideoFiles
-                Finds the 2 .tdms video metadata files and stores them in MetadataFiles
-                Finds the 1 .tdms analog inputs files and stores it in MetadataFiles
+#             else if MANTIS was used:
+#                 Finds the 2 .tmds video files and stores them in VideoFiles
+#                 Finds the 2 .mp4 video files and stores them in ConvertedVideoFiles
+#                 Finds the 2 .tdms video metadata files and stores them in MetadataFiles
+#                 Finds the 1 .tdms analog inputs files and stores it in MetadataFiles
 
-            If any file is not found or missing 'nan' is inserted in the table entry
-            as a place holder
-        """
-        # Two different subfunctions are used to get the data depending on the software used for the exp
-        def behaviour_software_files_finder(raw_video_folder, raw_metadata_folder):
-            # get video and metadata files
-            videos = sorted([f for f in os.listdir(raw_video_folder)
-                            if session['session_name'].lower() in f.lower() and 'test' not in f
-                            and '.h5' not in f and '.pickle' not in f])
-            metadatas = sorted([f for f in os.listdir(raw_metadata_folder)
-                                if session['session_name'].lower() in f.lower() and 'test' not in f and '.tdms' in f])
+#             If any file is not found or missing 'nan' is inserted in the table entry
+#             as a place holder
+#         """
+#         # Two different subfunctions are used to get the data depending on the software used for the exp
+#         def behaviour_software_files_finder(raw_video_folder, raw_metadata_folder):
+#             # get video and metadata files
+#             videos = sorted([f for f in os.listdir(raw_video_folder)
+#                             if session['session_name'].lower() in f.lower() and 'test' not in f
+#                             and '.h5' not in f and '.pickle' not in f])
+#             metadatas = sorted([f for f in os.listdir(raw_metadata_folder)
+#                                 if session['session_name'].lower() in f.lower() and 'test' not in f and '.tdms' in f])
 
-            # Make sure we got the correct number of files, otherwise ask for user input
-            if not videos or not metadatas:
-                if not videos and not metadatas:
-                    return
-                print('couldnt find files for session: ', session['session_name'])
-                raise FileNotFoundError('dang')
-            else:
-                if len(videos) != len(metadatas):
-                    print('Found {} videos files: {}'.format(len(videos), videos))
-                    print('Found {} metadatas files: {}'.format(
-                        len(metadatas), metadatas))
-                    raise ValueError(
-                        'Something went wront wrong trying to get the files')
+#             # Make sure we got the correct number of files, otherwise ask for user input
+#             if not videos or not metadatas:
+#                 if not videos and not metadatas:
+#                     return
+#                 print('couldnt find files for session: ', session['session_name'])
+#                 raise FileNotFoundError('dang')
+#             else:
+#                 if len(videos) != len(metadatas):
+#                     print('Found {} videos files: {}'.format(len(videos), videos))
+#                     print('Found {} metadatas files: {}'.format(
+#                         len(metadatas), metadatas))
+#                     raise ValueError(
+#                         'Something went wront wrong trying to get the files')
 
-                num_recs = len(videos)
-                print(' ... found {} recs'.format(num_recs))
+#                 num_recs = len(videos)
+#                 print(' ... found {} recs'.format(num_recs))
 
-                # Loop over the files for each recording and extract info
-                for rec_num, (vid, met) in enumerate(zip(videos, metadatas)):
-                    if vid.split('.')[0].lower() != met.split('.')[0].lower():
-                        raise ValueError('Files dont match!')
+#                 # Loop over the files for each recording and extract info
+#                 for rec_num, (vid, met) in enumerate(zip(videos, metadatas)):
+#                     if vid.split('.')[0].lower() != met.split('.')[0].lower():
+#                         raise ValueError('Files dont match!')
 
-                    name = vid.split('.')[0]
-                    try:
-                        recnum = int(name.split('_')[2])
-                    except:
-                        recnum = 1
+#                     name = vid.split('.')[0]
+#                     try:
+#                         recnum = int(name.split('_')[2])
+#                     except:
+#                         recnum = 1
 
-                    if rec_num+1 != recnum:
-                        raise ValueError(
-                            'Something went wrong while getting recording number within the session')
+#                     if rec_num+1 != recnum:
+#                         raise ValueError(
+#                             'Something went wrong while getting recording number within the session')
 
-                    rec_name = session['session_name']+'_'+str(recnum)
-                    format = vid.split('.')[-1]
-                    converted = 'nan'
+#                     rec_name = session['session_name']+'_'+str(recnum)
+#                     format = vid.split('.')[-1]
+#                     converted = 'nan'
 
-                    # Get deeplabcut data
-                    posefile = [os.path.join(tracked_data_folder, f) for f in os.listdir(tracked_data_folder)
-                                if rec_name == os.path.splitext(f)[0].split('Deep')[0] and '.pickle' not in f]
-                    if not posefile:
-                        print('didnt find pose file, trying harder')
-                        posefile = [os.path.join(tracked_data_folder, f) for f in os.listdir(tracked_data_folder)
-                                    if session['session_name'] in f and '.pickle' not in f]
+#                     # Get deeplabcut data
+#                     posefile = [os.path.join(tracked_data_folder, f) for f in os.listdir(tracked_data_folder)
+#                                 if rec_name == os.path.splitext(f)[0].split('Deep')[0] and '.pickle' not in f]
+#                     if not posefile:
+#                         print('didnt find pose file, trying harder')
+#                         posefile = [os.path.join(tracked_data_folder, f) for f in os.listdir(tracked_data_folder)
+#                                     if session['session_name'] in f and '.pickle' not in f]
 
-                    if len(posefile) != 1:
-                        if rec_name in self.fetch('recording_uid'):
-                            continue  # no need to worry about it
+#                     if len(posefile) != 1:
+#                         if rec_name in self.fetch('recording_uid'):
+#                             continue  # no need to worry about it
 
-                        print(
-                            "\n\n\nCould not find pose data for recording {}".format(rec_name))
-                        if posefile:
-                            print('Found these possible matches: ')
-                            [print('\n[{}] - {}'.format(i, f))
-                            for i, f in enumerate(posefile)]
-                            yn = input(
-                                "\nPlease select file [or type 'y' if none matches and you wish to continue anyways, n otherwise]:  int/y/n  ")
-                        else:
-                            yn = input(
-                                '\nNo .h5 file found, continue anyways??  y/n  ')
-                        if yn == 'n':
-                            yn = input(
-                                '\nDo you want to instert this recording withouth a pose file??  y/n  ')
-                            if yn == 'y':
-                                posefile = 'nan'
-                            else:
-                                raise ValueError('Failed to load pose data, found {} files for recording --- \n         {}\n{}'.format(len(posefile),
-                                                                                                                                    rec_name, posefile))
-                        elif yn == 'y':
-                            continue
-                        else:
-                            try:
-                                sel = int(yn)
-                                posefile = posefile[sel]
-                            except:
-                                raise ValueError('Failed to load pose data, found {} files for recording --- \n         {}\n{}'.format(len(posefile),
-                                                                                                                                    rec_name, posefile))
+#                         print(
+#                             "\n\n\nCould not find pose data for recording {}".format(rec_name))
+#                         if posefile:
+#                             print('Found these possible matches: ')
+#                             [print('\n[{}] - {}'.format(i, f))
+#                             for i, f in enumerate(posefile)]
+#                             yn = input(
+#                                 "\nPlease select file [or type 'y' if none matches and you wish to continue anyways, n otherwise]:  int/y/n  ")
+#                         else:
+#                             yn = input(
+#                                 '\nNo .h5 file found, continue anyways??  y/n  ')
+#                         if yn == 'n':
+#                             yn = input(
+#                                 '\nDo you want to instert this recording withouth a pose file??  y/n  ')
+#                             if yn == 'y':
+#                                 posefile = 'nan'
+#                             else:
+#                                 raise ValueError('Failed to load pose data, found {} files for recording --- \n         {}\n{}'.format(len(posefile),
+#                                                                                                                                     rec_name, posefile))
+#                         elif yn == 'y':
+#                             continue
+#                         else:
+#                             try:
+#                                 sel = int(yn)
+#                                 posefile = posefile[sel]
+#                             except:
+#                                 raise ValueError('Failed to load pose data, found {} files for recording --- \n         {}\n{}'.format(len(posefile),
+#                                                                                                                                     rec_name, posefile))
 
-                    # insert recording in main table
-                    session['recording_uid'] = rec_name
-                    self.insert1(session)
+#                     # insert recording in main table
+#                     session['recording_uid'] = rec_name
+#                     self.insert1(session)
 
-                    # Insert stuff into part tables - files
-                    # prep
-                    cameras = ['overview', 'threat', 'threat_catwalk', 'top_mirror', 'side_mirror']
+#                     # Insert stuff into part tables - files
+#                     # prep
+#                     cameras = ['overview', 'threat', 'threat_catwalk', 'top_mirror', 'side_mirror']
 
-                    videofiles = {c: 'nan' for c in cameras}
-                    videofiles['overview'] = os.path.join(raw_video_folder, vid)
+#                     videofiles = {c: 'nan' for c in cameras}
+#                     videofiles['overview'] = os.path.join(raw_video_folder, vid)
 
-                    convertedvideofiles = videofiles.copy()
+#                     convertedvideofiles = videofiles.copy()
 
-                    metadatafiles = {c: 'nan' for c in cameras if c not in ['threat_catwalk',
-                        'top_mirror', 'side_mirror']}
-                    metadatafiles['overview'] = os.path.join(
-                        raw_metadata_folder, met)
-                    metadatafiles['analog_inputs'] = 'nan'
+#                     metadatafiles = {c: 'nan' for c in cameras if c not in ['threat_catwalk',
+#                         'top_mirror', 'side_mirror']}
+#                     metadatafiles['overview'] = os.path.join(
+#                         raw_metadata_folder, met)
+#                     metadatafiles['analog_inputs'] = 'nan'
 
-                    posefiles = {c: 'nan' for c in cameras}
-                    posefiles['overview'] = posefile
+#                     posefiles = {c: 'nan' for c in cameras}
+#                     posefiles['overview'] = posefile
 
-                    all_dics = [videofiles, convertedvideofiles,
-                                metadatafiles, posefiles]
-                    for d in all_dics:
-                        d['recording_uid'] = rec_name
-                        d['uid'] = session['uid']
-                        d['session_name'] = session['session_name']
+#                     all_dics = [videofiles, convertedvideofiles,
+#                                 metadatafiles, posefiles]
+#                     for d in all_dics:
+#                         d['recording_uid'] = rec_name
+#                         d['uid'] = session['uid']
+#                         d['session_name'] = session['session_name']
 
-                    # actually insert
-                    print(videofiles, convertedvideofiles, metadatafiles)
-                    Recordings.VideoFiles.insert1(videofiles)
-                    Recordings.ConvertedVideoFiles.insert1(convertedvideofiles)
-                    Recordings.PoseFiles.insert1(posefiles)
-                    Recordings.MetadataFiles.insert1(metadatafiles)
+#                     # actually insert
+#                     print(videofiles, convertedvideofiles, metadatafiles)
+#                     Recordings.VideoFiles.insert1(videofiles)
+#                     Recordings.ConvertedVideoFiles.insert1(convertedvideofiles)
+#                     Recordings.PoseFiles.insert1(posefiles)
+#                     Recordings.MetadataFiles.insert1(metadatafiles)
 
-                    # Insert info about the frame size
-                    cap = cv2.VideoCapture(videofiles['overview'])
-                    num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-                    width = int(cap.get(3))
-                    height = int(cap.get(4))
-                    fps = int(cap.get(5))
-                    frame_info = dict(
-                        recording_uid = rec_name,
-                        overview_fps = fps,    
-                        uid = session['uid'],
-                        session_name = session['session_name'],          
-                        overview_num_frames= num_frames,     
-                        overview_frame_size= (width, height),
-                        overview_frame_offset= (-1, -1),
-                        threat_fps= -1,               
-                        threat_num_frames= -1,       
-                        threat_frame_size=(-1, -1),
-                        threat_frame_offset=(-1, -1),
-                    )
-                    Recordings.VideoMetadata.insert1(frame_info)
+#                     # Insert info about the frame size
+#                     cap = cv2.VideoCapture(videofiles['overview'])
+#                     num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+#                     width = int(cap.get(3))
+#                     height = int(cap.get(4))
+#                     fps = int(cap.get(5))
+#                     frame_info = dict(
+#                         recording_uid = rec_name,
+#                         overview_fps = fps,    
+#                         uid = session['uid'],
+#                         session_name = session['session_name'],          
+#                         overview_num_frames= num_frames,     
+#                         overview_frame_size= (width, height),
+#                         overview_frame_offset= (-1, -1),
+#                         threat_fps= -1,               
+#                         threat_num_frames= -1,       
+#                         threat_frame_size=(-1, -1),
+#                         threat_frame_offset=(-1, -1),
+#                     )
+#                     Recordings.VideoMetadata.insert1(frame_info)
 
-        def mantis_software_files_finder(session, video_folder, metadata_folder, ai_folder):
-            # get all files from folders
-            all_files = {}
-            all_files['video'] = [f for f in os.listdir(video_folder) if 'mp4' in f or 'avi' in f]
-            all_files['video_tdms'] = [f for f in os.listdir(video_folder) if 'tmds' in f]
-            all_files['metadata'] = [f for f in os.listdir(metadata_folder) if 'tmds' in f]
-            all_files['ai'] = [f for f in os.listdir(ai_folder) if 'tmds' in f]
+#         def mantis_software_files_finder(session, video_folder, metadata_folder, ai_folder):
+#             # get all files from folders
+#             all_files = {}
+#             all_files['video'] = [f for f in os.listdir(video_folder) if 'mp4' in f or 'avi' in f]
+#             all_files['video_tdms'] = [f for f in os.listdir(video_folder) if 'tmds' in f]
+#             all_files['metadata'] = [f for f in os.listdir(metadata_folder) if 'tmds' in f]
+#             all_files['ai'] = [f for f in os.listdir(ai_folder) if 'tmds' in f]
 
-            # Only keep those with the sessions name in it
-            session_files = {k:[f for f in v if session['session_name'] in f] for k,v in all_files.items()}
+#             # Only keep those with the sessions name in it
+#             session_files = {k:[f for f in v if session['session_name'] in f] for k,v in all_files.items()}
 
-            # Loop over each OVERVIEW video file and create an entry in the table
-            for i, overview_video in enumerate(sorted([f for f in all_files['video_tdms'] if 'overview' in f.lower()])):
-                pass
-                """
-                    TODO
+#             # Loop over each OVERVIEW video file and create an entry in the table
+#             for i, overview_video in enumerate(sorted([f for f in all_files['video_tdms'] if 'overview' in f.lower()])):
+#                 pass
+#                 """
+#                     TODO
                     
-                    create entry into Recordings
+#                     create entry into Recordings
 
-                    Get Overview, THreat and Splitted videos 
-                    insert into VideoFiles
+#                     Get Overview, THreat and Splitted videos 
+#                     insert into VideoFiles
 
-                    Extract metdata (fps...) from video and 
-                    insert into VideoMetadata
+#                     Extract metdata (fps...) from video and 
+#                     insert into VideoMetadata
 
-                    Look For Converted Videos
-                    insert into ConvertedVideos
+#                     Look For Converted Videos
+#                     insert into ConvertedVideos
 
-                    Get Metadata and AI files
-                    insert into MetadataFiles
+#                     Get Metadata and AI files
+#                     insert into MetadataFiles
                     
-                    Populate AI table and TimeStamps table
+#                     Populate AI table and TimeStamps table
 
 
-                """
+#                 """
 
-        # Load paths to data folders
-        paths = load_yaml('paths.yml')
-        raw_video_folder = os.path.join(paths['raw_data_folder'], paths['raw_video_folder'])
-        raw_metadata_folder = os.path.join(paths['raw_data_folder'], paths['raw_metadata_folder'])
-        tracked_data_folder = paths['tracked_data_folder']
+#         # Load paths to data folders
+#         paths = load_yaml('paths.yml')
+#         raw_video_folder = os.path.join(paths['raw_data_folder'], paths['raw_video_folder'])
+#         raw_metadata_folder = os.path.join(paths['raw_data_folder'], paths['raw_metadata_folder'])
+#         tracked_data_folder = paths['tracked_data_folder']
 
-        # Check if the session being processed was in the "mantis era"
-        if session['uid'] > 184:  # ? 184 is the last session acquired with behaviour software
-            software = 'mantis'
-        else:
-            software = 'behaviour'
-            behaviour_software_files_finder(raw_video_folder=raw_video_folder, raw_metadata_folder=raw_metadata_folder)
+#         # Check if the session being processed was in the "mantis era"
+#         if session['uid'] > 184:  # ? 184 is the last session acquired with behaviour software
+#             software = 'mantis'
+#         else:
+#             software = 'behaviour'
+#             behaviour_software_files_finder(raw_video_folder=raw_video_folder, raw_metadata_folder=raw_metadata_folder)
 
 # @schema
 # class Templates(dj.Imported):
@@ -420,101 +420,101 @@ class Recordings(dj.Imported):
 #         self.insert1(to_insert)
 
 
-@schema
-class Stimuli(dj.Computed):
-    definition = """
-    # Metadata of each trial (e.g. stim type and frame of onset)
-    -> Recordings
-    stimulus_uid: varchar(128)  # uniquely identifuing ID for each trial YYMMDD_MOUSEID_RECNUM_TRIALNUM
-    ---
-    stim_type: varchar(128)
-    stim_start: int   # number of frame at start of stim
-    stim_duration: int   # duration in frames
-    stim_metadata: longblob  # list of other stuff ? 
-    """
+# @schema
+# class Stimuli(dj.Computed):
+#     definition = """
+#     # Metadata of each trial (e.g. stim type and frame of onset)
+#     -> Recordings
+#     stimulus_uid: varchar(128)  # uniquely identifuing ID for each trial YYMMDD_MOUSEID_RECNUM_TRIALNUM
+#     ---
+#     stim_type: varchar(128)
+#     stim_start: int   # number of frame at start of stim
+#     stim_duration: int   # duration in frames
+#     stim_metadata: longblob  # list of other stuff ? 
+#     """
 
-    def make(self, key):
-        # TODO Mantis
-        # TODO more metadata
+#     def make(self, key):
+#         # TODO Mantis
+#         # TODO more metadata
 
-        videofile = [v for v in Recordings.MetadataFiles.fetch() if v['recording_uid'] == key['recording_uid']]
-        if not videofile or not isinstance(videofile, list):
-            raise ValueError('Could not fetch path')
-        else:
-            videofile = videofile[0]
+#         videofile = [v for v in Recordings.MetadataFiles.fetch() if v['recording_uid'] == key['recording_uid']]
+#         if not videofile or not isinstance(videofile, list):
+#             raise ValueError('Could not fetch path')
+#         else:
+#             videofile = videofile[0]
 
-        tdmspath = videofile['overview']
-        recording_uid = key['recording_uid']
+#         tdmspath = videofile['overview']
+#         recording_uid = key['recording_uid']
 
-        # Try to load a .tdms
-        try:
-            print('           ... loading metadata from .tdms: {}'.format(os.path.split(tdmspath)[-1]))
-            tdms = TdmsFile(tdmspath)
-        except FileNotFoundError:
-            raise FileNotFoundError(' Could not load tdms file')
+#         # Try to load a .tdms
+#         try:
+#             print('           ... loading metadata from .tdms: {}'.format(os.path.split(tdmspath)[-1]))
+#             tdms = TdmsFile(tdmspath)
+#         except FileNotFoundError:
+#             raise FileNotFoundError(' Could not load tdms file')
 
-        # Get all stimuli in .tdms
-        stimuli = {}
-        for group in tdms.groups():
-            for obj in tdms.group_channels(group):
-                for idx in obj.as_dataframe().loc[0].index:
-                    if 'stimulis' in str(obj).lower():
-                        # Get stim type
-                        if 'visual' in str(obj).lower():
-                            stim_type = 'visual'
-                            stim_duration = 5 * 30  # ! <-
-                        elif 'audio' in str(obj).lower():
-                            stim_type = 'audio'
-                            stim_duration = 9 * 30  # ! <-
-                        warnings.warn('Stimulus duration is currently hardcoded')
-                        # Get stim frame
-                        try:
-                            if '  ' in idx:
-                                    framen = int(idx.split('  ')[1].split('-')[0])
-                            else:
-                                framen = int(idx.split(' ')[2].split('-')[0])
-                        except:
-                            try:
-                                framen = int(idx.split('-C')[0].split("'/'")[-1])
-                            except:
-                                print('Could not load stimulus', idx)
-                                print(obj.as_dataframe().loc[0])
-                                print(obj.as_dataframe())
-                                raise ValueError('Stimulus not loaded correctly')
-                        stimuli[str(framen)] = stim_type
+#         # Get all stimuli in .tdms
+#         stimuli = {}
+#         for group in tdms.groups():
+#             for obj in tdms.group_channels(group):
+#                 for idx in obj.as_dataframe().loc[0].index:
+#                     if 'stimulis' in str(obj).lower():
+#                         # Get stim type
+#                         if 'visual' in str(obj).lower():
+#                             stim_type = 'visual'
+#                             stim_duration = 5 * 30  # ! <-
+#                         elif 'audio' in str(obj).lower():
+#                             stim_type = 'audio'
+#                             stim_duration = 9 * 30  # ! <-
+#                         warnings.warn('Stimulus duration is currently hardcoded')
+#                         # Get stim frame
+#                         try:
+#                             if '  ' in idx:
+#                                     framen = int(idx.split('  ')[1].split('-')[0])
+#                             else:
+#                                 framen = int(idx.split(' ')[2].split('-')[0])
+#                         except:
+#                             try:
+#                                 framen = int(idx.split('-C')[0].split("'/'")[-1])
+#                             except:
+#                                 print('Could not load stimulus', idx)
+#                                 print(obj.as_dataframe().loc[0])
+#                                 print(obj.as_dataframe())
+#                                 raise ValueError('Stimulus not loaded correctly')
+#                         stimuli[str(framen)] = stim_type
 
-        # Insert entries in table
-        if len(list(stimuli.keys())) == 0:
-            # Insert void entry so that the empty tdms will not be loaded
-            # again the next time the make() attribute is called
-            data_to_input = dict(
-                    recording_uid = recording_uid,
-                    uid = key['uid'],
-                    session_name = key['session_name'],
-                    stimulus_uid=recording_uid + '_{}'.format(-1),
-                    stim_type = 'visual',
-                    stim_start = -1,
-                    stim_duration = 0,
-                    stim_metadata = [0])
-            print(' inserting empty values', data_to_input)
-            self.insert1(data_to_input)
-        else:
-            # Insert real data
-            for i, k in enumerate(sorted(stimuli.keys())):
-                stim = stimuli[k]
+#         # Insert entries in table
+#         if len(list(stimuli.keys())) == 0:
+#             # Insert void entry so that the empty tdms will not be loaded
+#             # again the next time the make() attribute is called
+#             data_to_input = dict(
+#                     recording_uid = recording_uid,
+#                     uid = key['uid'],
+#                     session_name = key['session_name'],
+#                     stimulus_uid=recording_uid + '_{}'.format(-1),
+#                     stim_type = 'visual',
+#                     stim_start = -1,
+#                     stim_duration = 0,
+#                     stim_metadata = [0])
+#             print(' inserting empty values', data_to_input)
+#             self.insert1(data_to_input)
+#         else:
+#             # Insert real data
+#             for i, k in enumerate(sorted(stimuli.keys())):
+#                 stim = stimuli[k]
 
-                data_to_input = dict(
-                    recording_uid = recording_uid,
-                    uid = key['uid'],
-                    session_name = key['session_name'],
-                    stimulus_uid=recording_uid + '_{}'.format(i),
-                    stim_type = stim_type,
-                    stim_start = int(k),
-                    stim_duration = stim_duration,
-                    stim_metadata = [0]  # ! <- 
-                )
-                print(data_to_input)
-                self.insert1(data_to_input)
+#                 data_to_input = dict(
+#                     recording_uid = recording_uid,
+#                     uid = key['uid'],
+#                     session_name = key['session_name'],
+#                     stimulus_uid=recording_uid + '_{}'.format(i),
+#                     stim_type = stim_type,
+#                     stim_start = int(k),
+#                     stim_duration = stim_duration,
+#                     stim_metadata = [0]  # ! <- 
+#                 )
+#                 print(data_to_input)
+#                 self.insert1(data_to_input)
 
 # @schema
 # class CommonCoordinateMatrices(dj.Computed):

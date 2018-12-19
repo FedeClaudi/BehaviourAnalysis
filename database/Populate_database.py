@@ -57,7 +57,7 @@ class PopulateDatabase:
         self.behaviourstimuli = BehaviourStimuli()
         self.mantisstimuli = MantisStimuli()
         self.videosincomplete = VideosIncomplete()
-        self.tracking_data = None # TrackingData()
+        self.tracking_data = TrackingData()
         self.commoncoordinatematrices = CommonCoordinateMatrices()
         self.all_tables = dict(mice=self.mice, sessions= self.sessions, experiments=self.experiments,
                                 recordings=self.recordings, behaviourstimuli = self.behaviourstimuli,

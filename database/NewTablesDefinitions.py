@@ -220,7 +220,46 @@ class MantisStimuli(dj.Computed):
     def make(self, key):
         make_mantistimuli_table(self, key, Recordings, VideoFiles)    
 
+@schema
+class TrackingData(dj.Computed):
+    definition = """
+        # store dlc data for bodyparts and body segments
+        -> VideoFiles
+    """
 
+    class BodyPartData(dj.Part):
+        definition = """
+            # stores X,Y,Velocity... for a single bodypart
+            -> TrackingData
+            bpname: varchar(128)        # name of the bodypart
+            ---
+            tracking_data: longblob     # pandas dataframe with X,Y,Velocity, MazeComponent ... 
+        """
+
+    class BodySegmentData(dj.Part):
+        definition = """
+            # stores length,orientation... for a body segment between two body parts
+            -> TrackingData
+            bp1: varchar(128)           # name of the first bodypart
+            bp2: varchar(128)
+            ---
+            tracking_data: longblob     # pandas dataframe with Length, Orientation, Ang Velovity... 
+        """
+
+    def define_bodysegments(self):
+        segment = namedtuple('seg', 'bp1 bp2')
+        self.segments = dict(
+            head = segment('snout', 'neck'),
+            ears=segment('left_ear', 'right_ear'),
+            body_upper=segment('neck', 'body'),
+            body_lower=segment('body', 'tail_base'),
+            tail1=segment('tail_base', 'tail2'),
+            tail2=segment('tail2', 'tail3'),
+        )
+
+    def make(self, key):
+        self.define_bodysegments()
+        make_trackingdata_table(self, key, VideoFiles, Templates)
 
 if __name__ == "__main__":
     import sys
