@@ -608,9 +608,13 @@ def make_behaviourstimuli_table(table, key, recordings, videofiles):
 
 
 def make_mantistimuli_table(table, key, recordings, videofiles):
+    def plot_signals(audio_channel_data, stim_start_times):
+        f, ax = plt.subplots()
+        ax.plot(audio_channel_data)
+        ax.plot(stim_start_times, audio_channel_data[stim_start_times], 'x')
+        ax.set(xlim=[stim_start_times[0]-5000, stim_start_times[0]+5000])
+
     if key['uid'] <= 184:
-        print(key['recording_uid'],
-                '  was not recorded with mantis software')
         return
     else:
             print('Populating mantis stimuli for: ', key['recording_uid'])
@@ -641,18 +645,17 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
     else:
         sampling_rate = 30000
         audio_channel_data = np.diff(tdms_df["/'AudioIRLED_AI'/'0'"].values)
-        stim_start_times = np.where(audio_channel_data>.5)[0]
+        stim_start_times = np.where(audio_channel_data>1.5)[0]
 
     # ? to visualise the finding of stim times over the audio channel:
-    """
-    f, ax = plt.subplots()
-    ax.plot(audio_channel_data)
-    ax.plot(stim_start_times, audio_channel_data[stim_start_times], 'x')
-    ax.set(xlim=[stim_start_times[0]-5000, stim_start_times[0]+5000])
-    """
+    # plot_signals(audio_channel_data, stim_start_times)
+    # plt.show()
 
     if not len(stim_names) == len(stim_start_times):
-        raise ValueError('Names - times: ', len(stim_names), len(stim_start_times),stim_names, stim_start_names)
+        print('Names - times: ', len(stim_names), len(stim_start_times),stim_names, stim_start_times)
+        plot_signals(audio_channel_data, stim_start_times)
+        plt.show()
+        raise ValueError('Names - times - mismatch: ', len(stim_names), len(stim_start_times),stim_names, stim_start_times)
 
     # Get FPS for each camera and number of samples per frame
     vid = [v for v in videofiles.Metadata.fetch(as_dict=True) if v['recording_uid']==key['recording_uid']]
@@ -669,14 +672,14 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
         stimuli_frames[str(stim_time)] = cameras(int(round(stim_time/samples_per_frame['overview'])), 
                                                 int(round(stim_time/samples_per_frame['threat'])))
 
-    for i, stimname, stimframes in enumerate(zip(stim_names, stimuli_frames.values())):
+    for i, (stimname, stimframes) in enumerate(zip(stim_names, stimuli_frames.values())):
         stim_key = key.copy()
         stim_key['stimulus_uid'] = stim_key['recording_uid']+'_{}'.format(i)
-        stim_key['overview_frame'] = stimframes['overview']
-        stim_key['threat_frame'] = stimframes['threat']
+        stim_key['overview_frame'] = stimframes.overview
+        stim_key['threat_frame'] = stimframes.threat
         stim_key['duration'] = 9 # ! hardcoded
-        stim_key['overview_frame_off'] = stimframes['overview'] + fps_overview*stim_key['duration'] # ! hardcoded!
-        stim_key['threat_frame_off'] = stimframes['threat'] + fps_threat*stim_key['duration'] # ! hardcoded!
+        stim_key['overview_frame_off'] = stimframes.overview + fps_overview*stim_key['duration'] # ! hardcoded!
+        stim_key['threat_frame_off'] = stimframes.threat + fps_threat*stim_key['duration'] # ! hardcoded!
         stim_key['stim_name'] = stim_names[i]
         stim_key['stim_type'] = 'audio' # ! hardcoded
         
@@ -684,7 +687,5 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
             table.insert1(stim_key)
         except:
             raise ValueError('Cold not insert {} into {}'.format(stim_key, table.heading))
-
-    a = 1
 
 
