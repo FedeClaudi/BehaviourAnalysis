@@ -218,7 +218,7 @@ class MantisStimuli(dj.Computed):
     """
 
     def make(self, key):
-        make_mantistimuli_table(self, key, Recordings)    
+        make_mantistimuli_table(self, key, Recordings, VideoFiles)    
 
 
 

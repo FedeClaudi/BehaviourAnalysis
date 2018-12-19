@@ -12,6 +12,7 @@ import numpy as np
 import cv2
 import warnings
 import matplotlib.pyplot as plt
+import scipy.signal as signal
 
 from Utilities.file_io.files_load_save import load_yaml, load_tdms_from_winstore
 from Utilities.video_and_plotting.commoncoordinatebehaviour import run as get_matrix
@@ -95,7 +96,7 @@ class ToolBox:
         else:
             temp_file = path
 
-        print('opening ', temp_file, ' with size {} bytes'.format(
+        print('opening ', temp_file, ' with size {} GB'.format(
             round(os.path.getsize(temp_file)/1000000000, 2)))
         bfile = open(temp_file, 'rb')
         tdmsfile = TdmsFile(bfile, memmap_dir="M:\\")
@@ -606,14 +607,15 @@ def make_behaviourstimuli_table(table, key, recordings, videofiles):
 
 
 
-def make_mantistimuli_table(table, key, recordings):
+def make_mantistimuli_table(table, key, recordings, videofiles):
     if key['uid'] <= 184:
         print(key['recording_uid'],
                 '  was not recorded with mantis software')
         return
     else:
-            print('Pop mantis stimuli for: ', key['recording_uid'])
+            print('Populating mantis stimuli for: ', key['recording_uid'])
 
+    if key['recording_uid'] != '181210_CA3672': return
 
     tb = ToolBox()
     rec = [r for r in recordings if r['recording_uid']==key['recording_uid']][0]
@@ -622,24 +624,67 @@ def make_mantistimuli_table(table, key, recordings):
     # Get stimuli names from the ai file
     tdms_df, cols = tb.open_temp_tdms_as_df(aifile, move=True)
 
-    # Get analog channel to use 
-    if 'AudioFromSpeaker_AI' in cols:
-        ch = 'AudioFromSpeaker_AI'
-    else:
-        ch = 'AudioIRLED_analog'
-
     # Get names of stimuli
-    to_ignore = ['t0','AudioIRLED_analog']
+    to_ignore = ['t0','AudioIRLED_analog', 'OverviewCameraTrigger_AI', 'ThreatCameraTrigger_AI', 'AudioIRLED_AI', 'AudioFromSpeaker_AI']
     stim_names = [c.split("'/'")[0][2:] for c in cols if not [i for i in to_ignore if i in c]]
+    stim_times = [int(c.split("'/'")[1].split('.')[0]) for c in cols if not [i for i in to_ignore if i in c]]
+    print(stim_names, stim_times)    
 
-    raise ValueError(cols)
     # Get stim times from channel data
-    plt.plot(tdms_df["/'OverviewCameraTrigger_AI'/'0'"].values)
-    # plt.plot(np.diff(ch))
+    if  "/'AudioFromSpeaker_AI'/'0'" in cols:
+        sampling_rate = 500000
+        audio_channel_data = tdms_df[ "/'AudioFromSpeaker_AI'/'0'"].values
+        stim_start_times, _ = signal.find_peaks(audio_channel_data, height=.2, distance=9.1*sampling_rate)  # ! hardcoded miimal distance: duration * sampling rate
+
+    else:
+        sampling_rate = 30000
+        audio_channel_data = np.diff(tdms_df["/'AudioIRLED_AI'/'0'"].values)
+        stim_start_times = np.where(audio_channel_data>.5)[0]
+
+    # ? to visualise the finding of stim times over the audio channel:
+    plt.plot(audio_channel_data)
+    plt.plot(stim_start_times, audio_channel_data[stim_start_times], 'x')
     plt.show()
+    """
+    plt.plot(audio_channel_data)
+    plt.plot(stim_start_times, audio_channel_data[stim_start_times], 'x')
+    plt.show()
+    """
 
+    if not len(stim_names) == len(stim_start_times):
+        raise ValueError('Names - times: ', len(stim_names), len(stim_start_times),stim_names, stim_start_names)
 
+    # Get FPS for each camera and number of samples per frame
+    vid = [v for v in videofiles.Metadata.fetch(as_dict=True) if v['recording_uid']==key['recording_uid']]
+    samples_per_frame = {}
+    fps_overview = 40
+    fps_threat = 120
+    samples_per_frame['overview'] = 10/fps_overview * sampling_rate
+    samples_per_frame['threat'] = 10/fps_threat * sampling_rate
 
+    # Get number of frames at each stim time 
+    stimuli_frames = {}
+    cameras = namedtuple('cameras', 'overview threat')
+    for stim_time in stim_start_times:
+        stimuli_frames[str(stim_time)] = cameras(int(round(stim_time/samples_per_frame['overview'])), 
+                                                int(round(stim_time/samples_per_frame['threat'])))
 
+    for i, stimname, stimframes in enumerate(zip(stim_names, stim_frames.values())):
+        stim_key = key.kopy()
+        stim_key['stimulus_uid'] = stim_key['recording_uid']+'_{}'.format(i)
+        stim_key['overview_frame'] = stimframes['overview']
+        stim_key['threat_frame'] = stimframes['threat']
+        stim_key['duration'] = 9 # ! hardcoded
+        stim_key['overview_frame_off'] = stimframes['overview'] + fps_overview*stim_key['duration'] # ! hardcoded!
+        stim_key['threat_frame_off'] = stimframes['threat'] + fps_threat*stim_key['duration'] # ! hardcoded!
+        stim_key['stim_name'] = stim_names[i]
+        stim_key['stim_type'] = 'audio' # ! hardcoded
+        
+        try:
+            table.insert1(stim_key)
+        except:
+            raise ValueError('Cold not insert {} into {}'.format(stim_key, table.heading))
+
+    a = 1
 
 
