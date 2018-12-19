@@ -184,7 +184,7 @@ class ToolBox:
 ##################################################
 """
 
-def make_commoncoordinatematrices_table(table, key, sessions):
+def make_commoncoordinatematrices_table(table, key, sessions, videofiles):
     """make_commoncoordinatematrices_table [Allows user to align frame to model
     and stores transform matrix for future use]
     
@@ -193,11 +193,16 @@ def make_commoncoordinatematrices_table(table, key, sessions):
     """
     # If an entry with the same date exists already, avoid re doing the points mapping
     this_date = [s for s in sessions.fetch(as_dict=True) if s['uid']==key['uid']][0]['date']
-    old_entry = [e for e in table.fetch(as_dict=True) if e['date']==this_date]
-    if old_entry:
-        old_entry = old_entry[0]
-        table.insert1(old_entry)
-        return
+    old_entries = [e for e in sessions.fetch(as_dict=True) if e['uid'] in table.fetch('uid')]
+    if old_entries:
+        old_entry = [o for o in old_entries if o['date']==this_date]
+        if old_entry:
+            old_matrix = [m for m in table.fetch(as_dict=True) if m['uid']==old_entry[0]['uid']][0]
+            key['maze_model'] = old_matrix['maze_model']
+            key['correction_matrix'] = old_matrix['correction_matrix']
+            key['alignment_points'] = old_matrix['alignment_points']
+            table.insert1(key)
+            return
 
     # Get the maze model template
     maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')
@@ -205,14 +210,19 @@ def make_commoncoordinatematrices_table(table, key, sessions):
     maze_model = cv2.cv2.cvtColor(maze_model, cv2.COLOR_RGB2GRAY)
 
     # Get path to video of first recording
-    rec = [r for r in VideoFiles if r['session_name']
+    rec = [r for r in videofiles if r['session_name']
             == key['session_name'] and r['camera_name']=='overview']
 
     if not rec:
         raise ValueError(
             'Did not find recording while populating CCM table. Populate recordings first! Session: ', key['session_name'])
     else:
-        videopath = rec[0]
+        rec = rec[0]
+        if not '.' in rec['converted_filepath']:
+            videopath = rec['video_filepath']
+        else:
+            videopath = rec['converted_filepath']
+
 
     # Apply the transorm [Call function that prepares data to feed to Philip's function]
     """ 
@@ -224,13 +234,12 @@ def make_commoncoordinatematrices_table(table, key, sessions):
     key['maze_model'] = maze_model
     key['correction_matrix'] = matrix
     key['alignment_points'] = points
-    return key
+    table.insert1(key)
 
 
 def make_templates_table(key, ccm):
     """[allows user to define ROIs on the standard maze model that match the ROIs]
-        """
-
+    """
     # Get all possible components name
     nplatf, nbridges = 6, 15
     platforms = ['p'+str(i) for i in range(1, nplatf + 1)]

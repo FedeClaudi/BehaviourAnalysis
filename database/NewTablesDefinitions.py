@@ -70,8 +70,7 @@ class CommonCoordinateMatrices(dj.Computed):
     """
 
     def make(self, key):
-        new_key = make_commoncoordinatematrices_table(key)
-        self.insert1(self, new_key, Sessions)
+        make_commoncoordinatematrices_table(self, key, Sessions, VideoFiles)
 
 @schema
 class Templates(dj.Imported):
