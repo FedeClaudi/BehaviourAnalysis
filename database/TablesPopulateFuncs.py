@@ -615,7 +615,7 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
     else:
             print('Populating mantis stimuli for: ', key['recording_uid'])
 
-    if key['recording_uid'] != '181210_CA3672': return
+    # if key['recording_uid'] != '181210_CA3672': return
 
     tb = ToolBox()
     rec = [r for r in recordings if r['recording_uid']==key['recording_uid']][0]
@@ -628,27 +628,27 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
     to_ignore = ['t0','AudioIRLED_analog', 'OverviewCameraTrigger_AI', 'ThreatCameraTrigger_AI', 'AudioIRLED_AI', 'AudioFromSpeaker_AI']
     stim_names = [c.split("'/'")[0][2:] for c in cols if not [i for i in to_ignore if i in c]]
     stim_times = [int(c.split("'/'")[1].split('.')[0]) for c in cols if not [i for i in to_ignore if i in c]]
-    print(stim_names, stim_times)    
 
     # Get stim times from channel data
     if  "/'AudioFromSpeaker_AI'/'0'" in cols:
         sampling_rate = 500000
         audio_channel_data = tdms_df[ "/'AudioFromSpeaker_AI'/'0'"].values
-        stim_start_times, _ = signal.find_peaks(audio_channel_data, height=.2, distance=9.1*sampling_rate)  # ! hardcoded miimal distance: duration * sampling rate
-
+        # stim_start_times, _ = signal.find_peaks(audio_channel_data, height=.2, distance=9.1*sampling_rate, width=(1, 100), wlen=100)  # ! hardcoded miimal distance: duration * sampling rate
+        above_th = np.where(audio_channel_data>.2)[0]
+        peak_starts = [x+1 for x in np.where(np.diff(above_th)>sampling_rate)]
+        stim_start_times = above_th[peak_starts]
+        stim_start_times = np.insert(stim_start_times, 0, above_th[0])
     else:
         sampling_rate = 30000
         audio_channel_data = np.diff(tdms_df["/'AudioIRLED_AI'/'0'"].values)
         stim_start_times = np.where(audio_channel_data>.5)[0]
 
     # ? to visualise the finding of stim times over the audio channel:
-    plt.plot(audio_channel_data)
-    plt.plot(stim_start_times, audio_channel_data[stim_start_times], 'x')
-    plt.show()
     """
-    plt.plot(audio_channel_data)
-    plt.plot(stim_start_times, audio_channel_data[stim_start_times], 'x')
-    plt.show()
+    f, ax = plt.subplots()
+    ax.plot(audio_channel_data)
+    ax.plot(stim_start_times, audio_channel_data[stim_start_times], 'x')
+    ax.set(xlim=[stim_start_times[0]-5000, stim_start_times[0]+5000])
     """
 
     if not len(stim_names) == len(stim_start_times):
@@ -669,8 +669,8 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
         stimuli_frames[str(stim_time)] = cameras(int(round(stim_time/samples_per_frame['overview'])), 
                                                 int(round(stim_time/samples_per_frame['threat'])))
 
-    for i, stimname, stimframes in enumerate(zip(stim_names, stim_frames.values())):
-        stim_key = key.kopy()
+    for i, stimname, stimframes in enumerate(zip(stim_names, stimuli_frames.values())):
+        stim_key = key.copy()
         stim_key['stimulus_uid'] = stim_key['recording_uid']+'_{}'.format(i)
         stim_key['overview_frame'] = stimframes['overview']
         stim_key['threat_frame'] = stimframes['threat']

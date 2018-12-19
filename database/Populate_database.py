@@ -204,6 +204,7 @@ if __name__ == '__main__':
 
     # p.remove_table('recordings')
 
+
     # p.populate_mice_table()
     # p.populate_experiments_table()
     # p.populate_sessions_table()
@@ -216,9 +217,6 @@ if __name__ == '__main__':
     # p.behaviourstimuli.populate()
 
     p.mantisstimuli.populate()
-    
-
-
 
     # print(p.videofiles)
     # print(p.recordings)
