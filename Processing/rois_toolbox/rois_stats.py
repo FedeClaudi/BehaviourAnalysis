@@ -38,8 +38,6 @@ def get_roi_at_each_frame(bp_data, rois):
     if not isinstance(rois, dict): raise ValueError('rois locations should be passed as a dictionary')
 
     if not isinstance(bp_data, np.ndarray):
-        if not isinstance(bp_data, tuple): raise ValueError('Unrecognised data format for bp tracking data')
-        else:
             pos = np.zeros((len(bp_data.x), 2))
             pos[:, 0], pos[:, 1] = bp_data.x, bp_data.y
             bp_data = pos

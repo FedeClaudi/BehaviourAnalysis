@@ -724,6 +724,8 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates):
     except:
         if vid is None: raise FileNotFoundError('Could not find videofile for ', key['recording_ui']) 
         else: raise FileNotFoundError('Could not find common coordinate matrix for ', key['recording_ui']) 
+    else:
+        print('Processing tracking data for : ', key['recording_uid'])
     
     # Insert entry into MAIN CLASS for this videofile
     table.insert1(key)
@@ -732,68 +734,70 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates):
     posedata = pd.read_hdf(vid['pose_filepath'])
 
     # Get the scorer name and the name of the bodyparts
-    first_frame = pose.iloc[0]
+    first_frame = posedata.iloc[0]
     bodyparts = first_frame.index.levels[1]
     scorer = first_frame.index.levels[0]
-    print('Scorer: ', scorer)
-    print('Bodyparts ', bodyparts)
+    print(' Scorer: ', scorer)
+    print(' Bodyparts ', bodyparts)
 
     """
         Loop over bodyparts and populate Bodypart Part table
     """
     bp_data = {}
     for bp in bodyparts:
+        print('     ... body part: ', bp)
         # Get XY pose and correct with CCM matrix
-        xy = pose[scorer[0], bp].drop(columns='likelihood')
-        corrected_data = correct_tracking_data(xy, ccm['correction_matrix'])
+        xy = posedata[scorer[0], bp].drop(columns='likelihood')
+        corrected_data = correct_tracking_data(xy.values, ccm['correction_matrix'])
+        temp_dict = {}
+        temp_dict['x'] = corrected_data[:, 0]
+        temp_dict['y'] = corrected_data[:, 1]
+        corrected_data = pd.DataFrame.from_dict(temp_dict)
 
         # get velocity
-        vel = calc_distance_between_points_two_vectors_2d(corrected_data['x'], corrected_data['y'])
+        vel = calc_distance_between_points_in_a_vector_2d(corrected_data.values)
         corrected_data['velocity'] = vel
 
         # If bp is body get the position on the maze
         if 'body' in bp:
             # Get position of maze templates - and shelter
-            templates_idx = [i for i, t in enumerate(templates.fetch()) if t['recording_uid'] == key['recording_uid']][0]
+            templates_idx = [i for i, t in enumerate(templates.fetch()) if t['uid'] == key['uid']][0]
             rois = pd.DataFrame(templates.fetch()).iloc[templates_idx]
-            del rois['uid'], rois['session_name'], rois['recording_uid']
-            shelter_roi_pos = rois['s']
+            del rois['uid'], rois['session_name'], 
 
             # Calcualate in which ROI the body is at each frame - and distance from the shelter
-            corrected_data['roi_at_each_frame'] = get_roi_at_each_frame(body_tracking, dict(rois))  # ? roi name
-            corrected_data['position_at_each_frame'] = [(rois[r][0]-shelter_roi_pos[0], rois[r][1]-shelter_roi_pos[1])
-                                                        for r in roi_at_each_frame]  # ? distance from shelter
+            corrected_data['roi_at_each_frame'] = get_roi_at_each_frame(corrected_data, dict(rois))  # ? roi name
+            # ! dj limitation here
             warnings.warn('Currently DJ canot store string of lists so roi_at_each_Frame is not saved in the databse')
-       
+            corrected_data['roi_at_each_frame'] = np.zeros((corrected_data.shape[0]))
+            
         # Insert into part table
         bp_data[bp] = corrected_data
         bpkey = key.copy()
         bpkey['bpname'] = bp
-        bpkey['tracking_data'] = corrected_data # ! this might not work with a dataframe, needs checking
-
+        bpkey['tracking_data'] = corrected_data.values # ! this might not work with a dataframe, needs checking
         table.BodyPartData.insert1(bpkey)
-
 
     """
         Loop over body segments and populate body semgents Part table
     """
     for segment_name, (bp1, bp2) in table.segments.items():
+        print('     ... body segment: ', segment_name)
         # get position of each bodypart as numpy array
-        bp1_data = np.array(bp_data[bp1]['x'], bp_data[bp1]['y']).T
-        bp2_data = np.array(bp_data[bp2]['x'], bp_data[bp2]['y']).T
+        bp1_data = np.array([bp_data[bp1]['x'], bp_data[bp1]['y']])
+        bp2_data = np.array([bp_data[bp2]['x'], bp_data[bp2]['y']])
 
         # Create dataframe with segment data and convert to dataframe
         segment_data = {}
-        segment_data['length'] = calc_distance_between_points_two_vectors_2d(positions[0].T, positions[1].T)
-        segment_data['theta'] = calc_angle_between_vectors_of_points_2d(positions[0], positions[1])
+        segment_data['length'] = calc_distance_between_points_two_vectors_2d(bp1_data.T, bp2_data.T)
+        segment_data['theta'] = calc_angle_between_vectors_of_points_2d(bp1_data, bp2_data)
         segment_data['angvel'] = calc_ang_velocity(segment_data['theta'])
-
         segment_data_df = pd.DataFrame.from_dict(segment_data)
 
         # Insert into part table
         segment_key = key.copy()
         segment_key['bp1'] = bp1
         segment_key['bp2'] = bp2
-        segment_key['tracking_data'] = segment_data_df # ! check
+        segment_key['tracking_data'] = segment_data_df.values # ! check
 
         table.BodySegmentData.insert1(segment_key)

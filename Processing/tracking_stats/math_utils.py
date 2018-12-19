@@ -233,10 +233,10 @@ def correct_tracking_data(uncorrected, M):
     # Calculate velocity 
     corrected[:, 2] = calc_distance_between_points_in_a_vector_2d(corrected[:, :2])
 
-    import matplotlib.pyplot as plt
-    plt.plot(uncorrected[:, 0], uncorrected[:, 1])
-    plt.plot(corrected[:, 0], corrected[:, 1])    
-    plt.show()
+    # import matplotlib.pyplot as plt
+    # plt.plot(uncorrected[:, 0], uncorrected[:, 1])
+    # plt.plot(corrected[:, 0], corrected[:, 1])    
+    # plt.show()
     return corrected
 
 if __name__ == "__main__":

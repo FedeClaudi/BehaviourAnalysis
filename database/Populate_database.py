@@ -182,13 +182,13 @@ class PopulateDatabase:
             if table is None: continue
             fetched = table.fetch()
             df = pd.DataFrame(fetched)
-            print('\n\n\n###### {} #######'.format(name))
+            print('###### {} #######'.format(name))
             toprint = tabledata(name, len(fetched), df.tail(1))
 
             summary[name] = toprint.numofentries
 
-            print('Table {} has {} entries'.format(toprint.name, toprint.numofentries))
-            print('The last entry in the table is\n ', toprint.lastentry)
+            # print('Table {} has {} entries'.format(toprint.name, toprint.numofentries))
+            # print('The last entry in the table is\n ', toprint.lastentry)
 
         print('\n\nNumber of Entries per table')
         sumdf = (pd.DataFrame.from_dict(summary, orient='index'))
@@ -202,22 +202,22 @@ if __name__ == '__main__':
 
     print(p)
 
-    # p.remove_table('recordings')
+    # p.remove_table('tracking_data')
 
 
     # p.populate_mice_table()
     # p.populate_experiments_table()
     # p.populate_sessions_table()
 
-    p.commoncoordinatematrices.populate()
-    p.templates.populate()
+    # p.commoncoordinatematrices.populate()
+    # p.templates.populate()
 
     # p.recordings.populate()
     # p.videofiles.populate()
     # p.behaviourstimuli.populate()
 
     # p.mantisstimuli.populate()
-    # p.tracking_data.populate()
+    p.tracking_data.populate()
 
     # print(p.videofiles)
     # print(p.recordings)

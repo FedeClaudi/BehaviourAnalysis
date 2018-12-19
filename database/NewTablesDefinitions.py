@@ -252,13 +252,13 @@ class TrackingData(dj.Computed):
             ears=segment('left_ear', 'right_ear'),
             body_upper=segment('neck', 'body'),
             body_lower=segment('body', 'tail_base'),
-            tail1=segment('tail_base', 'tail2'),
-            tail2=segment('tail2', 'tail3'),
+            tail1=segment('tail_base', 'tail_2'),
+            tail2=segment('tail_2', 'tail_3'),
         )
 
     def make(self, key):
         self.define_bodysegments()
-        make_trackingdata_table(self, key, VideoFiles, Templates)
+        make_trackingdata_table(self, key, VideoFiles, CommonCoordinateMatrices, Templates)
 
 if __name__ == "__main__":
     import sys
