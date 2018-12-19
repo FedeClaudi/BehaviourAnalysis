@@ -71,7 +71,7 @@ class CommonCoordinateMatrices(dj.Computed):
 
     def make(self, key):
         new_key = make_commoncoordinatematrices_table(key)
-        self.insert1(new_key)
+        self.insert1(self, new_key, Sessions)
 
 @schema
 class Templates(dj.Imported):

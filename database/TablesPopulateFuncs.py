@@ -184,13 +184,20 @@ class ToolBox:
 ##################################################
 """
 
-def make_commoncoordinatematrices_table(key):
+def make_commoncoordinatematrices_table(table, key, sessions):
     """make_commoncoordinatematrices_table [Allows user to align frame to model
     and stores transform matrix for future use]
     
     Arguments:
         key {[dict]} -- [key attribute of table autopopulate method from dj]
     """
+    # If an entry with the same date exists already, avoid re doing the points mapping
+    this_date = [s for s in sessions.fetch(as_dict=True) if s['uid']==key['uid']][0]['date']
+    old_entry = [e for e in table.fetch(as_dict=True) if e['date']==this_date]
+    if old_entry:
+        old_entry = old_entry[0]
+        table.insert1(old_entry)
+        return
 
     # Get the maze model template
     maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')
