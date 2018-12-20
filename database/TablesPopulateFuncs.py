@@ -379,7 +379,7 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
 
             # ? Create dummy posefile name which will be replaced with real one in the future
             vid_name, ext = vid.split('.')
-            posefile = vid_name+'_pose'+ext
+            posefile = vid_name+'_pose'+ '.h5'
 
         elif len(posefile) > 1:
             raise FileNotFoundError('Found too many pose files: ', posefile)
@@ -722,8 +722,9 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates):
         vid = [v for v in videofiles.fetch(as_dict=True) if v['recording_uid'] == key['recording_uid']][0]
         ccm = [c for c in ccm_table.fetch(as_dict=True) if c['uid']==key['uid']][0]
     except:
-        if vid is None: raise FileNotFoundError('Could not find videofile for ', key['recording_ui']) 
-        else: raise FileNotFoundError('Could not find common coordinate matrix for ', key['recording_ui']) 
+        if vid is None:  print('Could not find videofile for ', key['recording_uid']) 
+        else:  print('Could not find common coordinate matrix for ', key['recording_uid']) 
+        return
     else:
         print('Processing tracking data for : ', key['recording_uid'])
     
@@ -731,7 +732,11 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates):
     table.insert1(key)
     
     # Load the .h5 file with the tracking data 
-    posedata = pd.read_hdf(vid['pose_filepath'])
+    try:
+        posedata = pd.read_hdf(vid['pose_filepath'])
+    except:
+        print('Could not load pose data:', vid['pose_filepath'])
+        return
 
     # Get the scorer name and the name of the bodyparts
     first_frame = posedata.iloc[0]
@@ -790,8 +795,14 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates):
         # Create dataframe with segment data and convert to dataframe
         segment_data = {}
         segment_data['length'] = calc_distance_between_points_two_vectors_2d(bp1_data.T, bp2_data.T)
-        segment_data['theta'] = calc_angle_between_vectors_of_points_2d(bp1_data, bp2_data)
-        segment_data['angvel'] = calc_ang_velocity(segment_data['theta'])
+        try:
+            segment_data['theta'] = calc_angle_between_vectors_of_points_2d(bp1_data, bp2_data)
+            segment_data['angvel'] = calc_ang_velocity(segment_data['theta'])
+        except:
+            warnings.warn('Could not extract theta')
+            segment_data['theta'] = np.zeros((len(segment_data['length'])))
+            segment_data['angvel'] = np.zeros((len(segment_data['length'])))
+
         segment_data_df = pd.DataFrame.from_dict(segment_data)
 
         # Insert into part table

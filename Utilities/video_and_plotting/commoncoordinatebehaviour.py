@@ -31,6 +31,7 @@ def run(videopath, maze_model=None):
     # Get the background (first frame) of the video being processed
     try:
         cap = cv2.VideoCapture(videopath)
+        if not cap.isOpened(): ValueError
     except:
         raise FileNotFoundError('Couldnt open file ', videopath)
 
@@ -43,10 +44,14 @@ def run(videopath, maze_model=None):
     
     # Pad the background frame to be of the right size for template matching
     ret, frame = cap.read()
+    if not ret: raise FileNotFoundError('Could not open videopath', videopath)
     top_pad, side_pad = int(np.floor((1000-height)/2)), int(np.floor((1000-width)/2))
     padded = cv2.copyMakeBorder(frame, top_pad,  top_pad, side_pad, side_pad,
                                 cv2.BORDER_CONSTANT,value=[0, 0, 0])
-    padded = cv2.cv2.cvtColor(padded,cv2.COLOR_RGB2GRAY)
+    try:
+        padded = cv2.cv2.cvtColor(padded,cv2.COLOR_RGB2GRAY)
+    except:
+        raise ValueError(frame.shape)
 
     if padded.shape != maze_model.shape:
         raise ValueError('Shapes dont match ', padded.shape, maze_model.shape)
