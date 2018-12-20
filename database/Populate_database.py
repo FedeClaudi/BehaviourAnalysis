@@ -217,8 +217,6 @@ if __name__ == '__main__':
     # p.behaviourstimuli.populate()
 
     # p.mantisstimuli.populate()
-    p.tracking_data.populate()
+    # p.tracking_data.populate()
 
-    # print(p.videofiles)
-    # print(p.recordings)
-    # print(p.behaviourstimuli)
+    print(p.tracking_data)
