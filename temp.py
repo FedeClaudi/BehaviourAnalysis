@@ -10,23 +10,32 @@ from database.NewTablesDefinitions import *
 
 
 def run():
+    # Loop over each experiment
+    experiments = Experiments()
+    sessions = Sessions()
+    stimuli = BehaviourStimuli()
+    videofiles = VideoFiles()
+    tracking = TrackingData()
 
-    td = TrackingData()
-
-    for tracking in td.fetch(as_dict=True):
-        bodyparts = [bp for bp in td.BodyPartData.fetch(as_dict=True)
-                    if bp['recording_uid']==tracking['recording_uid']]
-        bodysegments = [bp for bp in td.BodySegmentData.fetch(as_dict=True)
-                        if bp['recording_uid']==tracking['recording_uid']]  
-    
-        [print(bp['bpname']) for bp in bodyparts]
-        [print(s['bp1'], s['bp2']) for s in bodysegments]
-
+    for exp in experiments.fetch(as_dit=True):
         f, ax = plt.subplots()
-        ax.plot(bodyparts[0]['tracking_data'][10000:10020, 0],
-                bodyparts[0]['tracking_data'][10000:10020, 1])
-        ax.plot(bodyparts[2]['tracking_data'][10000:10020, 0], bodyparts[2]['tracking_data'][10000:10020, 1])
-        ax.set(xlim=[0, 1000])
+        # Loop over each session for each experiment
+        for session in sessions.fetch(as_dict=True):
+            if session['experiment_name'] != exp['experiment_name']:
+                continue
+            
+            # Loop over each behaviour stimulus
+            for stim in stimuli.fetch(as_dict=True):
+                if stim['uid'] != session['uid']:
+                    continue
+                
+                stim_tracking = [t for t in tracking.BodyPartData.fetch(as_dict=True) 
+                                if t['recording_uid']==stim['recording_uid'] 
+                                and t['bpname']=='body'][0]
+                
+                timewindow = 400
+                ax.plot(stim_tracking['tracking_data'][stim['stim_start']-60:stim['stim_start']+timewindow,0],
+                        'k', alpha=.75)
         plt.show()
 
 

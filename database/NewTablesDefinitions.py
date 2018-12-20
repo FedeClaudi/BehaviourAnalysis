@@ -54,7 +54,7 @@ class Sessions(dj.Manual):
     -> Mice
     date: date             # date in the YYYY-MM-DD format
     experiment_name: varchar(128)  # name of the experiment the session is part of 
-    -> Experiments      # name of the person performing the experiment
+    -> Experiments      # ame of the experiment
     """
 
 
