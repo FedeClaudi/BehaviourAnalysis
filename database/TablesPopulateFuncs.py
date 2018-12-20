@@ -201,6 +201,8 @@ def make_commoncoordinatematrices_table(table, key, sessions, videofiles):
             key['maze_model'] = old_matrix['maze_model']
             key['correction_matrix'] = old_matrix['correction_matrix']
             key['alignment_points'] = old_matrix['alignment_points']
+            key['top_pad'] = old_matrix['top_pad']
+            key['side_pad'] = old_matrix['top_pad']
             table.insert1(key)
             return
 
@@ -228,12 +230,14 @@ def make_commoncoordinatematrices_table(table, key, sessions, videofiles):
     """ 
         The correction code is from here: https://github.com/BrancoLab/Common-Coordinate-Behaviour
     """
-    matrix, points = get_matrix(videopath, maze_model=maze_model)
+    matrix, points, top_pad, side_pad = get_matrix(videopath, maze_model=maze_model)
 
     # Return the updated key
     key['maze_model'] = maze_model
     key['correction_matrix'] = matrix
     key['alignment_points'] = points
+    key['top_pad'] = top_pad
+    key['side_pad'] = side_pad
     table.insert1(key)
 
 

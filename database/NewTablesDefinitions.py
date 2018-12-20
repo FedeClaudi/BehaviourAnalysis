@@ -67,6 +67,8 @@ class CommonCoordinateMatrices(dj.Computed):
         maze_model: longblob   # 2d array with image used for correction
         correction_matrix: longblob  # 2x3 Matrix used for correction
         alignment_points: longblob     # array of X,Y coords of points used for affine transform
+        top_pad: int            # y-shift
+        side_pad: int            # x-shift
     """
 
     def make(self, key):

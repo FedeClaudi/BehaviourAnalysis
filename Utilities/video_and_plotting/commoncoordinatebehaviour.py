@@ -44,7 +44,8 @@ def run(videopath, maze_model=None):
     
     # Pad the background frame to be of the right size for template matching
     ret, frame = cap.read()
-    if not ret: raise FileNotFoundError('Could not open videopath', videopath)
+    if not ret: 
+        raise FileNotFoundError('Could not open videopath', videopath)
     top_pad, side_pad = int(np.floor((1000-height)/2)), int(np.floor((1000-width)/2))
     padded = cv2.copyMakeBorder(frame, top_pad,  top_pad, side_pad, side_pad,
                                 cv2.BORDER_CONSTANT,value=[0, 0, 0])
@@ -70,7 +71,7 @@ def run(videopath, maze_model=None):
     savename = os.path.split(videopath)[-1]
     registration = register_arena(padded, 'nofisheye', 0, 0, maze_model, points, savepath, savename)
 
-    return registration[0], points
+    return registration[0], points, top_pad, side_pad
 
 
 if __name__ == "__main__":
