@@ -276,7 +276,7 @@ class BehaviourTrialOutcomes(dj.Manual):
         origin_arm: varchar(128)
         escape_arm: varchar(128)
         x_y_theta: longblob                # x,y position and body orientation at stimulus onset
-        reaction time: int                 # reaction time, if calculated
+        reaction_time: int                 # reaction time, if calculated
         time_to_shelter: int               # number of seconds before the shelter is reached 
     """
 

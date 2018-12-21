@@ -208,12 +208,12 @@ if __name__ == '__main__':
 
     print(p)
 
-    # p.remove_table('videosincomplete')
+    # p.remove_table('tracking_data')
 
     # p.populate_mice_table()
     # p.populate_experiments_table()
     # p.populate_sessions_table()
-    p.dlcmodels.populate()
+    # p.dlcmodels.populate()
 
     # p.commoncoordinatematrices.populate()
     # p.templates.populate()
@@ -223,6 +223,6 @@ if __name__ == '__main__':
     # p.behaviourstimuli.populate()
 
     # p.mantisstimuli.populate()
-    # p.tracking_data.populate()
+    p.tracking_data.populate()
 
     # print(p)
