@@ -207,7 +207,7 @@ if __name__ == '__main__':
 
     print(p)
 
-    # p.remove_table('tracking_data')
+    # p.remove_table('videosincomplete')
 
     # p.populate_mice_table()
     # p.populate_experiments_table()
@@ -217,7 +217,7 @@ if __name__ == '__main__':
     # p.templates.populate()
 
     # p.recordings.populate()
-    # p.videofiles.populate()
+    p.videofiles.populate()
     # p.behaviourstimuli.populate()
 
     # p.mantisstimuli.populate()
@@ -225,3 +225,4 @@ if __name__ == '__main__':
 
     # print(p)
     p.display_videos_incomplete()
+    print(p.videofiles.fetch()[-10:])
