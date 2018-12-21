@@ -265,6 +265,22 @@ class TrackingData(dj.Computed):
 
 
 @schema
+class BehaviourTrialOutcomes(dj.Manual):
+    definition = """
+        # For each stimulus stores info about the escape...
+        stimulus_uid: varchar(128)          # name of the stimulus
+        ---
+        criteria: varchar(128)              # e.g. if a time limit is set to specify if a trial is escape or not
+        threshold: int                      # the value associated to the criteria (e.g. num of seconds)
+        escape: enum('true', 'false')
+        origin_arm: varchar(128)
+        escape_arm: varchar(128)
+        x_y_theta: longblob                # x,y position and body orientation at stimulus onset
+        reaction time: int                 # reaction time, if calculated
+        time_to_shelter: int               # number of seconds before the shelter is reached 
+    """
+
+@schema
 class DLCmodels(dj.Lookup):
     definition = """
         # It got pointers to dlc models so that they can be used for analysing videos
