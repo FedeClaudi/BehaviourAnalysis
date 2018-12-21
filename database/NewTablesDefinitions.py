@@ -263,6 +263,22 @@ class TrackingData(dj.Computed):
         self.define_bodysegments()
         make_trackingdata_table(self, key, VideoFiles, CommonCoordinateMatrices, Templates)
 
+
+@schema
+class DLCmodels(dj.Lookup):
+    definition = """
+        # It got pointers to dlc models so that they can be used for analysing videos
+        model_name: varchar(256)                        # name given to the model
+        ---
+        cfg_file_path: varchar(256)                     # path to the cfg.yml file
+        camera: enum('overview', 'threat', 'mirrors')   # for which kind of video it can be used
+    """
+
+    def populate(self):
+        make_dlcmodels_table(self)
+
+
+
 if __name__ == "__main__":
     import sys
     sys.path.append('./')

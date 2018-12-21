@@ -57,9 +57,10 @@ class PopulateDatabase:
         self.videosincomplete = VideosIncomplete()
         self.tracking_data = TrackingData()
         self.commoncoordinatematrices = CommonCoordinateMatrices()
+        self.dlcmodels = DLCmodels()
         self.all_tables = dict(mice=self.mice, sessions= self.sessions, experiments=self.experiments,
                                 recordings=self.recordings, behaviourstimuli = self.behaviourstimuli,
-                                mantisstimuli = self.mantisstimuli,
+                                mantisstimuli = self.mantisstimuli, dlcmodels = self.dlcmodels,
                                 templates=self.templates, videofiles = self.videofiles, 
                                 commoncoordinatematrices=self.commoncoordinatematrices,
                                 tracking_data = self.tracking_data, videosincomplete = self.videosincomplete)
@@ -212,6 +213,7 @@ if __name__ == '__main__':
     # p.populate_mice_table()
     # p.populate_experiments_table()
     # p.populate_sessions_table()
+    # p.dlcmodels.populate()
 
     # p.commoncoordinatematrices.populate()
     # p.templates.populate()

@@ -180,9 +180,46 @@ class ToolBox:
 
 """ 
 ##################################################
-
+#####################################################################################################################
+#####################################################################################################################
+#####################################################################################################################
+#####################################################################################################################
 ##################################################
 """
+
+def make_dlcmodels_table(table):
+    """make_dlcmodels_table [Fills in dlc models table from dlcmodels.yml. making sure that
+    only one model per camera is present in the table]
+    
+    Arguments:
+        table {[class]} -- [dj table]
+    """
+
+    names_in_table = table.fetch('name')
+    cameras_in_table = table.fetch('camera')
+    models = load_yaml('dlcmodels.yml')
+    
+    for model in models:
+        if model['camera'] in cameras:
+            # one with the same camera is already present
+            # if same name: overwrite
+            # else: replace?
+            if model['name'] in names_in_table:
+                var = 'name'
+                print('A model for camera {} with name {} exists already'.format(model['camera'], model['name']))
+            else:
+                var = 'camera'
+                print('A model for camera {} already exists, replace?'.format(model['camera']))
+            
+            print('Old model: ', (table & '{}={}'.format[var, model[var]]))
+            print('New model: ', model)
+            yn = input('Overwrite? [y/n]')
+            if y != 'y': continue
+            else:
+                (table & '{}={}'.format(var, model[var]).delete())
+                table.insert1(model)
+    print(table)
+    
 
 def make_commoncoordinatematrices_table(table, key, sessions, videofiles):
     """make_commoncoordinatematrices_table [Allows user to align frame to model
@@ -421,6 +458,7 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
                 table.insert1(video_key)
             except:
                 raise ValueError('Could not isnert ', video_key)
+            
             metadata_key = make_videometadata_table(video_key['converted_filepath'], key)
             if 'conversion_needed' in metadata_key.keys():
                 del metadata_key['conversion_needed'], metadata_key['dlc_needed']
@@ -821,3 +859,6 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates):
         segment_key['tracking_data'] = segment_data_df.values # ! check
 
         table.BodySegmentData.insert1(segment_key)
+
+
+
