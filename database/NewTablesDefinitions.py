@@ -161,11 +161,11 @@ class VideoFiles(dj.Imported):
             # contains info about each video
             -> VideoFiles
             ---
-            fps: int                # fps
+            fps: int                        # fps
             tot_frames: int
             frame_width: int
             frame_height: int
-            frame_size: int         # number of bytes for the whole frame
+            frame_size: int                 # number of bytes for the whole frame
             camera_offset_x: int            # camera offset
             camera_offset_y: int            # camera offset
         """

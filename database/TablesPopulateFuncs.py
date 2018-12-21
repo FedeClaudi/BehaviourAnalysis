@@ -502,23 +502,26 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
             converted = [f for f in os.listdir(tb.raw_video_folder)
                         if videoname in f and '__joined' in f]
             converted_check = check_files_correct(converted, 'converted')
+            if converted_check: converted = converted[0]
 
             metadata = [f for f in os.listdir(tb.raw_metadata_folder)
                         if videoname in f and 'tdms' in f]
             metadata_check = check_files_correct(metadata, 'metadata')
+            if not metadata_check: raise FileNotFoundError('Could not find metadata file!!')
+            else: metadata = metadata[0]
 
             posedata = [os.path.splitext(f)[0].split('_pose')[0]+'.h5' 
                         for f in os.listdir(tb.pose_folder)
                         if videoname in f and 'h5' in f]
             pose_check = check_files_correct(posedata, 'pose data')
+            if pose_check: posedata = posedata[0]
             
-            # Check if anything is missing
-            if not metadata_check: raise FileNotFoundError('Could not find metadata file!!')
+            # Check if anything is missing            
             if not converted_check or not pose_check:
                 add_videosincomplete_entry(videosincomplete, key, vid, converted_check, pose_check)
                 # ? add dummy files names which will be replaced with real ones in the future
                 if not converted_check:
-                    converted = videoname+'__joined'+ext
+                    converted = videoname+'__joined.mp4'
                 if not pose_check:
                     posedata = videoname+'_pose.h5'
 
@@ -535,6 +538,7 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
                                                             os.path.join(tb.raw_video_folder, 'Mirrors'))
                 views_videos = [catwalk, side, top]
                 views_names = ['catwalk', 'side_mirror', 'top_mirror']
+
                 # Get pose names
                 views_poses = {}
                 for vh, view_name in zip(views_videos, views_names):
@@ -556,6 +560,7 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
                 views = [view('catwalk', catwalk, 'nan', views_poses['catwalk']),
                         view('side_mirror', side, 'nan', views_poses['side_mirror']),
                         view('top_mirror', top, 'nan', views_poses['top_mirror'])]
+                
                 for insert in views:
                     insert_for_mantis(table, key, insert.camera, insert.video,
                                         insert.video, insert.metadata, insert.pose)
@@ -564,9 +569,9 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
 
             # Insert Main Video (threat or overview) in table
             insert_for_mantis(table, key, camera, os.path.join(tb.raw_video_folder, vid),
-                                os.path.join(tb.raw_video_folder, converted[0]),
-                                os.path.join(tb.raw_metadata_folder, metadata[0]),
-                                os.path.join(tb.pose_folder, posedata[0]))
+                                os.path.join(tb.raw_video_folder, converted),
+                                os.path.join(tb.raw_metadata_folder, metadata),
+                                os.path.join(tb.pose_folder, posedata))
 
     #####################################################################################################################
     #####################################################################################################################

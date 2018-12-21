@@ -7,7 +7,7 @@ sys.path.append('./')
 from database.dj_config import start_connection
 start_connection()
 from database.Populate_database import PopulateDatabase
-from database.Tables_definitions import *
+from database.NewTablesDefinitions import *
 import time
 
 from Utilities.video_and_plotting.video_editing import VideoConverter, Editor
@@ -55,6 +55,27 @@ class FilesAutomationToolbox:
 
             Then calls the auto populate method for the TrackingData table to fill these in
         """
+
+    def fillin_incompletevideos(self):
+        inc_table = VideosIncomplete()
+        rec_table = Recordings()
+        vid_table = VideoFiles()
+        recordings = rec_table.fetch(as_dict=True)
+        incompletes = inc_table.fetch(as_dict=True)
+        vidoes = vid_table.fetch(as_dict=True)
+
+
+        for entry in incompletes:
+            print('Filling in: ', entry['uid'], entry['recording_uid'])
+
+            if entry['conversion_needed'] == true:
+                video = [v for v in videos if v['recording_uid']==entry['recording_uid']][0]
+                
+
+            if entry['dlc_needed']:
+                warnings.warn('Feature not yet implemented')
+
+
 
 if __name__ == "__main__":
     automation = FilesAutomationToolbox()
