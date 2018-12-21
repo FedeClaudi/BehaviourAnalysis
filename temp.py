@@ -31,12 +31,14 @@ def run():
     fetched_ccm = ccm.fetch(as_dict=True)
     print('plotting')
 
-    f, axarr = plt.subplots(4, 3, facecolor=[.2, .2, .2])
+    f, axarr = plt.subplots(5, 2, facecolor=[.2, .2, .2])
     axarr = axarr.flatten()
+    f2, axall = plt.subplots(facecolor=[.2, .2, .2])
     background = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')
     background = cv2.resize(background, (1000, 1000))
     #background = cv2.cv2.cvtColor(background,cv2.COLOR_RGB2GRAY)
     [ax.imshow(background) for ax in axarr]
+    axall.imshow(background)
     color=iter(plt.cm.rainbow(np.linspace(0,1,12)))
     for i, exp in enumerate(experiments.fetch(as_dict=True)):
         if 'yml' in exp['experiment_name']: continue
@@ -72,7 +74,7 @@ def run():
 
                 x = stim_tracking[0]['tracking_data'][stim['stim_start']-60:stim['stim_start']+timewindow,0]
                 y = stim_tracking[0]['tracking_data'][stim['stim_start']-60:stim['stim_start']+timewindow,1]
-                plotter(axarr[i], axarr[-1], c, x, y, x_offset, y_offset)
+                plotter(axarr[i], axall, c, x, y, x_offset, y_offset)
 
 
         print('Experiment: ', exp['experiment_name'])
@@ -80,7 +82,7 @@ def run():
         axarr[i].set(title =  exp['experiment_name'])
 
     # axarr[-1].set_ylim(axarr[-1].get_ylim()[::-1])
-    axarr[-1].set(title = 'All experiments')
+    axall.set(title = 'All experiments')
     plt.show()
     f.tight_layout()
 
