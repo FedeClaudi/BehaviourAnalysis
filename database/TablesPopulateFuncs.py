@@ -195,18 +195,18 @@ def make_dlcmodels_table(table):
         table {[class]} -- [dj table]
     """
 
-    names_in_table = table.fetch('name')
+    names_in_table = table.fetch('model_name')
     cameras_in_table = table.fetch('camera')
     models = load_yaml('dlcmodels.yml')
     
-    for model in models:
-        if model['camera'] in cameras:
+    for model in models.values():
+        if model['camera'] in cameras_in_table:
             # one with the same camera is already present
             # if same name: overwrite
             # else: replace?
-            if model['name'] in names_in_table:
-                var = 'name'
-                print('A model for camera {} with name {} exists already'.format(model['camera'], model['name']))
+            if model['model_name'] in names_in_table:
+                var = 'model_name'
+                print('A model for camera {} with name {} exists already'.format(model['camera'], model['model_name']))
             else:
                 var = 'camera'
                 print('A model for camera {} already exists, replace?'.format(model['camera']))
@@ -218,6 +218,8 @@ def make_dlcmodels_table(table):
             else:
                 (table & '{}={}'.format(var, model[var]).delete())
                 table.insert1(model)
+        else:
+            table.insert1(model)
     print(table)
     
 

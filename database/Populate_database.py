@@ -213,18 +213,16 @@ if __name__ == '__main__':
     # p.populate_mice_table()
     # p.populate_experiments_table()
     # p.populate_sessions_table()
-    # p.dlcmodels.populate()
+    p.dlcmodels.populate()
 
     # p.commoncoordinatematrices.populate()
     # p.templates.populate()
 
     # p.recordings.populate()
-    p.videofiles.populate()
+    # p.videofiles.populate()
     # p.behaviourstimuli.populate()
 
     # p.mantisstimuli.populate()
     # p.tracking_data.populate()
 
     # print(p)
-    p.display_videos_incomplete()
-    print(p.videofiles.fetch()[-10:])
