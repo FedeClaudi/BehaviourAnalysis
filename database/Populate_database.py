@@ -4,11 +4,9 @@ sys.path.append('./')   # <- necessary to import packages from other directories
 from database.dj_config import start_connection
 start_connection()
 
-
 import os
 import warnings
 from shutil import copyfile
-
 import cv2
 import datajoint as dj
 import moviepy
@@ -65,13 +63,6 @@ class PopulateDatabase:
                                 templates=self.templates, videofiles = self.videofiles, 
                                 commoncoordinatematrices=self.commoncoordinatematrices,
                                 tracking_data = self.tracking_data, videosincomplete = self.videosincomplete)
-
-    def display_tables_headings(self):
-        """
-        prints out each table with the first N entries
-        """
-        for name, table in self.all_tables.items():
-            print('\n\nTable definition for {}:\n{}'.format(name, table))
 
     def remove_table(self, tablename):
         """
@@ -171,6 +162,20 @@ class PopulateDatabase:
                 print(table)
                 raise ValueError('Failed to add data entry {}-{} to {} table'.format(checktag, dataname, table.full_table_name))
 
+
+    def display_videos_incomplete(self):
+        fetched = self.videosincomplete.fetch(as_dict=True)
+        tot_conversions, tot_dlcs = 0, 0
+        for entry in fetched:
+            print('Recording: {} - conversion: {} - dlc: {}'.format(entry['recording_uid'], 
+                    entry['conversion_needed'], entry['dlc_needed']))
+            if entry['conversion_needed'] == 'true': tot_conversions += 1
+            if entry['dlc_needed'] == 'true': tot_dlcs += 1
+
+        print('\n\n In total there are {} incomplete videos of which\n      {} need conversion\n    {} need dlc'.format(
+                len(fetched), tot_conversions, tot_dlcs))
+
+
     def __str__(self):
         self.__repr__()
         return ''
@@ -216,6 +221,7 @@ if __name__ == '__main__':
     # p.behaviourstimuli.populate()
 
     # p.mantisstimuli.populate()
-    p.tracking_data.populate()
+    # p.tracking_data.populate()
 
     print(p)
+    p.display_videos_incomplete()
