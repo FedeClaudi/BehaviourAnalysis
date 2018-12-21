@@ -381,6 +381,9 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
         key['frame_width'] = np.int(fps)
         key['frame_size'] =  key['frame_width']* key['frame_height']
         key['camera_offset_x'], key['camera_offset_y'] = -1, -1
+
+        # if key['fps'] < 10: raise ValueError('Couldnt get metadata for ', filepath, key)
+
         return key
 
     def behaviour(table, key, videosincomplete):
