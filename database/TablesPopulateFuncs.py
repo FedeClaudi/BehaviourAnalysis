@@ -805,7 +805,7 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates):
         print('     ... body part: ', bp)
         # Get XY pose and correct with CCM matrix
         xy = posedata[scorer[0], bp].drop(columns='likelihood')
-        corrected_data = correct_tracking_data(xy.values, ccm['correction_matrix'])
+        corrected_data = correct_tracking_data(xy.values, ccm['correction_matrix'], ccm['top_pad'], ccm['side_pad'])
         temp_dict = {}
         temp_dict['x'] = corrected_data[:, 0]
         temp_dict['y'] = corrected_data[:, 1]

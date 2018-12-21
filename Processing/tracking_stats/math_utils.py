@@ -211,7 +211,7 @@ def calc_ang_velocity(angles):
     return np.degrees(ang_vel_rads)
     
 
-def correct_tracking_data(uncorrected, M):
+def correct_tracking_data(uncorrected, M, xpad, ypad):
 
     """[Corrects tracking data (as extracted by DLC) using a transform Matrix obtained via the CommonCoordinateBehaviour
         toolbox. ]
@@ -230,8 +230,9 @@ def correct_tracking_data(uncorrected, M):
         x,y = uncorrected[framen, 0], uncorrected[framen, 1]
         corrected[framen, :2]= (np.matmul(m3d, [x, y, 1]))[:2]
 
-    # Calculate velocity 
-    corrected[:, 2] = calc_distance_between_points_in_a_vector_2d(corrected[:, :2])
+    # Shift in X and Y according to how the frame was padded when creating the transform matrix
+    corrected[:, 0] = np.add(corrected[:, 0], xpad)
+    corrected[:, 1] = np.add(corrected[:, 1], xpad)
 
     # import matplotlib.pyplot as plt
     # plt.plot(uncorrected[:, 0], uncorrected[:, 1])
