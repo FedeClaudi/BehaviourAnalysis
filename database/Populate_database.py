@@ -167,12 +167,12 @@ class PopulateDatabase:
         fetched = self.videosincomplete.fetch(as_dict=True)
         tot_conversions, tot_dlcs = 0, 0
         for entry in fetched:
-            print('Recording: {} - conversion: {} - dlc: {}'.format(entry['recording_uid'], 
+            print('Recording: {}-{} - conversion: {} - dlc: {}'.format(entry['uid'], entry['recording_uid'], 
                     entry['conversion_needed'], entry['dlc_needed']))
             if entry['conversion_needed'] == 'true': tot_conversions += 1
             if entry['dlc_needed'] == 'true': tot_dlcs += 1
 
-        print('\n\n In total there are {} incomplete videos of which\n      {} need conversion\n    {} need dlc'.format(
+        print('\n\n In total there are {} incomplete videos of which\n    {} need conversion\n    {} need dlc'.format(
                 len(fetched), tot_conversions, tot_dlcs))
 
 
@@ -223,5 +223,5 @@ if __name__ == '__main__':
     # p.mantisstimuli.populate()
     # p.tracking_data.populate()
 
-    print(p)
+    # print(p)
     p.display_videos_incomplete()
