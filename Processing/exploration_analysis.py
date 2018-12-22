@@ -27,6 +27,8 @@ class analyse_all_trips:
         # Get ROIs coordinates
         self.rois = self.get_rois()
 
+        # Get all good trips
+        self.all_trips = {}
         self.get_trips()
 
     def get_rois(self):
@@ -65,6 +67,8 @@ class analyse_all_trips:
             f,ax = plt.subplots()
             in_rois = {}
             in_roi = namedtuple('inroi', 'ins outs')
+
+            all_signal = np.zeros((tr.shape[0]))
             for i, (roi, cc) in enumerate(self.rois.items()):
                 # Get time points i which mouse is in roi
                 in_x =np.where((cc.x0<=tr[:, 0]) & (tr[:, 0]<= cc.x1))
@@ -73,22 +77,48 @@ class analyse_all_trips:
                 
                 # get times at which it enters and exits
                 xx = np.zeros(tr.shape[0])
-                xx[when_in_rois[roi]] = 1
+                xx[in_xy] = 1
+                all_signal[in_xy] = 1
                 enter_exit = np.diff(xx)
                 enters, exits = np.where(np.diff(xx)>0)[0], np.where(np.diff(xx)<0)[0]
-                in_rois[roi] == in_roi(enters, exits)
+                in_rois[roi] = in_roi(list(enters), list(exits))
                 print('Roi ', roi, len(enters), ' enters and ', len(exits), ' exits')
                 
                 # test_plot_rois_on_trace(tr[:,0], tr[:, 1], self.rois, in_x, in_y,  when_in_rois[roi])
                 ax.plot(np.add(np.diff(xx), i*3), label=roi)
-            
-            # loop over each time the mouse got to the threat area
-            # for n, threat_enter in enumerate(in_rois['threat'].ins):
-            #     if n < len(in_rois['threat'].ins)
-            
+            all_signal = np.diff(all_signal)
 
-            ax.legend()
-            plt.show()
+
+            # get complete s-t-s trips
+            good_times = []
+            for sexit in in_rois['shelter'].outs:
+                # get time in which it returns to the shelter 
+                try:
+                    next_in = [i for i in in_rois['shelter'].ins if i > sexit][0]
+                except:
+                    break
+
+                # Check if it reached the threat
+                at_threat = [i for i in in_rois['threat'].ins
+                            if i > sexit and i < next_in]
+                if at_threat:
+                    good_times.append((sexit, next_in))
+
+            # add to al trips dictionary
+            for g in good_times:
+                
+
+
+            # Plot for debugging
+            # f2, ax2 = plt.subplots()
+            # for good in good_times:
+            #     ax.plot([good[0], good[1]], [-2, -2], 'g')    
+            #     # ax2.plot(tr[good[0]:good[1],0], tr[good[0]:good[1],1])
+            #     ax2.hist(durs)
+
+            # ax.plot(np.add(all_signal, -5), 'k')
+            # ax.legend()
+            # plt.show()
 
 
 if __name__ == '__main__':

@@ -294,6 +294,13 @@ class DLCmodels(dj.Lookup):
         make_dlcmodels_table(self)
 
 
+@schema
+class AllTrips(dj.Manual):
+    definition = """
+        # stores info about each time the mouse makes a shetler-threat-shelter trip
+        
+
+    """
 
 if __name__ == "__main__":
     import sys
