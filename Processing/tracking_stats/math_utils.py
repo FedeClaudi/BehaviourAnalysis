@@ -243,8 +243,8 @@ def correct_tracking_data(uncorrected, M, xpad, ypad, exp_name):
     x_translation, y_translation = translators[exp_name]
     
     corrected[:, 0] = np.add(corrected[:, 0],  x_translation)
-    corrected[:, 1] = np.add(-np.add(corrected[:, 1], y_translation), 1000)
-
+    corrected[:, 1] = np.add(-np.add(corrected[:, 1], 0), 1000)
+    corrected[:, 1] = np.add(corrected[:, 1], y_translation)
 
 
     # import matplotlib.pyplot as plt

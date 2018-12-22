@@ -1,11 +1,10 @@
 import cv2
 
-from nptdms import TdmsFile
 import pandas as pd
-import matplotlib.pyplot as plt
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 sys.path.append('./')
 
 from database.NewTablesDefinitions import *
@@ -13,8 +12,8 @@ from database.dj_config import start_connection
 
 def plot_all_trials():
     def plotter(ax1, ax2, color, x, y):
-        ax1.scatter(x, y, c=color, s=15, alpha=.75)
-        ax2.scatter(x, y, c=color, s=15, alpha=.35)
+        ax1.scatter(x, y, c=color, s=5, alpha=.75, cmap='Oranges')
+        ax2.scatter(x, y, c=color, s=5, alpha=.35, cmap='Oranges')
 
 
     # Get data from database
