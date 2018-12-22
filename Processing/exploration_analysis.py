@@ -63,19 +63,28 @@ class analyse_all_trips:
             tr = row['tracking_data']
 
             f,ax = plt.subplots()
-            when_in_rois = {}
+            in_rois = {}
+            in_roi = namedtuple('inroi', 'ins outs')
             for i, (roi, cc) in enumerate(self.rois.items()):
+                # Get time points i which mouse is in roi
                 in_x =np.where((cc.x0<=tr[:, 0]) & (tr[:, 0]<= cc.x1))
                 in_y = np.where((cc.y1<=tr[:, 1]) & (tr[:, 1]<= cc.y0))
-                when_in_rois[roi] = [p for p in in_x[0] if p in in_y[0]]
+                in_xy = [p for p in in_x[0] if p in in_y[0]]
                 
-                print('Spent {}/{} frames in {}'.format(len(when_in_rois[roi]), tr.shape[0], roi))
-                # test_plot_rois_on_trace(tr[:,0], tr[:, 1], self.rois, in_x, in_y,  when_in_rois[roi])
-
+                # get times at which it enters and exits
                 xx = np.zeros(tr.shape[0])
                 xx[when_in_rois[roi]] = 1
+                enter_exit = np.diff(xx)
+                enters, exits = np.where(np.diff(xx)>0)[0], np.where(np.diff(xx)<0)[0]
+                in_rois[roi] == in_roi(enters, exits)
+                print('Roi ', roi, len(enters), ' enters and ', len(exits), ' exits')
+                
+                # test_plot_rois_on_trace(tr[:,0], tr[:, 1], self.rois, in_x, in_y,  when_in_rois[roi])
                 ax.plot(np.add(np.diff(xx), i*3), label=roi)
             
+            # loop over each time the mouse got to the threat area
+            # for n, threat_enter in enumerate(in_rois['threat'].ins):
+            #     if n < len(in_rois['threat'].ins)
             
 
             ax.legend()
