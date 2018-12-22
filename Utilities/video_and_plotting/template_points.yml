@@ -1,14 +1,14 @@
 shelter:
   x: 436
   width: 128
-  y: 248
-  height: 62
+  y: 760
+  height: 85
 
 threat:
   x: 436
   width: 128
-  y: 624
-  height: 128
+  y: 405
+  height: 155
 
 
 translators:

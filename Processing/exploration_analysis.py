@@ -35,37 +35,49 @@ class analyse_all_trips:
         rois_dict = load_yaml('Utilities\\video_and_plotting\\template_points.yml')
 
         for roi_name, cc in rois_dict.items():
+            if roi_name == 'translators': continue
             formatted_rois[roi_name] = roi(cc['x'], cc['x']+cc['width'], cc['width'],
-                                            cc['y'], cc['y']+cc['height'], cc['height'])
+                                            cc['y'], cc['y']-cc['height'], cc['height'])
         return formatted_rois
 
     def get_trips(self):
-        def test_plot_rois_on_trace(x, y, rois):
+        def test_plot_rois_on_trace(x, y, rois, inx, iny, inboth):
             f, ax = plt.subplots()
             ax.plot(x, y, 'k')
             for roi, cc in rois.items():
-                rect = patches.Rectangle((cc.x0,1000-cc.y0), cc.width,-cc.height,linewidth=1,edgecolor='r',facecolor='none', label=roi)
+                rect = patches.Rectangle((cc.x0,cc.y0), cc.width,-cc.height,linewidth=1,edgecolor='r',facecolor='none', label=roi)
                 ax.add_patch(rect)  
             ax.legend()
 
+            f, ax = plt.subplots()
+            ax.plot(x, y, 'k', alpha=.5)
+            # ax.plot(x[inx], y[inx], 'r',alpha=.75, label='x')
+            # ax.plot(x[iny], y[iny], 'b',alpha=.75, label='y')
+            ax.plot(x[inboth], y[inboth], 'r')
+            # ax.legend()
+            plt.show()
+
         trips=[]
         for idx, row in self.tracking.iterrows():
+            if idx < 4 : continue
             tr = row['tracking_data']
-            test_plot_rois_on_trace(tr[:,0], tr[:, 1], self.rois)
 
             f,ax = plt.subplots()
             when_in_rois = {}
-            for roi, cc in self.rois.items():
+            for i, (roi, cc) in enumerate(self.rois.items()):
                 in_x =np.where((cc.x0<=tr[:, 0]) & (tr[:, 0]<= cc.x1))
-                in_y = np.where((cc.y0<=tr[:, 1]) & (tr[:, 1]<= cc.y1))
+                in_y = np.where((cc.y1<=tr[:, 1]) & (tr[:, 1]<= cc.y0))
                 when_in_rois[roi] = [p for p in in_x[0] if p in in_y[0]]
                 
                 print('Spent {}/{} frames in {}'.format(len(when_in_rois[roi]), tr.shape[0], roi))
+                # test_plot_rois_on_trace(tr[:,0], tr[:, 1], self.rois, in_x, in_y,  when_in_rois[roi])
 
                 xx = np.zeros(tr.shape[0])
                 xx[when_in_rois[roi]] = 1
+                ax.plot(np.add(np.diff(xx), i*3), label=roi)
+            
+            
 
-                ax.plot(np.diff(xx), label=roi)
             ax.legend()
             plt.show()
 
