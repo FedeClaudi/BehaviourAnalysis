@@ -759,7 +759,13 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
 #####################################################################################################################
 
 
-def make_trackingdata_table(table, key, videofiles, ccm_table, templates):
+def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessions):
+    # Get the name of the experiment the video belongs to
+    fetched_sessions = sessions.fetch(as_dict=True)
+    session = [s for s in fetched_sessions if s['uid']==key['uid']][0]
+    experiment = session['experiment_name']
+
+
     fast_mode = True
     # Check if we have all the data necessary to continue 
     try:
@@ -800,7 +806,7 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates):
         print('     ... body part: ', bp)
         # Get XY pose and correct with CCM matrix
         xy = posedata[scorer[0], bp].drop(columns='likelihood')
-        corrected_data = correct_tracking_data(xy.values, ccm['correction_matrix'], ccm['top_pad'], ccm['side_pad'])
+        corrected_data = correct_tracking_data(xy.values, ccm['correction_matrix'], ccm['top_pad'], ccm['side_pad'], experiment)
         temp_dict = {}
         temp_dict['x'] = corrected_data[:, 0]
         temp_dict['y'] = corrected_data[:, 1]

@@ -1,3 +1,5 @@
+import sys
+sys.path.append('./')
 import numpy as np
 from scipy import misc
 import pandas as pd
@@ -5,6 +7,7 @@ from scipy.spatial import distance
 from math import factorial, atan2, degrees, acos, sqrt, pi
 import math
 
+from Utilities.file_io.files_load_save import load_yaml
 
 def calc_distance_between_points_2d(p1, p2):
     '''calc_distance_between_points_2d [summary]
@@ -211,7 +214,7 @@ def calc_ang_velocity(angles):
     return np.degrees(ang_vel_rads)
     
 
-def correct_tracking_data(uncorrected, M, xpad, ypad):
+def correct_tracking_data(uncorrected, M, xpad, ypad, exp_name):
 
     """[Corrects tracking data (as extracted by DLC) using a transform Matrix obtained via the CommonCoordinateBehaviour
         toolbox. ]
@@ -233,8 +236,16 @@ def correct_tracking_data(uncorrected, M, xpad, ypad):
 
     # Shift in X and Y according to how the frame was padded when creating the transform matrix
     # also flip and shift Y otherwise it'll be upside down
-    corrected[:, 0] = np.add(corrected[:, 0],  int(round(0)))
-    corrected[:, 1] = np.add(-np.add(corrected[:, 1], 0),1000)
+    # The values by which each experiment is shifted is specified in a yml
+    # Define translation
+    content = load_yaml('Utilities\\video_and_plotting\\template_points.yml')
+    translators = content['translators']
+    x_translation, y_translation = translators[exp_name]
+    
+    corrected[:, 0] = np.add(corrected[:, 0],  x_translation)
+    corrected[:, 1] = np.add(-np.add(corrected[:, 1], y_translation), 1000)
+
+
 
     # import matplotlib.pyplot as plt
     # plt.plot(uncorrected[:, 0], uncorrected[:, 1])

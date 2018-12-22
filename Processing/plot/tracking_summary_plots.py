@@ -16,17 +16,6 @@ def plot_all_trials():
         ax1.plot(x, y, color=color, alpha=.75)
         ax2.plot(x, y, color=color, alpha=.35)
 
-    # Define translation
-    translators = {
-        'FlipFlop Maze': (120, -310),
-        'TwoAndahalf Maze': (240, -240),
-        'Square Maze': (210, -210),
-        'PathInt2': (152, -215),
-        'PathInt': (140, -210),
-        'FlipFlop2 Maze': (120, -245),
-
-    }
-    
     # Get data from database
     experiments = Experiments()
     sessions = Sessions()

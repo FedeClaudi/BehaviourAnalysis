@@ -11,7 +11,12 @@ threat:
   height: 128
 
 
-
-
+translators:
+  FlipFlop Maze: (120, -310)
+  TwoAndahalf Maze: (240, -240)
+  Square Maze: (210, -210)
+  PathInt2: (152, -215)
+  PathInt: (140, -210)
+  FlipFlop2 Maze: (120, -245)
 
 
