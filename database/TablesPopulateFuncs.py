@@ -225,17 +225,17 @@ def make_commoncoordinatematrices_table(table, key, sessions, videofiles):
     # this_date = [s for s in sessions.fetch(as_dict=True) if s['uid']==key['uid']][0]['date']
     # old_entries = [e for e in sessions.fetch(as_dict=True) if e['uid'] in table.fetch('uid')]
     
-    # if old_entries:
-    #     old_entry = [o for o in old_entries if o['date']==this_date]
-    #     if old_entry:
-    #         old_matrix = [m for m in table.fetch(as_dict=True) if m['uid']==old_entry[0]['uid']][0]
-    #         key['maze_model'] = old_matrix['maze_model']
-    #         key['correction_matrix'] = old_matrix['correction_matrix']
-    #         key['alignment_points'] = old_matrix['alignment_points']
-    #         key['top_pad'] = old_matrix['top_pad']
-    #         key['side_pad'] = old_matrix['top_pad']
-    #         table.insert1(key)
-    #         return
+    if old_entries:
+        old_entry = [o for o in old_entries if o['date']==this_date]
+        if old_entry:
+            old_matrix = [m for m in table.fetch(as_dict=True) if m['uid']==old_entry[0]['uid']][0]
+            key['maze_model'] = old_matrix['maze_model']
+            key['correction_matrix'] = old_matrix['correction_matrix']
+            key['alignment_points'] = old_matrix['alignment_points']
+            key['top_pad'] = old_matrix['top_pad']
+            key['side_pad'] = old_matrix['top_pad']
+            table.insert1(key)
+            return
 
     # Get the maze model template
     maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')

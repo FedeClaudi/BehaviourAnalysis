@@ -32,13 +32,16 @@ def plot_all_trials():
     print('plotting')
 
     # Create figures
-    f, axarr = plt.subplots(5, 2, facecolor=[.2, .2, .2])
-    axarr = axarr.flatten()
+    axarr = []
+    for i in range(12):
+        f, ax = plt.subplots(facecolor=[.2, .2, .2])
+        axarr.append(ax)
     f2, axall = plt.subplots(facecolor=[.2, .2, .2])
 
     # Plot the std maze model on each axis
     background = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')
     background = cv2.resize(background, (1000, 1000))
+    background = np.rot90(background, 2)
     [ax.imshow(background) for ax in axarr]
     axall.imshow(background)
 

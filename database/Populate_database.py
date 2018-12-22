@@ -208,7 +208,7 @@ if __name__ == '__main__':
 
     print(p)
 
-    # p.remove_table('commoncoordinatematrices')
+    #  p.remove_table('tracking_data')
 
     # p.populate_mice_table()
     # p.populate_experiments_table()

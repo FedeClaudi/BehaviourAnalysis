@@ -232,7 +232,7 @@ def correct_tracking_data(uncorrected, M, xpad, ypad):
 
     # Shift in X and Y according to how the frame was padded when creating the transform matrix
     # also flip and shift Y otherwise it'll be upside down
-    corrected[:, 0] = np.add(corrected[:, 0],  xpad)
+    corrected[:, 0] = np.add(corrected[:, 0],  int(round(xpad/2)))
     corrected[:, 1] = np.add(-np.add(corrected[:, 1], xpad),1000)
 
     # import matplotlib.pyplot as plt
