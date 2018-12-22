@@ -13,8 +13,9 @@ from database.dj_config import start_connection
 
 def plot_all_trials():
     def plotter(ax1, ax2, color, x, y):
-        ax1.plot(x, y, color=color, alpha=.75)
-        ax2.plot(x, y, color=color, alpha=.35)
+        ax1.scatter(x, y, c=color, s=15, alpha=.75)
+        ax2.scatter(x, y, c=color, s=15, alpha=.35)
+
 
     # Get data from database
     experiments = Experiments()
@@ -81,12 +82,10 @@ def plot_all_trials():
                                                         60:stim['stim_start']+timewindow, 0]
                 y = stim_tracking[0]['tracking_data'][stim['stim_start'] -
                                                         60:stim['stim_start']+timewindow, 1]
+                v = stim_tracking[0]['tracking_data'][stim['stim_start'] -
+                                                      60:stim['stim_start']+timewindow, 2]                
                 
-                if exp['experiment_name'] in translators.keys():
-                    xpad, ypad = translators[exp['experiment_name']]
-                else:
-                    xpad, ypad = 0, 0 
-                plotter(axarr[i], axall, c, x+xpad, y+ypad)
+                plotter(axarr[i], axall, v, x, y)
 
         print('Experiment: ', exp['experiment_name'])
         axarr[i].set(title=exp['experiment_name'])
