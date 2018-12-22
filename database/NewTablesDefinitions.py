@@ -261,7 +261,7 @@ class TrackingData(dj.Computed):
 
     def make(self, key):
         self.define_bodysegments()
-        make_trackingdata_table(self, key, VideoFiles, CommonCoordinateMatrices, Templates)
+        make_trackingdata_table(self, key, VideoFiles, CommonCoordinateMatrices, Templates, Sessions)
 
 
 @schema
