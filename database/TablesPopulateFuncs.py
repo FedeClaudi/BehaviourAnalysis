@@ -765,6 +765,7 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
     session = [s for s in fetched_sessions if s['uid']==key['uid']][0]
     experiment = session['experiment_name']
 
+    if 'lambda' in experiment.lower(): return
 
     fast_mode = True
     # Check if we have all the data necessary to continue 
