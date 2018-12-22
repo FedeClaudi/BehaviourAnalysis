@@ -34,7 +34,7 @@ class analyse_all_trips:
 
             # Get all good trips
             self.all_trips = []
-            self.trip = namedtuple('trip', 'shelter_exit shelter_enter tracking_data is_trial recording_uid')
+            self.trip = namedtuple('trip', 'shelter_exit threat_exit shelter_enter tracking_data is_trial recording_uid')
             self.get_trips()
 
             # Insert good trips into trips table
@@ -121,19 +121,21 @@ class analyse_all_trips:
                 at_threat = [i for i in in_rois['threat'].ins
                             if i > sexit and i < next_in]
                 if at_threat:
-                    good_times.append((sexit, next_in))
+                    texit = at_threat[-1]
+                    good_times.append((sexit, texit, next_in))
 
             # Check if trip includes trial and add to al trips dictionary
             print(' ... checking if trials')
             for g in good_times:
                 rec_stimuli = self.stimuli.loc[self.stimuli['recording_uid'] == row['recording_uid']]
-                stims_in_time = [s for s in rec_stimuli['stim_start'].values if g[0]<s<g[1]]
+                stims_in_time = [s for s in rec_stimuli['stim_start'].values if g[0]<s<g[2]]
                 if stims_in_time:
                     has_stim = 'true'
                 else:
                     has_stim = 'false'
-                # 'shelter_exit shelter_enter tracking_data is_trial recording_uid'
-                self.all_trips.append(self.trip(g[0], g[1], tr[g[0]:g[1], :], has_stim, row['recording_uid']))
+
+                # 'shelter_exit  threat_exit, shelter_enter tracking_data is_trial recording_uid'
+                self.all_trips.append(self.trip(g[0], g[1], g[2], tr[g[0]:g[1], :], has_stim, row['recording_uid']))
 
             # Plot for debugging
             # f2, ax2 = plt.subplots()
@@ -161,15 +163,15 @@ class analyse_all_trips:
     #####################################################################
 
     def inspect_durations(self):
-        all_durations = np.subtract(self.trips['shelter_enter'].values, self.trips['shelter_exit'].values)
+        all_durations = np.subtract(self.trips['shelter_enter'].values, self.trips['threat_exit'].values)
         all_durations = np.divide(all_durations, 30)
 
         only_trials = self.trips.loc[self.trips['is_trial'] == 'true']
-        trials_durations = np.subtract(only_trials['shelter_enter'], only_trials['shelter_exit'])
+        trials_durations = np.subtract(only_trials['shelter_enter'], only_trials['threat_exit'])
         trials_durations = np.divide(trials_durations, 30)
 
         not_trials = self.trips.loc[self.trips['is_trial'] == 'false']
-        not_trials_durations = np.subtract(not_trials['shelter_enter'], not_trials['shelter_exit'])
+        not_trials_durations = np.subtract(not_trials['shelter_enter'], not_trials['threat_exit'])
         not_trials_durations = np.divide(not_trials_durations, 30)
 
 
@@ -181,14 +183,6 @@ class analyse_all_trips:
         ax.plot([np.median(trials_durations), np.median(trials_durations)], [0, 60], color=[.8, .4, .4], linewidth=2.5)
         ax.plot([np.median(not_trials_durations), np.median(not_trials_durations)], [0, 60], color=[.4, .4, .8], linewidth=2.5)
         ax.legend()
-
-        # f2, axarr = plt.subplots(1, 2)
-        # for trip in only_trials['tracking_data'].values:
-        #     axarr[0].plot(trip[:, 0], trip[:, 1], color=[.8, .4, .4])
-        #     axarr[0].set(title='trials', facecolor = [.2, .2, .2])
-        # for trip in not_trials['tracking_data'].values:
-        #     axarr[1].plot(trip[:, 0], trip[:, 1], color=[.8, .4, .4])
-        #     axarr[1].set(title='not trials', facecolor = [.2, .2, .2])
 
         plt.show()
 
