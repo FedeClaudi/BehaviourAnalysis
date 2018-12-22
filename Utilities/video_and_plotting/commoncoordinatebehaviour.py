@@ -66,7 +66,7 @@ def run(videopath, maze_model=None):
 
     # Call the registration function
     """
-        Credit to Philip Shamas (Branco Lab) -  https://github.com/BrancoLab/Common-Coordinate-Behaviour
+        Credit to Philip Shamash (Branco Lab) -  https://github.com/BrancoLab/Common-Coordinate-Behaviour
     """
     paths = load_yaml('paths.yml')
     savepath = paths['commoncoordinatebehaviourmatrices']

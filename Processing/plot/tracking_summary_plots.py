@@ -1,6 +1,5 @@
 import cv2
-from database.NewTablesDefinitions import *
-from database.dj_config import start_connection
+
 from nptdms import TdmsFile
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -9,6 +8,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 sys.path.append('./')
 
+from database.NewTablesDefinitions import *
+from database.dj_config import start_connection
 
 def plot_all_trials():
     def plotter(ax1, ax2, color, x, y):
@@ -81,10 +82,8 @@ def plot_all_trials():
                 plotter(axarr[i], axall, c, x, y)
 
         print('Experiment: ', exp['experiment_name'])
-        # axarr[i].set_ylim(axarr[i].get_ylim()[::-1])
         axarr[i].set(title=exp['experiment_name'])
 
-    # axarr[-1].set_ylim(axarr[-1].get_ylim()[::-1])
     axall.set(title='All experiments')
     plt.show()
     f.tight_layout()

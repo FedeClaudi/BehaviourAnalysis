@@ -1,10 +1,14 @@
-    # shelter roi 
-    # x - 248, width - 62
-    # y - 436, hieght - 128
+shelter:
+  x: 436
+  width: 128
+  y: 248
+  height: 62
 
-    # threat roi
-    # x - 623, width - 128
-    # y - 436, hieght - 127
+threat:
+  x: 436
+  width: 128
+  y: 624
+  height: 128
 
 
 
