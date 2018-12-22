@@ -19,17 +19,24 @@ class analyse_all_trips:
 
     """
 
-    def __init__(self):
-        # Get tracking data
-        all_bp_tracking = pd.DataFrame(TrackingData.BodyPartData.fetch())
-        self.tracking = all_bp_tracking.loc[all_bp_tracking['bpname'] == 'body']
+    def __init__(self, fill_in_table=True):
+        if fill_in_table:
+            # Get tracking data
+            all_bp_tracking = pd.DataFrame(TrackingData.BodyPartData.fetch())
+            self.tracking = all_bp_tracking.loc[all_bp_tracking['bpname'] == 'body']
+            self.stimuli = pd.DataFrame(BehaviourStimuli.fetch())
 
-        # Get ROIs coordinates
-        self.rois = self.get_rois()
+            # Get ROIs coordinates
+            self.rois = self.get_rois()
 
-        # Get all good trips
-        self.all_trips = {}
-        self.get_trips()
+            # Get all good trips
+            self.all_trips = []
+            self.trip = namedtuple('trip', 'shelter_exit shelter_enter tracking_data is_trial recording_uid')
+            self.get_trips()
+
+            # Insert good trips into trips table
+            self.table = AllTrips()
+            self.insert_trips_in_table()
 
     def get_rois(self):
         roi = namedtuple('roi', 'x0 x1 width y0 y1 height')
@@ -104,10 +111,16 @@ class analyse_all_trips:
                 if at_threat:
                     good_times.append((sexit, next_in))
 
-            # add to al trips dictionary
+            # Check if trip includes trial and add to al trips dictionary
             for g in good_times:
-                
-
+                rec_stimuli = self.stimuli.loc[self.stimuli[recording_uid] == row['recording_uid']]
+                stims_in_time = [s for s in rec_stimuli['stim_start'].values if g[0]<s<g[1]]
+                if stims_in_time:
+                    has_stim = True
+                else:
+                    has_stim = False
+                self.all_trips.append(
+                    self.trip(g[0], g[1], tr[g[0]:g[1], :]), has_stim, row['recording_uid'])
 
             # Plot for debugging
             # f2, ax2 = plt.subplots()
@@ -119,6 +132,12 @@ class analyse_all_trips:
             # ax.plot(np.add(all_signal, -5), 'k')
             # ax.legend()
             # plt.show()
+
+    def insert_trips_in_table(self):
+        for i, trip in enumerate(self.trips): 
+            key = dict(trip)
+            key['trip_id'] = i
+            self.table.insert1(key)
 
 
 if __name__ == '__main__':
