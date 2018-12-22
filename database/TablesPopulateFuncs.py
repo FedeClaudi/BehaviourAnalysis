@@ -222,8 +222,8 @@ def make_commoncoordinatematrices_table(table, key, sessions, videofiles):
         key {[dict]} -- [key attribute of table autopopulate method from dj]
     """
     # If an entry with the same date exists already, avoid re doing the points mapping
-    # this_date = [s for s in sessions.fetch(as_dict=True) if s['uid']==key['uid']][0]['date']
-    # old_entries = [e for e in sessions.fetch(as_dict=True) if e['uid'] in table.fetch('uid')]
+    this_date = [s for s in sessions.fetch(as_dict=True) if s['uid']==key['uid']][0]['date']
+    old_entries = [e for e in sessions.fetch(as_dict=True) if e['uid'] in table.fetch('uid')]
     
     if old_entries:
         old_entry = [o for o in old_entries if o['date']==this_date]
@@ -760,6 +760,7 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
 
 
 def make_trackingdata_table(table, key, videofiles, ccm_table, templates):
+    fast_mode = True
     # Check if we have all the data necessary to continue 
     try:
         vid, ccm = None, None
@@ -794,6 +795,8 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates):
     """
     bp_data = {}
     for bp in bodyparts:
+        if fast_mode:
+            if bp != 'body': continue
         print('     ... body part: ', bp)
         # Get XY pose and correct with CCM matrix
         xy = posedata[scorer[0], bp].drop(columns='likelihood')
@@ -830,32 +833,33 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates):
     """
         Loop over body segments and populate body semgents Part table
     """
-    for segment_name, (bp1, bp2) in table.segments.items():
-        print('     ... body segment: ', segment_name)
-        # get position of each bodypart as numpy array
-        bp1_data = np.array([bp_data[bp1]['x'], bp_data[bp1]['y']])
-        bp2_data = np.array([bp_data[bp2]['x'], bp_data[bp2]['y']])
+    if not fast_mode:
+        for segment_name, (bp1, bp2) in table.segments.items():
+            print('     ... body segment: ', segment_name)
+            # get position of each bodypart as numpy array
+            bp1_data = np.array([bp_data[bp1]['x'], bp_data[bp1]['y']])
+            bp2_data = np.array([bp_data[bp2]['x'], bp_data[bp2]['y']])
 
-        # Create dataframe with segment data and convert to dataframe
-        segment_data = {}
-        segment_data['length'] = calc_distance_between_points_two_vectors_2d(bp1_data.T, bp2_data.T)
-        try:
-            segment_data['theta'] = calc_angle_between_vectors_of_points_2d(bp1_data, bp2_data)
-            segment_data['angvel'] = calc_ang_velocity(segment_data['theta'])
-        except:
-            warnings.warn('Could not extract theta')
-            segment_data['theta'] = np.zeros((len(segment_data['length'])))
-            segment_data['angvel'] = np.zeros((len(segment_data['length'])))
+            # Create dataframe with segment data and convert to dataframe
+            segment_data = {}
+            segment_data['length'] = calc_distance_between_points_two_vectors_2d(bp1_data.T, bp2_data.T)
+            try:
+                segment_data['theta'] = calc_angle_between_vectors_of_points_2d(bp1_data, bp2_data)
+                segment_data['angvel'] = calc_ang_velocity(segment_data['theta'])
+            except:
+                warnings.warn('Could not extract theta')
+                segment_data['theta'] = np.zeros((len(segment_data['length'])))
+                segment_data['angvel'] = np.zeros((len(segment_data['length'])))
 
-        segment_data_df = pd.DataFrame.from_dict(segment_data)
+            segment_data_df = pd.DataFrame.from_dict(segment_data)
 
-        # Insert into part table
-        segment_key = key.copy()
-        segment_key['bp1'] = bp1
-        segment_key['bp2'] = bp2
-        segment_key['tracking_data'] = segment_data_df.values # ! check
+            # Insert into part table
+            segment_key = key.copy()
+            segment_key['bp1'] = bp1
+            segment_key['bp2'] = bp2
+            segment_key['tracking_data'] = segment_data_df.values # ! check
 
-        table.BodySegmentData.insert1(segment_key)
+            table.BodySegmentData.insert1(segment_key)
 
 
 

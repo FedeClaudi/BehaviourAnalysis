@@ -229,11 +229,12 @@ def correct_tracking_data(uncorrected, M, xpad, ypad):
     for framen in range(uncorrected.shape[0]):
         x,y = uncorrected[framen, 0], uncorrected[framen, 1]
         corrected[framen, :2]= (np.matmul(m3d, [x, y, 1]))[:2]
+        xpad_corr, ypad_corr = (np.matmul(m3d, [xpad, ypad, 1]))[:2]
 
     # Shift in X and Y according to how the frame was padded when creating the transform matrix
     # also flip and shift Y otherwise it'll be upside down
-    corrected[:, 0] = np.add(corrected[:, 0],  int(round(xpad/2)))
-    corrected[:, 1] = np.add(-np.add(corrected[:, 1], xpad),1000)
+    corrected[:, 0] = np.add(corrected[:, 0],  int(round(0)))
+    corrected[:, 1] = np.add(-np.add(corrected[:, 1], 0),1000)
 
     # import matplotlib.pyplot as plt
     # plt.plot(uncorrected[:, 0], uncorrected[:, 1])
