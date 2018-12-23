@@ -9,6 +9,7 @@ from collections import namedtuple
 from database.NewTablesDefinitions import *
 from database.dj_config import start_connection
 
+from Processing.tracking_stats.math_utils import line_smoother
 from Utilities.file_io.files_load_save import load_yaml
 
 class analyse_all_trips:
@@ -95,7 +96,7 @@ class analyse_all_trips:
                 in_y = np.where((cc.y1<=tr[:, 1]) & (tr[:, 1]<= cc.y0))
                 # in_xy = [p for p in in_x[0] if p in in_y[0]]
                 in_xy = np.intersect1d(in_x, in_y)
-                in_xy = in_xy[in_xy>10000]
+                in_xy = in_xy[in_xy>=9000]
 
                 # get times at which it enters and exits
                 xx = np.zeros(tr.shape[0])
@@ -163,26 +164,80 @@ class analyse_all_trips:
     #####################################################################
 
     def inspect_durations(self):
+        only_trials = self.trips.loc[self.trips['is_trial'] == 'true']
+        not_trials = self.trips.loc[self.trips['is_trial'] == 'false']
+
+        # Get durations
         all_durations = np.subtract(self.trips['shelter_enter'].values, self.trips['threat_exit'].values)
         all_durations = np.divide(all_durations, 30)
 
-        only_trials = self.trips.loc[self.trips['is_trial'] == 'true']
         trials_durations = np.subtract(only_trials['shelter_enter'], only_trials['threat_exit'])
         trials_durations = np.divide(trials_durations, 30)
 
-        not_trials = self.trips.loc[self.trips['is_trial'] == 'false']
         not_trials_durations = np.subtract(not_trials['shelter_enter'], not_trials['threat_exit'])
         not_trials_durations = np.divide(not_trials_durations, 30)
 
+        # Get velocities
+        all_vels, trials_vels, not_trials_vels = [], [], []
+        for idx, row in self.trips.iterrows():
+            vel = np.max(row['tracking_data'][:, 2])
+            if vel > 30: continue
+            all_vels.append(vel)
+            if row['is_trial'] == 'true':
+                trials_vels.append(vel)
+            else:
+                not_trials_vels.append(vel)
 
-        f, ax = plt.subplots()
-        ax.set(facecolor=[.2, .2, .2], title='Trips durations', ylabel='n', xlabel='s', xlim=[0, 150])
-        _, bins, _ = ax.hist(all_durations, bins=200, color=[.8, .8, .8], label=None, alpha=0)
-        ax.hist(trials_durations, bins=bins, color=[.8, .4, .4], alpha=.5, label='trials')
-        ax.hist(not_trials_durations, bins=bins, color=[.4, .4, .8], alpha=.5, label='not trials')
-        ax.plot([np.median(trials_durations), np.median(trials_durations)], [0, 60], color=[.8, .4, .4], linewidth=2.5)
-        ax.plot([np.median(not_trials_durations), np.median(not_trials_durations)], [0, 60], color=[.4, .4, .8], linewidth=2.5)
-        ax.legend()
+        # Plot
+        # f, axarr = plt.subplots(1, 2, facecolor=[.6, .6, .6])
+        # ax = axarr[0]
+        # ax.set(facecolor=[.2, .2, .2], title='Trips durations', ylabel='n', xlabel='s', xlim=[0, 60], ylim=[0, 80])
+        # _, bins, _ = ax.hist(all_durations, bins=200, color=[.8, .8, .8], label=None, alpha=0)
+        # ax.hist(trials_durations, bins=bins, color=[.8, .4, .4], alpha=.5, label='trials')
+        # ax.hist(not_trials_durations, bins=bins, color=[.4, .4, .8], alpha=.5, label='not trials')
+        # ax.plot([np.median(trials_durations), np.median(trials_durations)], [0, 60], color=[.8, .4, .4], linewidth=2.5)
+        # ax.plot([np.median(not_trials_durations), np.median(not_trials_durations)], [0, 60], color=[.4, .4, .8], linewidth=2.5)
+        # ax.legend()
+
+        # ax2 = axarr[1]
+        # ax2.set(facecolor=[.2, .2, .2], title='max vel', ylabel='n', xlabel='arbritary unit', xlim=[0, 20], ylim=[0, 100])
+        # _, bins, _ = ax2.hist(all_vels, bins=50, color=[.8, .8, .8], label=None, alpha=0)
+        # ax2.hist(trials_vels, bins=bins, color=[.8, .4, .4], alpha=.5, label='trials')
+        # ax2.hist(not_trials_vels, bins=bins, color=[.4, .4, .8], alpha=.5, label='not trials')
+        # ax2.plot([np.median(trials_vels), np.median(trials_vels)], [0, 30], color=[.8, .4, .4], linewidth=2.5)
+        # ax2.plot([np.median(not_trials_vels), np.median(not_trials_vels)], [0, 30], color=[.4, .4, .8], linewidth=2.5)
+        # ax2.legend()
+
+        # f2, ax3 = plt.subplots(facecolor=[.2, .2, .2])
+        # for idx, row in self.trips.iterrows():
+        #     x = row['tracking_data'][:, 0]
+        #     y = row['tracking_data'][:, 1]
+        #     v = row['tracking_data'][:, 2]
+        #     v.setflags(write=1)
+        #     v[v>30] = 30
+        #     ax3.scatter(x, y, c=v, s=5, cmap='Oranges')
+        # ax3.set(facecolor=[.2, .2, .2])
+
+        f3, axarr = plt.subplots(1, 2, facecolor=[.2, .2, .2])
+        
+        trials_vels, not_trials_vels = [], []
+        for idx, row in only_trials.iterrows():
+            v = row['tracking_data'][:, 2]
+            v.setflags(write=1)
+            v[v>30] = 30
+            lsv = line_smoother(v, order=11)
+            axarr[0].plot(lsv, linewidth=.5, color=[.8, .4, .4], alpha=.75)
+        axarr[0].set(title='trials', facecolor=[.2,.2, .2])
+        for idx, row in not_trials.iterrows():
+            v = row['tracking_data'][:, 2]
+            v.setflags(write=1)
+            v[v>30] = 30
+            lsv = line_smoother(v, order=11)
+            axarr[1].plot(lsv, linewidth=.5, color=[.4, .4, .8], alpha=.75)
+        axarr[1].set(title='not trials', facecolor=[.2,.2, .2])
+        # axarr[0].plot(np.mean(trials_vels))
+        # axarr[1].plot(np.mean(not_trials_vels))
+        
 
         plt.show()
 

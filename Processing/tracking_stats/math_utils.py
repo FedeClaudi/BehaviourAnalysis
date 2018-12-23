@@ -242,7 +242,7 @@ def correct_tracking_data(uncorrected, M, xpad, ypad, exp_name):
     translators = content['translators']
     x_translation, y_translation = translators[exp_name]
     
-    corrected[:, 0] = np.add(corrected[:, 0],  x_translation)
+    corrected[:, 0] = np.add(corrected[:, 0],  line)
     corrected[:, 1] = np.add(-np.add(corrected[:, 1], 0), 1000)
     corrected[:, 1] = np.add(corrected[:, 1], y_translation)
 
@@ -252,6 +252,27 @@ def correct_tracking_data(uncorrected, M, xpad, ypad, exp_name):
     # plt.plot(corrected[:, 0], corrected[:, 1])    
     # plt.show()
     return corrected
+
+def line_smoother(y, window_size=31, order=5, deriv=0, rate=1):
+    # Apply a Savitzy-Golay filter to smooth traces
+    order_range = range(order + 1)
+    half_window = (window_size - 1) // 2
+    # precompute coefficients
+    b = np.mat([[k ** i for i in order_range] for k in range(-half_window, half_window + 1)])
+    m = np.linalg.pinv(b).A[deriv] * rate ** deriv * factorial(deriv)
+    # pad the signal at the extremes with values taken from the signal itself
+    try:
+        firstvals = y[0] - np.abs(y[1:half_window + 1][::-1] - y[0])
+        lastvals = y[-1] + np.abs(y[-half_window - 1:-1][::-1] - y[-1])
+        y = np.concatenate((firstvals, y, lastvals))
+        return np.convolve(m[::-1], y, mode='valid')
+    except:
+        print('ops smoothing')
+        y = np.array(y)
+        firstvals = y[0] - np.abs(y[1:half_window + 1][::-1] - y[0])
+        lastvals = y[-1] + np.abs(y[-half_window - 1:-1][::-1] - y[-1])
+        y = np.concatenate((firstvals, y, lastvals))
+        return np.convolve(m[::-1], y, mode='valid')
 
 if __name__ == "__main__":
     import doctest
