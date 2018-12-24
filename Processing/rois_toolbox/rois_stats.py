@@ -1,5 +1,9 @@
+import sys
+sys.path.append('./')  
+from Utilities.file_io.files_load_save import load_yaml
 import numpy as np
-
+import cv2
+from collections import namedtuple
 
 """
     Functions to extract time spent by the mouse in each of a list of user defined ROIS 
@@ -22,8 +26,23 @@ import numpy as np
     
 """
 
+def load_rois(display=False):
+    components = load_yaml('Processing/rois_toolbox/template_components.yml')
+    rois = {}
+    # Get platforms
+    for pltf, (center, radius) in components['platforms'].items():
+        rois[pltf] = tuple(center)
 
-def get_roi_at_each_frame(bp_data, rois):
+    # Get bridges
+    for bridge, pts in components['bridges'].items():
+        x, y = zip(*pts)
+        center = (max(x)+min(x))/2., (max(y)+min(y))/2.
+        rois[bridge] =  center
+
+    if display:
+        [print('\n', n, ' - ', v) for n,v in rois.items()]
+
+def get_roi_at_each_frame(bp_data, rois=None):
     """
     Given position data for a bodypart and the position of a list of rois, this function calculates which roi is
     the closest to the bodypart at each frame
@@ -34,8 +53,10 @@ def get_roi_at_each_frame(bp_data, rois):
                     two points defyining the roi: topleft(X,Y) and bottomright(X,Y).
     :return: tuple, closest roi to the bodypart at each frame
     """
-
-    if not isinstance(rois, dict): raise ValueError('rois locations should be passed as a dictionary')
+    if rois is None:
+        rois = load_rois()
+    elif not isinstance(rois, dict): 
+        raise ValueError('rois locations should be passed as a dictionary')
 
     if not isinstance(bp_data, np.ndarray):
             pos = np.zeros((len(bp_data.x), 2))
@@ -127,7 +148,8 @@ def get_timeinrois_stats(data, rois, fps=None):
     return results
 
 
-
+if __name__ == "__main__":
+    load_rois(display=True)
 
 
 
