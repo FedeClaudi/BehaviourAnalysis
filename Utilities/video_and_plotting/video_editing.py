@@ -205,7 +205,7 @@ class VideoConverter:
         openingend = time.time()
         print('     ... memmap opening took: ', np.round(openingend-openstart, 2))
         print('Extracting data')
-        tdms = tdms.__dict__['objects']["/'cam0'/'data'"].data.reshape((tot_frames, props['height'], props['width'  order='C')
+        tdms = tdms.__dict__['objects']["/'cam0'/'data'"].data.reshape((tot_frames, props['height'], props['width']), order='C')
         tdms = tdms[:, :, :(props['width']+props['padding'])]  # reshape
 
         # Write to Video
@@ -221,7 +221,7 @@ class VideoConverter:
             # vid 1 will do A->B, vid2 B+1->C ...
             frame_numbers = [i for i in range(int(tot_frames))]
             splitted = np.array_split(frame_numbers, num_processes)
-            limits = [(int(x[0  int(x[-1])) for x in splitted]
+            limits = [(int(x[0]), int(x[-1])) for x in splitted]
             print(limits)
             
             # Create partial function

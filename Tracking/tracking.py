@@ -60,7 +60,7 @@ class SetUpTracking:
 if __name__ == "__main__":
     paths = load_yaml('paths.yml')
 
-    SetUpTracking(os.path.join(paths['raw_data_folder'], paths['raw_video_folder'  
+    SetUpTracking(os.path.join(paths['raw_data_folder'], paths['raw_video_folder']),
                   paths['dlc_config']) # , processedfolder= os.path.join(paths['raw_data_folder'], paths['raw_metadata_folder']))
 
 

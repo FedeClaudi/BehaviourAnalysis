@@ -130,7 +130,7 @@ class PopulateDatabase:
 
             # Insert into table
             session_data = dict(
-                uid = str(session['Sess.ID' 
+                uid = str(session['Sess.ID']), 
                 session_name=session_name,
                 mouse_id=original_idd,
                 date=session_date,

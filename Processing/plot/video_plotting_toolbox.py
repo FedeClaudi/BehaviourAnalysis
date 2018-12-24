@@ -39,7 +39,7 @@ def custom_plot_poly(frame, points_dict):
             bp1 = points_dict[seg.bp1]
             bp2 = points_dict[seg.bp2]
 
-            cv2.line(frame, (bp1[0], bp1[1  (bp2[0], bp2[1  color, lw)
+            cv2.line(frame, (bp1[0], bp1[1]),  (bp2[0], bp2[1]),  color, lw)
 
     segment = namedtuple('segment', 'bp1 bp2')
     head_segments = [segment('left_ear', 'snout'), segment('snout', 'right_ear'),
