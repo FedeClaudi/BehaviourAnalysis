@@ -192,19 +192,29 @@ class analyse_all_trips:
         self.velocities, self.vel_percentiles = {n:[] for n in names}, {n:[] for n in names}
         # Get velocities
         for idx, row in self.trips.iterrows():
-            self.velocities['all'].append(row['tracking_data'][:, 2])
-            self.vel_percentiles['all'].appen(np.percentile(vel, [25, 50, 75, 95]))
+            vel = row['tracking_data'][:, 2]
+            self.velocities['all'].append(vel)
+            self.vel_percentiles['all'].append(np.percentile(vel, 75))
     
             if row['is_trial'] == 'true':
                 key = 'trials'
             else:
                 key = 'not trials'
-            self.velocities[key].append(row['tracking_data'][:, 2])
-            self.vel_percentiles[key].append(np.percentile(vel, [25, 50, 75, 95]))
+            self.velocities[key].append(vel)
+            self.vel_percentiles[key].append(np.percentile(vel, 75))
+
+        f, ax = plt.subplots(facecolor=[.2, .2, .2])
+        _, bins, _ = ax.hist(np.array(self.vel_percentiles['trials']), color=[.8, .2, .2], alpha=.5, label='Trials')
+        ax.hist(np.array(self.vel_percentiles['not trials']), bins=bins, color=[.2, .2, .8], alpha=.5, label='Not trials')
+        ax.set(facecolor=[.2, .2, .2])
+        ax.legend()
+
+        plt.show()
 
     def get_maze_components():
         """get_maze_components [get the maze component the mouse is on at each frame]
         """
+        pass
 
 
 
@@ -212,10 +222,10 @@ if __name__ == '__main__':
     analyse_all_trips(erase_table=False, fill_in_table=False, run_analysis=True)
 
 
-       # Plot
-       # f, axarr = plt.subplots(1, 2, facecolor=[.6, .6, .6])
-       # ax = axarr[0]
-       # ax.set(facecolor=[.2, .2, .2], title='Trips durations', ylabel='n', xlabel='s', xlim=[0, 60], ylim=[0, 80])
+    # Plot
+    # f, axarr = plt.subplots(1, 2, facecolor=[.6, .6, .6])
+    # ax = axarr[0]
+    # ax.set(facecolor=[.2, .2, .2], title='Trips durations', ylabel='n', xlabel='s', xlim=[0, 60], ylim=[0, 80])
     # _, bins, _ = ax.hist(all_durations, bins=200, color=[.8, .8, .8], label=None, alpha=0)
     # ax.hist(trials_durations, bins=bins, color=[.8, .4, .4], alpha=.5, label='trials')
     # ax.hist(not_trials_durations, bins=bins, color=[.4, .4, .8], alpha=.5, label='not trials')
