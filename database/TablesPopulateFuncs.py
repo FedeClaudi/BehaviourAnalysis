@@ -592,8 +592,8 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
 
                 # Insert into table [video and converted are the same here]
                 view = namedtuple('view', 'camera video metadata pose')
-                views = [view('catwalk', catwalk, 'nan', views_poses['catwalk']),
-                        view('side_mirror', side, 'nan', views_poses['side_mirror']),
+                views = [view('catwalk', catwalk, 'nan', views_poses['catwalk' 
+                        view('side_mirror', side, 'nan', views_poses['side_mirror' 
                         view('top_mirror', top, 'nan', views_poses['top_mirror'])]
                 
                 for insert in views:

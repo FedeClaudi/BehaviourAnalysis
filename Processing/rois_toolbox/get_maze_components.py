@@ -145,9 +145,24 @@ def get_maze_configuration_transitions(video_path):
     plt.show()
 
 
+def display_maze_components():
+    background = cv2.imread('Utilities/video_and_plotting/mazemodel.png')
+    background = cv2.resize(background, (1000, 1000))
+
+    components = load_yaml('Processing/rois_toolbox/template_components.yml')
+
+    for pltf, (center, radius) in components['platforms'].items():
+        cv2.circle(background, tuple(center), radius, (255, 0, 0), 3)
+
+    for bridge, pts in components['bridges'].items():
+        pts = np.array(pts, np.int32)
+        pts = pts.reshape((-1, 1, 2))
+        cv2.polylines(background, [pts], True, (0, 0, 255), 2)
+
+    cv2.imshow('bg', background)
+    cv2.waitKey(0)
+
 if __name__ == "__main__":
-    test_file = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\to_sort\\181114_CA3155_1\\cam1.mp4'
-    # os.chd('Users/federicoclaudi/Desktop')
-    get_maze_configuration_transitions(test_file)
+    display_maze_components()
 
 

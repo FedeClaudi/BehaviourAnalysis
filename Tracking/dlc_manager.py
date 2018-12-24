@@ -182,7 +182,7 @@ class DLCManager:
         # create dict of labelled data folders
         updated_video_list = {}
         crop_dict_to_use = config_file['video_sets'][list(config_file['video_sets'].keys())[0]]
-        training_images_folder = os.path.join(os.path.dirname(self.dlc_paths['cfg_path']), 'labeled-data')
+        training_images_folder = os.path.join(os.path.dirname(self.dlc_paths['cfg_path'  'labeled-data')
         for i, folder in enumerate(os.listdir(training_images_folder)):
             if folder.find('labeled') < 0:
                 updated_video_list[os.path.join(self.dlc_paths['dr'], folder+'.'+self.settings['video_format'])] = crop_dict_to_use
@@ -197,7 +197,7 @@ class DLCManager:
             Deletes the img.png files that are called 'labeled'
             '''
             # go through folders containing training images
-            training_images_folder = os.path.join(os.path.dirname(self.dlc_paths['cfg_path']),'labeled-data')
+            training_images_folder = os.path.join(os.path.dirname(self.dlc_paths['cfg_path' 'labeled-data')
             for i, folder in enumerate(os.listdir(training_images_folder)):
                 if folder.find('labeled') < 0:
                     # for the unlabeled folders, delete the png images that are labeled

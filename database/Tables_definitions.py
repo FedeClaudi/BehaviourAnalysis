@@ -610,11 +610,11 @@ class TrackingData(dj.Computed):
 
     def get_body_segments(self):
         segments = dict(
-            Head=(self.attributes['Snout'], self.attributes['Neck']),
-            Ears=(self.attributes['LeftEar'], self.attributes['RightEar']),
-            UpperBody=(self.attributes['Neck'], self.attributes['Body']),
-            LowerBody=(self.attributes['Body'], self.attributes['TailBase']),
-            Tail=(self.attributes['TailBase'], self.attributes['Tail2']),
+            Head=(self.attributes['Snout'], self.attributes['Neck' 
+            Ears=(self.attributes['LeftEar'], self.attributes['RightEar' 
+            UpperBody=(self.attributes['Neck'], self.attributes['Body' 
+            LowerBody=(self.attributes['Body'], self.attributes['TailBase' 
+            Tail=(self.attributes['TailBase'], self.attributes['Tail2' 
         )
         return segments
 

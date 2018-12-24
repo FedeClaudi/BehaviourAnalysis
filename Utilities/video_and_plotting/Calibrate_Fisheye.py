@@ -148,8 +148,8 @@ class FisheyeCorrection:
             )
         print("Found " + str(N_OK) + " valid images for calibration")
         print("DIM=" + str(self._img_shape[::-1]))
-        print("K=np.array(" + str(self.K.tolist()) + ")")
-        print("D=np.array(" + str(self.D.tolist()) + ")")
+        print("K:" + str(self.K.tolist()) + ")")
+        print("D:" + str(self.D.tolist()) + ")")
 
     def test_calibration(self, display=True):
         # Display recalibrated images
