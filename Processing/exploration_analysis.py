@@ -16,6 +16,7 @@ from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier as DecTreC
 from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
 
 # from sklearn.tree import export_graphvize
 
@@ -354,7 +355,8 @@ class cluster_returns:
         self.anonymous_data.drop(['is trial'])
 
         # self.inspect_data()
-        self.kmeans()
+        # self.kmeans()
+        self.do_pca()
 
     def inspect_data(self):
         self.data.describe()
@@ -376,8 +378,7 @@ class cluster_returns:
 
         plt.show()
 
-    def kmeans(self):
-        
+    def kmeans(self):      
         # create kmeans object
         kmeans = KMeans(n_clusters=2)
         # fit kmeans object to data
@@ -389,6 +390,14 @@ class cluster_returns:
         # save new clusters for chart
         y_km = kmeans.fit_predict(points)
 
+    def do_pca(self):
+        x = self.anonymous_data.values
+        scaled = StandardScaler().fit_transform(x)
+        pca = PCA(n_components=2)
+        principalComponents = pca.fit_transform(scaled)
+        principalDf = pd.DataFrame(data = principalComponents, columns = ['principal component 1', 'principal component 2'])
+
+        a = 1
 
 if __name__ == '__main__':
     # analyse_all_trips(erase_table=True, fill_in_table=False, run_analysis=False)
