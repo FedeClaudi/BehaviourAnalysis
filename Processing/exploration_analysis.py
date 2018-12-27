@@ -50,8 +50,8 @@ class analyse_all_trips:
             self.trials = self.trips.loc[self.trips['is_trial'] == 'true']
             self.not_trials = self.trips.loc[self.trips['is_trial'] == 'false']
 
-            self.get_durations()
-            self.get_velocities()
+            # self.get_durations()
+            # self.get_velocities()
             self.analyse_roi_stay()
 
             plt.show()
