@@ -6,6 +6,16 @@ import matplotlib.patches as patches
 import pandas as pd
 from collections import namedtuple
 
+from sklearn.model_selection import train_test_split, cross_val_score, cross_val_predict
+from sklearn.metrics import confusion_matrix, precision_score, recall_score, precision_recall_curve, f1_score, roc_curve, roc_auc_score
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.linear_model import SGDClassifier, LogisticRegression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier as DecTreC
+from sklearn.tree import export_graphvize
+
 from database.NewTablesDefinitions import *
 from database.dj_config import start_connection
 
@@ -198,6 +208,13 @@ class analyse_all_trips:
         durs = np.subtract(t0, t1)
         return np.divide(durs, 30) # <- convert frames to seconds for 30fps recordings 
 
+    @staticmethod
+    def scale_data(d):
+        scaler = StandardScaler()
+        v = np.asarray(d).reshape((-1, 1))
+        scaled = scaler.fit_transform(v.astype(np.float64))
+        return scaled.flatten()
+
     def get_durations(self):
         """get_durations [get's the duration of each trip ]
         """
@@ -272,7 +289,10 @@ class analyse_all_trips:
             df_dict['length'].append(self.return_path_lengths['all'][i])
             df_dict['threat_stay'].append(self.threat_stay['all'][i])
 
-        return pd.DataFrame.from_dict(df_dict)
+        # scale
+        scaled_df_dict = {k: self.scale_data(np.array(v)) for k,v in df_dict.items()}
+
+        return pd.DataFrame.from_dict(scaled_df_dict)
 
     #####################################################################
     #####################################################################
