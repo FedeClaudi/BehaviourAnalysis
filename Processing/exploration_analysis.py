@@ -15,6 +15,8 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier as DecTreC
+from sklearn.cluster import KMeans
+
 # from sklearn.tree import export_graphvize
 
 from database.NewTablesDefinitions import *
@@ -348,8 +350,11 @@ class cluster_returns:
     def __init__(self):
         analysis = analyse_all_trips()
         self.data = analysis.returns_summary  # data is a dataframe with all the escapes measurements
+        self.anonymous_data = self.data.copy()
+        self.anonymous_data.drop(['is trial'])
 
-        self.inspect_data()
+        # self.inspect_data()
+        self.kmeans()
 
     def inspect_data(self):
         self.data.describe()
@@ -370,6 +375,19 @@ class cluster_returns:
         ax.hist(not_trials['threat_stay'].values, bins=bins, alpha=.5)
 
         plt.show()
+
+    def kmeans(self):
+        
+        # create kmeans object
+        kmeans = KMeans(n_clusters=2)
+        # fit kmeans object to data
+        kmeans.fit(self.anonymous_data)
+
+        # print location of clusters learned by kmeans object
+        # print(kmeans.cluster_centers_)
+
+        # save new clusters for chart
+        y_km = kmeans.fit_predict(points)
 
 
 if __name__ == '__main__':
