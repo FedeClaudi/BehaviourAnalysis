@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import pandas as pd
+from pandas.plotting import scatter_matrix
 from collections import namedtuple
 
 from sklearn.model_selection import train_test_split, cross_val_score, cross_val_predict
@@ -14,7 +15,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier as DecTreC
-from sklearn.tree import export_graphvize
+# from sklearn.tree import export_graphvize
 
 from database.NewTablesDefinitions import *
 from database.dj_config import start_connection
@@ -67,6 +68,8 @@ class analyse_all_trips:
             self.get_durations()
             self.analyse_roi_stay()
             self.analyse_return_path_length()
+
+            self.trial_stats = self.get_trial_stats()
 
             if plot:
                 # self.plot_all_trips()
@@ -228,6 +231,15 @@ class analyse_all_trips:
 
         self.plot_hist(self.durations, 'escape dur', nbins=500)
 
+    def get_trial_stats(self):
+        trials = []
+        for idx, row in self.trips.iterrows():
+            if row['is_trial'] == 'true':
+                trials.append(1)
+            else:
+                trials.append(0)
+        return trials
+
     def get_velocities(self):
         """
             get_velocities [get each velocity trace and the max vel percentiles for each trial]
@@ -288,11 +300,11 @@ class analyse_all_trips:
             df_dict['velocity'].append(self.vel_percentiles['all'][i])
             df_dict['length'].append(self.return_path_lengths['all'][i])
             df_dict['threat_stay'].append(self.threat_stay['all'][i])
-
+        df_dict['is trial'] = self.trial_stats
         # scale
-        scaled_df_dict = {k: self.scale_data(np.array(v)) for k,v in df_dict.items()}
+        # scaled_df_dict = {k: self.scale_data(np.array(v)) for k,v in df_dict.items()}
 
-        return pd.DataFrame.from_dict(scaled_df_dict)
+        return pd.DataFrame.from_dict(df_dict)
 
     #####################################################################
     #####################################################################
@@ -347,6 +359,15 @@ class cluster_returns:
         for k in self.corrr_mtx.keys():
             print('\n Correlation mtx for {}'.format(k))
             print(self.corrr_mtx[k])
+
+        # scatter_matrix(self.data, alpha=0.2, figsize=(6, 6), diagonal='kde')
+
+        f, ax = plt.subplots()
+        trials = self.data.loc[self.data['is trial'] == 1]
+        not_trials = self.data.loc[self.data['is trial'] == 0]
+
+        _, bins, _ = ax.hist(trials['threat_stay'].values, bins=100, alpha=.5)
+        ax.hist(not_trials['threat_stay'].values, bins=bins, alpha=.5)
 
         plt.show()
 
