@@ -21,7 +21,7 @@ class analyse_all_trips:
         plot shit
     """
 
-    def __init__(self, erase_table=False, fill_in_table=False, run_analysis=True):
+    def __init__(self, erase_table=False, fill_in_table=False, run_analysis=True, plot=True):
         if erase_table:
             AllTrips.drop()
 
@@ -57,9 +57,12 @@ class analyse_all_trips:
             self.analyse_roi_stay()
             self.analyse_return_path_length()
 
-            # self.plot_all_trips()
+            if plot:
+                # self.plot_all_trips()
+                self.plot = plot
+                plt.show()
 
-            plt.show()
+            self.returns_summary = create_summary_dataframe()
 
     #####################################################################
     #####################################################################
@@ -187,13 +190,13 @@ class analyse_all_trips:
     #####################################################################
     #####################################################################
     #####################################################################
+    
     @staticmethod
     def calc_dur(t0, t1):
         """get_durations [calcs the number os seconds between t1 and t0]
         """
         durs = np.subtract(t0, t1)
         return np.divide(durs, 30) # <- convert frames to seconds for 30fps recordings 
-
 
     def get_durations(self):
         """get_durations [get's the duration of each trip ]
@@ -240,7 +243,6 @@ class analyse_all_trips:
 
         return fast_returns
 
-
     def analyse_return_path_length(self):
         self.return_path_lengths = {}
         for k, vels in self.velocities.items():
@@ -262,7 +264,22 @@ class analyse_all_trips:
 
         self.plot_hist(self.threat_stay, title='in threat')
 
+    def create_summary_dataframe(self):
+        df_dict = {'duration':[], 'velocity':[], 'length':[], 'threat_stay':[]}
+        for i, duration in enumerate(self.durations[all]):
+            df_dict['duration'].append(duration)
+            df_dict['velocity'].append(self.vel_percentiles['all'][i])
+            df_dict['length'].append(self.return_path_lengths['all'][i])
+            df_dict['threat_stay'].append(self.threat_stay['all'][i])
+
+        return pd.DataFrame.from_dict(df_dict)
+
+    #####################################################################
+    #####################################################################
+    #####################################################################
+
     def plot_hist(self, var, title='', nbins = 500,  xlabel='seconds', xmax=45, density=False):
+        if not self.plot: return
         f, ax = plt.subplots(facecolor=[.2, .2, .2])
         _, bins, _ = ax.hist(np.array(var['trials']), bins=nbins,  color=[.8, .4, .4], alpha=.75, density=density, label='Trials')
         ax.hist(np.array(var['not trials']), bins=bins, color=[.4, .4, .8], alpha=.75, density=density, label='Not trials')
@@ -292,10 +309,29 @@ class analyse_all_trips:
             x, y = line_smoother(row['tracking_data'][:, 0]), line_smoother(row['tracking_data'][:, 1])
             ax.plot(np.add(x,(300*(c%5))), np.add(y, (200*(c%10))), color=col, alpha=.5)
 
+
+
+class cluster_returns:
+    def __init__(self):
+        analysis = analyse_all_trips()
+        data = analysis.returns_summary  # data is a dataframe with all the escapes measurements
+
+    def inspect_data(self):
+        self.data.describe()
+        self.data.hist()
+        self.data.plot(kind='scatter', x='adjusted x', y='adjusted y', alpha=.5)
+        self.corrr_mtx = self.data.corr()
+
+        for k in self.corrr_mtx.keys():
+            print('\n Correlation mtx for {}'.format(k))
+            print(self.corrr_mtx[k])
+
+
 if __name__ == '__main__':
     # analyse_all_trips(erase_table=True, fill_in_table=False, run_analysis=False)
     # analyse_all_trips(erase_table=False, fill_in_table=True, run_analysis=False)
-    analyse_all_trips(erase_table=False, fill_in_table=False, run_analysis=True)
+    # analyse_all_trips(erase_table=False, fill_in_table=False, run_analysis=True)
     
+    cluster_returns()
 
 
