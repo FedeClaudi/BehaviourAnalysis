@@ -21,7 +21,7 @@ class analyse_all_trips:
         plot shit
     """
 
-    def __init__(self, erase_table=False, fill_in_table=False, run_analysis=True, plot=True):
+    def __init__(self, erase_table=False, fill_in_table=False, run_analysis=True, plot=False):
         if erase_table:
             AllTrips.drop()
 
@@ -45,8 +45,9 @@ class analyse_all_trips:
             print(self.table)
 
         if run_analysis:
+            self.plot = plot
+
             self.trips = pd.DataFrame(AllTrips.fetch())
-            print(self.trips)
             self.trials = self.trips.loc[self.trips['is_trial'] == 'true']
             self.not_trials = self.trips.loc[self.trips['is_trial'] == 'false']
 
@@ -59,10 +60,9 @@ class analyse_all_trips:
 
             if plot:
                 # self.plot_all_trips()
-                self.plot = plot
                 plt.show()
 
-            self.returns_summary = create_summary_dataframe()
+            self.returns_summary = self.create_summary_dataframe()
 
     #####################################################################
     #####################################################################
@@ -266,7 +266,7 @@ class analyse_all_trips:
 
     def create_summary_dataframe(self):
         df_dict = {'duration':[], 'velocity':[], 'length':[], 'threat_stay':[]}
-        for i, duration in enumerate(self.durations[all]):
+        for i, duration in enumerate(self.durations['all']):
             df_dict['duration'].append(duration)
             df_dict['velocity'].append(self.vel_percentiles['all'][i])
             df_dict['length'].append(self.return_path_lengths['all'][i])
@@ -279,7 +279,8 @@ class analyse_all_trips:
     #####################################################################
 
     def plot_hist(self, var, title='', nbins = 500,  xlabel='seconds', xmax=45, density=False):
-        if not self.plot: return
+        if not self.plot: 
+            return
         f, ax = plt.subplots(facecolor=[.2, .2, .2])
         _, bins, _ = ax.hist(np.array(var['trials']), bins=nbins,  color=[.8, .4, .4], alpha=.75, density=density, label='Trials')
         ax.hist(np.array(var['not trials']), bins=bins, color=[.4, .4, .8], alpha=.75, density=density, label='Not trials')
@@ -314,17 +315,20 @@ class analyse_all_trips:
 class cluster_returns:
     def __init__(self):
         analysis = analyse_all_trips()
-        data = analysis.returns_summary  # data is a dataframe with all the escapes measurements
+        self.data = analysis.returns_summary  # data is a dataframe with all the escapes measurements
+
+        self.inspect_data()
 
     def inspect_data(self):
         self.data.describe()
         self.data.hist()
-        self.data.plot(kind='scatter', x='adjusted x', y='adjusted y', alpha=.5)
         self.corrr_mtx = self.data.corr()
 
         for k in self.corrr_mtx.keys():
             print('\n Correlation mtx for {}'.format(k))
             print(self.corrr_mtx[k])
+
+        plt.show()
 
 
 if __name__ == '__main__':
