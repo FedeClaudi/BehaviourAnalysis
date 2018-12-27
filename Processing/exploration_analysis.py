@@ -19,7 +19,6 @@ class analyse_all_trips:
         get all trips data from the database
         divide them based on arm of orgin and return and trial or not
         plot shit
-
     """
 
     def __init__(self, erase_table=False, fill_in_table=False, run_analysis=True):
@@ -37,7 +36,7 @@ class analyse_all_trips:
 
             # Get all good trips
             self.all_trips = []
-            self.trip = namedtuple('trip', 'shelter_exit threat_exit shelter_enter tracking_data is_trial recording_uid')
+            self.trip = namedtuple('trip', 'shelter_exit threat_enter threat_exit shelter_enter tracking_data is_trial recording_uid')
             self.get_trips()
 
             # Insert good trips into trips table
@@ -53,6 +52,9 @@ class analyse_all_trips:
 
             self.get_durations()
             self.get_velocities()
+            self.analyse_roi_stay()
+
+            plt.show()
 
     #####################################################################
     #####################################################################
@@ -125,11 +127,12 @@ class analyse_all_trips:
                     break
 
                 # Check if it reached the threat
-                at_threat = [i for i in in_rois['threat'].ins
-                            if i > sexit and i < next_in]
+                at_threat = [i for i in in_rois['threat'].ins if i > sexit and i < next_in]
+                
                 if at_threat:
                     texit = at_threat[-1]
-                    good_times.append((sexit, texit, next_in))
+                    tenter = at_threat[0]
+                    good_times.append((sexit, tenter, texit, next_in))
 
             # Check if trip includes trial and add to al trips dictionary
             print(' ... checking if trials')
@@ -141,8 +144,8 @@ class analyse_all_trips:
                 else:
                     has_stim = 'false'
 
-                # 'shelter_exit  threat_exit, shelter_enter tracking_data is_trial recording_uid'
-                self.all_trips.append(self.trip(g[0], g[1], g[2], tr[g[0]:g[1], :], has_stim, row['recording_uid']))
+                # shelter_exit threat_enter threat_exit shelter_enter tracking_data is_trial recording_uid
+                self.all_trips.append(self.trip(g[0], g[1], g[2], g[3], tr[g[0]:g[3], :], has_stim, row['recording_uid']))
 
             # Plot for debugging
             # f2, ax2 = plt.subplots()
@@ -185,14 +188,16 @@ class analyse_all_trips:
         self.durations['not trials'] = calc(self.not_trials['shelter_enter'], self.not_trials['threat_exit'])
 
     def get_velocities(self):
-        """get_velocities [get each velocity trace and the max vel percentiles for each trial]
         """
-
+            get_velocities [get each velocity trace and the max vel percentiles for each trial]
+        """
         names = ['all', 'trials', 'not trials']
         self.velocities, self.vel_percentiles = {n:[] for n in names}, {n:[] for n in names}
+        
         # Get velocities
         for idx, row in self.trips.iterrows():
             vel = row['tracking_data'][:, 2]
+            raise NotImplementedError('Adjust velocity to just get escape')
             self.velocities['all'].append(vel)
             self.vel_percentiles['all'].append(np.percentile(vel, 75))
     
@@ -203,24 +208,39 @@ class analyse_all_trips:
             self.velocities[key].append(vel)
             self.vel_percentiles[key].append(np.percentile(vel, 75))
 
-        f, ax = plt.subplots(facecolor=[.2, .2, .2])
-        _, bins, _ = ax.hist(np.array(self.vel_percentiles['trials']), color=[.8, .2, .2], alpha=.5, label='Trials')
-        ax.hist(np.array(self.vel_percentiles['not trials']), bins=bins, color=[.2, .2, .8], alpha=.5, label='Not trials')
-        ax.set(facecolor=[.2, .2, .2])
-        ax.legend()
-
-        plt.show()
+        self.plot_hist(self.vel_percentiles)
 
     def get_maze_components():
         """get_maze_components [get the maze component the mouse is on at each frame]
         """
         pass
 
+    def analyse_roi_stay(self):
+        names = ['all', 'trials', 'not trials']
+        self.threat_stay = {n:[] for n in names}
+
+        for idx, row in self.trips.iterrows():
+            dur = row['threat_exit'] - row['threat_enter']
+            self.threat_stay['all'] = dur
+            if row['is_trial'] == 'true':
+                key = 'trials'
+            else:
+                key = 'not trials'
+            self.threat_stay[key] = dur
+
+        self.plot_hist(self.threat_stay)
+
+    def plot_hist(self, var, title=''):
+        f, ax = plt.subplots(facecolor=[.2, .2, .2])
+        _, bins, _ = ax.hist(np.array(var['trials']), color=[.8, .2, .2], alpha=.5, label='Trials')
+        ax.hist(np.array(var['not trials']), bins=bins, color=[.2, .2, .8], alpha=.5, label='Not trials')
+        ax.set(facecolor=[.2, .2, .2], titile=title)
+        ax.legend()
 
 
 if __name__ == '__main__':
     analyse_all_trips(erase_table=False, fill_in_table=False, run_analysis=True)
-
+    
 
     # Plot
     # f, axarr = plt.subplots(1, 2, facecolor=[.6, .6, .6])
