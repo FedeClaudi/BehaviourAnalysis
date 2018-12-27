@@ -56,6 +56,7 @@ class analyse_all_trips:
             self.get_durations()
             self.analyse_roi_stay()
             self.analyse_return_path_length()
+
             # self.plot_all_trips()
 
             plt.show()
@@ -205,7 +206,7 @@ class analyse_all_trips:
         self.durations['not trials'] = self.calc_dur(self.not_trials['shelter_enter'], self.not_trials['threat_exit'])
         self.durations['fast not trials'] = self.calc_dur(self.fast_returns['shelter_enter'], self.fast_returns['threat_exit'])
 
-        self.plot_hist(self.durations, 'escape dur', nbins=200)
+        self.plot_hist(self.durations, 'escape dur', nbins=500)
 
     def get_velocities(self):
         """
@@ -228,10 +229,11 @@ class analyse_all_trips:
                 key = 'trials'
             else:
                 if perc > 7: 
-                    key= 'fast not trials'
+                    self.velocities['fast not trials'].append(vel)
+                    self.vel_percentiles['fast not trials'].append(perc)                    
                     fast_returns.append(row['trip_id'])
-                else:
-                    key = 'not trials'
+                    
+                key = 'not trials'
             self.velocities[key].append(vel)
             self.vel_percentiles[key].append(perc)
         self.plot_hist(self.vel_percentiles, title = 'Velocity 75th percentile', xlabel='px/frame', nbins=50)
@@ -260,14 +262,15 @@ class analyse_all_trips:
 
         self.plot_hist(self.threat_stay, title='in threat')
 
-    def plot_hist(self, var, title='', nbins = 100,  xlabel='seconds', xmax=45):
+    def plot_hist(self, var, title='', nbins = 500,  xlabel='seconds', xmax=45, density=False):
         f, ax = plt.subplots(facecolor=[.2, .2, .2])
-        _, bins, _ = ax.hist(np.array(var['trials']), bins=nbins,  color=[.8, .4, .4], alpha=.75, label='Trials')
-        ax.hist(np.array(var['not trials']), bins=bins, color=[.4, .4, .8], alpha=.75, label='Not trials')
+        _, bins, _ = ax.hist(np.array(var['trials']), bins=nbins,  color=[.8, .4, .4], alpha=.75, density=density, label='Trials')
+        ax.hist(np.array(var['not trials']), bins=bins, color=[.4, .4, .8], alpha=.75, density=density, label='Not trials')
         if 'fast not trials' in var.keys():
-            ax.hist(np.array(var['fast not trials']), bins=bins, color=[.4, .8, .4], alpha=.55, label='Fast Not trials')
+            ax.hist(np.array(var['fast not trials']), bins=bins, color=[.4, .8, .4], alpha=.55, density=density, label='Fast Not trials')
         ax.set(facecolor=[.2, .2, .2], title=title, xlim=[0, xmax], xlabel=xlabel)
         ax.legend()
+
 
     def plot_all_trips(self):
         c0,c1 = 0, 0
