@@ -50,9 +50,13 @@ class analyse_all_trips:
             self.trials = self.trips.loc[self.trips['is_trial'] == 'true']
             self.not_trials = self.trips.loc[self.trips['is_trial'] == 'false']
 
-            # self.get_durations()
-            # self.get_velocities()
+            fast_returns_ids = self.get_velocities()
+            self.fast_returns = self.trips.loc[self.trips['trip_id'].isin(fast_returns_ids)]
+
+            self.get_durations()
             self.analyse_roi_stay()
+            self.analyse_return_path_length()
+            # self.plot_all_trips()
 
             plt.show()
 
@@ -100,8 +104,10 @@ class analyse_all_trips:
             print('  ... getting times in rois')
             for i, (roi, cc) in enumerate(self.rois.items()):
                 # Get time points i which mouse is in roi
-                in_x =np.where((cc.x0<=tr[:, 0]) & (tr[:, 0]<= cc.x1))
-                in_y = np.where((cc.y1<=tr[:, 1]) & (tr[:, 1]<= cc.y0))
+                x = line_smoother(tr[:, 0])
+                y = line_smoother(tr[:, 1])
+                in_x =np.where((cc.x0<=x) & (x<= cc.x1))
+                in_y = np.where((cc.y1<=y) & (y<= cc.y0))
                 # in_xy = [p for p in in_x[0] if p in in_y[0]]
                 in_xy = np.intersect1d(in_x, in_y)
                 in_xy = in_xy[in_xy>=9000]
@@ -113,7 +119,7 @@ class analyse_all_trips:
                 enters, exits = np.where(np.diff(xx)>0)[0], np.where(np.diff(xx)<0)[0]
                 in_rois[roi] = in_roi(list(enters), list(exits))
                 
-                # test_plot_rois_on_trace(tr[:,0], tr[:, 1], self.rois, in_x, in_y,  when_in_rois[roi])
+                # test_plot_rois_on_trace(x, y, self.rois, in_x, in_y,  when_in_rois[roi])
 
 
             # get complete s-t-s trips
@@ -130,9 +136,29 @@ class analyse_all_trips:
                 at_threat = [i for i in in_rois['threat'].ins if i > sexit and i < next_in]
                 
                 if at_threat:
-                    texit = at_threat[-1]
                     tenter = at_threat[0]
-                    good_times.append((sexit, tenter, texit, next_in))
+                    try:
+                        texit = [t for t in in_rois['threat'].outs if t>tenter and t<next_in][-1]
+                    except:
+                        pass
+                    else:
+                        # if texit-tenter < 30: 
+                        #     f, ax = plt.subplots()
+                        #     ax.set(facecolor=[.2, .2, .2])
+                        #     ax.plot(x, y, color=[.8, .8, .8], linewidth=1)
+                        #     for roi, cc in self.rois.items():
+                        #         rect = patches.Rectangle((cc.x0,cc.y0), cc.width,-cc.height,linewidth=1,edgecolor='b',facecolor='none', label=roi)
+                        #         ax.add_patch(rect)  
+                        #     ax.plot(x[sexit:next_in], y[sexit:next_in], 'g', linewidth=7)
+                        #     for i, t in enumerate(at_threat):
+                        #         if i == 0:
+                        #             s=200
+                        #         elif i == len(at_threat):
+                        #             s=100
+                        #         else:
+                        #             s=50
+                        #         ax.scatter(x[t], y[t], s=s, color='r')
+                        good_times.append((sexit, tenter, texit, next_in))
 
             # Check if trip includes trial and add to al trips dictionary
             print(' ... checking if trials')
@@ -147,17 +173,6 @@ class analyse_all_trips:
                 # shelter_exit threat_enter threat_exit shelter_enter tracking_data is_trial recording_uid
                 self.all_trips.append(self.trip(g[0], g[1], g[2], g[3], tr[g[0]:g[3], :], has_stim, row['recording_uid']))
 
-            # Plot for debugging
-            # f2, ax2 = plt.subplots()
-            # for good in good_times:
-            #     ax.plot([good[0], good[1]], [-2, -2], 'g')    
-            #     # ax2.plot(tr[good[0]:good[1],0], tr[good[0]:good[1],1])
-            #     ax2.hist(durs)
-
-            # ax.plot(np.add(all_signal, -5), 'k')
-            # ax.legend()
-            # plt.show()
-
     def insert_trips_in_table(self):
         for i, trip in enumerate(self.all_trips): 
             key = trip._asdict()
@@ -171,44 +186,65 @@ class analyse_all_trips:
     #####################################################################
     #####################################################################
     #####################################################################
+    @staticmethod
+    def calc_dur(t0, t1):
+        """get_durations [calcs the number os seconds between t1 and t0]
+        """
+        durs = np.subtract(t0, t1)
+        return np.divide(durs, 30) # <- convert frames to seconds for 30fps recordings 
+
 
     def get_durations(self):
         """get_durations [get's the duration of each trip ]
         """
-        def calc(t0, t1):
-            """get_durations [calcs the number os seconds between t1 and t0]
-            """
-            durs = np.subtract(t1, t0)
-            return np.divide(durs, 30) # <- convert frames to seconds for 30fps recordings 
 
         # Get durations
         self.durations={}
-        self.durations['all'] = calc(self.trips['shelter_enter'], self.trips['threat_exit'])
-        self.durations['trials'] = calc(self.trials['shelter_enter'], self.trials['threat_exit'])
-        self.durations['not trials'] = calc(self.not_trials['shelter_enter'], self.not_trials['threat_exit'])
+        self.durations['all'] = self.calc_dur(self.trips['shelter_enter'], self.trips['threat_exit'])
+        self.durations['trials'] = self.calc_dur(self.trials['shelter_enter'], self.trials['threat_exit'])
+        self.durations['not trials'] = self.calc_dur(self.not_trials['shelter_enter'], self.not_trials['threat_exit'])
+        self.durations['fast not trials'] = self.calc_dur(self.fast_returns['shelter_enter'], self.fast_returns['threat_exit'])
+
+        self.plot_hist(self.durations, 'escape dur', nbins=200)
 
     def get_velocities(self):
         """
             get_velocities [get each velocity trace and the max vel percentiles for each trial]
         """
-        names = ['all', 'trials', 'not trials']
+        names = ['all', 'trials', 'not trials', 'fast not trials']
         self.velocities, self.vel_percentiles = {n:[] for n in names}, {n:[] for n in names}
         
-        # Get velocities
+        # Get 
+        fast_returns = []
         for idx, row in self.trips.iterrows():
-            vel = row['tracking_data'][:, 2]
-            raise NotImplementedError('Adjust velocity to just get escape')
+            vel = row['tracking_data'][row['threat_exit']-row['shelter_exit']:, 2]
+            vel.flags.writeable = True
+            vel[vel > 20] = 20
+            perc = np.percentile(vel, 75)
             self.velocities['all'].append(vel)
-            self.vel_percentiles['all'].append(np.percentile(vel, 75))
+            self.vel_percentiles['all'].append(perc)
     
             if row['is_trial'] == 'true':
                 key = 'trials'
             else:
-                key = 'not trials'
+                if perc > 7: 
+                    key= 'fast not trials'
+                    fast_returns.append(row['trip_id'])
+                else:
+                    key = 'not trials'
             self.velocities[key].append(vel)
-            self.vel_percentiles[key].append(np.percentile(vel, 75))
+            self.vel_percentiles[key].append(perc)
+        self.plot_hist(self.vel_percentiles, title = 'Velocity 75th percentile', xlabel='px/frame', nbins=50)
 
-        self.plot_hist(self.vel_percentiles)
+        return fast_returns
+
+
+    def analyse_return_path_length(self):
+        self.return_path_lengths = {}
+        for k, vels in self.velocities.items():
+            self.return_path_lengths[k] = [np.sum(v) for v in vels] 
+
+        self.plot_hist(self.return_path_lengths, title='return path length', xlabel='px', xmax=2000)
 
     def get_maze_components():
         """get_maze_components [get the maze component the mouse is on at each frame]
@@ -216,78 +252,47 @@ class analyse_all_trips:
         pass
 
     def analyse_roi_stay(self):
-        names = ['all', 'trials', 'not trials']
-        self.threat_stay = {n:[] for n in names}
+        self.threat_stay={}
+        self.threat_stay['all'] = self.calc_dur(self.trips['threat_exit'], self.trips['threat_enter'])
+        self.threat_stay['trials'] = self.calc_dur(self.trials['threat_exit'], self.trials['threat_enter'])
+        self.threat_stay['not trials'] = self.calc_dur(self.not_trials['threat_exit'], self.not_trials['threat_enter'])
+        self.threat_stay['fast not trials'] = self.calc_dur(self.fast_returns['threat_exit'], self.fast_returns['threat_enter'])
 
-        for idx, row in self.trips.iterrows():
-            dur = row['threat_exit'] - row['threat_enter']
-            self.threat_stay['all'] = dur
-            if row['is_trial'] == 'true':
-                key = 'trials'
-            else:
-                key = 'not trials'
-            self.threat_stay[key] = dur
+        self.plot_hist(self.threat_stay, title='in threat')
 
-        self.plot_hist(self.threat_stay)
-
-    def plot_hist(self, var, title=''):
+    def plot_hist(self, var, title='', nbins = 100,  xlabel='seconds', xmax=45):
         f, ax = plt.subplots(facecolor=[.2, .2, .2])
-        _, bins, _ = ax.hist(np.array(var['trials']), color=[.8, .2, .2], alpha=.5, label='Trials')
-        ax.hist(np.array(var['not trials']), bins=bins, color=[.2, .2, .8], alpha=.5, label='Not trials')
-        ax.set(facecolor=[.2, .2, .2], titile=title)
+        _, bins, _ = ax.hist(np.array(var['trials']), bins=nbins,  color=[.8, .4, .4], alpha=.75, label='Trials')
+        ax.hist(np.array(var['not trials']), bins=bins, color=[.4, .4, .8], alpha=.75, label='Not trials')
+        if 'fast not trials' in var.keys():
+            ax.hist(np.array(var['fast not trials']), bins=bins, color=[.4, .8, .4], alpha=.55, label='Fast Not trials')
+        ax.set(facecolor=[.2, .2, .2], title=title, xlim=[0, xmax], xlabel=xlabel)
         ax.legend()
 
+    def plot_all_trips(self):
+        c0,c1 = 0, 0
+        f,axarr = plt.subplots(1, 2)
+        for idx, row in self.trips.iterrows():
+            if row['is_trial'] == 'true':
+                key = 'trials'
+                col = [.8, .4, .4]
+                ax = axarr[0]
+                c = c0
+                c0 += 1
+            else:
+                key = 'not trials' 
+                col = [.4, .4, .8]
+                ax = axarr[1]
+                c = c1
+                c1 += 1
+            
+            x, y = line_smoother(row['tracking_data'][:, 0]), line_smoother(row['tracking_data'][:, 1])
+            ax.plot(np.add(x,(300*(c%5))), np.add(y, (200*(c%10))), color=col, alpha=.5)
 
 if __name__ == '__main__':
+    # analyse_all_trips(erase_table=True, fill_in_table=False, run_analysis=False)
+    # analyse_all_trips(erase_table=False, fill_in_table=True, run_analysis=False)
     analyse_all_trips(erase_table=False, fill_in_table=False, run_analysis=True)
     
 
-    # Plot
-    # f, axarr = plt.subplots(1, 2, facecolor=[.6, .6, .6])
-    # ax = axarr[0]
-    # ax.set(facecolor=[.2, .2, .2], title='Trips durations', ylabel='n', xlabel='s', xlim=[0, 60], ylim=[0, 80])
-    # _, bins, _ = ax.hist(all_durations, bins=200, color=[.8, .8, .8], label=None, alpha=0)
-    # ax.hist(trials_durations, bins=bins, color=[.8, .4, .4], alpha=.5, label='trials')
-    # ax.hist(not_trials_durations, bins=bins, color=[.4, .4, .8], alpha=.5, label='not trials')
-    # ax.plot([np.median(trials_durations), np.median(trials_durations)], [0, 60], color=[.8, .4, .4], linewidth=2.5)
-    # ax.plot([np.median(not_trials_durations), np.median(not_trials_durations)], [0, 60], color=[.4, .4, .8], linewidth=2.5)
-    # ax.legend()
 
-    # ax2 = axarr[1]
-    # ax2.set(facecolor=[.2, .2, .2], title='max vel', ylabel='n', xlabel='arbritary unit', xlim=[0, 20], ylim=[0, 100])
-    # _, bins, _ = ax2.hist(all_vels, bins=50, color=[.8, .8, .8], label=None, alpha=0)
-    # ax2.hist(trials_vels, bins=bins, color=[.8, .4, .4], alpha=.5, label='trials')
-    # ax2.hist(not_trials_vels, bins=bins, color=[.4, .4, .8], alpha=.5, label='not trials')
-    # ax2.plot([np.median(trials_vels), np.median(trials_vels)], [0, 30], color=[.8, .4, .4], linewidth=2.5)
-    # ax2.plot([np.median(not_trials_vels), np.median(not_trials_vels)], [0, 30], color=[.4, .4, .8], linewidth=2.5)
-    # ax2.legend()
-
-    # f2, ax3 = plt.subplots(facecolor=[.2, .2, .2])
-    # for idx, row in self.trips.iterrows():
-    #     x = row['tracking_data'][:, 0]
-    #     y = row['tracking_data'][:, 1]
-    #     v = row['tracking_data'][:, 2]
-    #     v.setflags(write=1)
-    #     v[v>30] = 30
-    #     ax3.scatter(x, y, c=v, s=5, cmap='Oranges')
-    # ax3.set(facecolor=[.2, .2, .2])
-
-    # f3, axarr = plt.subplots(1, 2, facecolor=[.2, .2, .2])
-
-    # trials_vels, not_trials_vels = [], []
-    # for idx, row in trials.iterrows():
-    #     v = row['tracking_data'][:, 2]
-    #     v.setflags(write=1)
-    #     v[v>30] = 30
-    #     lsv = line_smoother(v, order=11)
-    #     axarr[0].plot(lsv, linewidth=.5, color=[.8, .4, .4], alpha=.75)
-    # axarr[0].set(title='trials', facecolor=[.2,.2, .2])
-    # for idx, row in not_trials.iterrows():
-    #     v = row['tracking_data'][:, 2]
-    #     v.setflags(write=1)
-    #     v[v>30] = 30
-    #     lsv = line_smoother(v, order=11)
-    #     axarr[1].plot(lsv, linewidth=.5, color=[.4, .4, .8], alpha=.75)
-    # axarr[1].set(title='not trials', facecolor=[.2,.2, .2])
-    # axarr[0].plot(np.mean(trials_vels))
-    # axarr[1].plot(np.mean(not_trials_vels))
