@@ -414,15 +414,44 @@ class cluster_returns:
         plt.show()
         
 
+    def plot_pca(self, df):
+        f, axarr = plt.subplots(2, 2, figsize=(16, 16), facecolor=[.2, .2, .2])
+        axarr = axarr.flatten()
+        d1 = dict(trials=(1, [.8, .4, .4], .8), not_trials=(0, [.4, .4, .4], .05))
+        d2 = dict(not_trials=(0, [.4, .4, .8], .8), trials=(1, [.4, .4, .4], .05),)
+        d3 = dict(not_trials=(0, [.4, .4, .8], .8), trials=(1, [.8, .4, .4], .8),)
+        dd = [d1, d2, d3]
+
+        for ii, d in enumerate(dd):
+            ax = axarr[ii]
+            ax.set(facecolor=[.2, .2, .2])
+            for n, (i, c, a) in d.items():
+                indicesToKeep = df['is trial'] == i
+                ax.scatter(df.loc[indicesToKeep, 'principal component 1']
+                    , df.loc[indicesToKeep, 'principal component 2']
+                    , c = c, alpha=a, s = 30, label=n)
+            
+            # Plot a line
+            intercept, slope = -0.3, 0.75
+            axes = plt.gca()
+            x_vals = np.array([-4, 15])
+            y_vals = intercept + slope * x_vals
+            ax.plot(x_vals, y_vals, '--', color=[.4, .8, .4], linewidth=3)
+            
+            ax.legend()
+        plt.show()
+
     def do_pca(self):
         x = self.anonymous_data.values
         scaled = StandardScaler().fit_transform(x)
+        
         pca = PCA(n_components=2)
         principalComponents = pca.fit_transform(scaled)
         principalDf = pd.DataFrame(data = principalComponents, columns = ['principal component 1', 'principal component 2'])
+        finalDf = pd.concat([principalDf, self.data['is trial']], axis = 1)
 
-        a = 1
-        
+        self.plot_pca(finalDf)
+
 
 if __name__ == '__main__':
     # analyse_all_trips(erase_table=True, fill_in_table=False, run_analysis=False)
