@@ -6,6 +6,7 @@ import matplotlib.patches as patches
 import pandas as pd
 from pandas.plotting import scatter_matrix
 from collections import namedtuple
+from itertools import combinations
 
 from sklearn.model_selection import train_test_split, cross_val_score, cross_val_predict
 from sklearn.metrics import confusion_matrix, precision_score, recall_score, precision_recall_curve, f1_score, roc_curve, roc_auc_score
@@ -352,7 +353,7 @@ class cluster_returns:
         analysis = analyse_all_trips()
         self.data = analysis.returns_summary  # data is a dataframe with all the escapes measurements
         self.anonymous_data = self.data.copy()
-        self.anonymous_data.drop(['is trial'])
+        self.anonymous_data.drop(['is trial'], 1)
 
         # self.inspect_data()
         # self.kmeans()
@@ -367,16 +368,27 @@ class cluster_returns:
             print('\n Correlation mtx for {}'.format(k))
             print(self.corrr_mtx[k])
 
-        # scatter_matrix(self.data, alpha=0.2, figsize=(6, 6), diagonal='kde')
+        scatter_matrix(self.data, alpha=0.2, figsize=(6, 6), diagonal='kde')
 
-        f, ax = plt.subplots()
         trials = self.data.loc[self.data['is trial'] == 1]
         not_trials = self.data.loc[self.data['is trial'] == 0]
 
-        _, bins, _ = ax.hist(trials['threat_stay'].values, bins=100, alpha=.5)
-        ax.hist(not_trials['threat_stay'].values, bins=bins, alpha=.5)
+        f, axarr = plt.subplots(3, 2, facecolor=[.2, .2, .2])
+        axarr = axarr.flatten()
+        combs = combinations(list(self.anonymous_data.columns), 2)
+        counter = 0
+        for i, (c1, c2) in enumerate(combs):
+            if 'trial' in c1 or 'trial' in c2: continue
+            ax = axarr[counter]
+            counter += 1
+            ax.set(facecolor=[.2, .2, .2], title='{}-{}'.format(c1, c2), xlabel=c1, ylabel=c2)
+            ax.scatter(trials[c1].values, trials[c2].values, c=[.8, .2, .2], alpha=.2)
+            ax.scatter(not_trials[c1].values, not_trials[c2].values, c=[.2, .2, .8], alpha=.2)
+    
+        # _, bins, _ = ax.hist(trials['threat_stay'].values, bins=100, alpha=.5)
+        # ax.hist(not_trials['threat_stay'].values, bins=bins, alpha=.5)
 
-        plt.show()
+        # plt.show()
 
     def kmeans(self):      
         # create kmeans object
@@ -388,7 +400,19 @@ class cluster_returns:
         # print(kmeans.cluster_centers_)
 
         # save new clusters for chart
-        y_km = kmeans.fit_predict(points)
+        y_km = kmeans.fit_predict(self.anonymous_data)
+        # check results
+        trials = self.data.loc[self.data['is trial'] == 1]
+        maybe_trials = self.data.loc[y_km == 1]
+
+        f, axarr = plt.subplots(5, 1)
+        for i, k in enumerate(self.data.columns):
+            if 'trial' in k: continue
+            ax = axarr[i]
+            _, bins, _ = ax.hist(trials[k].values, bins=100, alpha=.5)
+            ax.hist(maybe_trials[k].values, bins=bins, alpha=.5)
+        plt.show()
+        
 
     def do_pca(self):
         x = self.anonymous_data.values
@@ -398,6 +422,7 @@ class cluster_returns:
         principalDf = pd.DataFrame(data = principalComponents, columns = ['principal component 1', 'principal component 2'])
 
         a = 1
+        
 
 if __name__ == '__main__':
     # analyse_all_trips(erase_table=True, fill_in_table=False, run_analysis=False)
