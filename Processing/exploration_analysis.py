@@ -63,14 +63,16 @@ class analyse_all_trips:
 
         if run_analysis:
             self.plot = plot
-
+            self.names = ['all', 'trials', 'not trials', 'fast not trials', 'all fasts', 'all slows']
             self.trips = pd.DataFrame(AllTrips.fetch())
             self.trials = self.trips.loc[self.trips['is_trial'] == 'true']
             self.not_trials = self.trips.loc[self.trips['is_trial'] == 'false']
 
             fast_returns_ids, all_fasts = self.get_velocities()
+            all_slows = [i for i in self.trips['trip_id'] if i not in all_fasts]
             self.fast_returns = self.trips.loc[self.trips['trip_id'].isin(fast_returns_ids)]
             self.all_fasts = self.trips.loc[self.trips['trip_id'].isin(all_fasts)]
+            self.all_slows = self.trips.loc[self.trips['trip_id'].isin(all_slows)]
 
             self.get_durations()
             self.analyse_roi_stay()
@@ -237,6 +239,8 @@ class analyse_all_trips:
         self.durations['trials'] = self.calc_dur(self.trials['shelter_enter'], self.trials['threat_exit'])
         self.durations['not trials'] = self.calc_dur(self.not_trials['shelter_enter'], self.not_trials['threat_exit'])
         self.durations['fast not trials'] = self.calc_dur(self.fast_returns['shelter_enter'], self.fast_returns['threat_exit'])
+        self.durations['all fast'] = self.calc_dur(self.all_fast['shelter_enter'], self.all_fast['threat_exit'])
+        self.durations['all slows'] = self.calc_dur(self.all_slows['shelter_enter'], self.all_slows['threat_exit'])
 
         self.plot_hist(self.durations, 'escape dur', nbins=500)
 
@@ -271,8 +275,7 @@ class analyse_all_trips:
         """
             get_velocities [get each velocity trace and the max vel percentiles for each trial]
         """
-        names = ['all', 'trials', 'not trials', 'fast not trials', 'all_fast', 'all_slow']
-        self.velocities, self.vel_percentiles = {n:[] for n in names}, {n:[] for n in names}
+        self.velocities, self.vel_percentiles = {n:[] for n in self.names}, {n:[] for n in nself.ames}
         
         which_are_fast = [] # for each return,mark if it was fast or not
 
@@ -287,8 +290,12 @@ class analyse_all_trips:
             
             if perc>7:
                 which_are_fast.append(1)
+                self.velocities['all fasts'].append(vel)
+                self.vel_percentiles['all fasts'].append(perc)
             else:
                 which_are_fast.append(0)
+                self.velocities['all slows'].append(vel)
+                self.vel_percentiles['all slows'].append(perc)
             
             self.velocities['all'].append(vel)
             self.vel_percentiles['all'].append(perc)
@@ -404,6 +411,13 @@ class analyse_all_trips:
             ax.hist(np.array(var['fast not trials']), bins=bins, color=[.4, .8, .4], alpha=.45, density=density, label='Fast Not trials')
         ax.set(facecolor=[.2, .2, .2], title=title, xlim=[0, xmax], xlabel=xlabel)
         ax.legend()
+
+        # Plot by Fast vs Slow
+        ax = axarr[3]
+        if 'all fasts' in var.keys():
+            ax.hist(np.array(var['all fasts']), bins=bins,  color='m', alpha=.75, density=density, label='Fast')
+            ax.hist(np.array(var['all slows']), bins=bins,  color='y', alpha=.75, density=density, label='Slow')
+            ax.legend()
 
 
     def plot_all_trips(self):
