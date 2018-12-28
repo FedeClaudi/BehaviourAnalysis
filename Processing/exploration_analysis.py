@@ -7,6 +7,7 @@ import pandas as pd
 from pandas.plotting import scatter_matrix
 from collections import namedtuple
 from itertools import combinations
+from scipy.stats import gaussian_kde
 
 from sklearn.model_selection import train_test_split, cross_val_score, cross_val_predict
 from sklearn.metrics import confusion_matrix, precision_score, recall_score, precision_recall_curve, f1_score, roc_curve, roc_auc_score
@@ -411,11 +412,16 @@ class cluster_returns:
         analysis = analyse_all_trips()
         self.data = analysis.returns_summary  # data is a dataframe with all the escapes measurements
         self.anonymous_data = self.data.copy()
-        self.anonymous_data = self.anonymous_data.drop(['is trial'], 1)
+        self.anonymous_data = self.anonymous_data.drop(['is trial', 'threat_stay'], 1)
 
-        # self.inspect_data()
-        # self.kmeans()
-        self.do_pca()
+        self.inspect_data()
+        self.pca_components = self.do_pca()
+        self.clustered = self.kmeans()
+
+        self.check_clustering()
+        self.plot_points_density()
+
+        plt.show()
 
     def inspect_data(self):
         self.data.describe()
@@ -431,7 +437,7 @@ class cluster_returns:
         trials = self.data.loc[self.data['is trial'] == 1]
         not_trials = self.data.loc[self.data['is trial'] == 0]
 
-        f, axarr = plt.subplots(3, 2, facecolor=[.2, .2, .2])
+        f, axarr = plt.subplots(5, 3, facecolor=[.8, .8, .8])
         axarr = axarr.flatten()
         combs = combinations(list(self.anonymous_data.columns), 2)
         counter = 0
@@ -442,35 +448,87 @@ class cluster_returns:
             ax.set(facecolor=[.2, .2, .2], title='{}-{}'.format(c1, c2), xlabel=c1, ylabel=c2)
             ax.scatter(trials[c1].values, trials[c2].values, c=[.8, .2, .2], alpha=.2)
             ax.scatter(not_trials[c1].values, not_trials[c2].values, c=[.2, .2, .8], alpha=.2)
-    
+        f.tight_layout()
         # _, bins, _ = ax.hist(trials['threat_stay'].values, bins=100, alpha=.5)
         # ax.hist(not_trials['threat_stay'].values, bins=bins, alpha=.5)
 
         # plt.show()
 
-    def kmeans(self):      
+    def plot_points_density(self):
+        x = self.pca_components['principal component 1'].values
+        y = self.pca_components['principal component 2'].values
+
+        # Calculate the point density
+        xy = np.vstack([x,y])
+        z = gaussian_kde(xy)(xy)
+
+        # Sort the points by density, so that the densest points are plotted last
+        idx = z.argsort()
+        x, y, z = x[idx], y[idx], z[idx]
+
+        fig, ax = plt.subplots(figsize=(5, 5), facecolor=[.2, .2, .2])
+        ax.scatter(x, y, c=z, s=50, edgecolor='')
+        ax.set(facecolor=[.8, .8, .8])
+
+    def kmeans(self):  
+
+        clustered_data = {}
+
         # create kmeans object
-        kmeans = KMeans(n_clusters=2)
-        # fit kmeans object to data
-        kmeans.fit(self.anonymous_data)
+        f, axarr = plt.subplots(6, 1, facecolor=[.2, .2, .2])
+        axarr=axarr.flatten()
+        costs = []
+        for c in range(2, 6):
+            n_clusters=c
+            ax = axarr[c-2]
 
-        # print location of clusters learned by kmeans object
-        # print(kmeans.cluster_centers_)
+            kmeans = KMeans(n_clusters=n_clusters)
 
-        # save new clusters for chart
-        y_km = kmeans.fit_predict(self.anonymous_data)
-        # check results
+            # fit kmeans object to data
+            data = self.pca_components.drop(['is trial'], 1)
+            kmeans.fit(data)
+
+            # save new clusters for chart
+            y_km = kmeans.fit_predict(self.anonymous_data)
+            clustered_data[str(c)] = y_km
+
+            # check results
+            for i in range(n_clusters):
+                t = data.loc[y_km == i]
+                ax.scatter(t['principal component 1'], 
+                    t['principal component 2'],
+                    s=30, alpha=.2)
+            ax.set(facecolor=[.2, .2, .2], title='{} Clusters'.format(c))
+
+            interia = kmeans.inertia_
+            print("k:",c, " cost:", round(interia))
+            costs.append(round(interia))
+        return clustered_data
+
+
+        # Plot points
+
+        # f, axarr = plt.subplots(len(self.data.columns), 1)
+        # for i, k in enumerate(self.data.columns):
+        #     if 'trial' in k: continue
+        #     ax = axarr[i]
+        #     _, bins, _ = ax.hist(trials[k].values, bins=100, alpha=.5)
+        #     ax.hist(maybe_trials[k].values, bins=bins, alpha=.5)
+
+    def check_clustering(self):
+        f, axarr = plt.subplots(4, 1, facecolor=[.2, .2, .2])
         trials = self.data.loc[self.data['is trial'] == 1]
-        maybe_trials = self.data.loc[y_km == 1]
 
-        f, axarr = plt.subplots(5, 1)
-        for i, k in enumerate(self.data.columns):
-            if 'trial' in k: continue
-            ax = axarr[i]
-            _, bins, _ = ax.hist(trials[k].values, bins=100, alpha=.5)
-            ax.hist(maybe_trials[k].values, bins=bins, alpha=.5)
-        plt.show()
-        
+        for ax in axarr:
+            ax.set(facecolor=[.2, .2, .2], title='velocity by cluster')
+            _, bins, _ = ax.hist(trials['velocity'].values, bins=100, color=[.9, .9, .9], label='trials')
+
+        for c, (k, v) in enumerate(self.clustered.items()):
+            ax = axarr[c]
+            for i in range(int(k)):
+                t = self.data.loc[v == i]
+                ax.hist(t['velocity'].values, bins=bins, label=str(i), alpha=.3)
+        [ax.legend() for ax in axarr]
 
     def plot_pca(self, df):
         f, ax = plt.subplots(figsize=(16, 16), facecolor=[.2, .2, .2])
@@ -500,30 +558,31 @@ class cluster_returns:
         print(pd.DataFrame(pca.components_,columns=self.anonymous_data.columns,index = ['PC-1','PC-2']))
 
         # Logistic Regression
-        _training_set, _test_set = train_test_split(finalDf.values, test_size=0.2, random_state=42)
-        training_set, training_labels = _training_set[:, :2], _training_set[:, -1]
-        test_set, test_labels = _test_set[:, :2], _test_set[:, :-1]
-        logisticRegr = LogisticRegression(solver = 'lbfgs')
-        logisticRegr.fit(training_set, training_labels)
+        # _training_set, _test_set = train_test_split(finalDf.values, test_size=0.2, random_state=42)
+        # training_set, training_labels = _training_set[:, :2], _training_set[:, -1]
+        # test_set, test_labels = _test_set[:, :2], _test_set[:, :-1]
+        # logisticRegr = LogisticRegression(solver = 'lbfgs')
+        # logisticRegr.fit(training_set, training_labels)
 
-        predictions = logisticRegr.predict(test_set)
-        predictions = predictions.astype(int)
-        predictionsDf = pd.DataFrame(data=predictions, columns=['is trial'])
-        predictedDf = pd.concat([principalDf, predictionsDf['is trial']], axis = 1)
+        # predictions = logisticRegr.predict(test_set)
+        # predictions = predictions.astype(int)
+        # predictionsDf = pd.DataFrame(data=predictions, columns=['is trial'])
+        # predictedDf = pd.concat([principalDf, predictionsDf['is trial']], axis = 1)
 
-        # print(logisticRegr.score(test_set.round(), test_labels.round()))
+        # # print(logisticRegr.score(test_set.round(), test_labels.round()))
 
-        self.plot_pca(predictedDf)
+        # self.plot_pca(predictedDf)
         self.plot_pca(finalDf)
-        plt.show()
+
+        return finalDf
 
 
 
 if __name__ == '__main__':
     # analyse_all_trips(erase_table=True, fill_in_table=False, run_analysis=False)
     # analyse_all_trips(erase_table=False, fill_in_table=True, run_analysis=False)
-    analyse_all_trips(erase_table=False, fill_in_table=False, run_analysis=True, plot=True)
+    # analyse_all_trips(erase_table=False, fill_in_table=False, run_analysis=True, plot=True)
     
-    # cluster_returns()
+    cluster_returns()
 
 
