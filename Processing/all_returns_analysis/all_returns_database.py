@@ -7,20 +7,6 @@ import pandas as pd
 from pandas.plotting import scatter_matrix
 from collections import namedtuple
 from itertools import combinations
-from scipy.stats import gaussian_kde
-
-from sklearn.model_selection import train_test_split, cross_val_score, cross_val_predict
-from sklearn.metrics import confusion_matrix, precision_score, recall_score, precision_recall_curve, f1_score, roc_curve, roc_auc_score
-from sklearn.preprocessing import OneHotEncoder, StandardScaler, Binarizer
-from sklearn.linear_model import SGDClassifier, LogisticRegression
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
-from sklearn.svm import SVC
-from sklearn.tree import DecisionTreeClassifier as DecTreC
-from sklearn.cluster import KMeans
-from sklearn.decomposition import PCA
-
-# from sklearn.tree import export_graphvize
 
 from database.NewTablesDefinitions import *
 from database.dj_config import start_connection
@@ -62,17 +48,31 @@ class analyse_all_trips:
             print(self.table)
 
         if run_analysis:
+            # set Vars
             self.plot = plot
-            self.names = ['all', 'trials', 'not trials', 'fast not trials', 'all fasts', 'all slows']
+            self.names = ['all', 'trials', 'not_trials', 'fast_not_trials', 'all_fasts', 'all_slows']
+            
+            # Get all trips and split between trials and not trials
             self.trips = pd.DataFrame(AllTrips.fetch())
             self.trials = self.trips.loc[self.trips['is_trial'] == 'true']
             self.not_trials = self.trips.loc[self.trips['is_trial'] == 'false']
 
+            # Get velocity features and split between fast and slow 
             fast_returns_ids, all_fasts = self.get_velocities()
             all_slows = [i for i in self.trips['trip_id'] if i not in all_fasts]
             self.fast_returns = self.trips.loc[self.trips['trip_id'].isin(fast_returns_ids)]
             self.all_fasts = self.trips.loc[self.trips['trip_id'].isin(all_fasts)]
             self.all_slows = self.trips.loc[self.trips['trip_id'].isin(all_slows)]
+
+            # Group all dataframes
+            self.all_dfs = dict(
+                    all=self.trips,
+                    trials=self.trials,
+                    not_trials=self.not_trials, 
+                    fast_not_trials=self.fast_returns,
+                    all_fasts=self.all_fasts,
+                    all_slows=self.all_slows,
+            )
 
             self.get_durations()
             self.analyse_roi_stay()
@@ -230,18 +230,9 @@ class analyse_all_trips:
         return scaled.flatten()
 
     def get_durations(self):
-        """get_durations [get's the duration of each trip ]
-        """
-
         # Get durations
-        self.durations={}
-        self.durations['all'] = self.calc_dur(self.trips['shelter_enter'], self.trips['threat_exit'])
-        self.durations['trials'] = self.calc_dur(self.trials['shelter_enter'], self.trials['threat_exit'])
-        self.durations['not trials'] = self.calc_dur(self.not_trials['shelter_enter'], self.not_trials['threat_exit'])
-        self.durations['fast not trials'] = self.calc_dur(self.fast_returns['shelter_enter'], self.fast_returns['threat_exit'])
-        self.durations['all fasts'] = self.calc_dur(self.all_fasts['shelter_enter'], self.all_fasts['threat_exit'])
-        self.durations['all slows'] = self.calc_dur(self.all_slows['shelter_enter'], self.all_slows['threat_exit'])
-
+        self.durations={k:self.calc_dur(v['shelter_enter'], v['threat_exit'])}
+        # Plot
         self.plot_hist(self.durations, 'escape dur', nbins=500)
 
     def get_trial_stats(self, fast_returns_ids, all_fasts_ids):
@@ -253,7 +244,7 @@ class analyse_all_trips:
         for idx, row in self.trips.iterrows():
             in_shelter = row['time_in_shelter']/30
             in_shelter_stay['all'].append(in_shelter)
-            
+            # Check if its a trial
             if row['is_trial'] == 'true':
                 trials.append(1)
                 key = 'trials'
@@ -263,6 +254,7 @@ class analyse_all_trips:
                 if row['trip_id'] in fast_returns_ids:
                     in_shelter_stay['fast not trials'].append(in_shelter)
 
+            # Check if its a fast one
             if row['trip_id'] in all_fasts_ids:
                 key2 = 'all fasts'
                 fastones.append(1)
@@ -279,25 +271,24 @@ class analyse_all_trips:
         return stats(trials, in_shelter_stay, fastones)
 
     def get_velocities(self):
-        """
-            get_velocities [get each velocity trace and the max vel percentiles for each trial]
-        """
-        self.velocities, self.vel_percentiles = {n:[] for n in self.names}, {n:[] for n in self.names}
-        
+        velocity_th, velocity_percentile, percentile_th = 20, 90, 7
+        self.velocities, self.vel_percentiles = {n:[] for n in self.names}, {n:[] for n in self.names} 
         which_are_fast = [] # for each return,mark if it was fast or not
 
         # Get 
         fast_returns = []
         for idx, row in self.trips.iterrows():
+            # Get velocity and percentile
             t0, t1 = row['threat_exit']-row['shelter_exit'], row['shelter_enter']-row['shelter_exit']
             vel = line_smoother(row['tracking_data'][t0:t1, 2])
             vel.flags.writeable = True
-            if np.any(vel[vel > 20]):
+            if np.any(vel[vel > velocity_th]):
                 self.velocities['all fasts'].append(None)
                 self.vel_percentiles['all fasts'].append(None)
-            perc = np.percentile(vel, 90)
+            perc = np.percentile(vel, velocity_percentile)
             
-            if perc>7:
+            # Check if its a fast return
+            if perc>percentile_th:
                 which_are_fast.append(row['trip_id'])
                 self.velocities['all fasts'].append(vel)
                 self.vel_percentiles['all fasts'].append(perc)
@@ -306,46 +297,32 @@ class analyse_all_trips:
                 self.velocities['all slows'].append(vel)
                 self.vel_percentiles['all slows'].append(perc)
             
+            # Check if its a trial
             self.velocities['all'].append(vel)
             self.vel_percentiles['all'].append(perc)
-    
             if row['is_trial'] == 'true':
                 key = 'trials'
             else:
                 if perc > 7: 
                     self.velocities['fast not trials'].append(vel)
                     self.vel_percentiles['fast not trials'].append(perc)                    
-                    fast_returns.append(row['trip_id'])
-                    
+                    fast_returns.append(row['trip_id'])  
                 key = 'not trials'
             self.velocities[key].append(vel)
             self.vel_percentiles[key].append(perc)
-        self.plot_hist(self.vel_percentiles, title = 'Velocity 75th percentile', 
+        # Plot
+        self.plot_hist(self.vel_percentiles, title = 'Velocity {}th percentile'.format(velocity_percentile), 
                         xlabel='px/frame', nbins=50, plot_all=True)
-
         return fast_returns, which_are_fast
 
     def analyse_return_path_length(self):
         self.return_path_lengths = {}
         for k, vels in self.velocities.items():
             self.return_path_lengths[k] = [np.sum(v) for v in vels] 
-
         self.plot_hist(self.return_path_lengths, title='return path length', xlabel='px', xmax=2000)
 
-    def get_maze_components():
-        """get_maze_components [get the maze component the mouse is on at each frame]
-        """
-        pass
-
     def analyse_roi_stay(self):
-        self.threat_stay={}
-        self.threat_stay['all'] = self.calc_dur(self.trips['threat_exit'], self.trips['threat_enter'])
-        self.threat_stay['trials'] = self.calc_dur(self.trials['threat_exit'], self.trials['threat_enter'])
-        self.threat_stay['not trials'] = self.calc_dur(self.not_trials['threat_exit'], self.not_trials['threat_enter'])
-        self.threat_stay['fast not trials'] = self.calc_dur(self.fast_returns['threat_exit'], self.fast_returns['threat_enter'])
-        self.threat_stay['all fasts'] = self.calc_dur(self.all_fasts['threat_exit'], self.all_fasts['threat_enter'])
-        self.threat_stay['all slows'] = self.calc_dur(self.all_slows['threat_exit'], self.all_slows['threat_enter'])
-
+        self.threat_stay={k:self.calc_dur(v['threat_exit'], v['threat_enter'])}
         self.plot_hist(self.threat_stay, title='in threat')
 
     def get_x_displacement(self):
@@ -373,12 +350,11 @@ class analyse_all_trips:
             # ax.plot(x[idx], y[idx], 'o', color='r')
             # plt.show()
 
-
-        if self.plot:
-            sampl = np.random.uniform(low=0.0, high=10.0, size=(len(x_displacement),))
-            f,ax = plt.subplots()
-            ax.scatter(x_displacement, sampl, s=10, c='k', alpha=.5)
-            ax.set(title='x displacement')
+        # if self.plot:
+        #     sampl = np.random.uniform(low=0.0, high=10.0, size=(len(x_displacement),))
+        #     f,ax = plt.subplots()
+        #     ax.scatter(x_displacement, sampl, s=10, c='k', alpha=.5)
+        #     ax.set(title='x displacement')
 
         return x_displacement
 
@@ -411,6 +387,7 @@ class analyse_all_trips:
                 xmax=45, density=False, plot_all=False):
         if not self.plot: 
             return
+        
         f, axarr = plt.subplots(2, 2, facecolor=[.2, .2, .2])
         axarr = axarr.flatten()
         for ax in axarr:
@@ -424,261 +401,19 @@ class analyse_all_trips:
         ax = axarr[2]
         _, bins, _ = ax.hist(np.array(var['trials']), bins=nbins,  color=[.8, .4, .4], alpha=.75, density=density, label='Trials')
         ax.hist(np.array(var['not trials']), bins=bins, color=[.4, .4, .8], alpha=.55, density=density, label='Not trials')
-        if 'fast not trials' in var.keys():
-            ax.hist(np.array(var['fast not trials']), bins=bins, color=[.4, .8, .4], alpha=.45, density=density, label='Fast Not trials')
+        if 'fast_not_trials' in var.keys():
+            ax.hist(np.array(var['fast_not_trials']), bins=bins, color=[
+                    .4, .8, .4], alpha=.45, density=density, label='Fast Not trials')
         ax.set(facecolor=[.2, .2, .2], title=title, xlim=[0, xmax], xlabel=xlabel)
         ax.legend()
 
         # Plot by Fast vs Slow
         ax = axarr[3]
-        if 'all fasts' in var.keys():
-            ax.hist(np.array(var['all fasts']), bins=bins,  color='m', alpha=.75, density=density, label='Fast')
-            ax.hist(np.array(var['all slows']), bins=bins,  color='y', alpha=.75, density=density, label='Slow')
+        if 'all_fasts' in var.keys():
+            ax.hist(np.array(var['all_fasts']), bins=bins,  color='m', alpha=.75, density=density, label='Fast')
+            ax.hist(np.array(var['all_slows']), bins=bins,  color='y', alpha=.75, density=density, label='Slow')
             ax.legend()
 
-
-    def plot_all_trips(self):
-        c0,c1 = 0, 0
-        f,axarr = plt.subplots(1, 2)
-        for idx, row in self.trips.iterrows():
-            if row['is_trial'] == 'true':
-                key = 'trials'
-                col = [.8, .4, .4]
-                ax = axarr[0]
-                c = c0
-                c0 += 1
-            else:
-                key = 'not trials' 
-                col = [.4, .4, .8]
-                ax = axarr[1]
-                c = c1
-                c1 += 1
-            
-            x, y = line_smoother(row['tracking_data'][:, 0]), line_smoother(row['tracking_data'][:, 1])
-            ax.plot(np.add(x,(300*(c%5))), np.add(y, (200*(c%10))), color=col, alpha=.5)
-
-
-class cluster_returns:
-    def __init__(self):
-        self.group_by = 'is trial'
-        
-        analysis = analyse_all_trips()
-        self.data = analysis.returns_summary  # data is a dataframe with all the escapes measurements
-        self.anonymous_data = self.data.copy()
-        self.anonymous_data = self.anonymous_data.drop(['is trial', 'is fast', 'shelter_stay', 'threat_stay'], 1)
-        self.expand_data()
-
-
-        self.inspect_data()
-        self.pca_components = self.do_pca()
-        self.clustered = self.kmeans()
-
-        self.check_clustering()
-        self.plot_points_density()
-
-        plt.show()
-
-    def expand_data(self):
-        # to_square = ['x_displacement', 'length', 'duration']
-        # for ts in to_square:
-        #     squared = self.anonymous_data[ts].values
-        #     self.anonymous_data['squared_'+ts] = pd.Series(np.square(squared))
-
-        self.anonymous_data['dur_by_len'] = pd.Series(np.divide(self.anonymous_data['duration'].values, self.anonymous_data['length'].values))
-
-    def inspect_data(self):
-        self.anonymous_data.describe()
-        self.anonymous_data.hist()
-        self.corrr_mtx = self.anonymous_data.corr()
-
-        for k in self.corrr_mtx.keys():
-            print('\n Correlation mtx for {}'.format(k))
-            print(self.corrr_mtx[k])
-
-        n = len(self.anonymous_data.columns)
-        scatter_matrix(self.anonymous_data, alpha=0.2, figsize=(6, 6), diagonal='kde')
-
-        trials = self.anonymous_data.loc[self.data[self.group_by] == 1]
-        not_trials = self.anonymous_data.loc[self.data[self.group_by] == 0]
-
-        f, axarr = plt.subplots(n, 4, facecolor=[.8, .8, .8])
-        axarr = axarr.flatten()
-        combs = combinations(list(self.anonymous_data.columns), 2)
-        counter = 0
-        for i, (c1, c2) in enumerate(combs):
-            if 'trial' in c1 or 'trial' in c2: continue
-            ax = axarr[counter]
-            counter += 1
-            ax.set(facecolor=[.2, .2, .2], title='{}-{}'.format(c1, c2), xlabel=c1, ylabel=c2)
-            ax.scatter(trials[c1].values, trials[c2].values, c=[.8, .2, .2], alpha=.2)
-            ax.scatter(not_trials[c1].values, not_trials[c2].values, c=[.2, .2, .8], alpha=.2)
-        # _, bins, _ = ax.hist(trials['threat_stay'].values, bins=100, alpha=.5)
-        # ax.hist(not_trials['threat_stay'].values, bins=bins, alpha=.5)
-
-        # plt.show()
-
-    def plot_points_density(self):
-        x = self.pca_components['principal component 1'].values
-        y = self.pca_components['principal component 2'].values
-
-        # Calculate the point density
-        xy = np.vstack([x,y])
-        z = gaussian_kde(xy)(xy)
-
-        # Sort the points by density, so that the densest points are plotted last
-        idx = z.argsort()
-        x, y, z = x[idx], y[idx], z[idx]
-
-        fig, ax = plt.subplots(figsize=(5, 5), facecolor=[.2, .2, .2])
-        ax.scatter(x, y, c=z, s=50, edgecolor='')
-        ax.set(facecolor=[.8, .8, .8])
-
-    def kmeans(self):  
-
-        clustered_data = {}
-
-        # create kmeans object
-        f, axarr = plt.subplots(6, 1, facecolor=[.2, .2, .2])
-        axarr=axarr.flatten()
-        costs = []
-        for c in range(2, 6):
-            n_clusters=c
-            ax = axarr[c-2]
-
-            kmeans = KMeans(n_clusters=n_clusters)
-
-            # fit kmeans object to data
-            data = self.pca_components.drop([self.group_by], 1)
-            kmeans.fit(data)
-
-            # save new clusters for chart
-            y_km = kmeans.fit_predict(self.anonymous_data)
-            clustered_data[str(c)] = y_km
-
-            # check results
-            for i in range(n_clusters):
-                t = data.loc[y_km == i]
-                ax.scatter(t['principal component 1'], 
-                    t['principal component 2'],
-                    s=30, alpha=.2)
-            ax.set(facecolor=[.2, .2, .2], title='{} Clusters'.format(c))
-
-            interia = kmeans.inertia_
-            print("k:",c, " cost:", round(interia))
-            costs.append(round(interia))
-        return clustered_data
-
-
-        # Plot points
-
-        # f, axarr = plt.subplots(len(self.data.columns), 1)
-        # for i, k in enumerate(self.data.columns):
-        #     if 'trial' in k: continue
-        #     ax = axarr[i]
-        #     _, bins, _ = ax.hist(trials[k].values, bins=100, alpha=.5)
-        #     ax.hist(maybe_trials[k].values, bins=bins, alpha=.5)
-
-    def check_clustering(self):
-        f, axarr = plt.subplots(4, 1, facecolor=[.2, .2, .2])
-        trials = self.data.loc[self.data[self.group_by] == 1]
-
-        for ax in axarr:
-            ax.set(facecolor=[.2, .2, .2], title='velocity by cluster')
-            _, bins, _ = ax.hist(trials['velocity'].values, bins=100, color=[.9, .9, .9], label='trials')
-
-        for c, (k, v) in enumerate(self.clustered.items()):
-            ax = axarr[c]
-            for i in range(int(k)):
-                t = self.data.loc[v == i]
-                ax.hist(t['velocity'].values, bins=bins, label=str(i), alpha=.3)
-        [ax.legend() for ax in axarr]
-
-    def plot_pca(self, df):
-        f, ax = plt.subplots(facecolor=[.2, .2, .2])
-        d = dict(not_trials=(0, [.4, .4, .8], .4), trials=(1, [.8, .4, .4], .4),)
-
-        ax.set(facecolor=[.2, .2, .2])
-        for n, (i, c, a) in d.items():
-            indicesToKeep = df[self.group_by] == i
-            ax.scatter(df.loc[indicesToKeep, 'principal component 1']
-                , df.loc[indicesToKeep, 'principal component 2']
-                , c = c, alpha=a, s = 30, label=n)
-    
-        # Plot a line
-        # ax.plot([-2.5, 1], [2, -2], '--', color=[.4, .8, .4], linewidth=3)
-        
-        ax.legend()
-
-    def do_pca(self):
-        x = self.anonymous_data.values
-        scaled = StandardScaler().fit_transform(x)
-        
-        pca = PCA(n_components=2)
-        principalComponents = pca.fit_transform(scaled)
-        principalDf = pd.DataFrame(data = principalComponents, columns = ['principal component 1', 'principal component 2'])
-        finalDf = pd.concat([principalDf, self.data[self.group_by]], axis = 1)
-
-        print(pd.DataFrame(pca.components_,columns=self.anonymous_data.columns,index = ['PC-1','PC-2']))
-
-        # Logistic Regression
-        # _training_set, _test_set = train_test_split(finalDf.values, test_size=0.2, random_state=42)
-        # training_set, training_labels = _training_set[:, :2], _training_set[:, -1]
-        # test_set, test_labels = _test_set[:, :2], _test_set[:, :-1]
-        # logisticRegr = LogisticRegression(solver = 'lbfgs')
-        # logisticRegr.fit(training_set, training_labels)
-
-        # predictions = logisticRegr.predict(test_set)
-        # predictions = predictions.astype(int)
-        # predictionsDf = pd.DataFrame(data=predictions, columns=['is trial'])
-        # predictedDf = pd.concat([principalDf, predictionsDf['is trial']], axis = 1)
-
-        # # print(logisticRegr.score(test_set.round(), test_labels.round()))
-
-        # self.plot_pca(predictedDf)
-        self.plot_pca(finalDf)
-
-        return finalDf
-
-
-class timeseries_returns:
-    def __init__(self):        
-        analysis = analyse_all_trips()
-        self.data = analysis.returns_summary  # data is a dataframe with all the escapes measurements
-
-        self.get_r_returns()
-        plt.show()
-
-    def get_r_returns(self):
-        def plotter(var, ttl=''):
-            titles = ['x', 'y', 'xy', 'vel']
-            ylims = [[400, 700], [300, 800], [350, 800], [0, 25]]
-            f, axarr = plt.subplots(2, 2)
-            axarr = axarr.flatten()
-            for idx, row in var.iterrows():
-                t0, t_shelt = row['times']
-                x_t_shelt = t_shelt-t0
-                
-                t1 = t0 + 20*30
-                axarr[0].plot(row['tracking_data'][t0:t1, 0], 'k', alpha=.2)
-                axarr[1].plot(row['tracking_data'][t0:t1, 1], 'k', alpha=.2)
-                axarr[2].plot(row['tracking_data'][t0:t1, 0], 
-                            row['tracking_data'][t0:t1, 1], 'k', alpha=.2)
-                axarr[3].plot(line_smoother(row['tracking_data'][t0:t1, 2]), 'k', alpha=.15)
-                if x_t_shelt <= 20*30:
-                    axarr[0].plot(x_t_shelt, row['tracking_data'][t_shelt, 0], 'o', color='r', alpha=.3)
-                    axarr[1].plot(x_t_shelt, row['tracking_data'][t_shelt, 1], 'o', color='r', alpha=.3)
-                    # axarr[3].plot(x_t_shelt, row['tracking_data'][t_shelt, 2], 'o', color='r', alpha=.3)
-                axarr[2].plot(row['tracking_data'][t_shelt, 0], row['tracking_data'][t_shelt, 1], 'o', color='r', alpha=.3)
-
-            [ax.set(title=titles[i]+'  '+ttl, ylim=ylims[i]) for i,ax in enumerate(axarr)]
-
-        right_returns = self.data.loc[(self.data['x_displacement'] >= 100) & (self.data['x_displacement'] <= 150)]
-        fast_right = right_returns.loc[right_returns['is fast'] == 1]
-        slow_right = right_returns.loc[right_returns['is fast'] == 0]
-
-        plotter(fast_right, 'fast')
-        plotter(slow_right, 'slow')
-        plotter(right_returns, 'ALL')
 
 if __name__ == '__main__':
     # analyse_all_trips(erase_table=True, fill_in_table=False, run_analysis=False)
