@@ -20,18 +20,22 @@ class cluster_returns:
     def __init__(self):
         self.group_by = 'is trial'
 
+        # Get and cleanup data
         analysis = analyse_all_trips()
-        # data is a dataframe with all the escapes measurements
         self.data = analysis.returns_summary
         self.anonymous_data = self.data.copy()
         self.anonymous_data = self.anonymous_data.drop(
             ['is trial', 'is fast', 'shelter_stay', 'threat_stay'], 1)
+        
+        # Features engineering and data minining
         self.expand_data()
-
         self.inspect_data()
+        
+        # Do PCA and K-means
         self.pca_components = self.do_pca()
         self.clustered = self.kmeans()
 
+        # Plot stuff
         self.check_clustering()
         self.plot_points_density()
 
@@ -77,10 +81,7 @@ class cluster_returns:
                        c=[.8, .2, .2], alpha=.2)
             ax.scatter(not_trials[c1].values,
                        not_trials[c2].values, c=[.2, .2, .8], alpha=.2)
-        # _, bins, _ = ax.hist(trials['threat_stay'].values, bins=100, alpha=.5)
-        # ax.hist(not_trials['threat_stay'].values, bins=bins, alpha=.5)
 
-        # plt.show()
 
     def plot_points_density(self):
         x = self.pca_components['principal component 1'].values
@@ -99,7 +100,6 @@ class cluster_returns:
         ax.set(facecolor=[.8, .8, .8])
 
     def kmeans(self):
-
         clustered_data = {}
 
         # create kmeans object
@@ -132,15 +132,6 @@ class cluster_returns:
             print("k:", c, " cost:", round(interia))
             costs.append(round(interia))
         return clustered_data
-
-        # Plot points
-
-        # f, axarr = plt.subplots(len(self.data.columns), 1)
-        # for i, k in enumerate(self.data.columns):
-        #     if 'trial' in k: continue
-        #     ax = axarr[i]
-        #     _, bins, _ = ax.hist(trials[k].values, bins=100, alpha=.5)
-        #     ax.hist(maybe_trials[k].values, bins=bins, alpha=.5)
 
     def check_clustering(self):
         f, axarr = plt.subplots(4, 1, facecolor=[.2, .2, .2])
@@ -254,3 +245,9 @@ class timeseries_returns:
         plotter(fast_right, 'fast')
         plotter(slow_right, 'slow')
         plotter(right_returns, 'ALL')
+
+
+if __name__ == '__main__':
+    #cluster_returns()
+
+    timeseries_returns()
