@@ -205,9 +205,27 @@ class timeseries_returns:
         # data is a dataframe with all the escapes measurements
         self.data = analysis.returns_summary
 
-        self.get_r_returns()
+        self.rr, _, _ = self.get_r_returns()
         plt.show()
 
+    def do_pca(self, arr):
+        # Create an array with all the Y traces
+        y = np.array(20*30, arr.shape[0])
+        for idx, row in arr.iterrows():
+            t0, t_shelt = row['times']
+            t1 = t0 + 20*30
+            y[:, i] = line_smoother(row['tracking_data'][t0:t1, 2])
+
+        scaled = StandardScaler().fit_transform(y)
+
+        pca = PCA(n_components=2)
+        principalComponents = pca.fit_transform(scaled)
+        principalDf = pd.DataFrame(data=principalComponents, columns=['pc1', 'pc2'])
+        
+        f, ax = plt.subplots()
+        ax.scatter(principalDf.loc[indicesToKeep, 'pc1'], principalDf.loc[indicesToKeep, 'pc2'], c='k', alpha=.3, s=30)
+        ax.set(xlabel='pc1', ylabel='pc2', title='PCA of Y trace')
+                
     def get_r_returns(self):
         def plotter(var, ttl=''):
             titles = ['x', 'y', 'xy', 'vel']
@@ -242,9 +260,10 @@ class timeseries_returns:
         fast_right = right_returns.loc[right_returns['is fast'] == 1]
         slow_right = right_returns.loc[right_returns['is fast'] == 0]
 
-        plotter(fast_right, 'fast')
-        plotter(slow_right, 'slow')
-        plotter(right_returns, 'ALL')
+        # plotter(fast_right, 'fast')
+        # plotter(slow_right, 'slow')
+        # plotter(right_returns, 'ALL')
+        return right_returns, fast_right, slow_right
 
 
 if __name__ == '__main__':
