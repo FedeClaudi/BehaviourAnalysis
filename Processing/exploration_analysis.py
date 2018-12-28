@@ -79,7 +79,7 @@ class analyse_all_trips:
             self.analyse_return_path_length()
 
             self.x_displacement = self.get_x_displacement()
-            self.trial_stats, self.in_shelter_stay = self.get_trial_stats(fast_returns_ids)
+            self.trial_stats, self.in_shelter_stay, self.fast_stats = self.get_trial_stats(fast_returns_ids,all_fasts)
 
             if plot:
                 # self.plot_all_trips()
@@ -239,18 +239,17 @@ class analyse_all_trips:
         self.durations['trials'] = self.calc_dur(self.trials['shelter_enter'], self.trials['threat_exit'])
         self.durations['not trials'] = self.calc_dur(self.not_trials['shelter_enter'], self.not_trials['threat_exit'])
         self.durations['fast not trials'] = self.calc_dur(self.fast_returns['shelter_enter'], self.fast_returns['threat_exit'])
-        self.durations['all fast'] = self.calc_dur(self.all_fast['shelter_enter'], self.all_fast['threat_exit'])
+        self.durations['all fasts'] = self.calc_dur(self.all_fasts['shelter_enter'], self.all_fasts['threat_exit'])
         self.durations['all slows'] = self.calc_dur(self.all_slows['shelter_enter'], self.all_slows['threat_exit'])
 
         self.plot_hist(self.durations, 'escape dur', nbins=500)
 
-    def get_trial_stats(self, fast_returns_ids):
-        stats = namedtuple('stats', 'is_trial time_in_shelter')
-        names = ['all', 'trials', 'not trials', 'fast not trials']
-        in_shelter_stay  = {n:[] for n in names}
+    def get_trial_stats(self, fast_returns_ids, all_fasts_ids):
+        stats = namedtuple('stats', 'is_trial time_in_shelter if_fast')
+        in_shelter_stay  = {n:[] for n in self.names}
         
         # Get trial or not for each return and time spent in shelter 
-        trials = []
+        trials, fastones = [], []
         for idx, row in self.trips.iterrows():
             in_shelter = row['time_in_shelter']/30
             in_shelter_stay['all'].append(in_shelter)
@@ -264,18 +263,26 @@ class analyse_all_trips:
                 if row['trip_id'] in fast_returns_ids:
                     in_shelter_stay['fast not trials'].append(in_shelter)
 
+            if row['trip_id'] in all_fasts_ids:
+                key2 = 'all fasts'
+                fastones.append(1)
+            else:
+                key2 = 'all slows'
+                fastones.append(0)
+
             in_shelter_stay[key].append(in_shelter)
+            in_shelter_stay[key2].append(in_shelter)
 
         self.plot_hist(in_shelter_stay, title='In shelter stay', xmax=300)
 
         # Return stats tuple
-        return stats(trials, in_shelter_stay)
+        return stats(trials, in_shelter_stay, fastones)
 
     def get_velocities(self):
         """
             get_velocities [get each velocity trace and the max vel percentiles for each trial]
         """
-        self.velocities, self.vel_percentiles = {n:[] for n in self.names}, {n:[] for n in nself.ames}
+        self.velocities, self.vel_percentiles = {n:[] for n in self.names}, {n:[] for n in self.names}
         
         which_are_fast = [] # for each return,mark if it was fast or not
 
@@ -289,7 +296,7 @@ class analyse_all_trips:
             perc = np.percentile(vel, 90)
             
             if perc>7:
-                which_are_fast.append(1)
+                which_are_fast.append(row['trip_id'])
                 self.velocities['all fasts'].append(vel)
                 self.vel_percentiles['all fasts'].append(perc)
             else:
@@ -334,6 +341,8 @@ class analyse_all_trips:
         self.threat_stay['trials'] = self.calc_dur(self.trials['threat_exit'], self.trials['threat_enter'])
         self.threat_stay['not trials'] = self.calc_dur(self.not_trials['threat_exit'], self.not_trials['threat_enter'])
         self.threat_stay['fast not trials'] = self.calc_dur(self.fast_returns['threat_exit'], self.fast_returns['threat_enter'])
+        self.threat_stay['all fasts'] = self.calc_dur(self.all_fasts['threat_exit'], self.all_fasts['threat_enter'])
+        self.threat_stay['all slows'] = self.calc_dur(self.all_slows['threat_exit'], self.all_slows['threat_enter'])
 
         self.plot_hist(self.threat_stay, title='in threat')
 
@@ -363,11 +372,11 @@ class analyse_all_trips:
             # plt.show()
 
 
-        if self.plot:
-            sampl = np.random.uniform(low=0.0, high=10.0, size=(len(x_displacement),))
-            f,ax = plt.subplots()
-            ax.scatter(x_displacement, sampl, s=10, c='k', alpha=.5)
-            ax.set(title='x displacement')
+        # if self.plot:
+        #     sampl = np.random.uniform(low=0.0, high=10.0, size=(len(x_displacement),))
+        #     f,ax = plt.subplots()
+        #     ax.scatter(x_displacement, sampl, s=10, c='k', alpha=.5)
+        #     ax.set(title='x displacement')
 
         return x_displacement
 
@@ -381,6 +390,7 @@ class analyse_all_trips:
             df_dict['x_displacement'].append(self.x_displacement[i])
             df_dict['shelter_stay'].append(self.in_shelter_stay['all'][i])
         df_dict['is trial'] = self.trial_stats
+        df_dict['is fast'] = self.fast_stats
         
         # scale
         # scaled_df_dict = {k: self.scale_data(np.array(v)) for k,v in df_dict.items()}
@@ -623,8 +633,8 @@ class cluster_returns:
 if __name__ == '__main__':
     # analyse_all_trips(erase_table=True, fill_in_table=False, run_analysis=False)
     # analyse_all_trips(erase_table=False, fill_in_table=True, run_analysis=False)
-    analyse_all_trips(erase_table=False, fill_in_table=False, run_analysis=True, plot=True)
+    # analyse_all_trips(erase_table=False, fill_in_table=False, run_analysis=True, plot=True)
     
-    # cluster_returns()
+    cluster_returns()
 
 
