@@ -292,7 +292,9 @@ class analyse_all_trips:
             t0, t1 = row['threat_exit']-row['shelter_exit'], row['shelter_enter']-row['shelter_exit']
             vel = line_smoother(row['tracking_data'][t0:t1, 2])
             vel.flags.writeable = True
-            vel[vel > 20] = 20
+            if np.any(vel[vel > 20]):
+                self.velocities['all fasts'].append(None)
+                self.vel_percentiles['all fasts'].append(None)
             perc = np.percentile(vel, 90)
             
             if perc>7:
@@ -372,17 +374,21 @@ class analyse_all_trips:
             # plt.show()
 
 
-        # if self.plot:
-        #     sampl = np.random.uniform(low=0.0, high=10.0, size=(len(x_displacement),))
-        #     f,ax = plt.subplots()
-        #     ax.scatter(x_displacement, sampl, s=10, c='k', alpha=.5)
-        #     ax.set(title='x displacement')
+        if self.plot:
+            sampl = np.random.uniform(low=0.0, high=10.0, size=(len(x_displacement),))
+            f,ax = plt.subplots()
+            ax.scatter(x_displacement, sampl, s=10, c='k', alpha=.5)
+            ax.set(title='x displacement')
 
         return x_displacement
 
     def create_summary_dataframe(self):
-        df_dict = {'duration':[], 'velocity':[], 'length':[], 'threat_stay':[], 'x_displacement':[], 'shelter_stay':[]}
+        df_dict = {'duration':[], 'velocity':[], 'length':[], 'threat_stay':[], 'x_displacement':[], 'shelter_stay':[], 'times':[]}
         for i, duration in enumerate(self.durations['all']):
+            
+            row = self.trips.loc[i]
+            t0, t1 = row['threat_exit']-row['shelter_exit'], row['shelter_enter']-row['shelter_exit']
+            df_dict['times'].append((t0, t1))
             df_dict['duration'].append(duration)
             df_dict['velocity'].append(self.vel_percentiles['all'][i])
             df_dict['length'].append(self.return_path_lengths['all'][i])
@@ -391,6 +397,7 @@ class analyse_all_trips:
             df_dict['shelter_stay'].append(self.in_shelter_stay['all'][i])
         df_dict['is trial'] = self.trial_stats
         df_dict['is fast'] = self.fast_stats
+        df_dict['tracking_data'] = self.trips['tracking_data']
         
         # scale
         # scaled_df_dict = {k: self.scale_data(np.array(v)) for k,v in df_dict.items()}
@@ -453,11 +460,13 @@ class analyse_all_trips:
 
 class cluster_returns:
     def __init__(self):
+        self.group_by = 'is trial'
+        
         analysis = analyse_all_trips()
         self.data = analysis.returns_summary  # data is a dataframe with all the escapes measurements
         self.anonymous_data = self.data.copy()
-        self.anonymous_data = self.anonymous_data.drop(['is trial','shelter_stay', 'threat_stay'], 1)
-        # self.expand_data()
+        self.anonymous_data = self.anonymous_data.drop(['is trial', 'is fast', 'shelter_stay', 'threat_stay'], 1)
+        self.expand_data()
 
 
         self.inspect_data()
@@ -470,10 +479,12 @@ class cluster_returns:
         plt.show()
 
     def expand_data(self):
-        to_square = ['x_displacement', 'length', 'duration']
-        for ts in to_square:
-            squared = self.anonymous_data[ts].values
-            self.anonymous_data['squared_'+ts] = pd.Series(np.square(squared))
+        # to_square = ['x_displacement', 'length', 'duration']
+        # for ts in to_square:
+        #     squared = self.anonymous_data[ts].values
+        #     self.anonymous_data['squared_'+ts] = pd.Series(np.square(squared))
+
+        self.anonymous_data['dur_by_len'] = pd.Series(np.divide(self.anonymous_data['duration'].values, self.anonymous_data['length'].values))
 
     def inspect_data(self):
         self.anonymous_data.describe()
@@ -484,12 +495,13 @@ class cluster_returns:
             print('\n Correlation mtx for {}'.format(k))
             print(self.corrr_mtx[k])
 
+        n = len(self.anonymous_data.columns)
         scatter_matrix(self.anonymous_data, alpha=0.2, figsize=(6, 6), diagonal='kde')
 
-        trials = self.anonymous_data.loc[self.data['is trial'] == 1]
-        not_trials = self.anonymous_data.loc[self.data['is trial'] == 0]
+        trials = self.anonymous_data.loc[self.data[self.group_by] == 1]
+        not_trials = self.anonymous_data.loc[self.data[self.group_by] == 0]
 
-        f, axarr = plt.subplots(5, 5, facecolor=[.8, .8, .8])
+        f, axarr = plt.subplots(n, 4, facecolor=[.8, .8, .8])
         axarr = axarr.flatten()
         combs = combinations(list(self.anonymous_data.columns), 2)
         counter = 0
@@ -500,7 +512,6 @@ class cluster_returns:
             ax.set(facecolor=[.2, .2, .2], title='{}-{}'.format(c1, c2), xlabel=c1, ylabel=c2)
             ax.scatter(trials[c1].values, trials[c2].values, c=[.8, .2, .2], alpha=.2)
             ax.scatter(not_trials[c1].values, not_trials[c2].values, c=[.2, .2, .8], alpha=.2)
-        f.tight_layout()
         # _, bins, _ = ax.hist(trials['threat_stay'].values, bins=100, alpha=.5)
         # ax.hist(not_trials['threat_stay'].values, bins=bins, alpha=.5)
 
@@ -537,7 +548,7 @@ class cluster_returns:
             kmeans = KMeans(n_clusters=n_clusters)
 
             # fit kmeans object to data
-            data = self.pca_components.drop(['is trial'], 1)
+            data = self.pca_components.drop([self.group_by], 1)
             kmeans.fit(data)
 
             # save new clusters for chart
@@ -569,7 +580,7 @@ class cluster_returns:
 
     def check_clustering(self):
         f, axarr = plt.subplots(4, 1, facecolor=[.2, .2, .2])
-        trials = self.data.loc[self.data['is trial'] == 1]
+        trials = self.data.loc[self.data[self.group_by] == 1]
 
         for ax in axarr:
             ax.set(facecolor=[.2, .2, .2], title='velocity by cluster')
@@ -583,12 +594,12 @@ class cluster_returns:
         [ax.legend() for ax in axarr]
 
     def plot_pca(self, df):
-        f, ax = plt.subplots(figsize=(16, 16), facecolor=[.2, .2, .2])
+        f, ax = plt.subplots(facecolor=[.2, .2, .2])
         d = dict(not_trials=(0, [.4, .4, .8], .4), trials=(1, [.8, .4, .4], .4),)
 
         ax.set(facecolor=[.2, .2, .2])
         for n, (i, c, a) in d.items():
-            indicesToKeep = df['is trial'] == i
+            indicesToKeep = df[self.group_by] == i
             ax.scatter(df.loc[indicesToKeep, 'principal component 1']
                 , df.loc[indicesToKeep, 'principal component 2']
                 , c = c, alpha=a, s = 30, label=n)
@@ -605,7 +616,7 @@ class cluster_returns:
         pca = PCA(n_components=2)
         principalComponents = pca.fit_transform(scaled)
         principalDf = pd.DataFrame(data = principalComponents, columns = ['principal component 1', 'principal component 2'])
-        finalDf = pd.concat([principalDf, self.data['is trial']], axis = 1)
+        finalDf = pd.concat([principalDf, self.data[self.group_by]], axis = 1)
 
         print(pd.DataFrame(pca.components_,columns=self.anonymous_data.columns,index = ['PC-1','PC-2']))
 
@@ -629,12 +640,53 @@ class cluster_returns:
         return finalDf
 
 
+class timeseries_returns:
+    def __init__(self):        
+        analysis = analyse_all_trips()
+        self.data = analysis.returns_summary  # data is a dataframe with all the escapes measurements
+
+        self.get_r_returns()
+        plt.show()
+
+    def get_r_returns(self):
+        def plotter(var, ttl=''):
+            titles = ['x', 'y', 'xy', 'vel']
+            ylims = [[400, 700], [300, 800], [350, 800], [0, 25]]
+            f, axarr = plt.subplots(2, 2)
+            axarr = axarr.flatten()
+            for idx, row in var.iterrows():
+                t0, t_shelt = row['times']
+                x_t_shelt = t_shelt-t0
+                
+                t1 = t0 + 20*30
+                axarr[0].plot(row['tracking_data'][t0:t1, 0], 'k', alpha=.2)
+                axarr[1].plot(row['tracking_data'][t0:t1, 1], 'k', alpha=.2)
+                axarr[2].plot(row['tracking_data'][t0:t1, 0], 
+                            row['tracking_data'][t0:t1, 1], 'k', alpha=.2)
+                axarr[3].plot(line_smoother(row['tracking_data'][t0:t1, 2]), 'k', alpha=.15)
+                if x_t_shelt <= 20*30:
+                    axarr[0].plot(x_t_shelt, row['tracking_data'][t_shelt, 0], 'o', color='r', alpha=.3)
+                    axarr[1].plot(x_t_shelt, row['tracking_data'][t_shelt, 1], 'o', color='r', alpha=.3)
+                    # axarr[3].plot(x_t_shelt, row['tracking_data'][t_shelt, 2], 'o', color='r', alpha=.3)
+                axarr[2].plot(row['tracking_data'][t_shelt, 0], row['tracking_data'][t_shelt, 1], 'o', color='r', alpha=.3)
+
+            [ax.set(title=titles[i]+'  '+ttl, ylim=ylims[i]) for i,ax in enumerate(axarr)]
+
+        right_returns = self.data.loc[(self.data['x_displacement'] >= 100) & (self.data['x_displacement'] <= 150)]
+        fast_right = right_returns.loc[right_returns['is fast'] == 1]
+        slow_right = right_returns.loc[right_returns['is fast'] == 0]
+
+        plotter(fast_right, 'fast')
+        plotter(slow_right, 'slow')
+        plotter(right_returns, 'ALL')
 
 if __name__ == '__main__':
     # analyse_all_trips(erase_table=True, fill_in_table=False, run_analysis=False)
     # analyse_all_trips(erase_table=False, fill_in_table=True, run_analysis=False)
     # analyse_all_trips(erase_table=False, fill_in_table=False, run_analysis=True, plot=True)
     
-    cluster_returns()
+    #cluster_returns()
+    
+    timeseries_returns()
 
 
