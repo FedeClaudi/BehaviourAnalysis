@@ -195,7 +195,7 @@ class analyse_all_trips:
                     has_stim = 'false'
 
                 # 'shelter_exit threat_enter threat_exit shelter_enter time_in_shelter tracking_data is_trial recording_uid'
-                self.all_trips.append(self.trip(g[0], g[1], g[2], g[3], g[4], tr[g[0]:g[4], :], has_stim, row['recording_uid']))
+                self.all_trips.append(self.trip(g[0], g[1], g[2], g[3], g[4], tr[g[0]:g[4]+g[3], :], has_stim, row['recording_uid']))
 
     def insert_trips_in_table(self):
         for i, trip in enumerate(self.all_trips): 
@@ -246,7 +246,7 @@ class analyse_all_trips:
         # Get trial or not for each return and time spent in shelter 
         trials = []
         for idx, row in self.trips.iterrows():
-            in_shelter = row['time_in_shelter']
+            in_shelter = row['time_in_shelter']/30
             in_shelter_stay['all'].append(in_shelter)
             
             if row['is_trial'] == 'true':
@@ -260,11 +260,11 @@ class analyse_all_trips:
 
             in_shelter_stay[key].append(in_shelter)
 
-        self.plot_hist(in_shelter_stay, title='In shelter stay')
+        self.plot_hist(in_shelter_stay, title='In shelter stay', xmax=300)
 
         # Return stats tuple
         return stats(trials, in_shelter_stay)
-         
+
     def get_velocities(self):
         """
             get_velocities [get each velocity trace and the max vel percentiles for each trial]
@@ -275,7 +275,8 @@ class analyse_all_trips:
         # Get 
         fast_returns = []
         for idx, row in self.trips.iterrows():
-            vel = row['tracking_data'][row['threat_exit']-row['shelter_exit']:, 2]
+            t0, t1 = row['threat_exit']-row['shelter_exit'], row['shelter_enter']-row['shelter_exit']
+            vel = row['tracking_data'][t0:t1, 2]
             vel.flags.writeable = True
             vel[vel > 20] = 20
             perc = np.percentile(vel, 75)
@@ -323,7 +324,7 @@ class analyse_all_trips:
         for idx, row in self.trips.iterrows():
             # Get x between the time T is left and the mouse is at the shelter
             t0, t1 = row['threat_exit']-row['shelter_exit'], row['shelter_enter']-row['shelter_exit']
-            x = np.add(linesmoother(row['tracking_data'][t0:t1, 0])- 500) # center on X
+            x = line_smoother(np.add(row['tracking_data'][t0:t1, 0], -500)) # center on X
             y = line_smoother(row['tracking_data'][t0:t1, 1])
 
             # Get left-most and right-most points
@@ -335,13 +336,22 @@ class analyse_all_trips:
             x_displacement.append(tokeep)
 
             # Plt for debug
-            idx = np.where(x == tokeep)[0]
-            f, ax = plt.subplots()
-            ax.plot(x, y)
-            ax.plot(x[idx], y[idx], 'o', color='r')
-            plt.show()
-        return x_displacement
+            # idx = np.where(x == tokeep)[0]
+            # f, ax = plt.subplots()
+            # plt.plot(line_smoother(np.add(row['tracking_data'][:, 0], -500)),
+            #         line_smoother(row['tracking_data'][:, 1]), 'k')
+            # ax.plot(x, y, 'g', linewidth=3)
+            # ax.plot(x[idx], y[idx], 'o', color='r')
+            # plt.show()
 
+
+        if self.plot:
+            sampl = np.random.uniform(low=0.0, high=10.0, size=(len(x_displacement),))
+            f,ax = plt.subplots()
+            ax.scatter(x_displacement, sampl, s=10, c='k', alpha=.5)
+            ax.set(title='x displacement')
+
+        return x_displacement
 
     def create_summary_dataframe(self):
         df_dict = {'duration':[], 'velocity':[], 'length':[], 'threat_stay':[], 'x_displacement':[], 'shelter_stay':[]}
@@ -362,7 +372,7 @@ class analyse_all_trips:
     #####################################################################
     #####################################################################
 
-    def plot_hist(self, var, title='', nbins=100,  xlabel='seconds', xmax=45, density=False):
+    def plot_hist(self, var, title='', nbins=250,  xlabel='seconds', xmax=45, density=False):
         if not self.plot: 
             return
         f, ax = plt.subplots(facecolor=[.2, .2, .2])
@@ -510,9 +520,9 @@ class cluster_returns:
 
 
 if __name__ == '__main__':
-    analyse_all_trips(erase_table=True, fill_in_table=False, run_analysis=False)
+    # analyse_all_trips(erase_table=True, fill_in_table=False, run_analysis=False)
     # analyse_all_trips(erase_table=False, fill_in_table=True, run_analysis=False)
-    # analyse_all_trips(erase_table=False, fill_in_table=False, run_analysis=True)
+    analyse_all_trips(erase_table=False, fill_in_table=False, run_analysis=True, plot=True)
     
     # cluster_returns()
 
