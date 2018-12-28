@@ -51,12 +51,13 @@ class analyse_all_trips:
 
             # Get all good trips
             self.all_trips = []
-            self.trip = namedtuple('trip', 'shelter_exit threat_enter threat_exit shelter_enter tracking_data is_trial recording_uid')
+            self.trip = namedtuple('trip', 'shelter_exit threat_enter threat_exit shelter_enter time_in_shelter tracking_data is_trial recording_uid')
             self.get_trips()
 
             # Insert good trips into trips table
             self.table = AllTrips()
             self.insert_trips_in_table()
+
             print(self.table)
 
         if run_analysis:
@@ -73,7 +74,8 @@ class analyse_all_trips:
             self.analyse_roi_stay()
             self.analyse_return_path_length()
 
-            self.trial_stats = self.get_trial_stats()
+            self.x_displacement = self.get_x_displacement()
+            self.trial_stats, self.in_shelter_stay = self.get_trial_stats(fast_returns_ids)
 
             if plot:
                 # self.plot_all_trips()
@@ -105,13 +107,13 @@ class analyse_all_trips:
                 ax.add_patch(rect)  
             ax.legend()
 
-            f, ax = plt.subplots()
-            ax.plot(x, y, 'k', alpha=.5)
+            # f, ax = plt.subplots()
+            # ax.plot(x, y, 'k', alpha=.5)
             # ax.plot(x[inx], y[inx], 'r',alpha=.75, label='x')
             # ax.plot(x[iny], y[iny], 'b',alpha=.75, label='y')
-            ax.plot(x[inboth], y[inboth], 'r')
+            # ax.plot(x[inboth], y[inboth], 'r')
             # ax.legend()
-            plt.show()
+            # plt.show()
 
         trips=[]
         for idx, row in self.tracking.iterrows():
@@ -150,6 +152,7 @@ class analyse_all_trips:
                 # get time in which it returns to the shelter 
                 try:
                     next_in = [i for i in in_rois['shelter'].ins if i > sexit][0]
+                    time_in_shelter = [i for i in in_rois['shelter'].outs if i > next_in][0]-next_in  # time spent in shelter after return
                 except:
                     break
 
@@ -179,7 +182,7 @@ class analyse_all_trips:
                         #         else:
                         #             s=50
                         #         ax.scatter(x[t], y[t], s=s, color='r')
-                        good_times.append((sexit, tenter, texit, next_in))
+                        good_times.append((sexit, tenter, texit, next_in, time_in_shelter))
 
             # Check if trip includes trial and add to al trips dictionary
             print(' ... checking if trials')
@@ -191,8 +194,8 @@ class analyse_all_trips:
                 else:
                     has_stim = 'false'
 
-                # shelter_exit threat_enter threat_exit shelter_enter tracking_data is_trial recording_uid
-                self.all_trips.append(self.trip(g[0], g[1], g[2], g[3], tr[g[0]:g[3], :], has_stim, row['recording_uid']))
+                # 'shelter_exit threat_enter threat_exit shelter_enter time_in_shelter tracking_data is_trial recording_uid'
+                self.all_trips.append(self.trip(g[0], g[1], g[2], g[3], g[4], tr[g[0]:g[4], :], has_stim, row['recording_uid']))
 
     def insert_trips_in_table(self):
         for i, trip in enumerate(self.all_trips): 
@@ -235,15 +238,33 @@ class analyse_all_trips:
 
         self.plot_hist(self.durations, 'escape dur', nbins=500)
 
-    def get_trial_stats(self):
+    def get_trial_stats(self, fast_returns_ids):
+        stats = namedtuple('stats', 'is_trial time_in_shelter')
+        names = ['all', 'trials', 'not trials', 'fast not trials']
+        in_shelter_stay  = {n:[] for n in names}
+        
+        # Get trial or not for each return and time spent in shelter 
         trials = []
         for idx, row in self.trips.iterrows():
+            in_shelter = row['time_in_shelter']
+            in_shelter_stay['all'].append(in_shelter)
+            
             if row['is_trial'] == 'true':
                 trials.append(1)
+                key = 'trials'
             else:
                 trials.append(0)
-        return trials
+                key = 'not trials'
+                if row['trip_id'] in fast_returns_ids:
+                    in_shelter_stay['fast not trials'].append(in_shelter)
 
+            in_shelter_stay[key].append(in_shelter)
+
+        self.plot_hist(in_shelter_stay, title='In shelter stay')
+
+        # Return stats tuple
+        return stats(trials, in_shelter_stay)
+         
     def get_velocities(self):
         """
             get_velocities [get each velocity trace and the max vel percentiles for each trial]
@@ -297,24 +318,51 @@ class analyse_all_trips:
 
         self.plot_hist(self.threat_stay, title='in threat')
 
+    def get_x_displacement(self):
+        x_displacement = []
+        for idx, row in self.trips.iterrows():
+            # Get x between the time T is left and the mouse is at the shelter
+            t0, t1 = row['threat_exit']-row['shelter_exit'], row['shelter_enter']-row['shelter_exit']
+            x = np.add(linesmoother(row['tracking_data'][t0:t1, 0])- 500) # center on X
+            y = line_smoother(row['tracking_data'][t0:t1, 1])
+
+            # Get left-most and right-most points
+            left_most, right_most = min(x), max(x)
+            if abs(left_most)>=abs(right_most):
+                tokeep = left_most
+            else:
+                tokeep = right_most
+            x_displacement.append(tokeep)
+
+            # Plt for debug
+            idx = np.where(x == tokeep)[0]
+            f, ax = plt.subplots()
+            ax.plot(x, y)
+            ax.plot(x[idx], y[idx], 'o', color='r')
+            plt.show()
+        return x_displacement
+
+
     def create_summary_dataframe(self):
-        df_dict = {'duration':[], 'velocity':[], 'length':[], 'threat_stay':[]}
+        df_dict = {'duration':[], 'velocity':[], 'length':[], 'threat_stay':[], 'x_displacement':[], 'shelter_stay':[]}
         for i, duration in enumerate(self.durations['all']):
             df_dict['duration'].append(duration)
             df_dict['velocity'].append(self.vel_percentiles['all'][i])
             df_dict['length'].append(self.return_path_lengths['all'][i])
             df_dict['threat_stay'].append(self.threat_stay['all'][i])
+            df_dict['x_displacement'].append(self.x_displacement[i])
+            df_dict['shelter_stay'].append(self.in_shelter_stay['all'][i])
         df_dict['is trial'] = self.trial_stats
+        
         # scale
         # scaled_df_dict = {k: self.scale_data(np.array(v)) for k,v in df_dict.items()}
-
         return pd.DataFrame.from_dict(df_dict)
 
     #####################################################################
     #####################################################################
     #####################################################################
 
-    def plot_hist(self, var, title='', nbins = 500,  xlabel='seconds', xmax=45, density=False):
+    def plot_hist(self, var, title='', nbins=100,  xlabel='seconds', xmax=45, density=False):
         if not self.plot: 
             return
         f, ax = plt.subplots(facecolor=[.2, .2, .2])
@@ -462,10 +510,10 @@ class cluster_returns:
 
 
 if __name__ == '__main__':
-    # analyse_all_trips(erase_table=True, fill_in_table=False, run_analysis=False)
+    analyse_all_trips(erase_table=True, fill_in_table=False, run_analysis=False)
     # analyse_all_trips(erase_table=False, fill_in_table=True, run_analysis=False)
     # analyse_all_trips(erase_table=False, fill_in_table=False, run_analysis=True)
     
-    cluster_returns()
+    # cluster_returns()
 
 

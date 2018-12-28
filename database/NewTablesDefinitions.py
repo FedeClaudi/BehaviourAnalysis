@@ -305,6 +305,7 @@ class AllTrips(dj.Manual):
         shelter_enter: int                      # frame at which it returned
         threat_enter: int                       # time at which it enters in the threat
         threat_exit: int                        # frame at which it leaves the threat to reach the shetler
+        time_in_shelter: int                    # number of frames before reemerging from the shelter
         tracking_data: longblob                 # tracking
         is_trial: enum('true', 'false')   # is it around a stim?
         
