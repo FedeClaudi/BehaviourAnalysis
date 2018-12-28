@@ -353,7 +353,7 @@ class cluster_returns:
         analysis = analyse_all_trips()
         self.data = analysis.returns_summary  # data is a dataframe with all the escapes measurements
         self.anonymous_data = self.data.copy()
-        self.anonymous_data.drop(['is trial'], 1)
+        self.anonymous_data = self.anonymous_data.drop(['is trial'], 1)
 
         # self.inspect_data()
         # self.kmeans()
@@ -415,31 +415,20 @@ class cluster_returns:
         
 
     def plot_pca(self, df):
-        f, axarr = plt.subplots(2, 2, figsize=(16, 16), facecolor=[.2, .2, .2])
-        axarr = axarr.flatten()
-        d1 = dict(trials=(1, [.8, .4, .4], .8), not_trials=(0, [.4, .4, .4], .05))
-        d2 = dict(not_trials=(0, [.4, .4, .8], .8), trials=(1, [.4, .4, .4], .05),)
-        d3 = dict(not_trials=(0, [.4, .4, .8], .8), trials=(1, [.8, .4, .4], .8),)
-        dd = [d1, d2, d3]
+        f, ax = plt.subplots(figsize=(16, 16), facecolor=[.2, .2, .2])
+        d = dict(not_trials=(0, [.4, .4, .8], .4), trials=(1, [.8, .4, .4], .4),)
 
-        for ii, d in enumerate(dd):
-            ax = axarr[ii]
-            ax.set(facecolor=[.2, .2, .2])
-            for n, (i, c, a) in d.items():
-                indicesToKeep = df['is trial'] == i
-                ax.scatter(df.loc[indicesToKeep, 'principal component 1']
-                    , df.loc[indicesToKeep, 'principal component 2']
-                    , c = c, alpha=a, s = 30, label=n)
-            
-            # Plot a line
-            intercept, slope = -0.3, 0.75
-            axes = plt.gca()
-            x_vals = np.array([-4, 15])
-            y_vals = intercept + slope * x_vals
-            ax.plot(x_vals, y_vals, '--', color=[.4, .8, .4], linewidth=3)
-            
-            ax.legend()
-        plt.show()
+        ax.set(facecolor=[.2, .2, .2])
+        for n, (i, c, a) in d.items():
+            indicesToKeep = df['is trial'] == i
+            ax.scatter(df.loc[indicesToKeep, 'principal component 1']
+                , df.loc[indicesToKeep, 'principal component 2']
+                , c = c, alpha=a, s = 30, label=n)
+    
+        # Plot a line
+        # ax.plot([-2.5, 1], [2, -2], '--', color=[.4, .8, .4], linewidth=3)
+        
+        ax.legend()
 
     def do_pca(self):
         x = self.anonymous_data.values
@@ -450,7 +439,26 @@ class cluster_returns:
         principalDf = pd.DataFrame(data = principalComponents, columns = ['principal component 1', 'principal component 2'])
         finalDf = pd.concat([principalDf, self.data['is trial']], axis = 1)
 
+        print(pd.DataFrame(pca.components_,columns=self.anonymous_data.columns,index = ['PC-1','PC-2']))
+
+        # Logistic Regression
+        _training_set, _test_set = train_test_split(finalDf.values, test_size=0.2, random_state=42)
+        training_set, training_labels = _training_set[:, :2], _training_set[:, -1]
+        test_set, test_labels = _test_set[:, :2], _test_set[:, :-1]
+        logisticRegr = LogisticRegression(solver = 'lbfgs')
+        logisticRegr.fit(training_set, training_labels)
+
+        predictions = logisticRegr.predict(test_set)
+        predictions = predictions.astype(int)
+        predictionsDf = pd.DataFrame(data=predictions, columns=['is trial'])
+        predictedDf = pd.concat([principalDf, predictionsDf['is trial']], axis = 1)
+
+        # print(logisticRegr.score(test_set.round(), test_labels.round()))
+
+        self.plot_pca(predictedDf)
         self.plot_pca(finalDf)
+        plt.show()
+
 
 
 if __name__ == '__main__':
