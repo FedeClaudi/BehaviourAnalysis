@@ -170,22 +170,6 @@ class analyse_all_trips:
                     except:
                         pass
                     else:
-                        # if texit-tenter < 30: 
-                        #     f, ax = plt.subplots()
-                        #     ax.set(facecolor=[.2, .2, .2])
-                        #     ax.plot(x, y, color=[.8, .8, .8], linewidth=1)
-                        #     for roi, cc in self.rois.items():
-                        #         rect = patches.Rectangle((cc.x0,cc.y0), cc.width,-cc.height,linewidth=1,edgecolor='b',facecolor='none', label=roi)
-                        #         ax.add_patch(rect)  
-                        #     ax.plot(x[sexit:next_in], y[sexit:next_in], 'g', linewidth=7)
-                        #     for i, t in enumerate(at_threat):
-                        #         if i == 0:
-                        #             s=200
-                        #         elif i == len(at_threat):
-                        #             s=100
-                        #         else:
-                        #             s=50
-                        #         ax.scatter(x[t], y[t], s=s, color='r')
                         good_times.append((sexit, tenter, texit, next_in, time_in_shelter))
 
             # Check if trip includes trial and add to al trips dictionary
@@ -199,7 +183,8 @@ class analyse_all_trips:
                     has_stim = 'false'
 
                 # 'shelter_exit threat_enter threat_exit shelter_enter time_in_shelter tracking_data is_trial recording_uid'
-                self.all_trips.append(self.trip(g[0], g[1], g[2], g[3], g[4], tr[g[0]:g[4]+g[3], :], has_stim, row['recording_uid']))
+                endtime = g[4]+g[3]+30*30
+                self.all_trips.append(self.trip(g[0], g[1], g[2], g[3], g[4], tr[g[0]:endtime, :], has_stim, row['recording_uid']))
 
     def insert_trips_in_table(self):
         for i, trip in enumerate(self.all_trips): 
@@ -231,7 +216,7 @@ class analyse_all_trips:
 
     def get_durations(self):
         # Get durations
-        self.durations={k:self.calc_dur(v['shelter_enter'], v['threat_exit'])}
+        self.durations={k:self.calc_dur(v['shelter_enter'], v['threat_exit']) for k,v in self.all_dfs.items()}
         # Plot
         self.plot_hist(self.durations, 'escape dur', nbins=500)
 
@@ -250,16 +235,16 @@ class analyse_all_trips:
                 key = 'trials'
             else:
                 trials.append(0)
-                key = 'not trials'
+                key = 'not_trials'
                 if row['trip_id'] in fast_returns_ids:
-                    in_shelter_stay['fast not trials'].append(in_shelter)
+                    in_shelter_stay['fast_not_trials'].append(in_shelter)
 
             # Check if its a fast one
             if row['trip_id'] in all_fasts_ids:
-                key2 = 'all fasts'
+                key2 = 'all_fasts'
                 fastones.append(1)
             else:
-                key2 = 'all slows'
+                key2 = 'all_slows'
                 fastones.append(0)
 
             in_shelter_stay[key].append(in_shelter)
@@ -283,19 +268,19 @@ class analyse_all_trips:
             vel = line_smoother(row['tracking_data'][t0:t1, 2])
             vel.flags.writeable = True
             if np.any(vel[vel > velocity_th]):
-                self.velocities['all fasts'].append(None)
-                self.vel_percentiles['all fasts'].append(None)
+                self.velocities['all_fasts'].append(None)
+                self.vel_percentiles['all_fasts'].append(None)
             perc = np.percentile(vel, velocity_percentile)
             
             # Check if its a fast return
             if perc>percentile_th:
                 which_are_fast.append(row['trip_id'])
-                self.velocities['all fasts'].append(vel)
-                self.vel_percentiles['all fasts'].append(perc)
+                self.velocities['all_fasts'].append(vel)
+                self.vel_percentiles['all_fasts'].append(perc)
             else:
                 which_are_fast.append(0)
-                self.velocities['all slows'].append(vel)
-                self.vel_percentiles['all slows'].append(perc)
+                self.velocities['all_slows'].append(vel)
+                self.vel_percentiles['all_slows'].append(perc)
             
             # Check if its a trial
             self.velocities['all'].append(vel)
@@ -304,10 +289,10 @@ class analyse_all_trips:
                 key = 'trials'
             else:
                 if perc > 7: 
-                    self.velocities['fast not trials'].append(vel)
-                    self.vel_percentiles['fast not trials'].append(perc)                    
+                    self.velocities['fast_not_trials'].append(vel)
+                    self.vel_percentiles['fast_not_trials'].append(perc)                    
                     fast_returns.append(row['trip_id'])  
-                key = 'not trials'
+                key = 'not_trials'
             self.velocities[key].append(vel)
             self.vel_percentiles[key].append(perc)
         # Plot
@@ -322,7 +307,7 @@ class analyse_all_trips:
         self.plot_hist(self.return_path_lengths, title='return path length', xlabel='px', xmax=2000)
 
     def analyse_roi_stay(self):
-        self.threat_stay={k:self.calc_dur(v['threat_exit'], v['threat_enter'])}
+        self.threat_stay={k:self.calc_dur(v['threat_exit'], v['threat_enter']) for k,v in self.all_dfs.items()}
         self.plot_hist(self.threat_stay, title='in threat')
 
     def get_x_displacement(self):
@@ -400,7 +385,7 @@ class analyse_all_trips:
         # Plot by trial vs no trial
         ax = axarr[2]
         _, bins, _ = ax.hist(np.array(var['trials']), bins=nbins,  color=[.8, .4, .4], alpha=.75, density=density, label='Trials')
-        ax.hist(np.array(var['not trials']), bins=bins, color=[.4, .4, .8], alpha=.55, density=density, label='Not trials')
+        ax.hist(np.array(var['not_trials']), bins=bins, color=[.4, .4, .8], alpha=.55, density=density, label='Not trials')
         if 'fast_not_trials' in var.keys():
             ax.hist(np.array(var['fast_not_trials']), bins=bins, color=[
                     .4, .8, .4], alpha=.45, density=density, label='Fast Not trials')

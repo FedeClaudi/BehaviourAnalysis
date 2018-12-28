@@ -9,12 +9,16 @@ from collections import namedtuple
 from itertools import combinations
 from scipy.stats import gaussian_kde
 
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+
 from Processing.tracking_stats.math_utils import line_smoother
 from Utilities.file_io.files_load_save import load_yaml
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 
 from Processing.all_returns_analysis.all_returns_database import *
-
+from Processing.all_returns_analysis.trendy import *
 
 class cluster_returns:
     def __init__(self):
@@ -206,24 +210,44 @@ class timeseries_returns:
         self.data = analysis.returns_summary
 
         self.rr, _, _ = self.get_r_returns()
+
+        y = self.get_y_arr(self.rr)
+
+        # self.do_pca(self.rr)
         plt.show()
+
+    @staticmethod
+    def get_y_arr(arr):
+        y = np.zeros((20*30, arr.shape[0]))
+        for i, (idx, row) in enumerate(arr.iterrows()):
+            t0, t_shelt = row['times']
+            t1 = t0 + 20*30
+            print(row['tracking_data'].shape, t0, t1)
+            try:
+                yy = row['tracking_data'][t0:t1, 1]
+                y[:yy.shape[0], i] = yy
+            except:
+                raise ValueError(i)
+        # plt.figure()
+        # plt.plot(y)
+        return y
 
     def do_pca(self, arr):
         # Create an array with all the Y traces
-        y = np.array(20*30, arr.shape[0])
-        for idx, row in arr.iterrows():
-            t0, t_shelt = row['times']
-            t1 = t0 + 20*30
-            y[:, i] = line_smoother(row['tracking_data'][t0:t1, 2])
+        y = self.get_y_arr(arr)
 
-        scaled = StandardScaler().fit_transform(y)
+        # scaled = StandardScaler().fit_transform(y)
+
+        f, axarr = plt.subplots(1, 2)
+        axarr[0].plot(y)
+        # axarr[0].plot(scaled)
 
         pca = PCA(n_components=2)
-        principalComponents = pca.fit_transform(scaled)
+        principalComponents = pca.fit_transform(y)
         principalDf = pd.DataFrame(data=principalComponents, columns=['pc1', 'pc2'])
         
         f, ax = plt.subplots()
-        ax.scatter(principalDf.loc[indicesToKeep, 'pc1'], principalDf.loc[indicesToKeep, 'pc2'], c='k', alpha=.3, s=30)
+        ax.scatter(principalDf['pc1'], principalDf['pc2'], c='k', alpha=.3, s=30)
         ax.set(xlabel='pc1', ylabel='pc2', title='PCA of Y trace')
                 
     def get_r_returns(self):
@@ -240,20 +264,19 @@ class timeseries_returns:
                 axarr[0].plot(row['tracking_data'][t0:t1, 0], 'k', alpha=.2)
                 axarr[1].plot(row['tracking_data'][t0:t1, 1], 'k', alpha=.2)
                 axarr[2].plot(row['tracking_data'][t0:t1, 0],
-                              row['tracking_data'][t0:t1, 1], 'k', alpha=.2)
+                                row['tracking_data'][t0:t1, 1], 'k', alpha=.2)
                 axarr[3].plot(line_smoother(
                     row['tracking_data'][t0:t1, 2]), 'k', alpha=.15)
                 if x_t_shelt <= 20*30:
                     axarr[0].plot(x_t_shelt, row['tracking_data']
-                                  [t_shelt, 0], 'o', color='r', alpha=.3)
+                                    [t_shelt, 0], 'o', color='r', alpha=.3)
                     axarr[1].plot(x_t_shelt, row['tracking_data']
-                                  [t_shelt, 1], 'o', color='r', alpha=.3)
+                                    [t_shelt, 1], 'o', color='r', alpha=.3)
                     # axarr[3].plot(x_t_shelt, row['tracking_data'][t_shelt, 2], 'o', color='r', alpha=.3)
                 axarr[2].plot(row['tracking_data'][t_shelt, 0],
-                              row['tracking_data'][t_shelt, 1], 'o', color='r', alpha=.3)
+                                row['tracking_data'][t_shelt, 1], 'o', color='r', alpha=.3)
 
-            [ax.set(title=titles[i]+'  '+ttl, ylim=ylims[i])
-             for i, ax in enumerate(axarr)]
+            [ax.set(title=titles[i]+'  '+ttl, ylim=ylims[i]) for i, ax in enumerate(axarr)]
 
         right_returns = self.data.loc[(self.data['x_displacement'] >= 100) & (
             self.data['x_displacement'] <= 150)]
