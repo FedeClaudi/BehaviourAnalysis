@@ -13,12 +13,21 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 
+from dtaidistance import dtw
+from dtaidistance import dtw_visualisation as dtwvis
+
 from Processing.tracking_stats.math_utils import line_smoother
 from Utilities.file_io.files_load_save import load_yaml
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 
 from Processing.all_returns_analysis.all_returns_database import *
 from Processing.all_returns_analysis.trendy import *
+
+"""
+
+DTW code from : https://github.com/wannesm/dtaidistance
+"""
+
 
 class cluster_returns:
     def __init__(self):
@@ -211,26 +220,69 @@ class timeseries_returns:
 
         self.rr, _, _ = self.get_r_returns()
 
-        y = self.get_y_arr(self.rr)
+        y, y_dict = self.get_y_arr(self.rr)
+        self.test_dtw(y)
+        self.do_dtw(y_dict)
+        
 
         # self.do_pca(self.rr)
         plt.show()
 
+    def test_dtw(self, y):
+
+        s1 =y[:, 2]
+        s2 = y[:, 1]
+        path = dtw.warping_path(s1, s2)
+        d = dtw.distance(s1, s2)
+        print('Distance', d)
+        dtwvis.plot_warping(s1, s2, path, filename="warp.png")
+
+        d, paths = dtw.warping_paths(s1, s2, window=500, psi=2)
+        best_path = dtw.best_path(paths)
+        dtwvis.plot_warpingpaths(s1, s2, paths, best_path, filename='paths.png')
+
+        series = [
+        np.array([0, 0, 1, 2, 1, 0, 1, 0, 0], dtype=np.double),
+        np.array([0.0, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0]),
+        np.array([0.0, 0, 1, 2, 1, 0, 0, 0])]
+        ds = dtw.distance_matrix_fast(series)
+        print(ds)
+        a = 1
+
+    def do_dtw(self, y_dict):
+        print('Doing clustering analysis')
+        ds = dtw.distance_matrix_fast(list(y_dict.values()))
+        if ds is None: raise ValueError('Did not compute')
+        # CLUSTERING
+        # Custom Hierarchical clustering
+        model1 = clustering.Hierarchical(dtw.distance_matrix_fast, {})
+        # Keep track of full tree by using the HierarchicalTree wrapper class
+        model2 = clustering.HierarchicalTree(model1)
+        # SciPy linkage clustering
+        model3 = clustering.LinkageTree(dtw.distance_matrix_fast, {})
+        # cluster_idx = model3.fit(series)
+
+        model2.plot("hierarchy.png")
+
+
     @staticmethod
     def get_y_arr(arr):
         y = np.zeros((20*30, arr.shape[0]))
+        y_dict = {}
         for i, (idx, row) in enumerate(arr.iterrows()):
             t0, t_shelt = row['times']
             t1 = t0 + 20*30
-            print(row['tracking_data'].shape, t0, t1)
             try:
-                yy = row['tracking_data'][t0:t1, 1]
+                yy = np.round(row['tracking_data'][t0:t1, 1], 2)
                 y[:yy.shape[0], i] = yy
             except:
                 raise ValueError(i)
+            else:
+                y_dict[str(i)] = np.array(yy)
+        print('Working with N timeseries: ', len(list(y_dict.keys())))
         # plt.figure()
         # plt.plot(y)
-        return y
+        return y, y_dict
 
     def do_pca(self, arr):
         # Create an array with all the Y traces

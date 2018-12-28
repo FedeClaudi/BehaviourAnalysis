@@ -94,13 +94,13 @@ class TrendCluster():
         
         combs = combinations(series.keys(), n)
         combs = [[c, -1] for c in combs]
-  
-        series_keys = pd.Series(series.keys())
+    
+        series_keys = pd.Series(list(series.keys()))
         dtw_matrix = pd.DataFrame(series_keys.apply(lambda x: series_keys.apply(lambda y: dtw_distance(series[x], series[y], scaled=scale))))
         dtw_matrix.columns, dtw_matrix.index = series_keys, series_keys
         for c in combs:
             c[1] = dtw_matrix.loc[c[0], :].min(axis=0).sum()
-         
+        
         combs.sort(key=lambda x: x[1])
         self.centers = {c:series[c] for c in combs[0][0]}
         self.clusters = {c:[] for c in self.centers.keys()}
