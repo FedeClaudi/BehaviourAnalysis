@@ -12,6 +12,9 @@ from scipy.stats import gaussian_kde
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
+from sklearn.metrics.pairwise import euclidean_distances
+import scipy.cluster.hierarchy as shc
+from sklearn.cluster import AgglomerativeClustering
 
 from dtaidistance import dtw, clustering
 from dtaidistance import dtw_visualisation as dtwvis
@@ -216,20 +219,79 @@ class cluster_returns:
 
 class timeseries_returns:
     def __init__(self):
+        self.select_seconds = 20
+        self.fps = 30
+        
+        # Get prepped data
         analysis = analyse_all_trips()
-        # data is a dataframe with all the escapes measurements
         self.data = analysis.returns_summary
 
-        self.rr, _, _ = self.get_r_returns()
 
-        y, y_dict, y_list = self.get_y_arr(self.rr)
+        # Select R returns - get tracking data
+        self.data = self.get_y(self.data)
+        y, y_dict, y_list = self.get_y_arr(self.data)
         
-        # self.test_dtw(y)
-        # self.do_dtw(y)
-        self.test_ed(y)
+        # Get euclidean distance
+        distance_mtx = self.distance(y)
 
-        # self.do_pca(self.rr)
+        # Cluster 
+        self.plot_dendogram(dist)
+        cluster_obj, self.data['cluster labels'] = self.cluster(dist)
+        print(self.data.columns, self.data)
         plt.show()
+
+    def prep_data(self):
+        """prep_data [Select only returns along the R medium arm]
+        """
+        new_data = self.data.loc[(self.data['x_displacement'] >= 100) & (self.data['x_displacement'] <= 150)]
+        return new_data
+    
+    def get_y(self, arr):
+        length = self.select_seconds*self.fps
+        y = np.zeros((length, arr.shape[0]))
+        y_dict, y_list = {}, []
+        for i, (idx, row) in enumerate(arr.iterrows()):
+            t0, t_shelt = row['times']
+            t1 = t0 + self.select_seconds*self.fps
+            
+            yy = np.array(np.round(row['tracking_data'][t0:t1, 1], 2), dtype=np.double)
+            y[:yy.shape[0], i] = yy
+            y_dict[str(i)] = np.array(yy)
+            y_list.append(np.array(yy))
+
+        print('Working with N timeseries: ', i)
+        return y, y_dict, y_list
+
+    def plot_returns(self, var, ttl=''):
+        titles = ['x', 'y', 'xy', 'vel']
+        ylims = [[400, 700], [300, 800], [350, 800], [0, 25]]
+        length = self.select_seconds*self.fps
+        
+        f, axarr = plt.subplots(2, 2)
+        axarr = axarr.flatten()
+        
+        for idx, row in var.iterrows():
+            t0, t_shelt = row['times']
+            x_t_shelt = t_shelt-t0
+            t1 = t0 + length
+
+            # Plot traces
+            axarr[0].plot(row['tracking_data'][t0:t1, 0], 'k', alpha=.2)
+            axarr[1].plot(row['tracking_data'][t0:t1, 1], 'k', alpha=.2)
+            axarr[2].plot(row['tracking_data'][t0:t1, 0], row['tracking_data'][t0:t1, 1], 'k', alpha=.2)
+            axarr[3].plot(line_smoother(row['tracking_data'][t0:t1, 2]), 'k', alpha=.15)
+            
+            # Mark moment shelter is reached
+            if x_t_shelt <= length:
+                axarr[0].plot(x_t_shelt, row['tracking_data']
+                                [t_shelt, 0], 'o', color='r', alpha=.3)
+                axarr[1].plot(x_t_shelt, row['tracking_data']
+                                [t_shelt, 1], 'o', color='r', alpha=.3)
+                # axarr[3].plot(x_t_shelt, row['tracking_data'][t_shelt, 2], 'o', color='r', alpha=.3)
+            axarr[2].plot(row['tracking_data'][t_shelt, 0],
+                            row['tracking_data'][t_shelt, 1], 'o', color='r', alpha=.3)
+
+        [ax.set(title=titles[i]+'  '+ttl, ylim=ylims[i]) for i, ax in enumerate(axarr)]
 
     @staticmethod
     def array_scaler(x):
@@ -248,168 +310,29 @@ class timeseries_returns:
         x = np.divide(x, float(arr_max))
         return x
 
-    def test_ed(self, y):
-        y = self.array_scaler(y)
-        from sklearn.metrics.pairwise import euclidean_distances
-        import scipy.cluster.hierarchy as shc
-
-        dist = euclidean_distances(y.T, y.T)
-
-        plt.figure(figsize=(10, 7))  
-        plt.title("Customer Dendograms")  
-        dend = shc.dendrogram(shc.linkage(dist, method='ward'))  
-
-        from sklearn.cluster import AgglomerativeClustering
-        cluster = AgglomerativeClustering(n_clusters=2, affinity='euclidean', linkage='ward')  
-        labels = cluster.fit_predict(dist)  
-        # plt.figure(figsize=(10, 7))  
-        # plt.scatter(data[:,0], data[:,1], c=cluster.labels_, cmap='rainbow')  
-        
-        f, axarr = plt.subplots(2, 1)
-        axarr = axarr.flatten()
-
-        for i in range(y.shape[1]):
-            clst = labels[i]
-            axarr[clst].plot(y[:, i], 'k', alpha=.5)
-
-        a = 1        
-
-    def test_dtw(self, y):
-
-        s1 =y[:, 2]
-        s2 = y[:, 1]
-        path = dtw.warping_path(s1, s2)
-        d = dtw.distance(s1, s2)
-        print('Distance', d)
-        dtwvis.plot_warping(s1, s2, path, filename="warp.png")
-
-        d, paths = dtw.warping_paths(s1, s2, window=500, psi=2)
-        best_path = dtw.best_path(paths)
-        dtwvis.plot_warpingpaths(s1, s2, paths, best_path, filename='paths.png')
-
-        series = [
-        np.array([0, 0, 1, 2, 1, 0, 1, 0, 0], dtype=np.double),
-        np.array([0.0, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0]),
-        np.array([0.0, 0, 1, 2, 1, 0, 0, 0])]
-        ds = dtw.distance_matrix_fast(series)
-        print(ds)
-        
-        # Custom Hierarchical clustering
-        model1 = clustering.Hierarchical(dtw.distance_matrix_fast, {})
-        # Keep track of full tree by using the HierarchicalTree wrapper class
-        model2 = clustering.HierarchicalTree(model1)
-        model2.fit(series)
-        
-        # SciPy linkage clustering
-        # model3 = clustering.LinkageTree(dtw.distance_matrix_fast, {})
-        # cluster_idx = model3.fit(series)
-        model2.plot("hierarchy.png")
-
-        a = 1
-
-    def do_dtw(self, y):
-        # sel = np.random.randint(0, 199, 30)
-        sel = [6, 7, 8, 9, 22, 23, 26]
-        
-        y = self.array_scaler(y)
-        f, ax = plt.subplots()
-        for i in sel:
-            yy = y[:, i]
-            x = i*650
-            xx = np.linspace(x, x+600, 600)
-            ax.plot(xx, yy)
-        
-        y = y[:, sel]
-        print('Doing clustering analysis')
-        # Custom Hierarchical clustering
-        model1 = clustering.Hierarchical(dtw.distance_matrix_fast, {})
-        # Keep track of full tree by using the HierarchicalTree wrapper class
-        model2 = clustering.HierarchicalTree(model1)
-        idxs = model2.fit(y.T)
-
-        model2.plot('hierarchy2.png', ts_height=100, show_ts_label=False)
-        # dst = dtw.distance_matrix_fast(y.T)
-
-        # SciPy linkage clustering
-        a = 1
-
+    def distance(self, y):
+        return euclidean_distances(y.T, y.T)
 
     @staticmethod
-    def get_y_arr(arr):
-        select_seconds = 20
-        y = np.zeros((select_seconds*30, arr.shape[0]))
-        y_dict, y_list = {}, []
-        for i, (idx, row) in enumerate(arr.iterrows()):
-            t0, t_shelt = row['times']
-            t1 = t0 + select_seconds*30
-            try:
-                yy = np.array(np.round(row['tracking_data'][t0:t1, 1], 2), dtype=np.double)
-                y[:yy.shape[0], i] = yy
-            except:
-                raise ValueError(i)
-            else:
-                y_dict[str(i)] = np.array(yy)
-                y_list.append(np.array(yy))
-        print('Working with N timeseries: ', i)
-        # plt.figure()
-        # plt.plot(y)
-        return y, y_dict, y_list
+    def plot_dendogram(dist):
+        plt.figure(figsize=(10, 7))  
+        dend = shc.dendrogram(shc.linkage(dist, method='ward'))  
 
-    def do_pca(self, arr):
-        # Create an array with all the Y traces
-        y = self.get_y_arr(arr)
-
-        # scaled = StandardScaler().fit_transform(y)
-
-        f, axarr = plt.subplots(1, 2)
-        axarr[0].plot(y)
-        # axarr[0].plot(scaled)
-
-        pca = PCA(n_components=2)
-        principalComponents = pca.fit_transform(y)
-        principalDf = pd.DataFrame(data=principalComponents, columns=['pc1', 'pc2'])
-        
-        f, ax = plt.subplots()
-        ax.scatter(principalDf['pc1'], principalDf['pc2'], c='k', alpha=.3, s=30)
-        ax.set(xlabel='pc1', ylabel='pc2', title='PCA of Y trace')
-                
-    def get_r_returns(self):
-        def plotter(var, ttl=''):
-            titles = ['x', 'y', 'xy', 'vel']
-            ylims = [[400, 700], [300, 800], [350, 800], [0, 25]]
-            f, axarr = plt.subplots(2, 2)
+    @staticmethod
+    def cluster(dist, plot=False):
+        cluster = AgglomerativeClustering(n_clusters=2, affinity='euclidean', linkage='ward')  
+        labels = cluster.fit_predict(dist)  
+       
+        if plot:
+            f, axarr = plt.subplots(2, 1)
             axarr = axarr.flatten()
-            for idx, row in var.iterrows():
-                t0, t_shelt = row['times']
-                x_t_shelt = t_shelt-t0
+            for i in range(y.shape[1]):
+                clst = labels[i]
+                axarr[clst].plot(y[:, i], 'k', alpha=.5)  
+        return cluster, labels
 
-                t1 = t0 + 5*30
-                axarr[0].plot(row['tracking_data'][t0:t1, 0], 'k', alpha=.2)
-                axarr[1].plot(row['tracking_data'][t0:t1, 1], 'k', alpha=.2)
-                axarr[2].plot(row['tracking_data'][t0:t1, 0],
-                                row['tracking_data'][t0:t1, 1], 'k', alpha=.2)
-                axarr[3].plot(line_smoother(
-                    row['tracking_data'][t0:t1, 2]), 'k', alpha=.15)
-                if x_t_shelt <= 5*30:
-                    axarr[0].plot(x_t_shelt, row['tracking_data']
-                                    [t_shelt, 0], 'o', color='r', alpha=.3)
-                    axarr[1].plot(x_t_shelt, row['tracking_data']
-                                    [t_shelt, 1], 'o', color='r', alpha=.3)
-                    # axarr[3].plot(x_t_shelt, row['tracking_data'][t_shelt, 2], 'o', color='r', alpha=.3)
-                axarr[2].plot(row['tracking_data'][t_shelt, 0],
-                                row['tracking_data'][t_shelt, 1], 'o', color='r', alpha=.3)
 
-            [ax.set(title=titles[i]+'  '+ttl, ylim=ylims[i]) for i, ax in enumerate(axarr)]
 
-        right_returns = self.data.loc[(self.data['x_displacement'] >= 100) & (
-            self.data['x_displacement'] <= 150)]
-        fast_right = right_returns.loc[right_returns['is fast'] == 1]
-        slow_right = right_returns.loc[right_returns['is fast'] == 0]
-
-        # plotter(fast_right, 'fast')
-        # plotter(slow_right, 'slow')
-        # plotter(right_returns, 'ALL')
-        return right_returns, fast_right, slow_right
 
 
 if __name__ == '__main__':
