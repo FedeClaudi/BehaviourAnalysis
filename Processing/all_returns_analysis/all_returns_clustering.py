@@ -220,10 +220,11 @@ class cluster_returns:
 
 
 class timeseries_returns:
-    def __init__(self, load=False):
+    def __init__(self, load=False, trace=1):
         self.select_seconds = 20
         self.fps = 30
         self.n_clusters = 2
+        self.sel_trace = trace # 1 for Y and 2 for V
         
         if load:
             distance_mtx = np.load('Processing\\all_returns_analysis\\distance_mtx.npy')
@@ -245,12 +246,11 @@ class timeseries_returns:
         # Plot clusters
         self.plot_dendogram(distance_mtx)
         self.plot_clusters_heatmaps()
-        
-        plt.show()
 
     def prep_data(self):
         """prep_data [Select only returns along the R medium arm]
         """
+        # 100, 150
         new_data = self.data.loc[(self.data['x_displacement'] >= 100) & (self.data['x_displacement'] <= 150)]
         a = 1
         return new_data
@@ -263,8 +263,11 @@ class timeseries_returns:
             t0, t_shelt = row['times']
             t1 = t0 + self.select_seconds*self.fps
             
-            yy = np.array(np.round(row['tracking_data'][t0:t1, 2], 2), dtype=np.double)
-            yy[yy>20] = np.mean(yy)
+            yy = np.array(np.round(row['tracking_data'][t0:t1, self.sel_trace], 2), dtype=np.double)
+            if self.sel_trace == 2:
+                yy[yy>20] = np.mean(yy)
+                # yy = self.array_scaler(yy)
+
             y[:yy.shape[0], i] = yy
             y_dict[str(i)] = np.array(yy)
             y_list.append(np.array(yy))
@@ -348,21 +351,34 @@ class timeseries_returns:
             axarr[1, _id].set(title='Cluster # {}'.format(_id))
 
     def plot_dendogram(self, dist): 
-        #Organise Y data by cluster
+        #Organise Y data by cluster + get if is tria
         clusters_ids = set(self.data['cluster labels'])    
-        yy = []
+        yy, stims = [], []
         for _id in clusters_ids:
             selected = self.data.loc[self.data['cluster labels']==_id]
+            stimuli = selected['is trial'].values
             y, y_dict, y_list = self.get_y(selected)
             yy.append(y.T)
+            stims.append(list(stimuli))
         y = np.vstack(yy)
+        s = np.array([item for sublist in stims for item in sublist])
+        s = s.reshape(s.shape[0], 1)
 
         # plot dendo and heatmap
-        f, axarr = plt.subplots(1, 2)
-        dend = shc.dendrogram(shc.linkage(dist, method='ward'), ax=axarr[0], orientation='left')
-        sn.heatmap(y, ax=axarr[1])
+        if self.sel_trace == 1:
+            center = 560
+            cmap = 'bwr'
+            vmax, vmin = None, None
+        else:
+            center = False
+            cmap = 'gray'
+            vmax, vmin = 15, 2.5
 
-    
+        y = y[:, :150]
+        f, axarr = plt.subplots(1, 3)
+        dend = shc.dendrogram(shc.linkage(dist, method='ward'), ax=axarr[0], orientation='left')
+        sn.heatmap(y, ax=axarr[1], center=center, cmap=cmap, xticklabels=False, vmax=vmax, vmin=vmin)
+        sn.heatmap(s, ax=axarr[2], cbar=False, cmap='gray', xticklabels=False, square=False)
 
 
 
@@ -371,4 +387,6 @@ class timeseries_returns:
 if __name__ == '__main__':
     #cluster_returns()
 
-    timeseries_returns(load=False)
+    timeseries_returns(load=False, trace=1)
+    timeseries_returns(load=False, trace=2)
+    plt.show()
