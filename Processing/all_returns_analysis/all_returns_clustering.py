@@ -222,13 +222,57 @@ class timeseries_returns:
 
         self.rr, _, _ = self.get_r_returns()
 
-        y, y_dict = self.get_y_arr(self.rr)
-        # self.test_dtw(y)
-        self.do_dtw(y)
+        y, y_dict, y_list = self.get_y_arr(self.rr)
         
+        # self.test_dtw(y)
+        # self.do_dtw(y)
+        self.test_ed(y)
 
         # self.do_pca(self.rr)
         plt.show()
+
+    @staticmethod
+    def array_scaler(x):
+        """Scales array to 0-1
+        
+        Dependencies:
+            import numpy as np
+        Args:
+            x: mutable iterable array of float
+        returns:
+            scaled x
+        """
+        arr_min = np.min(x)
+        x = np.array(x) - float(arr_min)
+        arr_max = np.max(x)
+        x = np.divide(x, float(arr_max))
+        return x
+
+    def test_ed(self, y):
+        y = self.array_scaler(y)
+        from sklearn.metrics.pairwise import euclidean_distances
+        import scipy.cluster.hierarchy as shc
+
+        dist = euclidean_distances(y.T, y.T)
+
+        plt.figure(figsize=(10, 7))  
+        plt.title("Customer Dendograms")  
+        dend = shc.dendrogram(shc.linkage(dist, method='ward'))  
+
+        from sklearn.cluster import AgglomerativeClustering
+        cluster = AgglomerativeClustering(n_clusters=2, affinity='euclidean', linkage='ward')  
+        labels = cluster.fit_predict(dist)  
+        # plt.figure(figsize=(10, 7))  
+        # plt.scatter(data[:,0], data[:,1], c=cluster.labels_, cmap='rainbow')  
+        
+        f, axarr = plt.subplots(2, 1)
+        axarr = axarr.flatten()
+
+        for i in range(y.shape[1]):
+            clst = labels[i]
+            axarr[clst].plot(y[:, i], 'k', alpha=.5)
+
+        a = 1        
 
     def test_dtw(self, y):
 
@@ -264,38 +308,52 @@ class timeseries_returns:
         a = 1
 
     def do_dtw(self, y):
+        # sel = np.random.randint(0, 199, 30)
+        sel = [6, 7, 8, 9, 22, 23, 26]
+        
+        y = self.array_scaler(y)
+        f, ax = plt.subplots()
+        for i in sel:
+            yy = y[:, i]
+            x = i*650
+            xx = np.linspace(x, x+600, 600)
+            ax.plot(xx, yy)
+        
+        y = y[:, sel]
         print('Doing clustering analysis')
         # Custom Hierarchical clustering
-        # model1 = clustering.Hierarchical(dtw.distance_matrix_fast, {})
+        model1 = clustering.Hierarchical(dtw.distance_matrix_fast, {})
         # Keep track of full tree by using the HierarchicalTree wrapper class
-        # model2 = clustering.HierarchicalTree(model1)
-        # model2.fit(y)
-        
+        model2 = clustering.HierarchicalTree(model1)
+        idxs = model2.fit(y.T)
+
+        model2.plot('hierarchy2.png', ts_height=100, show_ts_label=False)
+        # dst = dtw.distance_matrix_fast(y.T)
+
         # SciPy linkage clustering
-        model3 = clustering.LinkageTree(dtw.distance_matrix_fast, {})
-        cluster_idx = model3.fit(y)
-        model3.plot("hierarchy_scipy.png")
         a = 1
 
 
     @staticmethod
     def get_y_arr(arr):
-        y = np.zeros((20*30, arr.shape[0]))
-        y_dict = {}
+        select_seconds = 20
+        y = np.zeros((select_seconds*30, arr.shape[0]))
+        y_dict, y_list = {}, []
         for i, (idx, row) in enumerate(arr.iterrows()):
             t0, t_shelt = row['times']
-            t1 = t0 + 20*30
+            t1 = t0 + select_seconds*30
             try:
-                yy = np.round(row['tracking_data'][t0:t1, 1], 2)
+                yy = np.array(np.round(row['tracking_data'][t0:t1, 1], 2), dtype=np.double)
                 y[:yy.shape[0], i] = yy
             except:
                 raise ValueError(i)
             else:
                 y_dict[str(i)] = np.array(yy)
+                y_list.append(np.array(yy))
         print('Working with N timeseries: ', i)
         # plt.figure()
         # plt.plot(y)
-        return y, y_dict
+        return y, y_dict, y_list
 
     def do_pca(self, arr):
         # Create an array with all the Y traces
@@ -325,14 +383,14 @@ class timeseries_returns:
                 t0, t_shelt = row['times']
                 x_t_shelt = t_shelt-t0
 
-                t1 = t0 + 20*30
+                t1 = t0 + 5*30
                 axarr[0].plot(row['tracking_data'][t0:t1, 0], 'k', alpha=.2)
                 axarr[1].plot(row['tracking_data'][t0:t1, 1], 'k', alpha=.2)
                 axarr[2].plot(row['tracking_data'][t0:t1, 0],
                                 row['tracking_data'][t0:t1, 1], 'k', alpha=.2)
                 axarr[3].plot(line_smoother(
                     row['tracking_data'][t0:t1, 2]), 'k', alpha=.15)
-                if x_t_shelt <= 20*30:
+                if x_t_shelt <= 5*30:
                     axarr[0].plot(x_t_shelt, row['tracking_data']
                                     [t_shelt, 0], 'o', color='r', alpha=.3)
                     axarr[1].plot(x_t_shelt, row['tracking_data']
