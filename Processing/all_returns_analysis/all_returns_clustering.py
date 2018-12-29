@@ -13,7 +13,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 
-from dtaidistance import dtw
+from dtaidistance import dtw, clustering
 from dtaidistance import dtw_visualisation as dtwvis
 
 from Processing.tracking_stats.math_utils import line_smoother
@@ -26,6 +26,8 @@ from Processing.all_returns_analysis.trendy import *
 """
 
 DTW code from : https://github.com/wannesm/dtaidistance
+https://dtaidistance.readthedocs.io/en/latest/usage/installation.html
+https://pydigger.com/pypi/dtaidistance
 """
 
 
@@ -221,8 +223,8 @@ class timeseries_returns:
         self.rr, _, _ = self.get_r_returns()
 
         y, y_dict = self.get_y_arr(self.rr)
-        self.test_dtw(y)
-        self.do_dtw(y_dict)
+        # self.test_dtw(y)
+        self.do_dtw(y)
         
 
         # self.do_pca(self.rr)
@@ -247,22 +249,33 @@ class timeseries_returns:
         np.array([0.0, 0, 1, 2, 1, 0, 0, 0])]
         ds = dtw.distance_matrix_fast(series)
         print(ds)
-        a = 1
-
-    def do_dtw(self, y_dict):
-        print('Doing clustering analysis')
-        ds = dtw.distance_matrix_fast(list(y_dict.values()))
-        if ds is None: raise ValueError('Did not compute')
-        # CLUSTERING
+        
         # Custom Hierarchical clustering
         model1 = clustering.Hierarchical(dtw.distance_matrix_fast, {})
         # Keep track of full tree by using the HierarchicalTree wrapper class
         model2 = clustering.HierarchicalTree(model1)
+        model2.fit(series)
+        
+        # SciPy linkage clustering
+        # model3 = clustering.LinkageTree(dtw.distance_matrix_fast, {})
+        # cluster_idx = model3.fit(series)
+        model2.plot("hierarchy.png")
+
+        a = 1
+
+    def do_dtw(self, y):
+        print('Doing clustering analysis')
+        # Custom Hierarchical clustering
+        # model1 = clustering.Hierarchical(dtw.distance_matrix_fast, {})
+        # Keep track of full tree by using the HierarchicalTree wrapper class
+        # model2 = clustering.HierarchicalTree(model1)
+        # model2.fit(y)
+        
         # SciPy linkage clustering
         model3 = clustering.LinkageTree(dtw.distance_matrix_fast, {})
-        # cluster_idx = model3.fit(series)
-
-        model2.plot("hierarchy.png")
+        cluster_idx = model3.fit(y)
+        model3.plot("hierarchy_scipy.png")
+        a = 1
 
 
     @staticmethod
@@ -279,7 +292,7 @@ class timeseries_returns:
                 raise ValueError(i)
             else:
                 y_dict[str(i)] = np.array(yy)
-        print('Working with N timeseries: ', len(list(y_dict.keys())))
+        print('Working with N timeseries: ', i)
         # plt.figure()
         # plt.plot(y)
         return y, y_dict
