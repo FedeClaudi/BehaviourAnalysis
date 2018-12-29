@@ -8,6 +8,7 @@ from pandas.plotting import scatter_matrix
 from collections import namedtuple
 from itertools import combinations
 from scipy.stats import gaussian_kde
+import os
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
@@ -218,20 +219,23 @@ class cluster_returns:
 
 
 class timeseries_returns:
-    def __init__(self):
+    def __init__(self, load=False):
         self.select_seconds = 20
         self.fps = 30
         
-        # Get prepped data
-        analysis = analyse_all_trips()
-        self.data = analysis.returns_summary
+        if load:
+            distance_mtx = np.load(os.path.join(['Processing', 'all_returns_analysis', 'distance_mtx.npy']))
+        else:
+            # Get prepped data
+            analysis = analyse_all_trips()
+            self.data = analysis.returns_summary
 
-        # Select R returns - get tracking data
-        self.data = self.prep_data()
-        y, y_dict, y_list = self.get_y(self.data)
-        
-        # Get euclidean distance
-        distance_mtx = self.distance(y)
+            # Select R returns - get tracking data
+            self.data = self.prep_data()
+            y, y_dict, y_list = self.get_y(self.data)
+            
+            # Get euclidean distance
+            distance_mtx = self.distance(y)
 
         # Cluster 
         self.plot_dendogram(distance_mtx)
@@ -345,4 +349,4 @@ class timeseries_returns:
 if __name__ == '__main__':
     #cluster_returns()
 
-    timeseries_returns()
+    timeseries_returns(load=True)
