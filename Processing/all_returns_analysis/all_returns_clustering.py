@@ -79,7 +79,7 @@ class cluster_returns:
 
         n = len(self.anonymous_data.columns)
         scatter_matrix(self.anonymous_data, alpha=0.2,
-                       figsize=(6, 6), diagonal='kde')
+                        figsize=(6, 6), diagonal='kde')
 
         trials = self.anonymous_data.loc[self.data[self.group_by] == 1]
         not_trials = self.anonymous_data.loc[self.data[self.group_by] == 0]
@@ -226,24 +226,28 @@ class timeseries_returns:
         analysis = analyse_all_trips()
         self.data = analysis.returns_summary
 
-
         # Select R returns - get tracking data
-        self.data = self.get_y(self.data)
-        y, y_dict, y_list = self.get_y_arr(self.data)
+        self.data = self.prep_data()
+        y, y_dict, y_list = self.get_y(self.data)
         
         # Get euclidean distance
         distance_mtx = self.distance(y)
 
         # Cluster 
-        self.plot_dendogram(dist)
-        cluster_obj, self.data['cluster labels'] = self.cluster(dist)
+        self.plot_dendogram(distance_mtx)
+        cluster_obj, self.data['cluster labels'] = self.cluster(distance_mtx)
         print(self.data.columns, self.data)
+        
+        # Plot clusters
+        self.plot_clusters_heatmaps()
+        
         plt.show()
 
     def prep_data(self):
         """prep_data [Select only returns along the R medium arm]
         """
         new_data = self.data.loc[(self.data['x_displacement'] >= 100) & (self.data['x_displacement'] <= 150)]
+        a = 1
         return new_data
     
     def get_y(self, arr):
@@ -322,7 +326,7 @@ class timeseries_returns:
     def cluster(dist, plot=False):
         cluster = AgglomerativeClustering(n_clusters=2, affinity='euclidean', linkage='ward')  
         labels = cluster.fit_predict(dist)  
-       
+        
         if plot:
             f, axarr = plt.subplots(2, 1)
             axarr = axarr.flatten()
@@ -330,6 +334,9 @@ class timeseries_returns:
                 clst = labels[i]
                 axarr[clst].plot(y[:, i], 'k', alpha=.5)  
         return cluster, labels
+
+    def plot_clusters_heatmaps(self):
+        a = 1
 
 
 
