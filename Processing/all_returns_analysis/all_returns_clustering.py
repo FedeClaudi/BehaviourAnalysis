@@ -17,15 +17,15 @@ from sklearn.metrics.pairwise import euclidean_distances
 import scipy.cluster.hierarchy as shc
 from sklearn.cluster import AgglomerativeClustering
 
-from dtaidistance import dtw, clustering
-from dtaidistance import dtw_visualisation as dtwvis
+# from dtaidistance import dtw, clustering
+# from dtaidistance import dtw_visualisation as dtwvis
 
 from Processing.tracking_stats.math_utils import line_smoother
 from Utilities.file_io.files_load_save import load_yaml
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 
-from Processing.all_returns_analysis.all_returns_database import *
-from Processing.all_returns_analysis.trendy import *
+# from Processing.all_returns_analysis.all_returns_database import *
+# from Processing.all_returns_analysis.trendy import *
 
 """
 
@@ -224,7 +224,7 @@ class timeseries_returns:
         self.fps = 30
         
         if load:
-            distance_mtx = np.load(os.path.join(['Processing', 'all_returns_analysis', 'distance_mtx.npy']))
+            distance_mtx = np.load('Processing/all_returns_analysis/distance_mtx.npy')
         else:
             # Get prepped data
             analysis = analyse_all_trips()
