@@ -9,6 +9,7 @@ from collections import namedtuple
 from itertools import combinations
 from scipy.stats import gaussian_kde
 import os
+import seaborn as sn
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
@@ -24,7 +25,7 @@ from Processing.tracking_stats.math_utils import line_smoother
 from Utilities.file_io.files_load_save import load_yaml
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 
-# from Processing.all_returns_analysis.all_returns_database import *
+from Processing.all_returns_analysis.all_returns_database import *
 # from Processing.all_returns_analysis.trendy import *
 
 """
@@ -222,9 +223,10 @@ class timeseries_returns:
     def __init__(self, load=False):
         self.select_seconds = 20
         self.fps = 30
+        self.n_clusters = 2
         
         if load:
-            distance_mtx = np.load('Processing/all_returns_analysis/distance_mtx.npy')
+            distance_mtx = np.load('Processing\\all_returns_analysis\\distance_mtx.npy')
         else:
             # Get prepped data
             analysis = analyse_all_trips()
@@ -238,11 +240,10 @@ class timeseries_returns:
             distance_mtx = self.distance(y)
 
         # Cluster 
-        self.plot_dendogram(distance_mtx)
         cluster_obj, self.data['cluster labels'] = self.cluster(distance_mtx)
-        print(self.data.columns, self.data)
         
         # Plot clusters
+        self.plot_dendogram(distance_mtx)
         self.plot_clusters_heatmaps()
         
         plt.show()
@@ -262,12 +263,11 @@ class timeseries_returns:
             t0, t_shelt = row['times']
             t1 = t0 + self.select_seconds*self.fps
             
-            yy = np.array(np.round(row['tracking_data'][t0:t1, 1], 2), dtype=np.double)
+            yy = np.array(np.round(row['tracking_data'][t0:t1, 2], 2), dtype=np.double)
+            yy[yy>20] = np.mean(yy)
             y[:yy.shape[0], i] = yy
             y_dict[str(i)] = np.array(yy)
             y_list.append(np.array(yy))
-
-        print('Working with N timeseries: ', i)
         return y, y_dict, y_list
 
     def plot_returns(self, var, ttl=''):
@@ -321,14 +321,8 @@ class timeseries_returns:
     def distance(self, y):
         return euclidean_distances(y.T, y.T)
 
-    @staticmethod
-    def plot_dendogram(dist):
-        plt.figure(figsize=(10, 7))  
-        dend = shc.dendrogram(shc.linkage(dist, method='ward'))  
-
-    @staticmethod
-    def cluster(dist, plot=False):
-        cluster = AgglomerativeClustering(n_clusters=2, affinity='euclidean', linkage='ward')  
+    def cluster(self, dist, plot=False):
+        cluster = AgglomerativeClustering(n_clusters=self.n_clusters, affinity='euclidean', linkage='ward')  
         labels = cluster.fit_predict(dist)  
         
         if plot:
@@ -340,7 +334,35 @@ class timeseries_returns:
         return cluster, labels
 
     def plot_clusters_heatmaps(self):
-        a = 1
+        clusters_ids = set(self.data['cluster labels'])
+        
+        f, axarr = plt.subplots(2, len(clusters_ids))
+
+        for _id in clusters_ids:
+            selected = self.data.loc[self.data['cluster labels']==_id]
+            y, y_dict, y_list = self.get_y(selected)
+
+            axarr[0, _id].plot(y, color='k', alpha=.1)
+            axarr[0, _id].plot(np.mean(y, 1), color='r', linewidth=3)
+            sn.heatmap(y.T, ax=axarr[1, _id], )
+            axarr[1, _id].set(title='Cluster # {}'.format(_id))
+
+    def plot_dendogram(self, dist): 
+        #Organise Y data by cluster
+        clusters_ids = set(self.data['cluster labels'])    
+        yy = []
+        for _id in clusters_ids:
+            selected = self.data.loc[self.data['cluster labels']==_id]
+            y, y_dict, y_list = self.get_y(selected)
+            yy.append(y.T)
+        y = np.vstack(yy)
+
+        # plot dendo and heatmap
+        f, axarr = plt.subplots(1, 2)
+        dend = shc.dendrogram(shc.linkage(dist, method='ward'), ax=axarr[0], orientation='left')
+        sn.heatmap(y, ax=axarr[1])
+
+    
 
 
 
@@ -349,4 +371,4 @@ class timeseries_returns:
 if __name__ == '__main__':
     #cluster_returns()
 
-    timeseries_returns(load=True)
+    timeseries_returns(load=False)
