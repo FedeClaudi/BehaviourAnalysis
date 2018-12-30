@@ -29,6 +29,9 @@ from sklearn.metrics.pairwise import euclidean_distances
 import scipy.cluster.hierarchy as shc
 from sklearn.cluster import AgglomerativeClustering
 
+from tsfresh import extract_relevant_features, extract_features
+from tsfresh.utilities.dataframe_functions import impute
+
 from Processing.tracking_stats.math_utils import line_smoother
 from Utilities.file_io.files_load_save import load_yaml
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
@@ -257,9 +260,25 @@ class timeseries_returns:
             # Multivariate Time Series Analysis
             self.mvt_analysis()
 
-def mvt_analysis(self):
+    @staticmethod
+    def convert_y_to_df(y):
+        index = ['c{}'.format(i) for i in range(y.shape[1])]
+        data = {idx:y[:,i] for i,idx in enumerate(index)}
+        return pd.DataFrame.from_dict(data) 
 
+    @staticmethod
+    def features_extractor(y)
 
+    def mvt_analysis(self):
+        print('extracting features')
+        v, _, vl = self.get_y(self.data, sel=2)
+        y, _, yl = self.get_y(self.data, sel=1)
+
+        v = self.convert_y_to_df(v)
+        fake = np.zeros((len(vl)))
+        v['id'] = np.zeros(v.shape[0])
+
+        a = 1
 
     def prep_data(self):
         """prep_data [Select only returns along the R medium arm]
