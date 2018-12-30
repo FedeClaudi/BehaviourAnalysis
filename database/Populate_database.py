@@ -208,7 +208,7 @@ if __name__ == '__main__':
 
     print(p)
 
-    # jp.remove_table('tracking_data')
+    # p.remove_table('tracking_data')
 
     # p.populate_mice_table()
     # p.populate_experiments_table()

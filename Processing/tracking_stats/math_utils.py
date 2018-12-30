@@ -171,7 +171,12 @@ def calc_angle_between_points_of_vector(v):
         except:
             thetas[i] = 0
         else:
-            thetas[i] = angle_between_points_2d_clockwise(p0, p1)
+            d = calc_distance_between_points_2d(p0, p1)
+            try:
+                thetas[i] = angle_between_points_2d_clockwise(p0, p1)
+            except:
+                print('Failed with d: ', d)
+                thetas[i] = 0
     return thetas
 
 
@@ -264,7 +269,7 @@ def correct_tracking_data(uncorrected, M, xpad, ypad, exp_name):
     translators = content['translators']
     x_translation, y_translation = translators[exp_name]
     
-    corrected[:, 0] = np.add(corrected[:, 0],  line)
+    corrected[:, 0] = np.add(corrected[:, 0],  x_translation)
     corrected[:, 1] = np.add(-np.add(corrected[:, 1], 0), 1000)
     corrected[:, 1] = np.add(corrected[:, 1], y_translation)
 
