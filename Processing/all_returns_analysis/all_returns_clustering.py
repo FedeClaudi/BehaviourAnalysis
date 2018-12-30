@@ -3,6 +3,17 @@ sys.path.append('./')
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import matplotlib.gridspec as gridspec
+import matplotlib.pylab as pylab
+params = {'legend.fontsize': 'x-large',
+            'figure.figsize': (15, 15),
+            'axes.labelsize': 'x-large',
+            'axes.titlesize':'x-large',
+            'xtick.labelsize':'x-large',
+            'ytick.labelsize':'x-large',
+            'font.size': 22}
+pylab.rcParams.update(params)
+
 import pandas as pd
 from pandas.plotting import scatter_matrix
 from collections import namedtuple
@@ -18,22 +29,11 @@ from sklearn.metrics.pairwise import euclidean_distances
 import scipy.cluster.hierarchy as shc
 from sklearn.cluster import AgglomerativeClustering
 
-# from dtaidistance import dtw, clustering
-# from dtaidistance import dtw_visualisation as dtwvis
-
 from Processing.tracking_stats.math_utils import line_smoother
 from Utilities.file_io.files_load_save import load_yaml
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 
 from Processing.all_returns_analysis.all_returns_database import *
-# from Processing.all_returns_analysis.trendy import *
-
-"""
-
-DTW code from : https://github.com/wannesm/dtaidistance
-https://dtaidistance.readthedocs.io/en/latest/usage/installation.html
-https://pydigger.com/pypi/dtaidistance
-"""
 
 
 class cluster_returns:
@@ -96,11 +96,11 @@ class cluster_returns:
             ax = axarr[counter]
             counter += 1
             ax.set(facecolor=[.2, .2, .2],
-                   title='{}-{}'.format(c1, c2), xlabel=c1, ylabel=c2)
+                title='{}-{}'.format(c1, c2), xlabel=c1, ylabel=c2)
             ax.scatter(trials[c1].values, trials[c2].values,
-                       c=[.8, .2, .2], alpha=.2)
+                    c=[.8, .2, .2], alpha=.2)
             ax.scatter(not_trials[c1].values,
-                       not_trials[c2].values, c=[.2, .2, .8], alpha=.2)
+                    not_trials[c2].values, c=[.2, .2, .8], alpha=.2)
 
 
     def plot_points_density(self):
@@ -144,8 +144,8 @@ class cluster_returns:
             for i in range(n_clusters):
                 t = data.loc[y_km == i]
                 ax.scatter(t['principal component 1'],
-                           t['principal component 2'],
-                           s=30, alpha=.2)
+                        t['principal component 2'],
+                        s=30, alpha=.2)
             ax.set(facecolor=[.2, .2, .2], title='{} Clusters'.format(c))
 
             interia = kmeans.inertia_
@@ -173,13 +173,13 @@ class cluster_returns:
     def plot_pca(self, df):
         f, ax = plt.subplots(facecolor=[.2, .2, .2])
         d = dict(not_trials=(0, [.4, .4, .8], .4),
-                 trials=(1, [.8, .4, .4], .4),)
+                trials=(1, [.8, .4, .4], .4),)
 
         ax.set(facecolor=[.2, .2, .2])
         for n, (i, c, a) in d.items():
             indicesToKeep = df[self.group_by] == i
             ax.scatter(df.loc[indicesToKeep, 'principal component 1'],
-                       df.loc[indicesToKeep, 'principal component 2'], c=c, alpha=a, s=30, label=n)
+                    df.loc[indicesToKeep, 'principal component 2'], c=c, alpha=a, s=30, label=n)
 
         # Plot a line
         # ax.plot([-2.5, 1], [2, -2], '--', color=[.4, .8, .4], linewidth=3)
@@ -193,11 +193,11 @@ class cluster_returns:
         pca = PCA(n_components=2)
         principalComponents = pca.fit_transform(scaled)
         principalDf = pd.DataFrame(data=principalComponents, columns=[
-                                   'principal component 1', 'principal component 2'])
+                                'principal component 1', 'principal component 2'])
         finalDf = pd.concat([principalDf, self.data[self.group_by]], axis=1)
 
         print(pd.DataFrame(pca.components_,
-                           columns=self.anonymous_data.columns, index=['PC-1', 'PC-2']))
+                        columns=self.anonymous_data.columns, index=['PC-1', 'PC-2']))
 
         # Logistic Regression
         # _training_set, _test_set = train_test_split(finalDf.values, test_size=0.2, random_state=42)
@@ -239,13 +239,15 @@ class timeseries_returns:
             
             # Get euclidean distance
             distance_mtx = self.distance(y)
+        print('Got distance matrix')
 
         # Cluster 
         cluster_obj, self.data['cluster labels'] = self.cluster(distance_mtx)
         
         # Plot clusters
+        self.plot_all_heatmap()
         self.plot_dendogram(distance_mtx)
-        self.plot_clusters_heatmaps()
+        # self.plot_clusters_heatmaps()
 
     def prep_data(self):
         """prep_data [Select only returns along the R medium arm]
@@ -350,37 +352,70 @@ class timeseries_returns:
             sn.heatmap(y.T, ax=axarr[1, _id], )
             axarr[1, _id].set(title='Cluster # {}'.format(_id))
 
-    def plot_dendogram(self, dist): 
-        #Organise Y data by cluster + get if is tria
-        clusters_ids = set(self.data['cluster labels'])    
-        yy, stims = [], []
-        for _id in clusters_ids:
-            selected = self.data.loc[self.data['cluster labels']==_id]
-            stimuli = selected['is trial'].values
-            y, y_dict, y_list = self.get_y(selected)
-            yy.append(y.T)
-            stims.append(list(stimuli))
-        y = np.vstack(yy)
-        s = np.array([item for sublist in stims for item in sublist])
-        s = s.reshape(s.shape[0], 1)
+    def plot_all_heatmap(self):
+        cmap = 'grey'
+        vmax, vmin = 15, 2.5
+        
+        y,_,_ = self.get_y(self.data)
+        y = np.fliplr(np.sort(y))
 
-        # plot dendo and heatmap
+        f, ax = plt.subplots()
+        sn.heatmap(y.T, ax=ax, cmap=cmap, xticklabels=False, vmax=vmax, vmin=vmin)
+        ttls = ['', 'Y trace', 'V trace']
+        ax.set(title=ttls[self.sel_trace])
+
+    def plot_dendogram(self, dist): 
+        " plot the dendogram and the trace heatmaps divided by stimulus/spontaneous and cluster ID"
+        print('Plotting...')
+
+        # Create figure and axes
+        plt.figure()
+        clusters_ids = set(self.data['cluster labels'])    
+        gs = gridspec.GridSpec(3, len(clusters_ids))
+        dendo_ax = plt.subplot(gs[0, :])
+        stim_axes = [plt.subplot(gs[1, i]) for i in range(len(clusters_ids))]
+        spont_axes = [plt.subplot(gs[2, i]) for i in range(len(clusters_ids))]
+
+        # Define some params for plotting
         if self.sel_trace == 1:
             center = 560
             cmap = 'bwr'
-            vmax, vmin = None, None
+            vmax, vmin = 750, 350
         else:
-            center = False
-            cmap = 'gray'
+            center = 7
+            cmap = 'bwr'
             vmax, vmin = 15, 2.5
 
-        y = y[:, :150]
-        f, axarr = plt.subplots(1, 3)
-        dend = shc.dendrogram(shc.linkage(dist, method='ward'), ax=axarr[0], orientation='left')
-        sn.heatmap(y, ax=axarr[1], center=center, cmap=cmap, xticklabels=False, vmax=vmax, vmin=vmin)
-        sn.heatmap(s, ax=axarr[2], cbar=False, cmap='gray', xticklabels=False, square=False)
+        # Plot dendogram
+        ttls = ['', 'Y trace', 'V trace']
+        dend = shc.dendrogram(shc.linkage(dist, method='ward'), ax=dendo_ax, no_labels=True, truncate_mode = 'level', p=6) # , orientation='left')
+        dendo_ax.set(title='Clustered by : '+ttls[self.sel_trace])
+        # Plot clusters heatmaps
+        for i, clust_id in enumerate(list(clusters_ids)[::-1]):
+            # Get data
+            stim_evoked =  self.data.loc[(self.data['cluster labels']==clust_id)&(self.data['is trial']==1)]
+            spontaneous =  self.data.loc[(self.data['cluster labels']==clust_id)&(self.data['is trial']==0)]
+        
+            stim_y, _, _ = self.get_y(stim_evoked)
+            spont_y, _, _ = self.get_y(spontaneous)
+            
+            stim_y = np.fliplr(np.sort(stim_y))
+            spont_y = np.fliplr(np.sort(spont_y))
+            # y = y[:, :150]
+        
+            # Plot heatmaps
+            if i == len(clusters_ids):
+                show_cbar = True
+            else:
+                show_cbar = False
+            sn.heatmap(stim_y.T, ax=stim_axes[i], center=center, cmap=cmap, 
+                        xticklabels=False, vmax=vmax, vmin=vmin, cbar=show_cbar)
+            sn.heatmap(spont_y.T, ax=spont_axes[i], center=center, cmap=cmap, 
+                        xticklabels=False, vmax=vmax, vmin=vmin, cbar=show_cbar)
 
-
+            # Set titles and stuff
+            stim_axes[i].set(title="Stim. evoked - cluster {}".format(clust_id))
+            spont_axes[i].set(title="Spontaneous - cluster {}".format(clust_id))
 
 
 
