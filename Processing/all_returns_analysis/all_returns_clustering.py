@@ -279,7 +279,6 @@ class timeseries_returns:
                     all_paths = (-10000, 10000))
         lm = lims[self.path_name]
         self.x_limits = lm
-        # 100, 150
         new_data = self.data.loc[(self.data['x_displacement'] >= lm[0]) &
                                 (self.data['x_displacement'] <= lm[1])]
         return new_data
@@ -288,9 +287,8 @@ class timeseries_returns:
         length = self.select_seconds*self.fps
         y = np.zeros((length, arr.shape[0]))
         y_dict, y_list = {}, []
-        
-        
         if sel is None: sel = self.sel_trace
+
         for i, (idx, row) in enumerate(arr.iterrows()):
             t0, t_shelt = row['times']
             t1 = t0 + self.select_seconds*self.fps
@@ -298,7 +296,6 @@ class timeseries_returns:
             yy = np.array(np.round(row['tracking_data'][t0:t1, sel], 2), dtype=np.double)
             if sel == 2:
                 yy[yy>20] = np.mean(yy)
-                # yy = self.array_scaler(yy)
             if smooth:
                 yy = line_smoother(yy)
             y[:yy.shape[0], i] = yy
@@ -322,6 +319,10 @@ class timeseries_returns:
         arr_max = np.max(x)
         x = np.divide(x, float(arr_max))
         return x
+
+    def array_sorter(y, th):
+        temp = np.where(y>th, 0, 1)
+        sort_idx = np.argsort(temp)
 
     def distance(self, y):
         return euclidean_distances(y.T, y.T)

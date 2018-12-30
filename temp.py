@@ -5,8 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 sys.path.append('./')   
 from nptdms import TdmsFile
-from database.dj_config import start_connection
-from database.NewTablesDefinitions import *
+# from database.dj_config import start_connection
+# from database.NewTablesDefinitions import *
 import cv2
 
 def run():
@@ -86,7 +86,17 @@ def run():
     plt.show()
     f.tight_layout()
 
+def test():
+    a = np.random.rand(600, 200)
+
+    f, axarr = plt.subplots(1, 2)
+    axarr[0].imshow(np.sort(a))
+
+    i = np.argsort(a, 1)
+    b = a[:, i[0, :]]
+    axarr[1].imshow(b)
+
 if __name__ == "__main__":
-        run()
+        test()
 
 
