@@ -322,7 +322,8 @@ class timeseries_returns:
 
     def array_sorter(y, th):
         temp = np.where(y>th, 0, 1)
-        sort_idx = np.argsort(temp)
+        sort_idx = np.argsort(temp, 1)
+        return y[:, sort_idx[0, :]]
 
     def distance(self, y):
         return euclidean_distances(y.T, y.T)
@@ -372,37 +373,28 @@ class timeseries_returns:
 
     def plot_all_heatmap(self):
         cmap = 'inferno'
-        y,_,_ = self.get_y(self.data)
-        # y = np.fliplr(np.sort(y))
-
-        x, _, _ = self.get_y(self.data, sel=0)
-        x = np.fliplr(np.sort(x))
-
+    
         if self.sel_trace == 1:
             vmax, vmin = 750, 350
+            th = 500
         elif self.sel_trace == 2:
             vmax, vmin = 15, -2
+            th = 4
         elif self.sel_trace == 4:
             vmax, vmin = 400, 50
-            y = np.fliplr(y)
-            x = np.fliplr(x)
+            th = 250
         else:
             vmax, vmin = None, None
+            th = 1
 
-        f, ax  = plt.subplots() # 2, 1, figsize=(10, 5))
-        # ax = axarr[0]
+        y, _, _ = self.get_y(self.data)
+        y = np.fliplr(self.array_sorter(y, th))
+
+        f, ax  = plt.subplots() 
         sn.heatmap(y.T, ax=ax, cmap=cmap, xticklabels=False, vmax=vmax, vmin=vmin)
         ttls = ['', 'Y trace', 'V trace', 'Angle of mvmt', 'Distance from shelter']
         ax.set(title=self.path_name+' '+ttls[self.sel_trace])
 
-        # ax = axarr[1]
-        # x, _, _ = self.get_y(self.data, sel=0)
-        # y, _, _ = self.get_y(self.data, sel=1)
-        # ax.plot(x, y, color=[.8, .8, .8], alpha=.2)
-        # for lm in self.x_limits:
-        #     if lm > 1000 or lm < - 1000: continue
-        #     ax.axvline(lm+500, color='r', linewidth=2)
-        # ax.set(facecolor=[.2, .2, .2], ylim=[200, 800])
         if self.save_plots:
             name = os.path.join('C:\\Users\\Federico\\Desktop',
                                 self.path_name+' '+ttls[self.sel_trace]+'.png')
@@ -425,18 +417,22 @@ class timeseries_returns:
             center = 560
             cmap = 'inferno'
             vmax, vmin = 750, 350
+            th = 500
         elif self.sel_trace == 2:
             center = 7
             cmap = 'inferno'
             vmax, vmin = 15, 2.5
+            th = 4
         elif self.sel_trace == 4:
             center=None
             cmap = 'inferno'
             vmax, vmin = 400, 50
+            th = 250
         else:
             center = None
             cmap = 'inferno'
             vmax, vmin = None, None
+            th = 1
 
         # Plot dendogram
         ttls = ['', 'Y trace', 'V trace', 'Angle of mvmt', 'Distance from shelter']
@@ -451,9 +447,8 @@ class timeseries_returns:
             stim_y, _, _ = self.get_y(stim_evoked)
             spont_y, _, _ = self.get_y(spontaneous)
             
-            stim_y = np.fliplr(np.sort(stim_y))
-            spont_y = np.fliplr(np.sort(spont_y))
-            # y = y[:, :150]
+            stim_y = np.fliplr(self.array_sorter(stim_y, th))
+            spont_y = np.fliplr(self.array_sorter(spont_y, th))
         
             # Plot heatmaps
             if i == len(clusters_ids):
