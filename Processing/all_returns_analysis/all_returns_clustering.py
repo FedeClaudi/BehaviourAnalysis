@@ -256,9 +256,10 @@ class timeseries_returns:
             # self.plot_all_heatmap()
             # self.plot_dendogram(distance_mtx)
             # self.plot_clusters_heatmaps()
+            self.plot_clusters_traces()
 
             # Multivariate Time Series Analysis
-            self.mvt_analysis()
+            # self.mvt_analysis()
 
     @staticmethod
     def convert_y_to_df(y):
@@ -267,7 +268,19 @@ class timeseries_returns:
         return pd.DataFrame.from_dict(data) 
 
     @staticmethod
-    def features_extractor(y)
+    def features_extractor(y):
+        """
+            List of features
+                - max val
+                - max val idx
+                - min val
+                - min val idx
+                - mean
+                - 25, 75 percentiles
+                - median
+        """
+        pass
+
 
     def mvt_analysis(self):
         print('extracting features')
@@ -377,6 +390,19 @@ class timeseries_returns:
                 clst = labels[i]
                 axarr[clst].plot(y[:, i], 'k', alpha=.5)  
         return cluster, labels
+
+    def plot_clusters_traces(self):
+        clusters_ids = set(self.data['cluster labels'])
+
+        f, axarr = plt.subplots(1, len(clusters_ids))
+
+        for i, clust_id in enumerate(list(clusters_ids)[::-1]):
+            selected = self.data.loc[self.data['cluster labels']==clust_id]
+            x = self.get_y(selected, sel=0)
+            y = self.get_y(selected, sel=1)
+            v = self.get_y(selected, sel=2)
+
+            axarr[i].scatter(x, y, c=v, cmap='inferno', s=10, alpha=.3)
 
     def plot_clusters_heatmaps(self):
         clusters_ids = set(self.data['cluster labels'])
