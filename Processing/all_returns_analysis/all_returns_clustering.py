@@ -320,10 +320,18 @@ class timeseries_returns:
         x = np.divide(x, float(arr_max))
         return x
 
-    def array_sorter(y, th):
-        temp = np.where(y>th, 0, 1)
-        sort_idx = np.argsort(temp, 1)
-        return y[:, sort_idx[0, :]]
+
+    def array_sorter(self, y, th=.8):
+        scaled = self.array_scaler(y)
+        pos = []
+        for i in range(scaled.shape[1]):
+            try:
+                pos.append(np.where(scaled >= th)[0][0])
+            except:
+                pos.append(temp.shape[1])
+        sort_idx = np.argsort(pos)
+        a = 1
+        return y[:, sort_idx]
 
     def distance(self, y):
         return euclidean_distances(y.T, y.T)
@@ -376,19 +384,19 @@ class timeseries_returns:
     
         if self.sel_trace == 1:
             vmax, vmin = 750, 350
-            th = 500
+            th = 550
         elif self.sel_trace == 2:
             vmax, vmin = 15, -2
-            th = 4
+            th = 3
         elif self.sel_trace == 4:
             vmax, vmin = 400, 50
-            th = 250
+            th = 255
         else:
             vmax, vmin = None, None
             th = 1
 
         y, _, _ = self.get_y(self.data)
-        y = np.fliplr(self.array_sorter(y, th))
+        y = np.fliplr(self.array_sorter(y))
 
         f, ax  = plt.subplots() 
         sn.heatmap(y.T, ax=ax, cmap=cmap, xticklabels=False, vmax=vmax, vmin=vmin)
@@ -447,8 +455,8 @@ class timeseries_returns:
             stim_y, _, _ = self.get_y(stim_evoked)
             spont_y, _, _ = self.get_y(spontaneous)
             
-            stim_y = np.fliplr(self.array_sorter(stim_y, th))
-            spont_y = np.fliplr(self.array_sorter(spont_y, th))
+            stim_y = np.fliplr(self.array_sorter(stim_y))
+            spont_y = np.fliplr(self.array_sorter(spont_y))
         
             # Plot heatmaps
             if i == len(clusters_ids):
@@ -493,7 +501,8 @@ class timeseries_returns:
 
 if __name__ == '__main__':
     # timeseries_returns(load=False, trace=3)
-    timeseries_returns(load=False, trace=4)
+    
     timeseries_returns(load=False, trace=1)
     timeseries_returns(load=False, trace=2)
+    timeseries_returns(load=False, trace=4)
     plt.show()
