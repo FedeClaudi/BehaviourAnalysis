@@ -153,6 +153,28 @@ def angle_between_points_2d_clockwise(p1, p2):
     return inner
 
 
+def calc_angle_between_points_of_vector(v):
+    """calc_angle_between_points_of_vector [Given one 2d array of XY coordinates as a function of T
+    calculates the angle theta between the coordintes at one time point and the next]
+    
+    Arguments:
+        v1 {[np.array]} -- [2D array of XY coordinates as a function of time]
+    """
+
+    assert isinstance(v, np.ndarray), 'Input data needs to be a numpy array'
+    assert v.shape[1] == 2, 'Input array must be a 2d array with two columns'
+
+    thetas = np.zeros(v.shape[0])
+    for i in range(v.shape[0]):
+        try: # Get current and previous time points coordinates
+            p0, p1 = v[i-1,:], v[i, :]
+        except:
+            thetas[i] = 0
+        else:
+            thetas[i] = angle_between_points_2d_clockwise(p0, p1)
+    return thetas
+
+
 def calc_angle_between_vectors_of_points_2d(v1, v2):
     '''calc_angle_between_vectors_of_points_2d [calculates the clockwise angle between each set of point for two 2d arrays of points]
     

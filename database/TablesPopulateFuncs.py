@@ -805,6 +805,7 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
         if fast_mode:
             if bp != 'body': continue
         print('     ... body part: ', bp)
+
         # Get XY pose and correct with CCM matrix
         xy = posedata[scorer[0], bp].drop(columns='likelihood')
         corrected_data = correct_tracking_data(xy.values, ccm['correction_matrix'], ccm['top_pad'], ccm['side_pad'], experiment)
@@ -815,7 +816,13 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
 
         # get velocity
         vel = calc_distance_between_points_in_a_vector_2d(corrected_data.values)
+
+        # get orientation [angle between XY at t0 ad XY at t1]
+        theta = calc_angle_between_points_of_vector(corrected_data.values)
+
+        # Add new vals
         corrected_data['velocity'] = vel
+        corrected_data['angle'] = theta
 
         # If bp is body get the position on the maze
         if 'body' in bp:
@@ -834,7 +841,7 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
         bp_data[bp] = corrected_data
         bpkey = key.copy()
         bpkey['bpname'] = bp
-        bpkey['tracking_data'] = corrected_data.values # ! this might not work with a dataframe, needs checking
+        bpkey['tracking_data'] = corrected_data.values 
         table.BodyPartData.insert1(bpkey)
 
     """

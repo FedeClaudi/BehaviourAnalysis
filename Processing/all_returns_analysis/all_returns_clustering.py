@@ -32,7 +32,7 @@ from sklearn.cluster import AgglomerativeClustering
 from tsfresh import extract_relevant_features, extract_features
 from tsfresh.utilities.dataframe_functions import impute
 
-from Processing.tracking_stats.math_utils import line_smoother
+from Processing.tracking_stats.math_utils import line_smoother, calc_angle_between_points_of_vector
 from Utilities.file_io.files_load_save import load_yaml
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 
