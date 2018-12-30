@@ -402,8 +402,8 @@ class analyse_all_trips:
 
 if __name__ == '__main__':
     # analyse_all_trips(erase_table=True, fill_in_table=False, run_analysis=False)
-    # analyse_all_trips(erase_table=False, fill_in_table=True, run_analysis=False)
-    analyse_all_trips(erase_table=False, fill_in_table=False, run_analysis=True, plot=True)
+    analyse_all_trips(erase_table=False, fill_in_table=True, run_analysis=False)
+    # analyse_all_trips(erase_table=False, fill_in_table=False, run_analysis=True, plot=True)
 
 
 

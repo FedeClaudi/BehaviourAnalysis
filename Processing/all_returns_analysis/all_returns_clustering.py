@@ -226,8 +226,9 @@ class timeseries_returns:
     def __init__(self, load=False, trace=1):
         self.select_seconds = 20
         self.fps = 30
-        self.n_clusters = 3
+        self.n_clusters = 2
         self.sel_trace = trace # 1 for Y and 2 for V
+        self.save_plots= False
 
         analysis = analyse_all_trips()
 
@@ -252,10 +253,10 @@ class timeseries_returns:
             cluster_obj, self.data['cluster labels'] = self.cluster(distance_mtx)
             
             # Plot clusters
-
+            # self.plot_combined_time_series()
             self.plot_all_heatmap()
-            self.plot_dendogram(distance_mtx)
-            self.plot_clusters_heatmaps()
+            # self.plot_dendogram(distance_mtx)
+            # self.plot_clusters_heatmaps()
             # self.plot_clusters_traces()
 
             # Multivariate Time Series Analysis
@@ -270,18 +271,20 @@ class timeseries_returns:
     def prep_data(self):
         """prep_data [Select only returns along the R medium arm]
         """
-        lims = dict(Left_Far=(-10000, -151),
-                    Left_Medium=(-150, -100),
+        lims = dict(Left_Far=(-10000, -251),
+                    Left_Medium=(-250, -100),
                     Centre=(-99, 99),
-                    Right_Medium= (100, 150),
-                    Right_Far= (151, 10000))
+                    Right_Medium= (100, 250),
+                    Right_Far= (251, 10000),
+                    all_paths = (-10000, 10000))
         lm = lims[self.path_name]
+        self.x_limits = lm
         # 100, 150
         new_data = self.data.loc[(self.data['x_displacement'] >= lm[0]) &
                                 (self.data['x_displacement'] <= lm[1])]
         return new_data
     
-    def get_y(self, arr, sel=None):
+    def get_y(self, arr, sel=None, smooth=False):
         length = self.select_seconds*self.fps
         y = np.zeros((length, arr.shape[0]))
         y_dict, y_list = {}, []
@@ -293,45 +296,15 @@ class timeseries_returns:
             t1 = t0 + self.select_seconds*self.fps
             
             yy = np.array(np.round(row['tracking_data'][t0:t1, sel], 2), dtype=np.double)
-            if self.sel_trace == 2:
+            if sel == 2:
                 yy[yy>20] = np.mean(yy)
                 # yy = self.array_scaler(yy)
-
+            if smooth:
+                yy = line_smoother(yy)
             y[:yy.shape[0], i] = yy
             y_dict[str(i)] = np.array(yy)
             y_list.append(np.array(yy))
         return y, y_dict, y_list
-
-    def plot_returns(self, var, ttl=''):
-        titles = ['x', 'y', 'xy', 'vel']
-        ylims = [[400, 700], [300, 800], [350, 800], [0, 25]]
-        length = self.select_seconds*self.fps
-        
-        f, axarr = plt.subplots(2, 2)
-        axarr = axarr.flatten()
-        
-        for idx, row in var.iterrows():
-            t0, t_shelt = row['times']
-            x_t_shelt = t_shelt-t0
-            t1 = t0 + length
-
-            # Plot traces
-            axarr[0].plot(row['tracking_data'][t0:t1, 0], 'k', alpha=.2)
-            axarr[1].plot(row['tracking_data'][t0:t1, 1], 'k', alpha=.2)
-            axarr[2].plot(row['tracking_data'][t0:t1, 0], row['tracking_data'][t0:t1, 1], 'k', alpha=.2)
-            axarr[3].plot(line_smoother(row['tracking_data'][t0:t1, 2]), 'k', alpha=.15)
-            
-            # Mark moment shelter is reached
-            if x_t_shelt <= length:
-                axarr[0].plot(x_t_shelt, row['tracking_data']
-                                [t_shelt, 0], 'o', color='r', alpha=.3)
-                axarr[1].plot(x_t_shelt, row['tracking_data']
-                                [t_shelt, 1], 'o', color='r', alpha=.3)
-                # axarr[3].plot(x_t_shelt, row['tracking_data'][t_shelt, 2], 'o', color='r', alpha=.3)
-            axarr[2].plot(row['tracking_data'][t_shelt, 0],
-                            row['tracking_data'][t_shelt, 1], 'o', color='r', alpha=.3)
-
-        [ax.set(title=titles[i]+'  '+ttl, ylim=ylims[i]) for i, ax in enumerate(axarr)]
 
     @staticmethod
     def array_scaler(x):
@@ -365,6 +338,10 @@ class timeseries_returns:
                 axarr[clst].plot(y[:, i], 'k', alpha=.5)  
         return cluster, labels
 
+#######################################################################
+#######################################################################
+#######################################################################
+
     def plot_clusters_traces(self):
         clusters_ids = set(self.data['cluster labels'])
 
@@ -395,24 +372,47 @@ class timeseries_returns:
     def plot_all_heatmap(self):
         cmap = 'inferno'
         y,_,_ = self.get_y(self.data)
-        y = np.fliplr(np.sort(y))
+        # y = np.fliplr(np.sort(y))
+
+        x, _, _ = self.get_y(self.data, sel=0)
+        x = np.fliplr(np.sort(x))
 
         if self.sel_trace == 1:
             vmax, vmin = 750, 350
-        else:
+        elif self.sel_trace == 2:
             vmax, vmin = 15, -2
+        elif self.sel_trace == 4:
+            vmax, vmin = 400, 50
+            y = np.fliplr(y)
+            x = np.fliplr(x)
+        else:
+            vmax, vmin = None, None
 
-        f, ax = plt.subplots()
+        f, ax  = plt.subplots() # 2, 1, figsize=(10, 5))
+        # ax = axarr[0]
         sn.heatmap(y.T, ax=ax, cmap=cmap, xticklabels=False, vmax=vmax, vmin=vmin)
-        ttls = ['', 'Y trace', 'V trace']
-        ax.set(title=self.path_name+' '+ttls[self.sel_trace]+' '+cmap)
+        ttls = ['', 'Y trace', 'V trace', 'Angle of mvmt', 'Distance from shelter']
+        ax.set(title=self.path_name+' '+ttls[self.sel_trace])
+
+        # ax = axarr[1]
+        # x, _, _ = self.get_y(self.data, sel=0)
+        # y, _, _ = self.get_y(self.data, sel=1)
+        # ax.plot(x, y, color=[.8, .8, .8], alpha=.2)
+        # for lm in self.x_limits:
+        #     if lm > 1000 or lm < - 1000: continue
+        #     ax.axvline(lm+500, color='r', linewidth=2)
+        # ax.set(facecolor=[.2, .2, .2], ylim=[200, 800])
+        if self.save_plots:
+            name = os.path.join('C:\\Users\\Federico\\Desktop',
+                                self.path_name+' '+ttls[self.sel_trace]+'.png')
+            f.savefig(name)
 
     def plot_dendogram(self, dist): 
         " plot the dendogram and the trace heatmaps divided by stimulus/spontaneous and cluster ID"
         print('Plotting...')
 
         # Create figure and axes
-        plt.figure()
+        f = plt.figure()
         clusters_ids = set(self.data['cluster labels'])    
         gs = gridspec.GridSpec(3, len(clusters_ids))
         dendo_ax = plt.subplot(gs[0, :])
@@ -422,15 +422,23 @@ class timeseries_returns:
         # Define some params for plotting
         if self.sel_trace == 1:
             center = 560
-            cmap = 'bwr'
+            cmap = 'inferno'
             vmax, vmin = 750, 350
-        else:
+        elif self.sel_trace == 2:
             center = 7
-            cmap = 'bwr'
+            cmap = 'inferno'
             vmax, vmin = 15, 2.5
+        elif self.sel_trace == 4:
+            center=None
+            cmap = 'inferno'
+            vmax, vmin = 400, 50
+        else:
+            center = None
+            cmap = 'inferno'
+            vmax, vmin = None, None
 
         # Plot dendogram
-        ttls = ['', 'Y trace', 'V trace']
+        ttls = ['', 'Y trace', 'V trace', 'Angle of mvmt', 'Distance from shelter']
         dend = shc.dendrogram(shc.linkage(dist, method='ward'), ax=dendo_ax, no_labels=True, truncate_mode = 'level', p=6) # , orientation='left')
         dendo_ax.set(title=self.path_name+' Clustered by : '+ttls[self.sel_trace])
         # Plot clusters heatmaps
@@ -451,19 +459,45 @@ class timeseries_returns:
                 show_cbar = True
             else:
                 show_cbar = False
-            sn.heatmap(stim_y.T, ax=stim_axes[i], center=center, cmap=cmap, 
-                        xticklabels=False, vmax=vmax, vmin=vmin, cbar=show_cbar)
+
+            try:
+                sn.heatmap(stim_y.T, ax=stim_axes[i], center=center, cmap=cmap, 
+                            xticklabels=False, vmax=vmax, vmin=vmin, cbar=True)
+            except: pass
             sn.heatmap(spont_y.T, ax=spont_axes[i], center=center, cmap=cmap, 
-                        xticklabels=False, vmax=vmax, vmin=vmin, cbar=show_cbar)
+                        xticklabels=False, vmax=vmax, vmin=vmin, cbar=True)
 
             # Set titles and stuff
             stim_axes[i].set(title="Stim. evoked - cluster {}".format(clust_id))
             spont_axes[i].set(title="Spontaneous - cluster {}".format(clust_id))
 
+            # Save figure
+            if self.save_plots:
+                nm = self.path_name+' Clustered-'+ttls[self.sel_trace]
+                name = os.path.join('C:\\Users\\Federico\\Desktop',
+                                nm+'.png')
+                f.savefig(name)
+
+    def plot_combined_time_series(self):
+        tst = namedtuple('timeseries', 'x y v d')
+        clusters_ids = set(self.data['cluster labels'])
+        colors = [[.7, .4, .4], [.4, .7, .4], [.4, .4, .7], 'm', 'y', 'k', 'w']
+
+        f, axarr = plt.subplots(1, len(clusters_ids))
+        for i, clust_id in enumerate(list(clusters_ids)[::-1]):
+            selected =  self.data.loc[self.data['cluster labels']==clust_id]
+            temp = [self.get_y(selected, sel=i, smooth=True) for i in [0, 1, 2, 4]]
+            tss = tst(*[t[0] for t in temp])
+            
+            ax = axarr[i]
+            ax.plot(tss.d, tss.v, color=colors[i], alpha=.2)
+            ax.plot(np.mean(tss.d, 1), np.mean(tss.v, 1), color='k', alpha=1, linewidth=4)
+            ax.set(facecolor=[.2, .2, .2], title='V/D clust: '+str(clust_id), xlabel='distnace', ylabel='velocity')
 
 
 if __name__ == '__main__':
-    timeseries_returns(load=False, trace=3)
-    # timeseries_returns(load=False, trace=1)
-    # timeseries_returns(load=False, trace=2)
+    # timeseries_returns(load=False, trace=3)
+    timeseries_returns(load=False, trace=4)
+    timeseries_returns(load=False, trace=1)
+    timeseries_returns(load=False, trace=2)
     plt.show()
