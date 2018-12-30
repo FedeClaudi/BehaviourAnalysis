@@ -223,49 +223,70 @@ class timeseries_returns:
     def __init__(self, load=False, trace=1):
         self.select_seconds = 20
         self.fps = 30
-        self.n_clusters = 2
+        self.n_clusters = 3
         self.sel_trace = trace # 1 for Y and 2 for V
-        
-        if load:
-            distance_mtx = np.load('Processing\\all_returns_analysis\\distance_mtx.npy')
-        else:
-            # Get prepped data
-            analysis = analyse_all_trips()
-            self.data = analysis.returns_summary
 
-            # Select R returns - get tracking data
-            self.data = self.prep_data()
-            y, y_dict, y_list = self.get_y(self.data)
+        analysis = analyse_all_trips()
+
+        # paths_names = ['Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far']
+        paths_names = ['Right_Medium' ]    
+        for self.path_n, self.path_name in enumerate(paths_names):
+            if load:
+                distance_mtx = np.load('Processing\\all_returns_analysis\\distance_mtx.npy')
+            else:
+                # Get prepped data
+                self.data = analysis.returns_summary
+
+                # Select returns - get tracking data
+                self.data = self.prep_data()
+                y, y_dict, y_list = self.get_y(self.data)
+                
+                # Get euclidean distance
+                distance_mtx = self.distance(y)
+            print('Got distance matrix')
+
+            # Cluster 
+            cluster_obj, self.data['cluster labels'] = self.cluster(distance_mtx)
             
-            # Get euclidean distance
-            distance_mtx = self.distance(y)
-        print('Got distance matrix')
+            # Plot clusters
 
-        # Cluster 
-        cluster_obj, self.data['cluster labels'] = self.cluster(distance_mtx)
-        
-        # Plot clusters
-        self.plot_all_heatmap()
-        self.plot_dendogram(distance_mtx)
-        # self.plot_clusters_heatmaps()
+            # self.plot_all_heatmap()
+            # self.plot_dendogram(distance_mtx)
+            # self.plot_clusters_heatmaps()
+
+            # Multivariate Time Series Analysis
+            self.mvt_analysis()
+
+def mvt_analysis(self):
+
+
 
     def prep_data(self):
         """prep_data [Select only returns along the R medium arm]
         """
+        lims = dict(Left_Far=(-10000, -151),
+                    Left_Medium=(-150, -100),
+                    Centre=(-99, 99),
+                    Right_Medium= (100, 150),
+                    Right_Far= (151, 10000))
+        lm = lims[self.path_name]
         # 100, 150
-        new_data = self.data.loc[(self.data['x_displacement'] >= 100) & (self.data['x_displacement'] <= 150)]
-        a = 1
+        new_data = self.data.loc[(self.data['x_displacement'] >= lm[0]) &
+                                (self.data['x_displacement'] <= lm[1])]
         return new_data
     
-    def get_y(self, arr):
+    def get_y(self, arr, sel=None):
         length = self.select_seconds*self.fps
         y = np.zeros((length, arr.shape[0]))
         y_dict, y_list = {}, []
+        
+        
+        if sel is None: sel = self.sel_trace
         for i, (idx, row) in enumerate(arr.iterrows()):
             t0, t_shelt = row['times']
             t1 = t0 + self.select_seconds*self.fps
             
-            yy = np.array(np.round(row['tracking_data'][t0:t1, self.sel_trace], 2), dtype=np.double)
+            yy = np.array(np.round(row['tracking_data'][t0:t1, sel], 2), dtype=np.double)
             if self.sel_trace == 2:
                 yy[yy>20] = np.mean(yy)
                 # yy = self.array_scaler(yy)
@@ -350,19 +371,22 @@ class timeseries_returns:
             axarr[0, _id].plot(y, color='k', alpha=.1)
             axarr[0, _id].plot(np.mean(y, 1), color='r', linewidth=3)
             sn.heatmap(y.T, ax=axarr[1, _id], )
-            axarr[1, _id].set(title='Cluster # {}'.format(_id))
+            axarr[1, _id].set(title='{} - Cluster # {}'.format(self.path_name, _id))
 
     def plot_all_heatmap(self):
-        cmap = 'grey'
-        vmax, vmin = 15, 2.5
-        
+        cmap = 'inferno'
         y,_,_ = self.get_y(self.data)
         y = np.fliplr(np.sort(y))
+
+        if self.sel_trace == 1:
+            vmax, vmin = 750, 350
+        else:
+            vmax, vmin = 15, -2
 
         f, ax = plt.subplots()
         sn.heatmap(y.T, ax=ax, cmap=cmap, xticklabels=False, vmax=vmax, vmin=vmin)
         ttls = ['', 'Y trace', 'V trace']
-        ax.set(title=ttls[self.sel_trace])
+        ax.set(title=self.path_name+' '+ttls[self.sel_trace]+' '+cmap)
 
     def plot_dendogram(self, dist): 
         " plot the dendogram and the trace heatmaps divided by stimulus/spontaneous and cluster ID"
@@ -389,7 +413,7 @@ class timeseries_returns:
         # Plot dendogram
         ttls = ['', 'Y trace', 'V trace']
         dend = shc.dendrogram(shc.linkage(dist, method='ward'), ax=dendo_ax, no_labels=True, truncate_mode = 'level', p=6) # , orientation='left')
-        dendo_ax.set(title='Clustered by : '+ttls[self.sel_trace])
+        dendo_ax.set(title=self.path_name+' Clustered by : '+ttls[self.sel_trace])
         # Plot clusters heatmaps
         for i, clust_id in enumerate(list(clusters_ids)[::-1]):
             # Get data
