@@ -27,7 +27,6 @@ def calc_distance_between_points_2d(p1, p2):
 
     return distance.euclidean(p1, p2)
 
-
 def calc_distance_between_points_in_a_vector_2d(v1):
     '''calc_distance_between_points_in_a_vector_2d [for each pairwise p1,p2 in the two vectors get distnace]
     
@@ -110,6 +109,21 @@ def calc_distance_between_points_two_vectors_2d(v1, v2):
         dist = [calc_distance_between_points_2d(p1, p2) for p1, p2 in zip(v1, v2)]
     return dist
 
+
+def calc_distance_from_shelter(v, shelter):
+    """[Calculates the euclidean distance from the shelter at each timepoint]
+    
+    Arguments:
+        v {[np.ndarray]} -- [2D array with XY coordinates]
+        shelter {[tupple]} -- [tuple of length 2 with X and Y coordinates of shelter]
+    """
+    assert isinstance(v, np.ndarray), 'Input data needs to be a numpy array'
+    assert v.shape[1] == 2, 'Input array must be a 2d array with two columns'
+
+    shelter_vector = np.array(shelter)
+    shelter_vector = np.tile(shelter_vector, (v.shape[0], 1))
+
+    return calc_distance_between_points_two_vectors_2d(v, shelter_vector)
 
 def angle_between_points_2d_clockwise(p1, p2):
     '''angle_between_points_2d_clockwise [summary]

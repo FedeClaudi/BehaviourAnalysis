@@ -820,9 +820,14 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
         # get orientation [angle between XY at t0 ad XY at t1]
         theta = calc_angle_between_points_of_vector(corrected_data.values)
 
+        # get distance from shelter
+        shelter = (500, 740)
+        shelter_dist = calc_distance_from_shelter(corrected_data.values, shelter)
+
         # Add new vals
         corrected_data['velocity'] = vel
         corrected_data['angle'] = theta
+        corrected_data['shelter_distance'] = shelter_dist
 
         # If bp is body get the position on the maze
         if 'body' in bp:

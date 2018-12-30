@@ -253,10 +253,10 @@ class timeseries_returns:
             
             # Plot clusters
 
-            # self.plot_all_heatmap()
-            # self.plot_dendogram(distance_mtx)
-            # self.plot_clusters_heatmaps()
-            self.plot_clusters_traces()
+            self.plot_all_heatmap()
+            self.plot_dendogram(distance_mtx)
+            self.plot_clusters_heatmaps()
+            # self.plot_clusters_traces()
 
             # Multivariate Time Series Analysis
             # self.mvt_analysis()
@@ -266,32 +266,6 @@ class timeseries_returns:
         index = ['c{}'.format(i) for i in range(y.shape[1])]
         data = {idx:y[:,i] for i,idx in enumerate(index)}
         return pd.DataFrame.from_dict(data) 
-
-    @staticmethod
-    def features_extractor(y):
-        """
-            List of features
-                - max val
-                - max val idx
-                - min val
-                - min val idx
-                - mean
-                - 25, 75 percentiles
-                - median
-        """
-        pass
-
-
-    def mvt_analysis(self):
-        print('extracting features')
-        v, _, vl = self.get_y(self.data, sel=2)
-        y, _, yl = self.get_y(self.data, sel=1)
-
-        v = self.convert_y_to_df(v)
-        fake = np.zeros((len(vl)))
-        v['id'] = np.zeros(v.shape[0])
-
-        a = 1
 
     def prep_data(self):
         """prep_data [Select only returns along the R medium arm]
@@ -489,8 +463,7 @@ class timeseries_returns:
 
 
 if __name__ == '__main__':
-    #cluster_returns()
-
-    timeseries_returns(load=False, trace=1)
-    timeseries_returns(load=False, trace=2)
+    timeseries_returns(load=False, trace=3)
+    # timeseries_returns(load=False, trace=1)
+    # timeseries_returns(load=False, trace=2)
     plt.show()
