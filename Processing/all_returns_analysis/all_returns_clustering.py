@@ -232,8 +232,8 @@ class timeseries_returns:
 
         analysis = analyse_all_trips()
 
-        # paths_names = ['Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far']
-        paths_names = ['Right_Medium' ]    
+        paths_names = ['Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'all_paths']
+        # paths_names = ['Right_Medium' ]    
         for self.path_n, self.path_name in enumerate(paths_names):
             if load:
                 distance_mtx = np.load('Processing\\all_returns_analysis\\distance_mtx.npy')
@@ -321,17 +321,37 @@ class timeseries_returns:
         return x
 
 
-    def array_sorter(self, y, th=.8):
+    def array_sorter(self, y, mode='bigger', smooth=False):
+        # Sort modes: bigger, lesser, maxval
         scaled = self.array_scaler(y)
-        pos = []
+        th = np.median(scaled)
+
+        if self.sel_trace == 2:
+            smooth = True
+            mode = 'maxval'
+        elif self.sel_trace == 4:
+            # th = np.percentile(scaled, 75)
+            th = 0.4
+            mode = 'lesser'
+
+        pos = []  # stores the index of the value of each column of Y at which the criteria are met (e.g. above th)
         for i in range(scaled.shape[1]):
+            if smooth: l = line_smoother(scaled[:, i])
+            else: l = scaled[:, i]
+
             try:
-                pos.append(np.where(scaled >= th)[0][0])
+                if mode == 'bigger':
+                    pos.append(np.where(l >= th)[0][0])
+                elif mode == 'lesser':
+                    pos.append(np.where(l <= th)[0][0])
+                elif mode == 'maxval':
+                    pos.append(np.where(l == np.max(l))[0][0])
+                else: raise ValueError('unrecognised mode')
             except:
-                pos.append(temp.shape[1])
-        sort_idx = np.argsort(pos)
-        a = 1
-        return y[:, sort_idx]
+                pos.append(scaled.shape[1])
+
+        sort_idx = np.argsort(pos)  # how to go from this to an ordered array
+        return y[:, sort_idx[::-1]], sort_idx[::-1] # return the ordered array
 
     def distance(self, y):
         return euclidean_distances(y.T, y.T)
@@ -384,24 +404,29 @@ class timeseries_returns:
     
         if self.sel_trace == 1:
             vmax, vmin = 750, 350
-            th = 550
         elif self.sel_trace == 2:
-            vmax, vmin = 15, -2
-            th = 3
+            vmax, vmin = 14, 0
         elif self.sel_trace == 4:
             vmax, vmin = 400, 50
-            th = 255
         else:
             vmax, vmin = None, None
-            th = 1
 
         y, _, _ = self.get_y(self.data)
-        y = np.fliplr(self.array_sorter(y))
+        sort, idxs = self.array_sorter(y)
+        y = np.fliplr(sort)
 
-        f, ax  = plt.subplots() 
+        v, _, _ = self.get_y(self.data, sel=2)
+        v = v[:, idxs[::-1]]
+
+        f, axarr  = plt.subplots(1, 2) 
+        ax = axarr[0]
         sn.heatmap(y.T, ax=ax, cmap=cmap, xticklabels=False, vmax=vmax, vmin=vmin)
         ttls = ['', 'Y trace', 'V trace', 'Angle of mvmt', 'Distance from shelter']
         ax.set(title=self.path_name+' '+ttls[self.sel_trace])
+
+        ax = axarr[1]
+        sn.heatmap(v.T, ax=ax, cmap=cmap, xticklabels=False, vmax=15)
+        ax.set(title='Velocity sorted')
 
         if self.save_plots:
             name = os.path.join('C:\\Users\\Federico\\Desktop',
@@ -502,7 +527,7 @@ class timeseries_returns:
 if __name__ == '__main__':
     # timeseries_returns(load=False, trace=3)
     
-    timeseries_returns(load=False, trace=1)
-    timeseries_returns(load=False, trace=2)
+    # timeseries_returns(load=False, trace=1)
+    # timeseries_returns(load=False, trace=2)
     timeseries_returns(load=False, trace=4)
     plt.show()
