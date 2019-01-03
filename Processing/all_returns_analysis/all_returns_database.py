@@ -31,6 +31,8 @@ class analyse_all_trips:
             # Get tracking data
             all_bp_tracking = pd.DataFrame(TrackingData.BodyPartData.fetch())
             self.tracking = all_bp_tracking.loc[all_bp_tracking['bpname'] == 'body']
+            bodyaxis_tracking = pd.DataFrame(TrackingData.BodySegmentData.fetch())
+            self.ba_tracking = bodyaxis_tracking.loc[bodyaxis_tracking['bp1'] == 'body_axis']
             self.stimuli = pd.DataFrame(BehaviourStimuli.fetch())
 
             # Get ROIs coordinates
@@ -124,6 +126,7 @@ class analyse_all_trips:
             tr = row['tracking_data']
             print(row['recording_uid'], idx, ' of ', self.tracking.shape)
 
+            
             # f,ax = plt.subplots()
             in_rois = {}
             in_roi = namedtuple('inroi', 'ins outs')
@@ -148,6 +151,9 @@ class analyse_all_trips:
                 
                 # test_plot_rois_on_trace(x, y, self.rois, in_x, in_y,  when_in_rois[roi])
 
+            # Get bodylength and add it to tracking data
+            blen = self.ba_tracking.loc['recording_uid' == row['recording_uid']]['tracking_data'].values
+            tr = np.append(tr, blen, axis=1)
 
             # get complete s-t-s trips
             print(' ... getting good trips')

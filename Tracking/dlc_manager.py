@@ -54,17 +54,6 @@ class DLCManager:
             self.dlc_paths = self.settings['paths-windows']
         else:
             self.dlc_paths = self.settings['paths-mac']
-
-    ### MACROS
-
-    def initialise_project(self):
-        """  Create a projec with the training videos, extract the frames and start labeling gui """
-        print('Creating project')
-        self.create_project()
-        print('Extracting frames')
-        self.extract_frames()
-        print('Labeling frames')
-        self.label_frames()
     
     ### UTILS
 
@@ -87,12 +76,11 @@ class DLCManager:
     ### DLC functions
 
     def create_project(self):
-        # TODO add check if file existsts already
         training_videos = self.sel_videos_in_folder()
         print('Creating project with {} videos'.format(len(training_videos)))
 
         deeplabcut.create_new_project(self.settings['experiment'], self.settings['experimenter'], 
-                                      training_videos, working_directory=self.dlc_paths['project_path'], copy_videos=True)
+                                        training_videos, working_directory=self.dlc_paths['project_path'], copy_videos=True)
 
     def add_videos_to_project(self, videos=None):     
         if videos is None:
@@ -104,7 +92,6 @@ class DLCManager:
             deeplabcut.extract_frames(self.dlc_paths['cfg_path'], 'automatic', self.settings['extract_frames_mode'], crop=False, checkcropping=False)
         else:
             deeplabcut.extract_frames(self.dlc_paths['cfg_path'], 'manual', self.settings['extract_frames_mode'], crop=False, checkcropping=False)
-
 
     def label_frames(self):
         print('Getting ready to label frames')
@@ -163,7 +150,7 @@ class DLCManager:
         if videos is None: videos = self.sel_videos_in_folder()
 
         deeplabcut.extract_outlier_frames(self.dlc_paths['cfg_path'], videos, automatic=True, 
-                                          outlieralgorithm='jump', epsilon=20, p_bound=.01)
+                                            outlieralgorithm='jump', epsilon=20, p_bound=.01)
 
     def refine_labels(self):
         deeplabcut.refine_labels(self.dlc_paths['cfg_path'])
@@ -214,7 +201,6 @@ if __name__ == "__main__":
     manager = DLCManager()
 
     vids = manager.sel_videos_in_folder(all=True, min_n=2)
-
 
     manager.label_frames()
 

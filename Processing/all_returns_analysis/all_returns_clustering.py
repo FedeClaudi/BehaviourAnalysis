@@ -525,9 +525,17 @@ class timeseries_returns:
 
 
 if __name__ == '__main__':
-    # timeseries_returns(load=False, trace=3)
-    
-    # timeseries_returns(load=False, trace=1)
-    # timeseries_returns(load=False, trace=2)
-    timeseries_returns(load=False, trace=4)
+    """
+        Traces IDs:
+            > 0 - X
+            > 1 - Y
+            > 2 - V
+            > 3 - Theta # not working
+            > 4 - distance from shelter
+            > 5 - Body length
+    """
+    using_traces = [4, 5]
+    for trace in using_traces:
+        timeseries_returns(load=False, trace=trace)
+
     plt.show()

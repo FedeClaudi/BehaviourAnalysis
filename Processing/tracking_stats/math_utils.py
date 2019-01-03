@@ -142,6 +142,8 @@ def angle_between_points_2d_clockwise(p1, p2):
         >>> ninety = angle_between_points_2d_clockwise([1, 0], [0, 1])
         >>> oneeighty = angle_between_points_2d_clockwise([0, -1], [0, 1])
         >>> twoseventy = angle_between_points_2d_clockwise([-1, 0], [0, 1])
+        >>> ninety2 = angle_between_points_2d_clockwise([10, 0], [10, 1])
+        >>> print(ninety2)
     '''
 
     def length(v):
@@ -158,6 +160,10 @@ def angle_between_points_2d_clockwise(p1, p2):
         rad = acos(cosx)  # in radians
         return rad*180/pi  # returns degrees
 
+    raise NotImplementedError("Function calculates angle between two points and the origin, not the angle of the semgent joining the two points")
+
+    # p2 = [p2[0]-p1[0], p2[1]-p1[1]]
+    # p1 = [0.001, 0.001]
     inner = inner_angle(p1, p2)
     det = determinant(p1, p2)
     if det < 0:  # this is a property of the det. If the det < 0 then B is clockwise of A
@@ -188,6 +194,8 @@ def calc_angle_between_points_of_vector(v):
             d = calc_distance_between_points_2d(p0, p1)
             try:
                 thetas[i] = angle_between_points_2d_clockwise(p0, p1)
+                if thetas[i] < 2 or thetas[i] > 359:
+                    a = 1
             except:
                 print('Failed with d: ', d)
                 thetas[i] = 0
@@ -230,7 +238,6 @@ def calc_angle_between_vectors_of_points_2d(v1, v2):
 
     return angs
 
-
 def calc_ang_velocity(angles):
     '''calc_ang_velocity [calculates the angular velocity ]
     
@@ -253,7 +260,6 @@ def calc_ang_velocity(angles):
     angles_radis = np.radians(angles) # <- to unwrap
     ang_vel_rads = np.insert(np.diff(np.unwrap(angles_radis)), 0, 0)
     return np.degrees(ang_vel_rads)
-    
 
 def correct_tracking_data(uncorrected, M, xpad, ypad, exp_name):
 
@@ -317,7 +323,11 @@ def line_smoother(y, window_size=31, order=5, deriv=0, rate=1):
 
 if __name__ == "__main__":
     import doctest
-    doctest.testmod(verbose=True)
+    # doctest.testmod(verbose=True)
+
+    a, b = [0.00001, 0.00001], [0, -10]
+    c = angle_between_points_2d_clockwise(a, b)
+    print(c)
 
 
 

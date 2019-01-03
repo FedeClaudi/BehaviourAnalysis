@@ -767,7 +767,8 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
 
     if 'lambda' in experiment.lower(): return
 
-    fast_mode = True
+    fast_mode = False # ! fast MODE
+
     # Check if we have all the data necessary to continue 
     try:
         vid, ccm = None, None
@@ -807,8 +808,8 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
         print('     ... body part: ', bp)
 
         # Get XY pose and correct with CCM matrix
-        xy = posedata[scorer[0], bp].drop(columns='likelihood')
-        corrected_data = correct_tracking_data(xy.values, ccm['correction_matrix'], ccm['top_pad'], ccm['side_pad'], experiment)
+        xy = posedata[scorer[0], bp].values[:, :2]
+        corrected_data = correct_tracking_data(xy, ccm['correction_matrix'], ccm['top_pad'], ccm['side_pad'], experiment)
         temp_dict = {}
         temp_dict['x'] = corrected_data[:, 0]
         temp_dict['y'] = corrected_data[:, 1]
@@ -818,7 +819,8 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
         vel = calc_distance_between_points_in_a_vector_2d(corrected_data.values)
 
         # get orientation [angle between XY at t0 ad XY at t1]
-        theta = calc_angle_between_points_of_vector(corrected_data.values)
+        # theta = calc_angle_between_points_of_vector(corrected_data.values)
+        theta = np.zeros(vel.shape) # ! not yet implemented angle function
 
         # get distance from shelter
         shelter = (500, 740)
@@ -853,6 +855,7 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
         Loop over body segments and populate body semgents Part table
     """
     if not fast_mode:
+        body_axis = []
         for segment_name, (bp1, bp2) in table.segments.items():
             print('     ... body segment: ', segment_name)
             # get position of each bodypart as numpy array
@@ -863,22 +866,34 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
             segment_data = {}
             segment_data['length'] = calc_distance_between_points_two_vectors_2d(bp1_data.T, bp2_data.T)
             try:
-                segment_data['theta'] = calc_angle_between_vectors_of_points_2d(bp1_data, bp2_data)
+                segment_data['theta'] = calc_angle_between_vectors_of_points_2d(bp1_data, bp2_data)  # ! not yet implemented !!
                 segment_data['angvel'] = calc_ang_velocity(segment_data['theta'])
             except:
                 warnings.warn('Could not extract theta')
                 segment_data['theta'] = np.zeros((len(segment_data['length'])))
                 segment_data['angvel'] = np.zeros((len(segment_data['length'])))
 
-            segment_data_df = pd.DataFrame.from_dict(segment_data)
+            if segment_name in ['head', 'body_upper', 'body_lower']:
+                body_axis.append(np.array(segment_data['length']))
 
+            segment_data_df = pd.DataFrame.from_dict(segment_data)
             # Insert into part table
             segment_key = key.copy()
             segment_key['bp1'] = bp1
             segment_key['bp2'] = bp2
-            segment_key['tracking_data'] = segment_data_df.values # ! check
+            segment_key['tracking_data'] = segment_data_df.values 
 
             table.BodySegmentData.insert1(segment_key)
+
+
+        # Calculate body length and insert it into table
+        body_axis_length = np.add(body_axis[0], body_axis[1])
+        body_axis_length = np.add(body_axis_length, body_axis[2])
+
+        temp_key = key.copy()
+        temp_key['bp1'] = 'body_axis'
+        temp_key['bp2'] = 'body_axis'
+        temp_key['tracking_data'] = body_axis_length
 
 
 
