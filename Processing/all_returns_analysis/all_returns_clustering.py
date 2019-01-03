@@ -227,7 +227,7 @@ class timeseries_returns:
         self.select_seconds = 20
         self.fps = 30
         self.n_clusters = 2
-        self.sel_trace = trace # 1 for Y and 2 for V
+        self.sel_trace = trace
         self.save_plots= False
 
         analysis = analyse_all_trips()
@@ -530,7 +530,7 @@ if __name__ == '__main__':
             > 0 - X
             > 1 - Y
             > 2 - V
-            > 3 - Theta # not working
+            > 3 - Theta
             > 4 - distance from shelter
             > 5 - Body length
     """

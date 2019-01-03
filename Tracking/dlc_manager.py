@@ -202,5 +202,5 @@ if __name__ == "__main__":
 
     vids = manager.sel_videos_in_folder(all=True, min_n=2)
 
-    manager.label_frames()
+    manager.train_network()
 

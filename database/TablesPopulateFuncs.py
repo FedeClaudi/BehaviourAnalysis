@@ -819,8 +819,7 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
         vel = calc_distance_between_points_in_a_vector_2d(corrected_data.values)
 
         # get orientation [angle between XY at t0 ad XY at t1]
-        # theta = calc_angle_between_points_of_vector(corrected_data.values)
-        theta = np.zeros(vel.shape) # ! not yet implemented angle function
+        theta = calc_angle_between_points_of_vector(corrected_data.values)
 
         # get distance from shelter
         shelter = (500, 740)
@@ -866,7 +865,7 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
             segment_data = {}
             segment_data['length'] = calc_distance_between_points_two_vectors_2d(bp1_data.T, bp2_data.T)
             try:
-                segment_data['theta'] = calc_angle_between_vectors_of_points_2d(bp1_data, bp2_data)  # ! not yet implemented !!
+                segment_data['theta'] = calc_angle_between_vectors_of_points_2d(bp1_data, bp2_data)  
                 segment_data['angvel'] = calc_ang_velocity(segment_data['theta'])
             except:
                 warnings.warn('Could not extract theta')

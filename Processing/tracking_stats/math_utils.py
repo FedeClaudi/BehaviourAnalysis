@@ -126,9 +126,9 @@ def calc_distance_from_shelter(v, shelter):
     return calc_distance_between_points_two_vectors_2d(v, shelter_vector)
 
 def angle_between_points_2d_clockwise(p1, p2):
-    '''angle_between_points_2d_clockwise [summary]
-    calculates the clockwise angle between two points and the Y axis
-    --> if the determinant of the two vectors is < 0 then p2 is clowise of p1
+    '''angle_between_points_2d_clockwise [Determines the angle of a straight line drawn between point one and two. 
+        The number returned, which is a double in degrees, tells us how much we have to rotate
+        a horizontal line anit-clockwise for it to match the line between the two points.]
 
     Arguments:
         p1 {[np.ndarray, list]} -- np.array or list [ with the X and Y coordinates of the point]
@@ -146,31 +146,48 @@ def angle_between_points_2d_clockwise(p1, p2):
         >>> print(ninety2)
     '''
 
-    def length(v):
-        return sqrt(v[0]**2+v[1]**2)
+    """
+        Determines the angle of a straight line drawn between point one and two. 
+        The number returned, which is a double in degrees, tells us how much we have to rotate
+        a horizontal line anit-clockwise for it to match the line between the two points.
+    """
 
-    def dot_product(v, w):
-     return v[0]*w[0]+v[1]*w[1]
+    xDiff = p2[0] - p1[0]
+    yDiff = p2[1] - p1[1]
+    ang = degrees(atan2(yDiff, xDiff))
+    if ang < 0: ang += 360
+    # if not 0 <= ang <+ 360: raise ValueError('Ang was not computed correctly')
+    return ang
 
-    def determinant(v, w):
-      return v[0]*w[1]-v[1]*w[0]
+    # ! old code
+    """ This old code below copmutes the angle within the lines that go from the origin to p1 and p2, not the angle of the line to which p1 and p2 belong to
+    """
 
-    def inner_angle(v, w):
-        cosx = dot_product(v, w)/(length(v)*length(w))
-        rad = acos(cosx)  # in radians
-        return rad*180/pi  # returns degrees
+    # def length(v):
+    #     return sqrt(v[0]**2+v[1]**2)
 
-    raise NotImplementedError("Function calculates angle between two points and the origin, not the angle of the semgent joining the two points")
+    # def dot_product(v, w):
+    #  return v[0]*w[0]+v[1]*w[1]
 
-    # p2 = [p2[0]-p1[0], p2[1]-p1[1]]
-    # p1 = [0.001, 0.001]
-    inner = inner_angle(p1, p2)
-    det = determinant(p1, p2)
-    if det < 0:  # this is a property of the det. If the det < 0 then B is clockwise of A
-        inner = 360 - inner
-    if inner == 360: 
-        inner = 0
-    return inner
+    # def determinant(v, w):
+    #   return v[0]*w[1]-v[1]*w[0]
+
+    # def inner_angle(v, w):
+    #     cosx = dot_product(v, w)/(length(v)*length(w))
+    #     rad = acos(cosx)  # in radians
+    #     return rad*180/pi  # returns degrees
+
+    # raise NotImplementedError("Function calculates angle between two points and the origin, not the angle of the semgent joining the two points")
+
+    # # p2 = [p2[0]-p1[0], p2[1]-p1[1]]
+    # # p1 = [0.001, 0.001]
+    # inner = inner_angle(p1, p2)
+    # det = determinant(p1, p2)
+    # if det < 0:  # this is a property of the det. If the det < 0 then B is clockwise of A
+    #     inner = 360 - inner
+    # if inner == 360: 
+    #     inner = 0
+    # return inner
 
 
 def calc_angle_between_points_of_vector(v):
@@ -324,10 +341,11 @@ def line_smoother(y, window_size=31, order=5, deriv=0, rate=1):
 if __name__ == "__main__":
     import doctest
     # doctest.testmod(verbose=True)
-
-    a, b = [0.00001, 0.00001], [0, -10]
-    c = angle_between_points_2d_clockwise(a, b)
-    print(c)
+    points = [(0, [10, 0]), (90, [0, 14]),  (180, [-12, 0]), (270, [0, -18]),]
+    p0 = [0, 0]
+    for target, p1 in points:
+        a = angle_between_points_2d_clockwise(p0, p1)
+        print(target, a)
 
 
 

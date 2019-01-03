@@ -29,10 +29,14 @@ class analyse_all_trips:
 
         if fill_in_table:
             # Get tracking data
-            all_bp_tracking = pd.DataFrame(TrackingData.BodyPartData.fetch())
+            print('     ... fetching data')
+            #  (mouse & 'dob > "2017-01-01"' & 'sex = "M"').fetch()
+            # all_bp_tracking = pd.DataFrame(TrackingData.BodyPartData.fetch())
+            all_bp_tracking = pd.DataFrame((TrackingData.BodyPartData & 'bpname = "body"').fetch())
             self.tracking = all_bp_tracking.loc[all_bp_tracking['bpname'] == 'body']
-            bodyaxis_tracking = pd.DataFrame(TrackingData.BodySegmentData.fetch())
-            self.ba_tracking = bodyaxis_tracking.loc[bodyaxis_tracking['bp1'] == 'body_axis']
+
+            # bodyaxis_tracking = pd.DataFrame(TrackingData.BodySegmentData.fetch())
+            self.ba_tracking = pd.DataFrame((TrackingData.BodySegmentData & 'bp1 = "body_axis"').fetch())
             self.stimuli = pd.DataFrame(BehaviourStimuli.fetch())
 
             # Get ROIs coordinates
@@ -41,6 +45,8 @@ class analyse_all_trips:
             # Get all good trips
             self.all_trips = []
             self.trip = namedtuple('trip', 'shelter_exit threat_enter threat_exit shelter_enter time_in_shelter tracking_data is_trial recording_uid')
+            
+            print('     ... getting trips')
             self.get_trips()
 
             # Insert good trips into trips table
@@ -166,6 +172,11 @@ class analyse_all_trips:
                 except:
                     break
 
+                # If the mouse spent very little in the shelter we shouldn't count it
+                if time_in_shelter < 30:  # using 1s as threshold
+                    a = 1
+                    continue
+
                 # Check if it reached the threat
                 at_threat = [i for i in in_rois['threat'].ins if i > sexit and i < next_in]
                 
@@ -174,7 +185,7 @@ class analyse_all_trips:
                     try:
                         texit = [t for t in in_rois['threat'].outs if t>tenter and t<next_in][-1]
                     except:
-                        pass
+                        pass  # don't append the good times
                     else:
                         good_times.append((sexit, tenter, texit, next_in, time_in_shelter))
 
@@ -407,6 +418,7 @@ class analyse_all_trips:
 
 
 if __name__ == '__main__':
+    print('Ready')
     # analyse_all_trips(erase_table=True, fill_in_table=False, run_analysis=False)
     analyse_all_trips(erase_table=False, fill_in_table=True, run_analysis=False)
     # analyse_all_trips(erase_table=False, fill_in_table=False, run_analysis=True, plot=True)
