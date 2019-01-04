@@ -6,7 +6,7 @@ import matplotlib.patches as patches
 import matplotlib.gridspec as gridspec
 import matplotlib.pylab as pylab
 params = {'legend.fontsize': 'x-large',
-            'figure.figsize': (15, 15),
+            'figure.figsize': (10, 10),
             'axes.labelsize': 'x-large',
             'axes.titlesize':'x-large',
             'xtick.labelsize':'x-large',
@@ -223,17 +223,23 @@ class cluster_returns:
 
 
 class timeseries_returns:
-    def __init__(self, load=False, trace=1):
+    def __init__(self, load=False, trace=1, do_all_arms=False):
+        # Set up variables
         self.select_seconds = 20
         self.fps = 30
         self.n_clusters = 2
         self.sel_trace = trace
         self.save_plots= False
-
         analysis = analyse_all_trips()
 
-        paths_names = ['Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'all_paths']
-        # paths_names = ['Right_Medium' ]    
+        # Select paths to analyse
+        self.ttls = ['', 'Y trace', 'V trace', 'Angle of mvmt', 'Distance from shelter', 'Body Length']
+        if do_all_arms:
+            paths_names = ['Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'all_paths']
+        else:
+            paths_names = ['Right_Medium' ]   
+        
+        # Analyse each path
         for self.path_n, self.path_name in enumerate(paths_names):
             if load:
                 distance_mtx = np.load('Processing\\all_returns_analysis\\distance_mtx.npy')
@@ -421,8 +427,7 @@ class timeseries_returns:
         f, axarr  = plt.subplots(1, 2) 
         ax = axarr[0]
         sn.heatmap(y.T, ax=ax, cmap=cmap, xticklabels=False, vmax=vmax, vmin=vmin)
-        ttls = ['', 'Y trace', 'V trace', 'Angle of mvmt', 'Distance from shelter']
-        ax.set(title=self.path_name+' '+ttls[self.sel_trace])
+        ax.set(title=self.path_name+' '+ self.ttls[self.sel_trace])
 
         ax = axarr[1]
         sn.heatmap(v.T, ax=ax, cmap=cmap, xticklabels=False, vmax=15)
@@ -430,7 +435,7 @@ class timeseries_returns:
 
         if self.save_plots:
             name = os.path.join('C:\\Users\\Federico\\Desktop',
-                                self.path_name+' '+ttls[self.sel_trace]+'.png')
+                                self.path_name+' '+ self.ttls[self.sel_trace]+'.png')
             f.savefig(name)
 
     def plot_dendogram(self, dist): 
@@ -468,9 +473,8 @@ class timeseries_returns:
             th = 1
 
         # Plot dendogram
-        ttls = ['', 'Y trace', 'V trace', 'Angle of mvmt', 'Distance from shelter']
         dend = shc.dendrogram(shc.linkage(dist, method='ward'), ax=dendo_ax, no_labels=True, truncate_mode = 'level', p=6) # , orientation='left')
-        dendo_ax.set(title=self.path_name+' Clustered by : '+ttls[self.sel_trace])
+        dendo_ax.set(title=self.path_name+' Clustered by : '+ self.ttls[self.sel_trace])
         # Plot clusters heatmaps
         for i, clust_id in enumerate(list(clusters_ids)[::-1]):
             # Get data
@@ -502,7 +506,7 @@ class timeseries_returns:
 
             # Save figure
             if self.save_plots:
-                nm = self.path_name+' Clustered-'+ttls[self.sel_trace]
+                nm = self.path_name+' Clustered-'+ self.ttls[self.sel_trace]
                 name = os.path.join('C:\\Users\\Federico\\Desktop',
                                 nm+'.png')
                 f.savefig(name)
@@ -536,6 +540,6 @@ if __name__ == '__main__':
     """
     using_traces = [4, 5]
     for trace in using_traces:
-        timeseries_returns(load=False, trace=trace)
+        timeseries_returns(load=False, trace=trace, do_all_arms=False)
 
     plt.show()

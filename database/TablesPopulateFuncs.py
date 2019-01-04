@@ -767,7 +767,7 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
 
     if 'lambda' in experiment.lower(): return
 
-    fast_mode = False # ! fast MODE
+    fast_mode = True # ! fast MODE
 
     # Check if we have all the data necessary to continue 
     try:

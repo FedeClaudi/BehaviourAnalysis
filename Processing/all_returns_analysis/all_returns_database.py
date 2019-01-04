@@ -32,12 +32,16 @@ class analyse_all_trips:
             print('     ... fetching data')
             #  (mouse & 'dob > "2017-01-01"' & 'sex = "M"').fetch()
             # all_bp_tracking = pd.DataFrame(TrackingData.BodyPartData.fetch())
-            all_bp_tracking = pd.DataFrame((TrackingData.BodyPartData & 'bpname = "body"').fetch())
+            fetched = (TrackingData.BodyPartData & 'bpname = "body"').fetch()
+
+            all_bp_tracking = pd.DataFrame(fetched)
             self.tracking = all_bp_tracking.loc[all_bp_tracking['bpname'] == 'body']
 
             # bodyaxis_tracking = pd.DataFrame(TrackingData.BodySegmentData.fetch())
             self.ba_tracking = pd.DataFrame((TrackingData.BodySegmentData & 'bp1 = "body_axis"').fetch())
             self.stimuli = pd.DataFrame(BehaviourStimuli.fetch())
+
+            print('... ready')
 
             # Get ROIs coordinates
             self.rois = self.get_rois()
@@ -158,7 +162,10 @@ class analyse_all_trips:
                 # test_plot_rois_on_trace(x, y, self.rois, in_x, in_y,  when_in_rois[roi])
 
             # Get bodylength and add it to tracking data
-            blen = self.ba_tracking.loc['recording_uid' == row['recording_uid']]['tracking_data'].values
+            try:  # can only do this if we have body length in tracking data
+                blen = self.ba_tracking.loc['recording_uid' == row['recording_uid']]['tracking_data'].values
+            except:
+                blen = np.zeros((tr.shape[0],1))
             tr = np.append(tr, blen, axis=1)
 
             # get complete s-t-s trips
@@ -420,8 +427,8 @@ class analyse_all_trips:
 if __name__ == '__main__':
     print('Ready')
     # analyse_all_trips(erase_table=True, fill_in_table=False, run_analysis=False)
-    analyse_all_trips(erase_table=False, fill_in_table=True, run_analysis=False)
-    # analyse_all_trips(erase_table=False, fill_in_table=False, run_analysis=True, plot=True)
+    # analyse_all_trips(erase_table=False, fill_in_table=True, run_analysis=False)
+    analyse_all_trips(erase_table=False, fill_in_table=False, run_analysis=True, plot=True)
 
 
 
