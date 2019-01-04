@@ -21,7 +21,7 @@ def start_connection():
 
     print('Connecting to server')
     dj.conn()
-    return dbname
+    return dbname, schema
 
     """
     # Change password and username
@@ -31,5 +31,11 @@ def start_connection():
     # dj.set_password()
 
 
+def print_erd():
+    _, schema = start_connection()
+    dj.ERD(schema).draw()
+
+
 if __name__ == "__main__":
-    start_connection()
+    # start_connection()
+    print_erd()

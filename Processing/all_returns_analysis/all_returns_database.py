@@ -135,7 +135,6 @@ class analyse_all_trips:
         for idx, row in self.tracking.iterrows():
             tr = row['tracking_data']
             print(row['recording_uid'], idx, ' of ', self.tracking.shape)
-
             
             # f,ax = plt.subplots()
             in_rois = {}
@@ -180,9 +179,9 @@ class analyse_all_trips:
                     break
 
                 # If the mouse spent very little in the shelter we shouldn't count it
-                if time_in_shelter < 30:  # using 1s as threshold
-                    a = 1
-                    continue
+                # if time_in_shelter < 30:  # using 1s as threshold
+                #     a = 1
+                #     continue
 
                 # Check if it reached the threat
                 at_threat = [i for i in in_rois['threat'].ins if i > sexit and i < next_in]
@@ -218,7 +217,7 @@ class analyse_all_trips:
                 self.table.insert1(key)
                 print('inserted: ', key['recording_uid'])
             except:
-                print(' !!! - did not intert !!! - ', key['recording_uid'])
+                print(' !!! - did not insert !!! - ', key['recording_uid'])
             
     #####################################################################
     #####################################################################
@@ -427,8 +426,8 @@ class analyse_all_trips:
 if __name__ == '__main__':
     print('Ready')
     # analyse_all_trips(erase_table=True, fill_in_table=False, run_analysis=False)
-    # analyse_all_trips(erase_table=False, fill_in_table=True, run_analysis=False)
-    analyse_all_trips(erase_table=False, fill_in_table=False, run_analysis=True, plot=True)
+    analyse_all_trips(erase_table=False, fill_in_table=True, run_analysis=False)
+    # analyse_all_trips(erase_table=False, fill_in_table=False, run_analysis=True, plot=True)
 
 
 

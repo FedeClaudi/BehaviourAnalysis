@@ -538,7 +538,7 @@ if __name__ == '__main__':
             > 4 - distance from shelter
             > 5 - Body length
     """
-    using_traces = [4, 5]
+    using_traces = [4]
     for trace in using_traces:
         timeseries_returns(load=False, trace=trace, do_all_arms=False)
 

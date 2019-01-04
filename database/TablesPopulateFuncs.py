@@ -247,8 +247,10 @@ def make_commoncoordinatematrices_table(table, key, sessions, videofiles):
             == key['session_name'] and r['camera_name']=='overview']
 
     if not rec:
-        raise ValueError(
-            'Did not find recording while populating CCM table. Populate recordings first! Session: ', key['session_name'])
+        print('Did not find recording while populating CCM table. Populate recordings first! Session: ', key['session_name'])
+        return
+        # raise ValueError(
+        #     'Did not find recording while populating CCM table. Populate recordings first! Session: ', key['session_name'])
     else:
         rec = rec[0]
         if not '.' in rec['converted_filepath']:
@@ -262,6 +264,11 @@ def make_commoncoordinatematrices_table(table, key, sessions, videofiles):
         The correction code is from here: https://github.com/BrancoLab/Common-Coordinate-Behaviour
     """
     matrix, points, top_pad, side_pad = get_matrix(videopath, maze_model=maze_model)
+    if matrix is None:   # somenthing went wrong and we didn't get the matrix
+        # Maybe the videofile wasn't there
+        print('Did not extract matrix for video: ', videopath)
+        return
+
 
     # Return the updated key
     key['maze_model'] = maze_model
@@ -286,8 +293,10 @@ def make_templates_table(key, ccm):
     # Get maze model
     mmc = [m for m in ccm if m['uid'] == key['uid']]
     if not mmc:
-        raise ValueError(
-            'Could not find CommonCoordinateBehaviour Matrix for this entry: ', key)
+        print('Could not find CommonCoordinateBehaviour Matrix for this entry: ', key)
+        return
+        # raise ValueError(
+        #     'Could not find CommonCoordinateBehaviour Matrix for this entry: ', key)
     else:
         model = mmc[0]['maze_model']
 
@@ -362,8 +371,9 @@ def make_recording_table(table, key):
         software = 'behaviour'
         behaviour(table, key, software)
     else:
-        software = 'mantis'
-        mantis(table, key, software)
+        warnings.warn('Currently not working on mantis data for speed')
+        # software = 'mantis'
+        # mantis(table, key, software)
 
 
 def make_videofiles_table(table, key, recordings, videosincomplete):
@@ -767,7 +777,12 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
 
     if 'lambda' in experiment.lower(): return
 
-    fast_mode = True # ! fast MODE
+    fast_mode = False # ! fast MODE
+    to_include = dict(
+            bodyparts=['snout', 'neck', 'body', 'tail_base'],
+            segments=['head', 'body_upper', 'body_lower']
+    )
+
 
     # Check if we have all the data necessary to continue 
     try:
@@ -803,8 +818,8 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
     """
     bp_data = {}
     for bp in bodyparts:
-        if fast_mode:
-            if bp != 'body': continue
+        if fast_mode and  bp != 'body': continue
+        elif not fast_mode and bp not in to_include['bodyparts']: continue
         print('     ... body part: ', bp)
 
         # Get XY pose and correct with CCM matrix
@@ -856,6 +871,7 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
     if not fast_mode:
         body_axis = []
         for segment_name, (bp1, bp2) in table.segments.items():
+            if segment_name not in to_include['segments']: continue
             print('     ... body segment: ', segment_name)
             # get position of each bodypart as numpy array
             bp1_data = np.array([bp_data[bp1]['x'], bp_data[bp1]['y']])

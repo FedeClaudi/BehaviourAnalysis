@@ -150,7 +150,7 @@ class DLCManager:
         if videos is None: videos = self.sel_videos_in_folder()
 
         deeplabcut.extract_outlier_frames(self.dlc_paths['cfg_path'], videos, automatic=True, 
-                                            outlieralgorithm='jump', epsilon=20, p_bound=.01)
+                                            outlieralgorithm='jump', epsilon=30, p_bound=.01)
 
     def refine_labels(self):
         deeplabcut.refine_labels(self.dlc_paths['cfg_path'])
@@ -200,7 +200,9 @@ class DLCManager:
 if __name__ == "__main__":
     manager = DLCManager()
 
-    vids = manager.sel_videos_in_folder(all=True, min_n=2)
+    vids = manager.sel_videos_in_folder(all=False, min_n=15)
+    # manager.analyze_videos(videos=vids)
+    # manager.create_labeled_videos(videos=vids)
 
     manager.train_network()
 

@@ -18,7 +18,7 @@ from database.dj_config import start_connection
 import datajoint as dj
 from database.TablesPopulateFuncs import *
 
-dbname = start_connection()
+dbname, _ = start_connection()
 schema = dj.schema(dbname, locals())
 
 
@@ -107,7 +107,8 @@ class Templates(dj.Imported):
 
     def make(self, key):
         new_key = make_templates_table(key, CommonCoordinateMatrices)
-        self.insert1(new_key)
+        if new_key is not None:
+            self.insert1(new_key)
 
 @schema
 class Recordings(dj.Imported):
@@ -316,7 +317,6 @@ if __name__ == "__main__":
     import sys
     sys.path.append('./')
     from dj_config import start_connection
+    
     start_connection()
 
-    # VideoFiles.drop_quick()
-    print(VideoFiles.Metadata.heading)
