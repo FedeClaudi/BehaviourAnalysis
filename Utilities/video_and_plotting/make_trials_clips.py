@@ -13,12 +13,12 @@ from Processing.plot.plotting_utils import *
 from Processing.plot.video_plotting_toolbox import *
 
 
-def create_trials_clips(prestim=10, poststim=20, clean_vids=True, plt_pose=False):
+def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False):
     def write_clip(video, savename, stim_frame, stim_duration, prestim, poststim, clean_vids, posedata):
         # parameters to draw on frame
-        border_size = 20
-        color_on = [128, 128, 128]
-        color_off = [0, 0, 0]
+        border_size = 0 # 20
+        color_on = [100, 255, 100]
+        color_off = [20,20,20]
         curr_color = color_off
 
         # Get video params and open opencv writer
@@ -28,7 +28,7 @@ def create_trials_clips(prestim=10, poststim=20, clean_vids=True, plt_pose=False
         nframes, width, height, fps = editor.get_video_params(cap)
 
         writer = editor.open_cvwriter(savename, w=width+border_size*2,
-                                      h=height+border_size*2, framerate=fps)
+                                      h=height+border_size*2, framerate=fps, iscolor=True)
 
         # Get start and stop frames
         start = stim_frame - prestim*fps
@@ -41,7 +41,6 @@ def create_trials_clips(prestim=10, poststim=20, clean_vids=True, plt_pose=False
         # Set cap to correct frame number
         real_start_frame = stim_frame - int(prestim*fps)
         cap.set(1, real_start_frame)
-
 
         # Write clip
         for frame_counter in tqdm(range(clip_number_of_frames)):
@@ -69,15 +68,18 @@ def create_trials_clips(prestim=10, poststim=20, clean_vids=True, plt_pose=False
                 curr_color = color_on
                 
             # Make frame
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            gray = frame
             if not clean_vids:
-                gray = cv2.copyMakeBorder(gray, border_size, border_size, border_size, border_size,
-                                            cv2.BORDER_CONSTANT, value=curr_color)
-
+                # gray = cv2.copyMakeBorder(gray, border_size, border_size, border_size, border_size,
+                #                             cv2.BORDER_CONSTANT, value=curr_color)
+                cv2.circle(gray, (width-200, height-200), 30, curr_color, -1)
                 frame_time = (frame_counter - window[0]) / fps
                 frame_time = str(round(.2 * round(frame_time / .2), 1)) + '0' * (abs(frame_time) < 10)
-                cv2.putText(gray, sign + str(frame_time) + 's', (width - 110, height + 10), 0, 1,
-                            (180, 180, 180), thickness=2)
+                cv2.putText(gray, sign + str(frame_time) + 's', (width - 250, height - 130), 0, 1,
+                            (20, 20, 20), thickness=2)
+
+            # frame[:, :, 0] = gray
 
             # Save to file
             writer.write(gray)
@@ -85,7 +87,8 @@ def create_trials_clips(prestim=10, poststim=20, clean_vids=True, plt_pose=False
 
     # Get path to folder and list of previously saved videos
     paths = load_yaml('./paths.yml')
-    save_fld = os.path.join(paths['raw_data_folder'], paths['trials_clips'])
+    # save_fld = os.path.join(paths['raw_data_folder'], paths['trials_clips'])
+    save_fld = paths['trials_clips']
     saved_clips = [f for f in os.listdir(save_fld)]
 
     # Start looping over Recordings()
@@ -97,6 +100,10 @@ def create_trials_clips(prestim=10, poststim=20, clean_vids=True, plt_pose=False
     for recn, rec in enumerate(recs.fetch(as_dict=True)):
         # Get the stim table entry and clip ame
         print('Processing recording {} of {}'.format(recn, len(recs.fetch())))
+        if rec['uid'] < 180: 
+            print(' ... skipped')
+            continue
+
         if rec['software'] == 'behaviour':
             stims = [s for s in behav_stims if s['recording_uid']==rec['recording_uid']]
         else:
@@ -133,9 +140,11 @@ def create_trials_clips(prestim=10, poststim=20, clean_vids=True, plt_pose=False
             else:
                 raise NotImplementedError
 
+            
+
 
 if __name__ == "__main__":
     paths = load_yaml('./paths.yml')
 
-    create_trials_clips(prestim=10, poststim=20, clean_vids=False)
+    create_trials_clips(clean_vids=False)
 

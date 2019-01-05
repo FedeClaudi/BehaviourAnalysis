@@ -317,15 +317,18 @@ class Editor:
             # Loop over frames and save the ones that matter
             print('Processing: ', videopath)
             cur_frame = 0
+            cap.set(1,start_frame)
             while True:
                 cur_frame += 1
                 if cur_frame % 100 == 0: print('Current frame: ', cur_frame)
                 if cur_frame <= start_frame: continue
                 elif cur_frame >= stop_frame: break
                 else:
+                    
                     ret, frame = cap.read()
                     if not ret: break
                     else:
+                        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                         writer.write(frame)
             writer.release()
         else:
@@ -469,6 +472,7 @@ class Editor:
                 print('Processing frame ', framen)
             
             if framen >= start_frame:
+                cap.set(cv2.CV_CAP_PROP_POS_FRAMES,framen)
                 ret, frame = cap.read()
                 if not ret: break
 
@@ -622,11 +626,11 @@ if __name__ == '__main__':
     # for f in toconvert:
     #     converter = VideoConverter(os.path.join(fld, f), extract_framesize=True)
         
-    editor.concated_tdms_to_mp4_clips(fld)
+    # editor.concated_tdms_to_mp4_clips(fld)
 
-    vid = '/Users/federicoclaudi/Desktop/181211_CA3693_1Threat__0.mp4'
-    savename = '/Users/federicoclaudi/Desktop/clip2.mp4'
-    editor.trim_clip(vid, savename, frame_mode=False, start=0.5, stop=0.75, use_moviepy=True)
+    vid ='D:\\Dropbox (UCL - SWC)\\Rotation_vte\\for_T\\cam1.avi'
+    savename = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\\for_T\\ff.mp4'
+    editor.trim_clip(vid, savename, frame_mode=True, start_frame=900, stop_frame=1500, use_moviepy=False)
     # editor.manual_video_inspect(savename)
 
 

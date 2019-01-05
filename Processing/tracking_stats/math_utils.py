@@ -338,6 +338,11 @@ def line_smoother(y, window_size=31, order=5, deriv=0, rate=1):
         y = np.concatenate((firstvals, y, lastvals))
         return np.convolve(m[::-1], y, mode='valid')
 
+def line_smoother_convolve(y, window_size=31):
+    box = np.ones(window_size)/window_size
+    y_smooth = np.convolve(y, box, mode='same')
+    return y_smooth
+
 if __name__ == "__main__":
     import doctest
     # doctest.testmod(verbose=True)

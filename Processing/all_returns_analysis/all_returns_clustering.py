@@ -5,13 +5,8 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.gridspec as gridspec
 import matplotlib.pylab as pylab
-params = {'legend.fontsize': 'x-large',
-            'figure.figsize': (10, 10),
-            'axes.labelsize': 'x-large',
-            'axes.titlesize':'x-large',
-            'xtick.labelsize':'x-large',
-            'ytick.labelsize':'x-large',
-            'font.size': 22}
+params = {  'figure.figsize': (7, 7),
+            'font.size': 14}
 pylab.rcParams.update(params)
 
 import pandas as pd
@@ -248,7 +243,7 @@ class timeseries_returns:
                 self.data = analysis.returns_summary
 
                 # Select returns - get tracking data
-                self.data = self.prep_data()
+                self.data, self.trials_idxs = self.prep_data()
                 y, y_dict, y_list = self.get_y(self.data)
                 
                 # Get euclidean distance
@@ -260,13 +255,15 @@ class timeseries_returns:
             
             # Plot clusters
             # self.plot_combined_time_series()
-            self.plot_all_heatmap()
+            # self.plot_all_heatmap()
             # self.plot_dendogram(distance_mtx)
-            # self.plot_clusters_heatmaps()
+            # self.plot_clusters_heatmaps()
             # self.plot_clusters_traces()
 
             # Multivariate Time Series Analysis
             # self.mvt_analysis()
+
+            self.plot_test()
 
     @staticmethod
     def convert_y_to_df(y):
@@ -287,10 +284,13 @@ class timeseries_returns:
         self.x_limits = lm
         new_data = self.data.loc[(self.data['x_displacement'] >= lm[0]) &
                                 (self.data['x_displacement'] <= lm[1])]
-        return new_data
+
+        are_trials = new_data['is trial'].values
+        return new_data, are_trials
     
     def get_y(self, arr, sel=None, smooth=False):
         length = self.select_seconds*self.fps
+
         y = np.zeros((length, arr.shape[0]))
         y_dict, y_list = {}, []
         if sel is None: sel = self.sel_trace
@@ -298,7 +298,6 @@ class timeseries_returns:
         for i, (idx, row) in enumerate(arr.iterrows()):
             t0, t_shelt = row['times']
             t1 = t0 + self.select_seconds*self.fps
-            
             yy = np.array(np.round(row['tracking_data'][t0:t1, sel], 2), dtype=np.double)
             if sel == 2:
                 yy[yy>20] = np.mean(yy)
@@ -307,6 +306,10 @@ class timeseries_returns:
             y[:yy.shape[0], i] = yy
             y_dict[str(i)] = np.array(yy)
             y_list.append(np.array(yy))
+
+        # if sel == 4:
+        #     print('padding with zeros after mouse reached shetler ')
+        #     y = self.zero_y(y)
         return y, y_dict, y_list
 
     @staticmethod
@@ -320,11 +323,11 @@ class timeseries_returns:
         returns:
             scaled x
         """
-        arr_min = np.min(x)
-        x = np.array(x) - float(arr_min)
-        arr_max = np.max(x)
-        x = np.divide(x, float(arr_max))
-        return x
+        # arr_min = np.min(x)
+        # x = np.array(x) - float(arr_min)
+        # arr_max = np.max(x)
+        # x = np.divide(x, float(arr_max))
+        return x / x.max(axis=0)
 
 
     def array_sorter(self, y, mode='bigger', smooth=False):
@@ -359,6 +362,18 @@ class timeseries_returns:
         sort_idx = np.argsort(pos)  # how to go from this to an ordered array
         return y[:, sort_idx[::-1]], sort_idx[::-1] # return the ordered array
 
+    def zero_y(self, arr, th=40):
+        temp = np.zeros(arr.shape)
+        for i in range(arr.shape[1]):
+            l = arr[:, i]
+            try:
+                where = np.where(l <= th)[0][0]
+            except: pass
+            else:
+                l[where:] = th
+            temp[:, i] = l
+        return temp
+
     def distance(self, y):
         return euclidean_distances(y.T, y.T)
 
@@ -385,9 +400,9 @@ class timeseries_returns:
 
         for i, clust_id in enumerate(list(clusters_ids)[::-1]):
             selected = self.data.loc[self.data['cluster labels']==clust_id]
-            x = self.get_y(selected, sel=0)
-            y = self.get_y(selected, sel=1)
-            v = self.get_y(selected, sel=2)
+            x, _, _ = self.get_y(selected, sel=0)
+            y, _, _ = self.get_y(selected, sel=1)
+            v, _, _ = self.get_y(selected, sel=2)
 
             axarr[i].scatter(x, y, c=v, cmap='inferno', s=10, alpha=.3)
 
@@ -400,8 +415,16 @@ class timeseries_returns:
             selected = self.data.loc[self.data['cluster labels']==_id]
             y, y_dict, y_list = self.get_y(selected)
 
-            axarr[0, _id].plot(y, color='k', alpha=.1)
-            axarr[0, _id].plot(np.mean(y, 1), color='r', linewidth=3)
+            are_trials = np.where(selected['is trial'].values == 1)[0]
+            arent_trials = np.where(selected['is trial'].values == 0)[0]
+            y_tr = np.add(y[:, are_trials], 400)
+            y_ntr = y[:, arent_trials]
+
+            axarr[0, _id].axhline(400)
+            axarr[0, _id].plot(y_ntr, color='k', alpha=.1)
+            axarr[0, _id].plot(y_tr, color='r', alpha=.1)
+            axarr[0, _id].plot(np.mean(y_tr, 1), color='b', linewidth=3)
+            axarr[0, _id].plot(np.mean(y_ntr, 1), color='b', linewidth=3)
             sn.heatmap(y.T, ax=axarr[1, _id], )
             axarr[1, _id].set(title='{} - Cluster # {}'.format(self.path_name, _id))
 
@@ -484,8 +507,11 @@ class timeseries_returns:
             stim_y, _, _ = self.get_y(stim_evoked)
             spont_y, _, _ = self.get_y(spontaneous)
             
-            stim_y = np.fliplr(self.array_sorter(stim_y))
-            spont_y = np.fliplr(self.array_sorter(spont_y))
+            sorted_stim_y, _ = self.array_sorter(stim_y)
+            sorted_spont_y, _ = self.array_sorter(stim_y)
+
+            stim_y = np.fliplr(sorted_stim_y)
+            spont_y = np.fliplr(sorted_spont_y)
         
             # Plot heatmaps
             if i == len(clusters_ids):
@@ -527,6 +553,66 @@ class timeseries_returns:
             ax.plot(np.mean(tss.d, 1), np.mean(tss.v, 1), color='k', alpha=1, linewidth=4)
             ax.set(facecolor=[.2, .2, .2], title='V/D clust: '+str(clust_id), xlabel='distnace', ylabel='velocity')
 
+    def plot_test(self):
+        wnd = 11
+        xarr, _, _ = self.get_y(self.data, sel=0)
+        yarr, _, _ = self.get_y(self.data, sel=1)
+        varr, _, _ = self.get_y(self.data, sel=2)
+        oarr, _, _ = self.get_y(self.data, sel=3)
+
+        dsts = []
+        for i in range(xarr.shape[1]):
+            x, y, o = xarr[:, i], yarr[:, i], oarr[:, i]
+
+            try:
+                at_shelt = np.where(y>650)[0][0]
+            except: continue
+            os = line_smoother_convolve(o, window_size=31)
+
+            odiff = np.diff(os)
+            odiff = odiff[:at_shelt]
+            angvel = np.sum(odiff)/len(odiff)
+
+            x, y, o = x[:at_shelt], y[:at_shelt], o[:at_shelt]
+
+            xs, ys = line_smoother_convolve(x, window_size=wnd), line_smoother_convolve(y, window_size=wnd)
+            # xs, ys = xs[30:-20], ys[30:-20]
+            # x, y = x[30:-20], y[30:-20]
+
+            xdist, ydist = np.add(xs, -x),  np.add(ys, -y)
+            
+            poly = np.poly1d(np.polyfit(x, y,  3))
+            xp = np.linspace(0, len(poly), len(poly))
+            c = np.linspace(np.min(x), np.max(x), len(xdist))
+            f, axarr = plt.subplots(1, 3)
+            axarr[0].plot(x, y, color='k', linewidth=2)
+            # axarr[0].plot(xs, ys, color='r')
+            axarr[0].plot(poly(x), x, color='g', alpha=.8)
+            #  axarr[1].scatter(xdist, ydist, c=c, s=15, alpha=.7)
+
+        
+
+            # rough = np.array([x, y])
+            # smooth = np.array([xs, ys])
+            # distance = calc_distance_between_points_two_vectors_2d(rough.T, smooth.T)
+            # normed_distance = np.sum(distance)/len(distance)
+            # dsts.append(normed_distance)
+
+
+            # f, axarr = plt.subplots(1, 4)
+            # ax = axarr[0]
+            # ax.plot(x, y, color='k', linewidth=2)
+            # ax.plot(xs, ys, color='r')
+            # ax.set(title=str(round(normed_distance)))
+
+            # # axarr[1].plot(o, color='k', linewidth=2)
+            # axarr[1].plot(os, color='r')
+            # axarr[2].plot(odiff, color='g', )
+            # axarr[2].set(title=str(round(np.sum(odiff))))
+
+            # axarr[3].plot(ys, color='k')
+            # axarr[3].plot(np.diff(ys), color='r')
+            if i == 5: break
 
 if __name__ == '__main__':
     """
