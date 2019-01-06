@@ -301,14 +301,14 @@ class AllTrips(dj.Manual):
         # stores info about each time the mouse makes a shetler-threat-shelter trip
         trip_id: int                            # comulative trip number
         ---
-        recording_uid: varchar(128)                 # reference to the recording the trip belongs to
+        recording_uid: varchar(128)             # reference to the recording the trip belongs to
         shelter_exit: int                       # frame number at which it left shelter
         shelter_enter: int                      # frame at which it returned
         threat_enter: int                       # time at which it enters in the threat
         threat_exit: int                        # frame at which it leaves the threat to reach the shetler
         time_in_shelter: int                    # number of frames before reemerging from the shelter
         tracking_data: longblob                 # tracking
-        is_trial: enum('true', 'false')   # is it around a stim?
+        is_trial: enum('true', 'false')         # is it around a stim?
         
 
     """
