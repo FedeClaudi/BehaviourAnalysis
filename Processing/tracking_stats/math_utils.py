@@ -243,13 +243,14 @@ def calc_angle_between_points_of_vector(v):
             thetas[i] = 0
         else:
             d = calc_distance_between_points_2d(p0, p1)
-            try:
-                thetas[i] = angle_between_points_2d_clockwise(p0, p1)
-                if thetas[i] < 2 or thetas[i] > 359:
-                    a = 1
-            except:
-                print('Failed with d: ', d)
-                thetas[i] = 0
+            if d > 1:
+                try:
+                    thetas[i] = angle_between_points_2d_clockwise(p0, p1)
+                except:
+                    print('Failed with d: ', d)
+                    thetas[i] = 0
+            else:
+                thetas[i] = np.nan
     return thetas
 
 

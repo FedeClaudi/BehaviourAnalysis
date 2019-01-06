@@ -38,29 +38,33 @@ class clusterer:
         # Get time series data
         self.ts = timeseries_returns(load=False, trace=4, do_all_arms=False)
         
-        names, sel = ['d', 'v', 'o'], [4, 2, 3]
         
-        self.prep_data()
+        self.fast, self.slow = self.prep_data()
+        self.plotter_tester()
 
     def prep_data(self,):
         # Get the 10 fastest and 10 slowest traces
-        raw_data = {n:self.ts.get_y(sef.ts.data, sel=s) for n,s in zip(name, sel)}
-        _, idxs = self.ts.array_sorter(raw_data['d'], sel=4)
-        
-        fast, slow = {}, {}
-        for i, (n, raw) in enumerate(raw_data.items()):
-            fast[n] = raw_data[n][idxs[:10]]
-            slow[n] = raw_data[n][idxs[-10:]]
+        names, sel = ['d', 'v', 'o'], [4, 2, 3]
+        raw_data = {n:self.ts.get_y(self.ts.data, sel=s)[0] for n,s in zip(names, sel)}
+        raw_data['o'][raw_data['o'] < 1] = np.nan
+        raw_data['o'][raw_data['o'] >359] = np.nan
+        # x, y = self.ts.get_y(self.ts.data, sel=0)[0], self.ts.get_y(self.ts.data, sel=1)[0]
+        # xy = np.array([x[:, 0], y])
+        # raw_data['o'] = calc_angle_between_points_of_vector(xy.T)
 
-        self.fast = pd.DataFrame.from_dict(fast)
-        self.slow = pd.DataFrame.from_dict(slow)
+        _, idxs = self.ts.array_sorter(raw_data['d'], sel=4)
+        fast, slow = {}, {}
+        for n, raw in raw_data.items():
+            slow[n] = raw_data[n][:, idxs[:10]]
+            fast[n] = raw_data[n][:, idxs[-10:]]
+        return fast, slow
 
     def plotter_tester(self):
         f, axarr = plt.subplots(1, 3)
-        for i, c in enumerate(list(self.fast.columns)):
-            axarr[i].plot(self.fast[c].values, color='r', alpha=.75)
-            axarr[i].plot(self.slow[c].values, color='k', alpha=.75)
-            axarr[1].set(title=c)
+        for i, c in enumerate(list(self.fast.keys())):
+            axarr[i].plot(self.fast[c], color='r', alpha=.75)
+            axarr[i].plot(self.slow[c], color='k', alpha=.75)
+            axarr[i].set(title=c)
 
 
 if __name__ == "__main__":

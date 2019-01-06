@@ -263,7 +263,7 @@ class timeseries_returns:
             # Multivariate Time Series Analysis
             # self.mvt_analysis()
 
-            self.plot_test()
+            # self.plot_test()
 
     @staticmethod
     def convert_y_to_df(y):
