@@ -29,9 +29,11 @@ from Processing.all_returns_analysis.all_returns_clustering import timeseries_re
 
 class features_finder:
     def __init__(self, y):
+        self.y = y
         return
         
     def make_df(self):
+        y = self.y
         time_to_th = self.time_to_th(y, 40)
         _min, _max, time_to_min, time_to_max = self.get_max_min(y)
         npeaks, ntrufts = self.get_peaks_trufts(y)
@@ -81,7 +83,7 @@ class features_finder:
             ntrufts.append(len(trufts))
         return npeaks, ntrufts
 
-class plotter:
+class clusterer:
     def __init__(self):
         self.ts = timeseries_returns(load=False, trace=4, do_all_arms=False)
         y, _, _ = self.ts.get_y(self.ts.data)
@@ -90,27 +92,9 @@ class plotter:
 
         self.features.hist()
 
-    def traces_plotter(self):
-        y, _, _ = self.ts.get_y(self.ts.data)
-        y = self.ts.array_scaler(y)
-
-        f, axarr = plt.subplots(2, 1)
-        axarr[0].set(facecolor=[.2, .2, .2])
-
-        axarr[0].plot(y[:, 0])
-
-        ydiff = line_smoother_convolve(np.diff(y[:, 0]), 11)
-        trufts, properties  = find_peaks(-ydiff, height=0, prominence=.005)
-        peaks, properties  = find_peaks(ydiff, height=0, prominence=.005)
-
-        
-        axarr[1].plot(ydiff)
-        axarr[1].plot(trufts, ydiff[trufts], "x")
-        axarr[1].plot(peaks, ydiff[peaks], "x")
-
 
 if __name__ == "__main__":
-    p = plotter()
+    p = clusterer()
     # p.traces_plotter()
 
 
