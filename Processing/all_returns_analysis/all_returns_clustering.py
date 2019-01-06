@@ -330,15 +330,15 @@ class timeseries_returns:
         return x / x.max(axis=0)
 
 
-    def array_sorter(self, y, mode='bigger', smooth=False):
+    def array_sorter(self, y, mode='bigger', smooth=False, sel=None):
         # Sort modes: bigger, lesser, maxval
         scaled = self.array_scaler(y)
         th = np.median(scaled)
-
-        if self.sel_trace == 2:
+        if sel is None: sel = self.sel_trace
+        if sel == 2:
             smooth = True
             mode = 'maxval'
-        elif self.sel_trace == 4:
+        elif sel == 4:
             # th = np.percentile(scaled, 75)
             th = 0.4
             mode = 'lesser'
