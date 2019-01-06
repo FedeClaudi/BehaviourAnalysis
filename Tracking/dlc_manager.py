@@ -201,8 +201,8 @@ if __name__ == "__main__":
     manager = DLCManager()
 
     vids = manager.sel_videos_in_folder(all=False, min_n=15)
-    # manager.analyze_videos(videos=vids)
-    # manager.create_labeled_videos(videos=vids)
+    manager.analyze_videos(videos=vids)
+    manager.create_labeled_videos(videos=vids)
 
-    manager.train_network()
+    # manager.train_network()
 

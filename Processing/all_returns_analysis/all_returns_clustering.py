@@ -229,7 +229,9 @@ class timeseries_returns:
 
         # Select paths to analyse
         self.ttls = ['', 'Y trace', 'V trace', 'Angle of mvmt', 'Distance from shelter', 'Body Length']
-        if do_all_arms:
+        if isinstance(do_all_arms, str):
+            paths_names = [do_all_arms]
+        elif do_all_arms:
             paths_names = ['Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'all_paths']
         else:
             paths_names = ['Right_Medium' ]   
