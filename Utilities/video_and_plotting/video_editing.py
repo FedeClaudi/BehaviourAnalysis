@@ -340,17 +340,54 @@ class Editor:
             self.save_clip(trimmed, fld, name, '.mp4', 120)
 
 
-    @staticmethod
-    def split_clip(clip, number_of_clips=4, ispath=False):
-            if ispath: clip = VideoFileClip(clip)
+    def split_clip(self, clip, number_of_clips=4, dest_fld=None):
+        """[Takes a video and splits into clips of equal length]
+        
+        Arguments:
+            clip {[str]} -- [path to video to be split]
+        
+        Keyword Arguments:
+            number_of_clips {int} -- [number of subclips] (default: {4})
+            dest_fld {[srt]} -- [path to folder where clips will be saved. If None, clips will be saved in same folder as original clip] (default: {None})
+        """
 
-            duration = clip.duration
-            step = duration / number_of_clips
-            subclips = []
-            for n in range(number_of_clips):
-                subclips.append(clip.subclip(step*n, step*(n+1)))
+        fld, name = os.path.split(clip)
+        name, ext = name.split('.')
+        if dest_fld is None: dest_fld = fld
 
-            return subclips
+        cap = cv2.VideoCapture(clip)
+        nframes, width, height, fps  = self.get_video_params(cap)
+
+        frames_array = np.linspace(0, nframes, nframes+1)
+        clips_frames = np.array_split(frames_array, number_of_clips)
+
+        for i, clip in enumerate(clips_frames):
+            
+            start, end = clip[0], clip[-1]
+            print('Clip {} of {}, frame range: {}-{}'.format(i, number_of_clips, start, end))
+            if i == 0: 
+                print(' ... skipping the first clip')
+                continue
+            cap.set(1,start)
+            
+            savename = os.path.join(dest_fld, name+'_clip{}.'.format(i)+ext)
+            writer = self.open_cvwriter(savename, w=width, h=height, framerate=fps, iscolor=False)
+
+            counter = start
+            while counter <= end:
+                if counter % 100 == 0:
+                    print('Frame ', start+counter, ' of ', nframes)
+                counter += 1
+                ret, frame = cap.read()
+                if not ret: 
+                    writer.release()
+                    return
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                writer.write(gray)
+            writer.release()
+        cap.release()
+
+
 
     @staticmethod
     def opencv_write_clip(videopath, frames_data, w=None, h=None, framerate=None, start=None, stop=None,
@@ -621,16 +658,11 @@ if __name__ == '__main__':
     ###############
 
     fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video'
-    # toconvert = [f for f in os.listdir(fld) if '.tdms' in f]
-    # print(toconvert)
-    # for f in toconvert:
-    #     converter = VideoConverter(os.path.join(fld, f), extract_framesize=True)
-        
-    # editor.concated_tdms_to_mp4_clips(fld)
+    dst_fld = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Training_videos'
 
-    vid ='D:\\Dropbox (UCL - SWC)\\Rotation_vte\\for_T\\cam1.avi'
+    vid ='181211_CA3694_1Overview__0.mp4'
     savename = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\\for_T\\ff.mp4'
-    editor.trim_clip(vid, savename, frame_mode=True, start_frame=900, stop_frame=1500, use_moviepy=False)
+    editor.split_clip(os.path.join(fld, vid),  number_of_clips=10, dest_fld=dst_fld)
     # editor.manual_video_inspect(savename)
 
 

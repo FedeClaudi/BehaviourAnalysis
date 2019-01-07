@@ -201,6 +201,9 @@ if __name__ == "__main__":
     manager = DLCManager()
 
     vids = manager.sel_videos_in_folder(all=False, min_n=15)
+
+    vids = [os.path.join('D:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Training_videos', '181211_CA3695_1Overview__0_clip1.mp4')]
+
     manager.analyze_videos(videos=vids)
     manager.create_labeled_videos(videos=vids)
 
