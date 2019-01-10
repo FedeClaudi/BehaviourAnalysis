@@ -174,7 +174,7 @@ class VideoConverter:
             f_size = os.path.getsize(self.filep)  # size in bytes
             tot_frames = int((f_size - skip_data_points) / frame_size)  # num frames
             fps = 100
-            raise ValueError('This code is updated, it WILL give errors, needs to be checked first')
+            raise ValueError('This code is outdated, it WILL give errors, needs to be checked first')
         else:
             props, tot_frames = self.extract_framesize_from_metadata(self.filep)
 
@@ -656,20 +656,20 @@ if __name__ == '__main__':
 
     ###############
 
-    # fld = 'Z:\\branco\Federico\\raw_behaviour\\maze\\training_clips'
-    # dst_fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\training_clips\\clips'
+    fld = 'Z:\\branco\Federico\\raw_behaviour\\maze\\_overview_training_clips'
+    dst_fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\_overview_training_clips\\clips'
 
-    # for clip in os.listdir(fld):
-    #     print('Processing ', clip)
-    #     try:
-    #         editor.split_clip(os.path.join(fld, clip),  number_of_clips=10, dest_fld=dst_fld)
-    #     except:
-    #         pass
+    for clip in os.listdir(fld):
+        print('Processing ', clip)
+        try:
+            editor.split_clip(os.path.join(fld, clip),  number_of_clips=10, dest_fld=dst_fld)
+        except:
+            pass
 
 
-    vid = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\to_sort\\190109_CA3664_1\\OverviewCamera.tdms'
+    # vid = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\to_sort\\190109_CA3664_1\\OverviewCamera.tdms'
 
-    VideoConverter(vid)
+    # VideoConverter(vid)
 
 
 

@@ -26,6 +26,21 @@ class FilesAutomationToolbox:
         self.videos_fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video'
         self.video_metadata = VideoTdmsMetadata
 
+    def macro(self):
+        # Fill in metadata dj table
+        try:
+            self.extract_videotdms_metadata()
+        except:
+            pass
+
+        # IF something needs conversion, conert it
+        to_conv = self.get_list_uncoverted_tdms_videos()
+        if to_conv:
+            self.convert_tdms_to_mp4()
+        
+        # Check if there was something wrong with conversion
+        self.check_video_conversion_correct()
+
     def extract_videotdms_metadata(self):
         """[Populate a dj table with the videos metadata]
         """
@@ -54,9 +69,7 @@ class FilesAutomationToolbox:
         except:
             pass
 
-        fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video'
-        toconvert = [f for f in os.listdir(fld) if '.tdms' in f]
-        
+        toconvert = self.get_list_uncoverted_tdms_videos()
         while True:
             try:
                 for f in toconvert:
@@ -88,16 +101,18 @@ class FilesAutomationToolbox:
             Check which videos still need to be converted
         """
         tdmss = [f for f in os.listdir(self.videos_fld) if '.tdms' in f]
-
+        unconverted = []
         for t in tdmss:
             name = t.split('.')[0]
             conv, join = self.check_if_file_converted(name, self.videos_fld)
-
+            if not conv: unconverted.append(t)
             print("""
             Video: {}
                 --- converted: {}
                 --- joined: {}
             """.format(t, conv, join))
+        print('To convert: ', unconverted)
+        return unconverted
 
     def check_video_conversion_correct(self):
         """[Check if the video conversion was done correctly, i.e. we have all the frames and all clips have same length]
@@ -144,15 +159,6 @@ class FilesAutomationToolbox:
                 except:
                     raise ValueError('Incorrect number of frames in clips for video: ', t)
 
-
-    def extract_postures(self):
-        pass
-        """
-            Checks entries in Recordings that don't have .h5 files associated and uses DLC to extract the posture
-
-            Then calls the auto populate method for the TrackingData table to fill these in
-        """
-
     def fillin_incompletevideos(self):
         inc_table = VideosIncomplete()
         rec_table = Recordings()
@@ -177,6 +183,6 @@ class FilesAutomationToolbox:
 if __name__ == "__main__":
     automation = FilesAutomationToolbox()
     # automation.convert_tdms_to_mp4()
-    # automation.get_list_uncoverted_tdms_videos()
-    automation.check_video_conversion_correct()
+    automation.get_list_uncoverted_tdms_videos()
+    # automation.check_video_conversion_correct()
     # automation.extract_videotdms_metadata()

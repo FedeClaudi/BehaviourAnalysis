@@ -686,7 +686,7 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
         f, ax = plt.subplots()
         ax.plot(audio_channel_data)
         ax.plot(stim_start_times, audio_channel_data[stim_start_times], 'x')
-        ax.set(xlim=[stim_start_times[0]-5000, stim_start_times[0]+5000])
+        ax.set(xlim=[stim_start_times[0]-5000, stim_start_times[-1]+5000])
 
     if key['uid'] <= 184:
         return
@@ -713,6 +713,8 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
         # stim_start_times, _ = signal.find_peaks(audio_channel_data, height=.2, distance=9.1*sampling_rate, width=(1, 100), wlen=100)  # ! hardcoded miimal distance: duration * sampling rate
         th = .2
     else:
+        # First recordings with mantis had different params
+        audio_channel_data = tdms_df[ "/'AudioIRLED_AI'/'0'"].values
         sampling_rate = 30000
         th = 1.5
     
@@ -726,10 +728,19 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
     # plt.show()
 
     if not len(stim_names) == len(stim_start_times):
+        
+        
         print('Names - times: ', len(stim_names), len(stim_start_times),stim_names, stim_start_times)
-        plot_signals(audio_channel_data, stim_start_times)
-        plt.show()
-        raise ValueError('Names - times - mismatch: ', len(stim_names), len(stim_start_times),stim_names, stim_start_times)
+        sel = input('Which to discard? ["n" if youd rather look at the plot]')
+        if not 'n' in sel:
+            sel = int(sel)
+            np.delete(stim_start_times, sel)
+        else:
+            plot_signals(audio_channel_data, stim_start_times)
+            plt.show()
+        sel = input('Which to discard? ')
+        np.delete(stim_start_times, int(sel))
+        # raise ValueError('Names - times - mismatch: ', len(stim_names), len(stim_start_times),stim_names, stim_start_times)
 
     # Get FPS for each camera and number of samples per frame
     vid = [v for v in videofiles.Metadata.fetch(as_dict=True) if v['recording_uid']==key['recording_uid']]
