@@ -20,7 +20,7 @@ from Utilities.file_io.sort_behaviour_files import sort_mantis_files
 class FilesAutomationToolbox:
     def __init__(self):
         # self.database = PopulateDatabase()
-        pass
+        self.videos_fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video'
 
     def convert_tdms_to_mp4(self):
         """
@@ -47,6 +47,37 @@ class FilesAutomationToolbox:
                 break
             except: # ignore exception and try again
                 print('Failed again at {}, trying again..\n\n'.format(time.localtime()))
+
+    @staticmethod
+    def check_if_file_converted(name, folder):
+        conv, join = False, False
+        mp4s = [v for v in os.listdir(folder) if name in v and '.mp4' in v]
+        # print(name)
+        if mp4s:
+            joined = [v for v in mp4s if 'joined' in mp4s]
+            conv = True
+            if joined: join=True
+
+        return conv, join
+
+    def get_list_uncoverted_tdms_videos(self):
+        tdmss = [f for f in os.listdir(self.videos_fld) if '.tdms' in f]
+
+        for t in tdmss:
+            
+            name = t.split('.')[0]
+            
+            conv, join = self.check_if_file_converted(name, self.videos_fld)
+
+            print("""
+            Video: {}
+                --- converted: {}
+                --- joined: {}
+            """.format(t, conv, join))
+
+        
+
+
 
     def extract_postures(self):
         pass
@@ -79,5 +110,5 @@ class FilesAutomationToolbox:
 
 if __name__ == "__main__":
     automation = FilesAutomationToolbox()
-    automation.convert_tdms_to_mp4()
-
+    # automation.convert_tdms_to_mp4()
+    automation.get_list_uncoverted_tdms_videos()

@@ -371,9 +371,8 @@ def make_recording_table(table, key):
         software = 'behaviour'
         behaviour(table, key, software)
     else:
-        warnings.warn('Currently not working on mantis data for speed')
-        # software = 'mantis'
-        # mantis(table, key, software)
+        software = 'mantis'
+        mantis(table, key, software)
 
 
 def make_videofiles_table(table, key, recordings, videosincomplete):
@@ -694,7 +693,6 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
     else:
             print('Populating mantis stimuli for: ', key['recording_uid'])
 
-    # if key['recording_uid'] != '181210_CA3672': return
 
     tb = ToolBox()
     rec = [r for r in recordings if r['recording_uid']==key['recording_uid']][0]

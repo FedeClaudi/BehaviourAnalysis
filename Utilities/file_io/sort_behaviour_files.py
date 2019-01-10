@@ -99,5 +99,5 @@ def rename_pose_files():
         os.rename(os.path.join(fld, f), os.path.join(fld, vid_name+'_pose.'+ext))
 
 if __name__ == "__main__":
-    rename_pose_files()
+    sort_mantis_files()
 

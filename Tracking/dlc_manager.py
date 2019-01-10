@@ -57,9 +57,9 @@ class DLCManager:
     
     ### UTILS
 
-    def sel_videos_in_folder(self, all=False, min_n=None):
+    def sel_videos_in_folder(self, all=False, min_n=None, dr=None):
         print('Getting videos')
-        dr = self.dlc_paths['dr']
+        if dr is None: dr = self.dlc_paths['dr']
         if min_n is None:
             min_n = self.settings['min_num_vids']
 
@@ -181,7 +181,7 @@ class DLCManager:
 
     def delete_labeled_outlier_frames(self):
             '''
-            Deletes the img.png files that are called 'labeled'
+            Deletes the img.png files that are called 'labeled'P
             '''
             # go through folders containing training images
             training_images_folder = os.path.join(os.path.dirname(self.dlc_paths['cfg_path' 'labeled-data']))
@@ -200,12 +200,15 @@ class DLCManager:
 if __name__ == "__main__":
     manager = DLCManager()
 
-    vids = manager.sel_videos_in_folder(all=False, min_n=15)
+    fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\training_clips\\clips'
+    vids = manager.sel_videos_in_folder(all=False, min_n=5)
 
-    vids = [os.path.join('D:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Training_videos', '181211_CA3695_1Overview__0_clip1.mp4')]
+    # names = ['181206_CA3665_1Overview__84679_clip2', '181206_CA3665_1Overview__84679_clip1', '181211_CA3694_1Overview__0_clip1', '181211_CA3695_1Overview__0_clip1', '181211_CA3695_1Overview__0_clip0']
+    # fld = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Training_videos'
+    # vids = [os.path.join(fld,n+'.mp4') for n in names]
 
     manager.analyze_videos(videos=vids)
     manager.create_labeled_videos(videos=vids)
+    # manager.extract_outliers(videos=vids)
 
-    # manager.train_network()
-
+    # manager.check_labels()

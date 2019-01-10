@@ -127,8 +127,13 @@ class VideoConverter:
             metadata_fld = os.path.join(paths['raw_data_folder'], paths['raw_metadata_folder'])
 
             videoname = os.path.split(videotdms)[-1]
-            metadata_file = [os.path.join(metadata_fld, f) for f in os.listdir(metadata_fld)
-                                if videoname in f][0]
+            try:
+                metadata_file = [os.path.join(metadata_fld, f) for f in os.listdir(metadata_fld)
+                                    if videoname in f][0]
+            except:
+                metadata_file = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\to_sort\\190109_CA3664_1\\OverviewCamerameta.tdms'
+                yn = input('Using this file: {}\nContinue?[y/n] '.format(metadata_file))
+
 
             # Get info about the video data
             # video = TdmsFile(videotdms)
@@ -375,8 +380,6 @@ class Editor:
 
             counter = start
             while counter <= end:
-                if counter % 100 == 0:
-                    print('Frame ', start+counter, ' of ', nframes)
                 counter += 1
                 ret, frame = cap.read()
                 if not ret: 
@@ -657,16 +660,20 @@ if __name__ == '__main__':
 
     ###############
 
-    fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video'
-    dst_fld = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Training_videos'
+    # fld = 'Z:\\branco\Federico\\raw_behaviour\\maze\\training_clips'
+    # dst_fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\training_clips\\clips'
 
-    vid ='181211_CA3694_1Overview__0.mp4'
-    savename = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\\for_T\\ff.mp4'
-    editor.split_clip(os.path.join(fld, vid),  number_of_clips=10, dest_fld=dst_fld)
-    # editor.manual_video_inspect(savename)
+    # for clip in os.listdir(fld):
+    #     print('Processing ', clip)
+    #     try:
+    #         editor.split_clip(os.path.join(fld, clip),  number_of_clips=10, dest_fld=dst_fld)
+    #     except:
+    #         pass
 
 
+    vid = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\to_sort\\190109_CA3664_1\\OverviewCamera.tdms'
 
+    VideoConverter(vid)
 
 
 
