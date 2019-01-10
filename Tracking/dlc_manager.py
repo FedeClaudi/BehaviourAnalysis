@@ -201,7 +201,7 @@ if __name__ == "__main__":
     manager = DLCManager()
 
     fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\training_clips\\clips'
-    vids = manager.sel_videos_in_folder(all=False, min_n=5)
+    vids = manager.sel_videos_in_folder(all=False, min_n=5, dr=fld)
 
     # names = ['181206_CA3665_1Overview__84679_clip2', '181206_CA3665_1Overview__84679_clip1', '181211_CA3694_1Overview__0_clip1', '181211_CA3695_1Overview__0_clip1', '181211_CA3695_1Overview__0_clip0']
     # fld = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Training_videos'

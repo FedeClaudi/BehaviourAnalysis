@@ -99,20 +99,8 @@ class VideoConverter:
             videowriter.write(gray)
         videowriter.release()
 
-    def tdmstovideo_converter(self):
-        def write_clip(arguments, limits=None):
-            """ create a .cv2 videowriter and start writing """
-            vidname, w, h, framerate, data = arguments
-            vidname = '{}__{}.mp4'.format(vidname, limits[0])
-            fourcc = cv2.VideoWriter_fourcc(*'MP4V')
-            videowriter = cv2.VideoWriter(os.path.join(self.folder, vidname), fourcc,
-                                            framerate, (w, h), iscolor)
-
-            for framen in tqdm(range(limits[0], limits[1]+1)):
-                videowriter.write(data[framen])
-            videowriter.release()
-
-        def extract_framesize_from_metadata(videotdms):
+    @staticmethod
+    def extract_framesize_from_metadata(videotdms):
             """extract_framesize_from_metadata [takes the path to the video to be connverted and 
                 uses it to extract metadata about the acquired video (frame widht and height...)]
             
@@ -127,13 +115,8 @@ class VideoConverter:
             metadata_fld = os.path.join(paths['raw_data_folder'], paths['raw_metadata_folder'])
 
             videoname = os.path.split(videotdms)[-1]
-            try:
-                metadata_file = [os.path.join(metadata_fld, f) for f in os.listdir(metadata_fld)
-                                    if videoname in f][0]
-            except:
-                metadata_file = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\to_sort\\190109_CA3664_1\\OverviewCamerameta.tdms'
-                yn = input('Using this file: {}\nContinue?[y/n] '.format(metadata_file))
-
+            metadata_file = [os.path.join(metadata_fld, f) for f in os.listdir(metadata_fld)
+                                if videoname in f][0]
 
             # Get info about the video data
             # video = TdmsFile(videotdms)
@@ -160,6 +143,19 @@ class VideoConverter:
 
             return props, tot
 
+    def tdmstovideo_converter(self):
+        def write_clip(arguments, limits=None):
+            """ create a .cv2 videowriter and start writing """
+            vidname, w, h, framerate, data = arguments
+            vidname = '{}__{}.mp4'.format(vidname, limits[0])
+            fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+            videowriter = cv2.VideoWriter(os.path.join(self.folder, vidname), fourcc,
+                                            framerate, (w, h), iscolor)
+
+            for framen in tqdm(range(limits[0], limits[1]+1)):
+                videowriter.write(data[framen])
+            videowriter.release()
+
         ###################################################################################################################################
 
         start = time.time()
@@ -180,7 +176,7 @@ class VideoConverter:
             fps = 100
             raise ValueError('This code is updated, it WILL give errors, needs to be checked first')
         else:
-            props, tot_frames = extract_framesize_from_metadata(self.filep)
+            props, tot_frames = self.extract_framesize_from_metadata(self.filep)
 
 
         # ? set up options
@@ -394,7 +390,7 @@ class Editor:
 
     @staticmethod
     def opencv_write_clip(videopath, frames_data, w=None, h=None, framerate=None, start=None, stop=None,
-                          format='.mp4', iscolor=False):
+                            format='.mp4', iscolor=False):
         """ create a .cv2 videowriter and  write clip to file """
         if format != '.mp4':
             raise ValueError('Fileformat not yet supported by this function: {}'.format(format))
