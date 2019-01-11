@@ -224,6 +224,6 @@ if __name__ == '__main__':
     # p.behaviourstimuli.populate()
     # p.mantisstimuli.populate()
 
-    # p.tracking_data.populate()
+    p.tracking_data.populate()
 
     # print(p.commoncoordinatematrices)

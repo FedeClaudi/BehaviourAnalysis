@@ -312,7 +312,8 @@ class AllTrips(dj.Manual):
         duration: int                           # duration of the escape in seconds
         max_speed: int                          # max speed reached during return
         is_escape: enum('true', 'false')        # did it meet the criteria for being considered an escape
-        arm_taken: enum('fl', 'ml', 'c', 'mr', 'fr')  # far left....
+        
+        arm_taken: enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far')  # far left....
         
 
     """

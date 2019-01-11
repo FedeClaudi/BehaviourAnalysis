@@ -480,8 +480,9 @@ class Editor:
             joined = [m for m in matches if '__joined' in m]
             if joined: 
                 joined = os.path.join(fld, joined[0])
-                if os.path.getsize(joined) > 0:
-                    print(tdmsname, ' already joined')
+                jsize = os.path.getsize(joined)
+                if jsize > 258:
+                    print(tdmsname, ' already joined', jsize, 'bytes')
                     continue
                 else:
                     matches = [m for m in matches if '__joined' not in m]
@@ -494,25 +495,33 @@ class Editor:
             cap = cv2.VideoCapture(os.path.join(fld, matches[0]))
             nframes, width, height, fps = self.get_video_params(cap)
             dest = os.path.join(fld, tdmsname+'__joined.mp4')
-            writer = self.open_cvwriter(dest, w=width, h=height, framerate=fps, format='.mp4', iscolor=False)
+            writer = self.open_cvwriter(dest, w=width, h=height, framerate=int(fps), format='.mp4', iscolor=False)
 
             # Add to writers store
             writers_store[tdmsname] = (dest, matches, writer)
 
         # Write in parallel
-        num_processes = 3   
-        print('Ready to joint {} videos in parallel'.format(num_processes))
-        pool = ThreadPool(num_processes)
-        args_to_write = []
-        for i in range(num_processes):
-            key = list(writers_store.keys())[i]
-            args = writers_store[key]
-            args_to_write.append(args)
+        num_processes = 1  
+        if num_processes>1:
+            print('Ready to joint {} videos in parallel'.format(num_processes))
+            pool = ThreadPool(num_processes)
+            args_to_write = []
+            for i in range(num_processes):
+                key = list(writers_store.keys())[i]
+                args = writers_store[key]
+                args_to_write.append(args)
 
-        print('Writing...')
-        [print(a[0]) for a in args_to_write]
+            print('Writing...')
+            [print(a[0]) for a in args_to_write]
 
-        _ = pool.map(joiner, args_to_write)
+            _ = pool.map(joiner, args_to_write)
+        else:
+            for args in writers_store.values():
+                try:
+                    joiner(args)
+                except:
+                    print('Joining Failed... removing incopmlete file: ', args[0])
+                    os.remove(args[0])
 
 
 
@@ -688,7 +697,7 @@ if __name__ == '__main__':
     print(converter, '\n\n', editor)
 
     ###############
-
+    videofld = 'Z:\\branco\Federico\\raw_behaviour\\maze\\video'
     fld = 'Z:\\branco\Federico\\raw_behaviour\\maze\\_overview_training_clips'
     dst_fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\_overview_training_clips\\clips'
 
@@ -698,11 +707,11 @@ if __name__ == '__main__':
     #         editor.split_clip(os.path.join(fld, clip),  number_of_clips=10, dest_fld=dst_fld)
     #     except:
     #         pass
+
+
     editor.concated_tdms_to_mp4_clips('Z:\\branco\Federico\\raw_behaviour\\maze\\video')
 
-    # vid = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\to_sort\\190109_CA3664_1\\OverviewCamera.tdms'
-
-    # VideoConverter(vid)
+    # editor.manual_video_inspect(os.path.join(videofld, '181205_CA3661_1Overview__joined.mp4'))
 
 
 

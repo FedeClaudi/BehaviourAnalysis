@@ -49,7 +49,7 @@ class analyse_all_trips:
 
             # Get all good trips
             self.all_trips = []
-            self.trip = namedtuple('trip', 'shelter_exit threat_enter threat_exit shelter_enter time_in_shelter tracking_data is_trial recording_uid')
+            self.trip = namedtuple('trip', 'shelter_exit threat_enter threat_exit shelter_enter time_in_shelter tracking_data is_trial recording_uid duration max_speed is_escape arm_taken')
             
             print('     ... getting trips')
             self.get_trips()
@@ -92,7 +92,7 @@ class analyse_all_trips:
 
                 in_xy = np.intersect1d(in_x, in_y)
                 in_xy = in_xy[in_xy>=9000]  # ? not sure what this line does
-                raise NotImplementedError('Check what the line above does you dummy')
+                # raise NotImplementedError('Check what the line above does you dummy')
 
                 # get times at which it enters and exits
                 xx = np.zeros(tr.shape[0])
@@ -142,11 +142,76 @@ class analyse_all_trips:
                 else:
                     has_stim = 'false'
 
-                # 'shelter_exit threat_enter threat_exit shelter_enter time_in_shelter tracking_data is_trial recording_uid'
-                'shelter_exit threat_enter shelter_enter time_in_shelter'
-                endtime = g.shelter_enter+gtime_in_shelter
+                # 'shelter_exit threat_enter threat_exit shelter_enter time_in_shelter tracking_data is_trial recording_uid duration max_speed is_escape arm_taken')
+
+                # Get remaining variables
+                endtime = g.shelter_enter+g.time_in_shelter
+                tracking_data = tr[g.shelter_exit:endtime, :]
+
+                duration = (g.shelter_enter - g.threat_exit)/30 # ! hardcoded fps
+                smooth_speed = line_smoother(tracking_data[:,2])
+                max_speed = np.max(smooth_speed)
+                if duration <= 3: # ! hardcoded arbritary variable
+                    is_escape = 'true'
+                else:
+                    is_escape = 'false'
+
+                x_displacement = self.get_x_displacement(tracking_data[:, 0], tracking_data[:, 1], g.threat_exit, g.shelter_exit, g.shelter_enter)
+                arms_lims = dict(Left_Far=(-10000, -251),
+                                Left_Medium=(-250, -100),
+                                Centre=(-99, 99),
+                                Right_Medium= (100, 250),
+                                Right_Far= (251, 10000))
+
+                for k, (x0, x1) in arms_lims.items():
+                    if x0 <= x_displacement <= x1:
+                        arm_taken = k
+
                 self.all_trips.append(self.trip(g.shelter_exit, g.threat_enter, g.threat_exit, g.shelter_enter,
-                            g.time_in_shelter, tr[g.shelter_exit:endtime, :], has_stim, row['recording_uid']))
+                            g.time_in_shelter, tracking_data, has_stim, row['recording_uid'], duration, max_speed, is_escape, arm_taken))
+                # For each good trip get duration, max_v....
+                duration = ()
+
+    @ staticmethod
+    def get_x_displacement(x, y, threat_exit, shelter_exit, shelter_enter):
+        """[Gets the max X displacement during escape, used to figure out which arm was taken ]
+        
+        Arguments:
+            x {[np.array]} -- [description]
+            y {[np.array]} -- [description]
+            threat_exit {[int]} -- [description]
+            shelter_exit {[int]} -- [description]
+            shelter_enter {[unt]} -- [description]
+        """
+
+        # Get x between the time T is left and the mouse is at the shelter
+        t0, t1 = threat_exit-shelter_exit, shelter_enter-shelter_exit
+        x = line_smoother(np.add(x[t0:t1], -500)) # center on X
+        y = line_smoother(y[t0:t1])
+
+        # Get left-most and right-most points
+        left_most, right_most = min(x), max(x)
+        if abs(left_most)>=abs(right_most):
+            x_displacement = left_most
+        else:
+            x_displacement = right_most
+
+        # Plt for debug
+        # idx = np.where(x == tokeep)[0]
+        # f, ax = plt.subplots()
+        # plt.plot(line_smoother(np.add(row['tracking_data'][:, 0], -500)),
+        #         line_smoother(row['tracking_data'][:, 1]), 'k')
+        # ax.plot(x, y, 'g', linewidth=3)
+        # ax.plot(x[idx], y[idx], 'o', color='r')
+        # plt.show()
+
+        # if self.plot:
+        #     sampl = np.random.uniform(low=0.0, high=10.0, size=(len(x_displacement),))
+        #     f,ax = plt.subplots()
+        #     ax.scatter(x_displacement, sampl, s=10, c='k', alpha=.5)
+        #     ax.set(title='x displacement')
+
+        return x_displacement
 
     def insert_trips_in_table(self):
         for i, trip in enumerate(self.all_trips): 
@@ -157,7 +222,7 @@ class analyse_all_trips:
                 print('inserted: ', key['recording_uid'])
             except:
                 print(' !!! - did not insert !!! - ', key['recording_uid'])
-          
+
 
 if __name__ == '__main__':
     print('Ready')
