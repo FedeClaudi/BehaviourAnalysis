@@ -209,7 +209,8 @@ if __name__ == "__main__":
 
     for vid in vids:
         try:
-            manager.analyze_videos(videos=[vid])
+            # manager.analyze_videos(videos=[vid])
+            manager.create_labeled_videos(videos=[vid])
         except:
             print('Failed ', vid)
     # manager.create_labeled_videos(videos=vids)

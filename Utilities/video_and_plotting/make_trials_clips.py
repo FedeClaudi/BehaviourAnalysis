@@ -96,11 +96,13 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
     behav_stims = BehaviourStimuli()
     mantis_simts = MantisStimuli()
     videofiles = VideoFiles()
+    
+    videos_df = pd.DataFrame(videofiles.fetch())
 
     for recn, rec in enumerate(recs.fetch(as_dict=True)):
         # Get the stim table entry and clip ame
         print('Processing recording {} of {}'.format(recn, len(recs.fetch())))
-        if rec['uid'] < 180: 
+        if rec['uid']<194: 
             print(' ... skipped')
             continue
 
@@ -118,11 +120,10 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
             if rec['software'] == 'behaviour':
                 videoname = stim['video']
 
-                
                 if plt_pose:
                     # Get pose data
                     videoentry = [v for v in videofiles if v['video_filepath']==videoname or v['converted_filepath'] == videoname][0]
-                
+
                     posefile = videoentry['pose_filepath']
                     try:
                         posedata = pd.read_hdf(posefile)
@@ -136,9 +137,17 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
                             stim['stim_start'], stim['stim_duration'], 
                             prestim, poststim, clean_vids, posedata)
 
-
             else:
-                raise NotImplementedError
+                # Get the corrisponding videofile
+                entry = videos_df.loc[(videos_df['recording_uid'] == stim['recording_uid']) & (videos_df['camera_name'] == 'overview')]
+                videoname = entry['converted_filepath']
+                dur = stim['duration']*120  # ! hardcoded duration in fps
+                write_clip(videoname, os.path.join(save_fld, clip_name),
+                            stim['overview_frame'], dur, 
+                            prestim, poststim, clean_vids, None)
+
+                
+                
 
             
 

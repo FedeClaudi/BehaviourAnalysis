@@ -4,8 +4,8 @@ sys.path.append('./')
 import warnings as warn
 try: import cv2
 except: pass
-from moviepy.editor import VideoFileClip, concatenate_videoclips
-from moviepy.video.fx import crop
+# from moviepy.editor import VideoFileClip, concatenate_videoclips
+# from moviepy.video.fx import crop
 import os
 from tempfile import mkdtemp
 from tqdm import tqdm
@@ -436,43 +436,24 @@ class Editor:
     def concated_tdms_to_mp4_clips(self, fld):
         """[Concatenates the clips create from the tdms video converter in the class above]
         """
-        # Get list of .tdms files that might have been converted
-        tdms_names = [f.split('.')[0] for f in os.listdir(fld) if 'tdms' in f]
-        # Get names of converted clips
-        tdms_videos_names = [f for f in os.listdir(fld) if f.split('__')[0] in tdms_names]
-
-        # For each tdms create joined clip
-        for tdmsname in tdms_names:
-            # Check if a "joined" clip already exists and skip if so
-            matches = sorted([v for v in tdms_videos_names if tdmsname in v])
-            joined = [m for m in matches if '__joined' in m]
-            if joined: 
-                print(tdmsname, ' already joined')
-                continue
-            print('Joining clips for {} - {}'.format(tdmsname, matches))
-
-            # Get video params and open writer
-            cap = cv2.VideoCapture(os.path.join(fld, matches[0]))
-            nframes, width, height, fps = self.get_video_params(cap)
-            dest = os.path.join(fld, tdmsname+'__joined.mp4')
-
-            writer = self.open_cvwriter(dest, w=width, h=height, framerate=fps, format='.mp4', iscolor=False)
-
+        
+        def joiner(arguments):
+            clipname, matches, writer = arguments
+            print('Joiner working on : ', clipname)
             # Loop over videos and write them to joined
             all_frames_count = 0
-            for vid in matches:
-                print('     ... joining: ', vid)
+            for i, vid in enumerate(matches):
+                print('     ... joining: ', vid, ' {} of {}'.format(i, len(matches)-1))
                 cap = cv2.VideoCapture(os.path.join(fld, vid))
                 nframes, width, height, fps = self.get_video_params(cap)
                 all_frames_count += nframes
                 framecounter = 0
                 while True:
-                    if framecounter % 5000 == 0:
-                        print('             ... frame ', framecounter)
                     framecounter += 1
                     ret, frame = cap.read()
                     if not ret: break
-                    writer.write(frame)
+                    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                    writer.write(gray)
             cap.release()
             writer.release()
 
@@ -480,7 +461,60 @@ class Editor:
             cap = cv2.VideoCapture(dest)
             nframesjoined, width, height, fps = self.get_video_params(cap)
             if nframesjoined != all_frames_count:
-                raise ValueError('Joined clip number of frames doesnt match total of individual clips: {} vs {}'.format(nframesjoined, all_frames_count))
+                raise ValueError('{} - Joined clip number of frames doesnt match total of individual clips: {} vs {}'.format( clipname, nframesjoined, all_frames_count))
+            else:
+                print('Clip ', clipname, ' was saved succesfully')
+
+        # Get list of .tdms files that might have been converted
+        tdms_names = [f.split('.')[0] for f in os.listdir(fld) if 'tdms' in f]
+        # Get names of converted clips
+        tdms_videos_names = [f for f in os.listdir(fld) if f.split('__')[0] in tdms_names]
+
+        print('Collecting data on videos to join ')
+        writers_store = {}
+        # For each tdms create joined clip
+        for tdmsname in tdms_names:
+            # Check if a "joined" clip already exists and skip if so
+            matches = sorted([v for v in tdms_videos_names if tdmsname in v])
+            if not matches: continue
+            joined = [m for m in matches if '__joined' in m]
+            if joined: 
+                joined = os.path.join(fld, joined[0])
+                if os.path.getsize(joined) > 0:
+                    print(tdmsname, ' already joined')
+                    continue
+                else:
+                    matches = [m for m in matches if '__joined' not in m]
+            
+            # Sort matches
+            sortidx = np.argsort(np.array(([int(n.split('__')[-1].split('.')[0]) for n in matches])))
+            mathches = [np.array(matches)[sortidx]]
+
+            # Get video params and open writer
+            cap = cv2.VideoCapture(os.path.join(fld, matches[0]))
+            nframes, width, height, fps = self.get_video_params(cap)
+            dest = os.path.join(fld, tdmsname+'__joined.mp4')
+            writer = self.open_cvwriter(dest, w=width, h=height, framerate=fps, format='.mp4', iscolor=False)
+
+            # Add to writers store
+            writers_store[tdmsname] = (dest, matches, writer)
+
+        # Write in parallel
+        num_processes = 3   
+        print('Ready to joint {} videos in parallel'.format(num_processes))
+        pool = ThreadPool(num_processes)
+        args_to_write = []
+        for i in range(num_processes):
+            key = list(writers_store.keys())[i]
+            args = writers_store[key]
+            args_to_write.append(args)
+
+        print('Writing...')
+        [print(a[0]) for a in args_to_write]
+
+        _ = pool.map(joiner, args_to_write)
+
+
 
     @staticmethod
     def compress_clip(videopath, compress_factor, save_path=None, start_frame=0, stop_frame=None):
@@ -521,7 +555,6 @@ class Editor:
                 if framen >= stop_frame: break
 
         videowriter.release()
-
     
     def mirros_cropper(self, v, fld):
         """mirros_cropper [takes a video and saves 3 cropped versions of it with different views]
@@ -659,13 +692,13 @@ if __name__ == '__main__':
     fld = 'Z:\\branco\Federico\\raw_behaviour\\maze\\_overview_training_clips'
     dst_fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\_overview_training_clips\\clips'
 
-    for clip in os.listdir(fld):
-        print('Processing ', clip)
-        try:
-            editor.split_clip(os.path.join(fld, clip),  number_of_clips=10, dest_fld=dst_fld)
-        except:
-            pass
-
+    # for clip in os.listdir(fld):
+    #     print('Processing ', clip)
+    #     try:
+    #         editor.split_clip(os.path.join(fld, clip),  number_of_clips=10, dest_fld=dst_fld)
+    #     except:
+    #         pass
+    editor.concated_tdms_to_mp4_clips('Z:\\branco\Federico\\raw_behaviour\\maze\\video')
 
     # vid = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\to_sort\\190109_CA3664_1\\OverviewCamera.tdms'
 

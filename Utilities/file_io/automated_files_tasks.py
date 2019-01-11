@@ -35,11 +35,15 @@ class FilesAutomationToolbox:
 
         # IF something needs conversion, conert it
         to_conv = self.get_list_uncoverted_tdms_videos()
+        print('Converting: ', to_conv)
         if to_conv:
             self.convert_tdms_to_mp4()
         
         # Check if there was something wrong with conversion
         self.check_video_conversion_correct()
+
+        # Join Clips
+        Editor.concated_tdms_to_mp4_clips(self.videos_fld)
 
     def extract_videotdms_metadata(self):
         """[Populate a dj table with the videos metadata]
@@ -71,9 +75,11 @@ class FilesAutomationToolbox:
 
         toconvert = self.get_list_uncoverted_tdms_videos()
         while True:
+            in_process = None
             try:
                 for f in toconvert:
-                    converter = VideoConverter(os.path.join(fld, f), extract_framesize=True)
+                    in_process = f
+                    VideoConverter(os.path.join(self.videos_fld, f), extract_framesize=True)
                 print('All files converted, yay!')
 
                 editor = Editor()
@@ -82,7 +88,9 @@ class FilesAutomationToolbox:
 
                 break
             except: # ignore exception and try again
-                print('Failed again at {}, trying again..\n\n'.format(time.localtime()))
+                if in_process is not None:
+                    pass # ! clear unfinished business 
+                print('Failed again, trying again..\n\n')
 
     @staticmethod
     def check_if_file_converted(name, folder):
@@ -186,3 +194,5 @@ if __name__ == "__main__":
     automation.get_list_uncoverted_tdms_videos()
     # automation.check_video_conversion_correct()
     # automation.extract_videotdms_metadata()
+
+    # automation.macro()

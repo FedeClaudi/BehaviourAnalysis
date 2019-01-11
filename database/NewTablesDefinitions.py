@@ -309,6 +309,10 @@ class AllTrips(dj.Manual):
         time_in_shelter: int                    # number of frames before reemerging from the shelter
         tracking_data: longblob                 # tracking
         is_trial: enum('true', 'false')         # is it around a stim?
+        duration: int                           # duration of the escape in seconds
+        max_speed: int                          # max speed reached during return
+        is_escape: enum('true', 'false')        # did it meet the criteria for being considered an escape
+        arm_taken: enum('fl', 'ml', 'c', 'mr', 'fr')  # far left....
         
 
     """

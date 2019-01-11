@@ -738,8 +738,8 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
         else:
             plot_signals(audio_channel_data, stim_start_times)
             plt.show()
-        sel = input('Which to discard? ')
-        np.delete(stim_start_times, int(sel))
+            sel = input('Which to discard? ')
+            np.delete(stim_start_times, int(sel))
         # raise ValueError('Names - times - mismatch: ', len(stim_names), len(stim_start_times),stim_names, stim_start_times)
 
     # Get FPS for each camera and number of samples per frame
