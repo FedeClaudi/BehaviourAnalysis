@@ -310,7 +310,7 @@ class AllTrips(dj.Manual):
         tracking_data: longblob                 # tracking
         is_trial: enum('true', 'false')         # is it around a stim?
         duration: int                           # duration of the escape in seconds
-        max_speed: int                          # max speed reached during return
+        max_speed: int                          # 85th percentile of smoothed speed trace
         is_escape: enum('true', 'false')        # did it meet the criteria for being considered an escape
         
         arm_taken: enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far')  # far left....

@@ -150,8 +150,8 @@ class analyse_all_trips:
 
                 duration = (g.shelter_enter - g.threat_exit)/30 # ! hardcoded fps
                 smooth_speed = line_smoother(tracking_data[:,2])
-                max_speed = np.max(smooth_speed)
-                if duration <= 3: # ! hardcoded arbritary variable
+                max_speed = np.percentile(smooth_speed, 85)
+                if duration <= 5: # ! hardcoded arbritary variable
                     is_escape = 'true'
                 else:
                     is_escape = 'false'
@@ -224,9 +224,83 @@ class analyse_all_trips:
                 print(' !!! - did not insert !!! - ', key['recording_uid'])
 
 
+
+def check_table_inserts(table):
+    # Plot XY traces based on arm
+    # Plot D traces sorted by tur
+    #    sorted by is trial
+    #    sorted by maxV
+    #    # sorted by is escape
+    data = pd.DataFrame(table.fetch())
+    
+    # Plot XY traces sorted by arm taken
+    arms = ['Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far']
+    f, axarr = plt.subplots(3, 2, facecolor =[.2,  .2, .2])
+    axarr = axarr.flatten()
+    arr_size = 0
+    for arm, ax in zip(arms, axarr):
+        sel = data.loc[data['arm_taken'] == arm]
+        for idx, row in sel.iterrows():
+            t0, t1 = row['threat_exit']-row['shelter_exit'], row['shelter_enter']-row['shelter_exit']
+            tracking = row['tracking_data']
+            ax.scatter(tracking[t0:t1, 0], tracking[t0:t1, 1], color=[.8, .8, .8], s=5, alpha=.5)
+            if tracking.shape[0] > arr_size: arr_size = tracking.shape[0]
+        ax.set(title=arm, facecolor=[.2, .2, .2], xlim=[0, 1000], ylim=[200, 800])
+
+    # Prep to plot sorted D traces
+    d = np.zeros((arr_size, data.shape[0]))
+    for idx, row in data.iterrows():
+        temp = row['tracking_data'][:, 4]
+        d[:len(temp), idx] = temp
+
+    # Plot
+    f, axarr = plt.subplots(2, 2,  facecolor=[.2, .2, .2])
+    axarr = axarr.flatten()
+
+    sort_by_mvel = np.argsort(data['max_speed'].values)
+    sort_by_dur = np.argsort(data['duration'].values)
+    for i in range(len(sort_by_mvel)):
+        # axarr[0].plot(np.add(d[:, sort_by_mvel[i]], i*700))
+        # axarr[1].plot(np.add(d[:, sort_by_dur[i]], i*700))
+        t0 = data['threat_exit'].values[i] - data['shelter_exit'].values[i]
+        if data['is_trial'].values[i] == 'true':
+            trial_col = 'r'
+            trial_ax = 0
+        else:
+            trial_col = 'w'
+            trial_ax = 2
+
+        if data['is_escape'].values[i] == 'true':
+            escape_col = 'g'
+            escape_ax = 1
+        else:
+            escape_col = 'w'
+            escape_ax = 3
+
+        axarr[trial_ax].plot(line_smoother(d[t0:, i]), color=trial_col, alpha=.2, linewidth=.5)
+        axarr[escape_ax].plot(line_smoother(d[t0:, i]), color=escape_col, alpha=.2, linewidth=.5)
+
+    titles = ['D trial', 'D escape', 'D spontaneous', 'D not escape']
+    for i, tit in enumerate(titles):
+        axarr[i].set(title=tit, facecolor=[.2, .2, .2], xlim=[0, 1000])
+
+    f, ax = plt.subplots(facecolor=[.2,  .2, .2])
+    dur = np.sort(data['duration'].values)
+    speed_sort = np.argsort(data['duration'].values)
+    sped = data['max_speed'].values[speed_sort]
+    ax.plot(dur, 'o', color='r', label='duration', alpha=.8)
+    ax.plot(sped,'o', color='g', label='speed', alpha=.8)
+    ax.set(facecolor=[.2, .2, .2])
+    ax.legend()
+    plt.show()
+
+
+
+
 if __name__ == '__main__':
     print('Ready')
     # analyse_all_trips(erase_table=False, fill_in_table=True)
 
     print(AllTrips())
+    check_table_inserts(AllTrips())
 

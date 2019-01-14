@@ -79,7 +79,7 @@ class ToolBox:
             return videos, metadatas
 
 
-    def open_temp_tdms_as_df(self, path, move=True):
+    def open_temp_tdms_as_df(self, path, move=True, skip_df=False):
         """open_temp_tdms_as_df [gets a file from winstore, opens it and returns the dataframe]
         
         Arguments:
@@ -97,11 +97,14 @@ class ToolBox:
         bfile = open(temp_file, 'rb')
         tdmsfile = TdmsFile(bfile, memmap_dir="M:\\")
         print('     ... opened')
-        tdms_df = tdmsfile.as_dataframe()
-        print('         ... as dataframe')
-        # Extract data and insert in key
-        cols = list(tdms_df.columns)
-        return tdms_df, cols
+        if skip_df:
+            return tdmsfile, None
+        else:
+            tdms_df = tdmsfile.as_dataframe()
+            print('         ... as dataframe')
+            # Extract data and insert in key
+            cols = list(tdms_df.columns)
+            return tdms_df, cols
 
     def extract_behaviour_stimuli(self, aifile):
         """extract_behaviour_stimuli [given the path to a .tdms file with session metadata extract
@@ -142,31 +145,45 @@ class ToolBox:
         """
 
         # Get .tdms as a dataframe
-        tdms_df, cols = self.open_temp_tdms_as_df(aifile, move=True)
+        tdms_df, cols = self.open_temp_tdms_as_df(aifile, move=True, skip_df=True)
         chs = ["/'OverviewCameraTrigger_AI'/'0'", "/'ThreatCameraTrigger_AI'/'0'", "/'AudioIRLED_AI'/'0'", "/'AudioFromSpeaker_AI'/'0'"]
 
         # Get the channels we care about
-        key['overview_camera_triggers'] = np.round(tdms_df["/'OverviewCameraTrigger_AI'/'0'"].values, 2)
-        key['threat_camera_triggers'] = np.round(tdms_df["/'ThreatCameraTrigger_AI'/'0'"].values, 2)
-        key['audio_irled'] = np.round(tdms_df["/'AudioIRLED_AI'/'0'"].values, 2)
-        if "/'AudioFromSpeaker_AI'/'0'" in cols:
-            key['audio_signal'] = np.round(tdms_df["/'AudioFromSpeaker_AI'/'0'"].values, 2)
+        # key['overview_camera_triggers'] = np.round(tdms_df["/'OverviewCameraTrigger_AI'/'0'"].values, 2)
+        # key['threat_camera_triggers'] = np.round(tdms_df["/'ThreatCameraTrigger_AI'/'0'"].values, 2)
+        # key['audio_irled'] = np.round(tdms_df["/'AudioIRLED_AI'/'0'"].values, 2)
+        # if "/'AudioFromSpeaker_AI'/'0'" in cols:
+        #     key['audio_signal'] = np.round(tdms_df["/'AudioFromSpeaker_AI'/'0'"].values, 2)
+        # else:
+        #     key['audio_signal'] = -1
+        # key['ldr'] = -1  # ? insert here
+
+        """ 
+        Now extracting the data directly from the .tdms without conversion to df
+        """
+        key['overview_camera_triggers'] = np.round(tdms_df.object('OverviewCameraTrigger_AI', '0').data, 2)
+        key['threat_camera_triggers'] = np.round(tdms_df.object('ThreatCameraTrigger_AI', '0').data, 2)
+        key['audio_irled'] = np.round(tdms_df.object('AudioIRLED_AI', '0').data, 2)
+        if 'AudioFromSpeaker_AI' in tdms_df.groups():
+            key['audio_signal'] = np.round(tdms_df.object('AudioFromSpeaker_AI', '0').data, 2)
         else:
             key['audio_signal'] = -1
         key['ldr'] = -1  # ? insert here
 
+
         # Extract manual timestamps and add to key
-        names, times = [], []
-        for c in cols:
-            if c in chs: continue
-            elif 't0' in c:
-                key['tstart'] = float(c.split("'/'")[-1][:-2])
-            else:
-                names.append(c.split("'/'")[0][2:])
-                times.append(float(c.split("'/'")[-1][:-2]))
+        # names, times = [], []
+        # for c in cols:
+        #     if c in chs: continue
+        #     elif 't0' in c:
+        #         key['tstart'] = float(c.split("'/'")[-1][:-2])
+        #     else:
+        #         names.append(c.split("'/'")[0][2:])
+        #         times.append(float(c.split("'/'")[-1][:-2]))
+        key['tstart'] = -1
         key['manuals_names'] = -1
         # warnings.warn('List of strings not currently supported, cant insert manuals names')
-        key['manuals_timestamps'] = np.array(times)
+        key['manuals_timestamps'] = -1 #  np.array(times)
         return key
 
 """ 
