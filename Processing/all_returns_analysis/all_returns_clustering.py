@@ -656,18 +656,18 @@ class clusterer:
         for i, c in zip([0, 1], ['r', 'g']):
             sel = self.stats.loc[self.stats['is_trial'] == i]
             ax.scatter(sel['duration'].values, sel['max_vel'].values,
-                       c=c, s=30, alpha=.4, label=str(i))
+                    c=c, s=30, alpha=.4, label=str(i))
 
             if ax2 is not None:
                 ratio = np.divide(sel['duration'].values,
-                                  sel['max_vel'].values)
+                                    sel['max_vel'].values)
                 pure = np.linspace(4*i-.5, 4*i+.5, len(ratio))
                 noise = np.random.normal(0, .5, pure.shape)
                 signal = pure + noise
                 ax2.scatter(signal, ratio, s=30, color=c, alpha=.3)
                 ax2.set(title='dur/maxv', facecolor=[.2, .2, .2])
         ax.set(title=ttl, xlabel='s', ylabel='px/frame',
-               facecolor=[.2, .2, .2])
+                facecolor=[.2, .2, .2])
 
 
 if __name__ == '__main__':
@@ -682,6 +682,6 @@ if __name__ == '__main__':
     """
     using_traces = [4]
     for trace in using_traces:
-        timeseries_returns(load=False, trace=trace, do_all_arms=False)
+        timeseries_returns(load=False, trace=trace, do_all_arms=True)
 
     plt.show()

@@ -435,11 +435,11 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
             incomplete_key['camera_name'] = 'overview'
             incomplete_key['conversion_needed'] = 'false'
             incomplete_key['dlc_needed'] = 'true'
-            try:
-                videosincomplete.insert1(incomplete_key)
-            except:
-                print(videosincomplete.describe())
-                raise ValueError('Could not insert: ', incomplete_key )
+            # try:
+            #     videosincomplete.insert1(incomplete_key)
+            # except:
+            #     print(videosincomplete.describe())
+            #     raise ValueError('Could not insert: ', incomplete_key )
 
             # ? Create dummy posefile name which will be replaced with real one in the future
             vid_name, ext = vid.split('.')
@@ -543,10 +543,10 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
                 ikey['dlc_needed'] = 'false'
             else:
                 ikey['dlc_needed'] = 'true'
-            try:
-                videosincomplete.insert1(ikey)
-            except:
-                raise ValueError('Could not insert ', ikey, 'in', videosincomplete.heading)
+            # try:
+            #     videosincomplete.insert1(ikey)
+            # except:
+            #     raise ValueError('Could not insert ', ikey, 'in', videosincomplete.heading)
 
         #############################################################################################
 

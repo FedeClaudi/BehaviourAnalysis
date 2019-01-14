@@ -159,8 +159,8 @@ class analyse_all_trips:
                 x_displacement = self.get_x_displacement(tracking_data[:, 0], tracking_data[:, 1], g.threat_exit, g.shelter_exit, g.shelter_enter)
                 arms_lims = dict(Left_Far=(-10000, -251),
                                 Left_Medium=(-250, -100),
-                                Centre=(-99, 99),
-                                Right_Medium= (100, 250),
+                                Centre=(-99, 69),
+                                Right_Medium= (70, 250),
                                 Right_Far= (251, 10000))
 
                 for k, (x0, x1) in arms_lims.items():

@@ -79,8 +79,10 @@ class DLCManager:
         training_videos = self.sel_videos_in_folder()
         print('Creating project with {} videos'.format(len(training_videos)))
 
-        deeplabcut.create_new_project(self.settings['experiment'], self.settings['experimenter'], 
+        config_path = deeplabcut.create_new_project(self.settings['experiment'], self.settings['experimenter'], 
                                         training_videos, working_directory=self.dlc_paths['project_path'], copy_videos=True)
+
+        print(config_path)
 
     def add_videos_to_project(self, videos=None):     
         if videos is None:
@@ -201,19 +203,23 @@ if __name__ == "__main__":
     manager = DLCManager()
 
     fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\_overview_training_clips\\clips'
-    vids = manager.sel_videos_in_folder(all=True, min_n=5, dr=fld)
+    vids = manager.sel_videos_in_folder(all=True, min_n=5)
 
     # names = ['181206_CA3665_1Overview__84679_clip2', '181206_CA3665_1Overview__84679_clip1', '181211_CA3694_1Overview__0_clip1', '181211_CA3695_1Overview__0_clip1', '181211_CA3695_1Overview__0_clip0']
     # fld = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Training_videos'
-    # vids = [os.path.join(fld,n+'.mp4') for n in names]
+    # # vids = [os.path.join(fld,n+'.mp4') for n in names]
 
-    for vid in vids:
-        try:
-            # manager.analyze_videos(videos=[vid])
-            manager.create_labeled_videos(videos=[vid])
-        except:
-            print('Failed ', vid)
+    # for vid in vids:
+    #     try:
+    #         # manager.analyze_videos(videos=[vid])
+    #         manager.create_labeled_videos(videos=[vid])
+    #     except:
+    #         print('Failed ', vid)
+    # # manager.create_labeled_videos(videos=vids)
+    # # manager.extract_outliers(videos=vids)
+
+    # # manager.check_labels()
+
+    # manager.analyze_videos()
     # manager.create_labeled_videos(videos=vids)
-    # manager.extract_outliers(videos=vids)
-
-    # manager.check_labels()
+    manager.train_network()
