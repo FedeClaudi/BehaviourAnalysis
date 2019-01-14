@@ -1,5 +1,5 @@
 mice_records: 'D:\Dropbox (UCL - SWC)\Rotation_vte\FC_animals_records.xlsx'
-exp_records: 'D:\Dropbox (UCL - SWC)\Rotation_vte\datalog.xls'
+exp_records: 'D:\Dropbox (UCL - SWC)\Rotation_vte\datalog.xlsx'
 
 maze_model_templates: D:\Dropbox (UCL - SWC)\Rotation_vte\Maze_templates\MazeModelTemplates.yml
 maze_templates: D:\Dropbox (UCL - SWC)\Rotation_vte\Maze_templates
