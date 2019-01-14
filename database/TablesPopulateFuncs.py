@@ -544,7 +544,7 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
             # Get videos
             videoname, ext = vid.split('.')
             converted = [f for f in os.listdir(tb.raw_video_folder)
-                        if videoname in f and '__joined' in f]
+                        if videoname in f and '.mp4' in f]
             converted_check = check_files_correct(converted, 'converted')
             if converted_check: converted = converted[0]
 
