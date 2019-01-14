@@ -61,10 +61,11 @@ class FilesAutomationToolbox:
             try:
                 table.insert1(key)
             except:
-                raise ValueError('Could not insert: ', key)
+                pass
+                # raise ValueError('Could not insert: ', key)
         print(table)
 
-    def convert_tdms_to_mp4(self):
+    def convert_tdms_to_mp4(self, n_processes=1):
         """
             Keeps calling video conversion tool, regardless of what happens
         """
@@ -75,22 +76,29 @@ class FilesAutomationToolbox:
 
         toconvert = self.get_list_uncoverted_tdms_videos()
         while True:
-            in_process = None
-            try:
+            if n_processes> 1:
+                in_process = None
+                try:
+                    for f in toconvert:
+                        in_process = f
+                        VideoConverter(os.path.join(self.videos_fld, f), extract_framesize=True)
+                    print('All files converted, yay!')
+
+                    editor = Editor()
+                    editor.concated_tdms_to_mp4_clips(fld)
+                    print('All clips joined, yay!')
+
+                    break
+                except: # ignore exception and try again
+                    if in_process is not None:
+                        pass # ! clear unfinished business 
+                    print('Failed again, trying again..\n\n')
+            else:
                 for f in toconvert:
-                    in_process = f
-                    VideoConverter(os.path.join(self.videos_fld, f), extract_framesize=True)
-                print('All files converted, yay!')
-
-                editor = Editor()
-                editor.concated_tdms_to_mp4_clips(fld)
-                print('All clips joined, yay!')
-
-                break
-            except: # ignore exception and try again
-                if in_process is not None:
-                    pass # ! clear unfinished business 
-                print('Failed again, trying again..\n\n')
+                    try:
+                        VideoConverter(os.path.join(self.videos_fld, f), extract_framesize=True)
+                    except:
+                        continue
 
     @staticmethod
     def check_if_file_converted(name, folder):

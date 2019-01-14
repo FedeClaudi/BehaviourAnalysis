@@ -22,11 +22,11 @@ from Utilities.file_io.files_load_save import load_yaml, load_tdms_from_winstore
 
 
 class VideoConverter:
-    def __init__(self, filepath, output='.mp4', output_folder=None, extract_framesize=True):
+    def __init__(self, filepath, output='.mp4', output_folder=None, extract_framesize=True, n_processes=1):
         if filepath is None:
             return
 
-        self.tdms_converter_parallel_processes = 6
+        self.tdms_converter_parallel_processes = n_processes
 
         self.editor = Editor()
         if filepath is not None:
@@ -135,11 +135,12 @@ class VideoConverter:
             # for name, value in metadata_object.properties.items():
             #     print("{0}: {1}".format(name, value))
             # return
-
-            tot = np.int(round(video_size/(props['width']*props['height'])))  # tot number of frames 
-
-            if tot != props['last']:
-                raise ValueError('Calculated number of frames doesnt match what is stored in the metadata: {} vs {}'.format(tot, props['last']))
+            if props['width'] > 0:
+                tot = np.int(round(video_size/(props['width']*props['height'])))  # tot number of frames 
+                if tot != props['last']:
+                    raise ValueError('Calculated number of frames doesnt match what is stored in the metadata: {} vs {}'.format(tot, props['last']))
+            else:
+                tot = 0
 
             return props, tot
 
@@ -216,7 +217,7 @@ class VideoConverter:
         if num_processes == 1:
             limits = [0, tot_frames-1]
             write_clip(params, limits)
-            clip_names = ['{}__{}.mp4'.format(self.filename, limits[0])]
+            clip_names = ['{}.mp4'.format(self.filename)]
         else:
             # Get frames range for each video writer that will run in parallel
             # vid 1 will do A->B, vid2 B+1->C ...

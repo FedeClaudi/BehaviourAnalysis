@@ -226,7 +226,7 @@ class analyse_all_trips:
 
 if __name__ == '__main__':
     print('Ready')
-    analyse_all_trips(erase_table=False, fill_in_table=True)
+    # analyse_all_trips(erase_table=False, fill_in_table=True)
 
-
+    print(AllTrips())
 

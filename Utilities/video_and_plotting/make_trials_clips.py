@@ -141,12 +141,14 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
                 # Get the corrisponding videofile
                 entry = videos_df.loc[(videos_df['recording_uid'] == stim['recording_uid']) & (videos_df['camera_name'] == 'overview')]
                 videoname = entry['converted_filepath'].values[0]
-                _, name = os.path.split(videoname)
+                fld, name = os.path.split(videoname)
+
+                correct_name =  name.split('__')[0]+'.mp4'  # ! only necessary until database entry fixed
                 clip_name = name.split('__')[0]+'_{}.mp4'.format(stimn)
                 
                 print('Saving : ', os.path.join(save_fld, clip_name))
                 dur = stim['duration']*120  # ! hardcoded duration in fps
-                write_clip(videoname, os.path.join(save_fld, clip_name),
+                write_clip(os.path.join(fld, correct_name), os.path.join(save_fld, clip_name),
                             stim['overview_frame'], dur, 
                             prestim, poststim, clean_vids, None)
 
