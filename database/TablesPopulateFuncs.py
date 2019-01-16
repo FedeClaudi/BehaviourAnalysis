@@ -741,7 +741,7 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
     stim_start_times = np.insert(stim_start_times, 0, above_th[0])
 
     # ? to visualise the finding of stim times over the audio channel:
-    # plot_signals(audio_channel_data, stim_start_times)
+    plot_signals(audio_channel_data, stim_start_times)
     # plt.show()
 
     if not len(stim_names) == len(stim_start_times):
@@ -764,15 +764,17 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
     samples_per_frame = {}
     fps_overview = 40
     fps_threat = 120
-    samples_per_frame['overview'] = 10/fps_overview * sampling_rate
-    samples_per_frame['threat'] = 10/fps_threat * sampling_rate
+    # samples_per_frame['overview'] =  10/fps_overview * sampling_rate
+    # samples_per_frame['threat'] = 10/fps_threat * sampling_rate
 
     # Get number of frames at each stim time 
     stimuli_frames = {}
     cameras = namedtuple('cameras', 'overview threat')
     for stim_time in stim_start_times:
-        stimuli_frames[str(stim_time)] = cameras(int(round(stim_time/samples_per_frame['overview'])), 
-                                                int(round(stim_time/samples_per_frame['threat'])))
+        # stimuli_frames[str(stim_time)] = cameras(int(round(stim_time/samples_per_frame['overview'])), 
+        #                                         int(round(stim_time/samples_per_frame['threat'])))
+        stimuli_frames[str(stim_time)] = cameras(int(round((stim_time/sampling_rate)*fps_overview)), 
+                                                int(round((stim_time/sampling_rate)*fps_threat)))
 
     for i, (stimname, stimframes) in enumerate(zip(stim_names, stimuli_frames.values())):
         stim_key = key.copy()

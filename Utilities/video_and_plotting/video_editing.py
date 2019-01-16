@@ -642,15 +642,24 @@ class Editor:
                 key bindings:
                         - d: advance to next frame
                         - a: go back to previous frame
-                        - s: select frmae
+                        - s: select frame
+                        - f: save frame
         """        
         def get_selected_frame(cap, show_frame):
                 cap.set(1, show_frame)
                 ret, frame = cap.read() # read the first frame
+                
+                
                 return frame
 
         import cv2   # import opencv
         
+        # Open text file to save selected frames
+        fold, name = os.path.split(videofilepath)
+
+        frames_file = open(os.path.join(fold, name.split('.')[0])+".txt","w+")
+
+
         cap = cv2.VideoCapture(videofilepath)
         if not cap.isOpened():
                 raise FileNotFoundError('Couldnt load the file')
@@ -658,7 +667,9 @@ class Editor:
         print(""" Instructions
                         - d: advance to next frame
                         - a: go back to previous frame
-                        - s: select frmae
+                        - s: select frame
+                        - f: save frame number
+                        - q: quit
         """)
 
         number_of_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -685,9 +696,18 @@ class Editor:
                         if selected_frame > number_of_frames or selected_frame < 0:
                                 print(selected_frame, ' is an invalid option')
                         show_frame = int(selected_frame)
+                elif k == ord('f'): 
+                    print('Saving frame to text')
+                    frames_file.write('\n'+str(show_frame))
+                elif k == ord('q'):
+                    frames_file.close()
+                    sys.exit()
+
+
 
                 try:
                         frame = get_selected_frame(cap, show_frame)
+                        print('Showing frame {} of {}'.format(show_frame, number_of_frames))
                 except:
                         raise ValueError('Could not display frame ', show_frame)
 
@@ -710,12 +730,13 @@ if __name__ == '__main__':
     #         pass
 
 
-    editor.concated_tdms_to_mp4_clips('Z:\\branco\Federico\\raw_behaviour\\maze\\video')
+    # editor.concated_tdms_to_mp4_clips('Z:\\branco\Federico\\raw_behaviour\\maze\\video')
 
     # editor.manual_video_inspect(os.path.join(videofld, '181205_CA3661_1Overview__joined.mp4'))
 
-
-
+    fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Egzona"
+    vid = 'M_131218-1DeepCut_resnet50_forceplateJan14shuffle1_930000_labeled.mp4'
+    editor.manual_video_inspect(os.path.join(fld, vid))
 
 
 

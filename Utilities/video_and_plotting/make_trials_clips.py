@@ -24,7 +24,9 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
         # Get video params and open opencv writer
         editor = Editor()
         cap = cv2.VideoCapture(video)
-        if not cap.isOpened(): raise FileNotFoundError(video)
+        if not cap.isOpened(): 
+            # return
+            raise FileNotFoundError(video)
         nframes, width, height, fps = editor.get_video_params(cap)
 
         writer = editor.open_cvwriter(savename, w=width+border_size*2,
@@ -143,8 +145,9 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
                 videoname = entry['converted_filepath'].values[0]
                 fld, name = os.path.split(videoname)
 
-                correct_name =  name.split('__')[0]+'.mp4'  # ! only necessary until database entry fixed
+                correct_name =  name.split('__')[0]  # ! only necessary until database entry fixed
                 clip_name = name.split('__')[0]+'_{}.mp4'.format(stimn)
+                raise ValueError(clip_name)
                 
                 print('Saving : ', os.path.join(save_fld, clip_name))
                 dur = stim['duration']*120  # ! hardcoded duration in fps
@@ -161,5 +164,5 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
 if __name__ == "__main__":
     paths = load_yaml('./paths.yml')
 
-    create_trials_clips(clean_vids=False)
+    create_trials_clips(clean_vids=True)
 
