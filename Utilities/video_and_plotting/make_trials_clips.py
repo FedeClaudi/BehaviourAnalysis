@@ -96,7 +96,7 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
     # Start looping over Recordings()
     recs = Recordings()
     behav_stims = BehaviourStimuli()
-    mantis_simts = MantisStimuli()
+    mantis_stims = MantisStimuli()
     videofiles = VideoFiles()
     
     videos_df = pd.DataFrame(videofiles.fetch())
@@ -111,7 +111,7 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
         if rec['software'] == 'behaviour':
             stims = [s for s in behav_stims if s['recording_uid']==rec['recording_uid']]
         else:
-            stims = [s for s in mantis_simts if s['recording_uid'] == rec['recording_uid']]
+            stims = [s for s in mantis_stims if s['recording_uid'] == rec['recording_uid']]
         
         for stimn, stim in enumerate(stims):
             print('     stim {} of {}'.format(stimn, len(stims)))
@@ -146,13 +146,13 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
                 fld, name = os.path.split(videoname)
 
                 correct_name =  name.split('__')[0]  # ! only necessary until database entry fixed
-                clip_name = name.split('__')[0]+'_{}.mp4'.format(stimn)
-                raise ValueError(clip_name)
+                clip_name = name.split('.')[0]+'_{}.mp4'.format(stimn)
                 
                 print('Saving : ', os.path.join(save_fld, clip_name))
                 dur = stim['duration']*120  # ! hardcoded duration in fps
+
                 write_clip(os.path.join(fld, correct_name), os.path.join(save_fld, clip_name),
-                            stim['overview_frame'], dur, 
+                            int(stim['overview_frame']/3), dur, 
                             prestim, poststim, clean_vids, None)
 
                 
@@ -164,5 +164,5 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
 if __name__ == "__main__":
     paths = load_yaml('./paths.yml')
 
-    create_trials_clips(clean_vids=True)
+    create_trials_clips(clean_vids=False)
 

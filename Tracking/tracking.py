@@ -5,7 +5,6 @@ import os
 print('Importing dlc takes a while')
 from deeplabcut import analyze_videos
 
-from Utilities.video_editing import VideoConverter
 from Utilities.file_io.files_load_save import load_yaml
 
 from database.NewTablesDefinitions import *

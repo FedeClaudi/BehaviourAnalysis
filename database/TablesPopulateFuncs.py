@@ -147,17 +147,6 @@ class ToolBox:
         # Get .tdms as a dataframe
         tdms_df, cols = self.open_temp_tdms_as_df(aifile, move=True, skip_df=True)
         chs = ["/'OverviewCameraTrigger_AI'/'0'", "/'ThreatCameraTrigger_AI'/'0'", "/'AudioIRLED_AI'/'0'", "/'AudioFromSpeaker_AI'/'0'"]
-
-        # Get the channels we care about
-        # key['overview_camera_triggers'] = np.round(tdms_df["/'OverviewCameraTrigger_AI'/'0'"].values, 2)
-        # key['threat_camera_triggers'] = np.round(tdms_df["/'ThreatCameraTrigger_AI'/'0'"].values, 2)
-        # key['audio_irled'] = np.round(tdms_df["/'AudioIRLED_AI'/'0'"].values, 2)
-        # if "/'AudioFromSpeaker_AI'/'0'" in cols:
-        #     key['audio_signal'] = np.round(tdms_df["/'AudioFromSpeaker_AI'/'0'"].values, 2)
-        # else:
-        #     key['audio_signal'] = -1
-        # key['ldr'] = -1  # ? insert here
-
         """ 
         Now extracting the data directly from the .tdms without conversion to df
         """
@@ -169,17 +158,6 @@ class ToolBox:
         else:
             key['audio_signal'] = -1
         key['ldr'] = -1  # ? insert here
-
-
-        # Extract manual timestamps and add to key
-        # names, times = [], []
-        # for c in cols:
-        #     if c in chs: continue
-        #     elif 't0' in c:
-        #         key['tstart'] = float(c.split("'/'")[-1][:-2])
-        #     else:
-        #         names.append(c.split("'/'")[0][2:])
-        #         times.append(float(c.split("'/'")[-1][:-2]))
         key['tstart'] = -1
         key['manuals_names'] = -1
         # warnings.warn('List of strings not currently supported, cant insert manuals names')
@@ -699,11 +677,16 @@ def make_behaviourstimuli_table(table, key, recordings, videofiles):
 
 
 def make_mantistimuli_table(table, key, recordings, videofiles):
-    def plot_signals(audio_channel_data, stim_start_times):
+    def plot_signals(audio_channel_data, stim_start_times, overview=False, threat=False):
         f, ax = plt.subplots()
         ax.plot(audio_channel_data)
-        ax.plot(stim_start_times, audio_channel_data[stim_start_times], 'x')
-        ax.set(xlim=[stim_start_times[0]-5000, stim_start_times[-1]+5000])
+        ax.plot(stim_start_times, audio_channel_data[stim_start_times], 'x', linewidth=.4, label='audio')
+        if overview:
+            ax.plot(audio_channel_data, label='overview')
+        if threat:
+            ax.plot(audio_channel_data, label='threat')
+        ax.legend()
+        ax.set(xlim=[stim_start_times[0]-5000, stim_start_times[0]+5000])
 
     if key['uid'] <= 184:
         return
@@ -716,37 +699,42 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
     aifile = rec['ai_file_path']
 
     # Get stimuli names from the ai file
-    tdms_df, cols = tb.open_temp_tdms_as_df(aifile, move=True)
+    tdms_df, cols = tb.open_temp_tdms_as_df(aifile, move=True, skip_df=True)
 
-    # Get names of stimuli
-    to_ignore = ['t0','AudioIRLED_analog', 'OverviewCameraTrigger_AI', 'ThreatCameraTrigger_AI', 'AudioIRLED_AI', 'AudioFromSpeaker_AI']
-    stim_names = [c.split("'/'")[0][2:] for c in cols if not [i for i in to_ignore if i in c]]
-    stim_times = [int(c.split("'/'")[1].split('.')[0]) for c in cols if not [i for i in to_ignore if i in c]]
+    # Get stimuli
+    groups = tdms_df.groups()
 
-    # Get stim times from channel data
-    if  "/'AudioFromSpeaker_AI'/'0'" in cols:
-        sampling_rate = 500000
-        audio_channel_data = tdms_df[ "/'AudioFromSpeaker_AI'/'0'"].values
+    if 'WAVplayer' in groups:
+        stimuli_groups = tdms_df.group_channels('WAVplayer')
+    else:
+        stimuli_groups = tdms_df.group_channels('AudioIRLED_analog')
+    stimuli = {s.path:s.data[0] for s in stimuli_groups}
+
+
+    # Get stim times from audio channel data
+    if  'AudioFromSpeaker_AI' in groups:
+        audio_channel_data = tdms_df.channel_data('AudioFromSpeaker_AI', '0')
         # stim_start_times, _ = signal.find_peaks(audio_channel_data, height=.2, distance=9.1*sampling_rate, width=(1, 100), wlen=100)  # ! hardcoded miimal distance: duration * sampling rate
-        th = .2
+        th = 1
     else:
         # First recordings with mantis had different params
-        audio_channel_data = tdms_df[ "/'AudioIRLED_AI'/'0'"].values
-        sampling_rate = 30000
+        audio_channel_data = tdms_df.channel_data('AudioIRLED_AI', '0')
         th = 1.5
     
+    sampling_rate = 25000
     above_th = np.where(audio_channel_data>th)[0]
     peak_starts = [x+1 for x in np.where(np.diff(above_th)>sampling_rate)]
     stim_start_times = above_th[peak_starts]
     stim_start_times = np.insert(stim_start_times, 0, above_th[0])
 
     # ? to visualise the finding of stim times over the audio channel:
-    plot_signals(audio_channel_data, stim_start_times)
+    # ThreatCameraTrigger_AI = tdms_df.channel_data('ThreatCameraTrigger_AI', '0')
+    # OverviewCameraTrigger_AI = tdms_df.channel_data('OverviewCameraTrigger_AI', '0')
+    # plot_signals(audio_channel_data, stim_start_times, overview=OverviewCameraTrigger_AI, threat=ThreatCameraTrigger_AI)
     # plt.show()
 
-    if not len(stim_names) == len(stim_start_times):
-        
-        
+    # Chck we found the correct number of peaks
+    if not len(stimuli) == len(stim_start_times):
         print('Names - times: ', len(stim_names), len(stim_start_times),stim_names, stim_start_times)
         sel = input('Which to discard? ["n" if youd rather look at the plot]')
         if not 'n' in sel:
@@ -757,34 +745,22 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
             plt.show()
             sel = input('Which to discard? ')
             np.delete(stim_start_times, int(sel))
-        # raise ValueError('Names - times - mismatch: ', len(stim_names), len(stim_start_times),stim_names, stim_start_times)
 
-    # Get FPS for each camera and number of samples per frame
-    vid = [v for v in videofiles.Metadata.fetch(as_dict=True) if v['recording_uid']==key['recording_uid']]
-    samples_per_frame = {}
+    # Go from stim time in number of samples to number of frames
     fps_overview = 40
     fps_threat = 120
-    # samples_per_frame['overview'] =  10/fps_overview * sampling_rate
-    # samples_per_frame['threat'] = 10/fps_threat * sampling_rate
+    overview_stimuli_frames = np.round(np.multiply(np.divide(stim_start_times, sampling_rate), fps_overview))
+    threat_stimuli_frames = np.round(np.multiply(np.divide(stim_start_times, sampling_rate), fps_threat))
 
-    # Get number of frames at each stim time 
-    stimuli_frames = {}
-    cameras = namedtuple('cameras', 'overview threat')
-    for stim_time in stim_start_times:
-        # stimuli_frames[str(stim_time)] = cameras(int(round(stim_time/samples_per_frame['overview'])), 
-        #                                         int(round(stim_time/samples_per_frame['threat'])))
-        stimuli_frames[str(stim_time)] = cameras(int(round((stim_time/sampling_rate)*fps_overview)), 
-                                                int(round((stim_time/sampling_rate)*fps_threat)))
-
-    for i, (stimname, stimframes) in enumerate(zip(stim_names, stimuli_frames.values())):
+    for i, (stimname, stim_protocol) in enumerate(stimuli.items()):
         stim_key = key.copy()
         stim_key['stimulus_uid'] = stim_key['recording_uid']+'_{}'.format(i)
-        stim_key['overview_frame'] = stimframes.overview
-        stim_key['threat_frame'] = stimframes.threat
+        stim_key['overview_frame'] = int(overview_stimuli_frames[i])
+        stim_key['threat_frame'] = int(threat_stimuli_frames[i])
         stim_key['duration'] = 9 # ! hardcoded
-        stim_key['overview_frame_off'] = stimframes.overview + fps_overview*stim_key['duration'] # ! hardcoded!
-        stim_key['threat_frame_off'] = stimframes.threat + fps_threat*stim_key['duration'] # ! hardcoded!
-        stim_key['stim_name'] = stim_names[i]
+        stim_key['overview_frame_off'] =  int(overview_stimuli_frames[i]) + fps_overview*stim_key['duration'] # ! hardcoded!
+        stim_key['threat_frame_off'] = int(threat_stimuli_frames[i]) + fps_threat*stim_key['duration'] # ! hardcoded!
+        stim_key['stim_name'] = stimname
         stim_key['stim_type'] = 'audio' # ! hardcoded
         
         try:

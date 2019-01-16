@@ -205,6 +205,17 @@ if __name__ == "__main__":
     fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\_overview_training_clips\\clips'
     vids = manager.sel_videos_in_folder(all=False, min_n=5)
 
-    print(vids)
-    manager.analyze_videos(videos=vids)
-    manager.create_labeled_videos(videos=vids)
+    fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Egzona"
+    videos = ["M1L1R_171218-1", "M1R_171218-1", "MNEP_171218-1", "M1L_171218-1"]
+    # videos = [v for v in os.listdir(fld) if 'Copy' in v]
+    
+    
+    vids = [os.path.join(fld, v+'.avi') for v in videos]
+
+    # manager.add_videos_to_project(videos=vids)
+    manager.label_frames()
+
+
+
+
+

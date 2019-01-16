@@ -734,8 +734,8 @@ if __name__ == '__main__':
 
     # editor.manual_video_inspect(os.path.join(videofld, '181205_CA3661_1Overview__joined.mp4'))
 
-    fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Egzona"
-    vid = 'M_131218-1DeepCut_resnet50_forceplateJan14shuffle1_930000_labeled.mp4'
+    fld = "Z:\\branco\\Federico\\raw_behaviour\\maze\\video"
+    vid = '181211_CA3695_1Overview.mp4'
     editor.manual_video_inspect(os.path.join(fld, vid))
 
 
