@@ -24,6 +24,7 @@ class FilesAutomationToolbox:
     def __init__(self):
         # self.database = PopulateDatabase()
         self.videos_fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video'
+        self.pose_fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\pose'
         self.video_metadata = VideoTdmsMetadata
 
     def macro(self):
@@ -130,6 +131,15 @@ class FilesAutomationToolbox:
         print('To convert: ', unconverted)
         return unconverted
 
+    def get_list_not_tracked_videos(self):
+        videos = [f.split('.')[0] for f in os.listdir(self.videos_fld) if 'tdms' not in f]
+        poses = [f.split('_')[0] for f in os.listdir(self.pose_fld) if 'h5' in f]
+
+        not_tracked = [f for f in videos if f not in poses]
+        print('To track: ', not_tracked)
+        print(len(not_tracked), ' files yet to track')
+        return not_tracked
+
     def check_video_conversion_correct(self):
         """[Check if the video conversion was done correctly, i.e. we have all the frames and all clips have same length]
         
@@ -200,6 +210,7 @@ if __name__ == "__main__":
     automation = FilesAutomationToolbox()
     # automation.convert_tdms_to_mp4()
     automation.get_list_uncoverted_tdms_videos()
+    automation.get_list_not_tracked_videos()
     # automation.check_video_conversion_correct()
     # automation.extract_videotdms_metadata()
 

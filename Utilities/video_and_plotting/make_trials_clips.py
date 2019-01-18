@@ -13,6 +13,124 @@ from Processing.plot.plotting_utils import *
 from Processing.plot.video_plotting_toolbox import *
 
 
+class ClipWriter:
+    def __init__(self, videopath, stimuli, clean_vids):
+        # stimuli is a dict containing stimuli start and finish frames
+        self.stimuli = stimuli
+        self.videopath = videopath
+        _, name = os.path.split(self.videopath)
+        savefld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\trials_clips'
+        self.savepath = os.path.join(savefld, name[:-4]+'_trials.mp4')
+
+        if os.path.exists(self.savepath): return # Avoid overwriting
+
+        self.clean_vids = clean_vids
+
+        # Define params and open writer
+        self.define_decoration_params()
+        self.open_cv_writer()
+
+        # Write videos
+        try: 
+            self.make_concatenated_clips()
+        except:
+            return
+
+    def define_decoration_params(self):
+        # parameters to draw on frame
+        self.border_size = 20
+        self.color_on = [100, 255, 100]
+        self.color_off = [20,20,20]
+        self.curr_color = self.color_off
+
+    def open_cv_writer(self):
+        # Get video params and open opencv writer
+        editor = Editor()
+        self.cap = cv2.VideoCapture(self.videopath)
+        if not self.cap.isOpened(): 
+            return
+            # raise FileNotFoundError(video)
+        nframes, self.width, self.height, self.fps = editor.get_video_params(self.cap)
+
+        self.writer = editor.open_cvwriter(self.savepath, w=self.width+self.border_size*2,
+                                      h=self.height+self.border_size*2, framerate=self.fps, iscolor=True)
+
+    @staticmethod
+    def get_selected_frame(cap, show_frame):
+            cap.set(1, show_frame)
+            ret, frame = cap.read() # read the first frame
+            return frame
+
+    def prep_squares(self):
+        n_squares = len(self.stimuli.keys())
+        centers = np.linspace(20, self.width-20, n_squares-1)
+
+        complete_centers = [(int(c), int(self.height - (self.height*.95))) for c in centers]
+
+        radius = int(np.diff(centers)[0]/3)
+        if radius > 20: radius = 20
+        return complete_centers, radius
+
+
+    def make_concatenated_clips(self):
+        pre_stim = self.fps*1
+        post_stim = self.fps*2
+
+        for stim_number, (stim_start, stim_dur) in enumerate(self.stimuli.values()):
+            print('Adding new trial to the clip')
+            # Get start and stop frames
+            clip_start = stim_start-pre_stim
+            clip_end = stim_start + (stim_dur*self.fps) + post_stim
+            clip_number_of_frames = int(clip_end - clip_start)
+            window = (clip_start, clip_end)
+            
+            # Move to n seconds before the start of the stimulus
+            _ = self.get_selected_frame(self.cap, clip_start-1)
+
+            # Keep reading frames until within post stim
+            for frame_counter in tqdm(range(clip_number_of_frames)):
+                ret, frame = self.cap.read()
+                if not ret: break
+
+                if not self.clean_vids:
+                    frame_number = clip_start + frame_counter
+                    if frame_number < window[0]+pre_stim or frame_number > window[1]-post_stim:
+                        sign = ''
+                        self.curr_color = self.color_off
+                    else:
+                        sign = '+'
+                        self.curr_color = self.color_on
+                        
+                    frame = cv2.copyMakeBorder(frame, self.border_size, self.border_size, self.border_size, self.border_size,
+                                                cv2.BORDER_CONSTANT, value=self.curr_color)
+                    # cv2.circle(frame, (width-200, height-200), 30, curr_color, -1)
+                    frame_time = (frame_number - window[0]) / self.fps
+                    frame_time = str(round(.2 * round(frame_time / .2), 1)) + '0' * (abs(frame_time) < 10)
+                    cv2.putText(frame, sign + str(frame_time) + 's', (self.width - 120, self.height - 100), 0, 1,
+                                (20, 255, 20), thickness=2)
+
+                    # Add circle to mark frame number
+                    centers, radius = self.prep_squares()
+
+                    for i, center in enumerate(centers):
+                        if i == stim_number:
+                            color = [200, 50, 50]
+                            border = -1
+                        else:
+                            color = [255, 200, 200]
+                            border = 5
+
+                        cv2.circle(frame, (center[0], center[1]), radius, color, border)
+
+                # Save to file
+                self.writer.write(frame)
+
+
+
+
+
+
+
 def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False):
     def write_clip(video, savename, stim_frame, stim_duration, prestim, poststim, clean_vids, posedata):
         # parameters to draw on frame
@@ -25,8 +143,8 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
         editor = Editor()
         cap = cv2.VideoCapture(video)
         if not cap.isOpened(): 
-            # return
-            raise FileNotFoundError(video)
+            return
+            # raise FileNotFoundError(video)
         nframes, width, height, fps = editor.get_video_params(cap)
 
         writer = editor.open_cvwriter(savename, w=width+border_size*2,
@@ -112,7 +230,11 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
             stims = [s for s in behav_stims if s['recording_uid']==rec['recording_uid']]
         else:
             stims = [s for s in mantis_stims if s['recording_uid'] == rec['recording_uid']]
+
+
         
+
+        stimuli_dict = {}
         for stimn, stim in enumerate(stims):
             print('     stim {} of {}'.format(stimn, len(stims)))
             clip_name = stim['stimulus_uid']+'.mp4'
@@ -140,7 +262,10 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
                             prestim, poststim, clean_vids, posedata)
 
             else:
+                dur = stim['duration']  # ! hardcoded duration in fps
+                stimuli_dict[stimn] = (int(stim['overview_frame']), dur)
                 # Get the corrisponding videofile
+                # Get video path
                 entry = videos_df.loc[(videos_df['recording_uid'] == stim['recording_uid']) & (videos_df['camera_name'] == 'overview')]
                 videoname = entry['converted_filepath'].values[0]
                 fld, name = os.path.split(videoname)
@@ -148,13 +273,20 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
                 correct_name =  name.split('__')[0]  # ! only necessary until database entry fixed
                 clip_name = name.split('.')[0]+'_{}.mp4'.format(stimn)
                 
+                if os.path.exists(os.path.join(save_fld, clip_name)): 
+                    print(clip_name, ' already exists')
+                    continue
+
                 print('Saving : ', os.path.join(save_fld, clip_name))
-                dur = stim['duration']*120  # ! hardcoded duration in fps
+
 
                 write_clip(os.path.join(fld, correct_name), os.path.join(save_fld, clip_name),
-                            int(stim['overview_frame']/3), dur, 
+                            int(stim['overview_frame']), dur, 
                             prestim, poststim, clean_vids, None)
 
+                stimuli_dict[stimn] = (int(stim['overview_frame']), dur)
+
+        ClipWriter(videoname, stimuli_dict, clean_vids)
                 
                 
 

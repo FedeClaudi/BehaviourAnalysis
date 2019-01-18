@@ -63,8 +63,7 @@ class DLCManager:
         if min_n is None:
             min_n = self.settings['min_num_vids']
 
-        all_videos = [os.path.join(dr, f) for f in os.listdir(
-            dr) if self.settings['video_format'] in f]
+        all_videos = [os.path.join(dr, f) for f in os.listdir(dr) if self.settings['video_format'] in f]
 
         if all or self.settings['number_of_training_videos'] >= len(all_videos):
             return all_videos
@@ -119,13 +118,16 @@ class DLCManager:
                 videos = [videos]
         deeplabcut.analyze_videos(self.dlc_paths['cfg_path'], videos, shuffle=1, save_as_csv=False)
 
-    def create_labeled_videos(self, videos=None):
+    def create_labeled_videos(self, videos=None, trajectory=False):
         if videos is None:
             videos = self.sel_videos_in_folder()
         else: 
             if not isinstance(videos, list):
                 videos = [videos]
+
         deeplabcut.create_labeled_video(self.dlc_paths['cfg_path'],  videos)
+        if trajectory:
+            deeplabcut.plot_trajectories(self.dlc_paths['cfg_path'], videos)
 
     def create_labeled_videos_fc(self, videos=None):
         if videos is None:
@@ -171,7 +173,7 @@ class DLCManager:
         # create dict of labelled data folders
         updated_video_list = {}
         crop_dict_to_use = config_file['video_sets'][list(config_file['video_sets'].keys())[0]]
-        training_images_folder = os.path.join(os.path.dirname(self.dlc_paths['cfg_path'  'labeled-data']))
+        training_images_folder = os.path.join(os.path.dirname(self.dlc_paths['cfg_path']),  'labeled-data')
         for i, folder in enumerate(os.listdir(training_images_folder)):
             if folder.find('labeled') < 0:
                 updated_video_list[os.path.join(self.dlc_paths['dr'], folder+'.'+self.settings['video_format'])] = crop_dict_to_use
@@ -201,21 +203,22 @@ class DLCManager:
             
 if __name__ == "__main__":
     manager = DLCManager()
+    fld = "Z:\\branco\\Federico\\raw_behaviour\\maze\\_overview_training_clips"
 
-    fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\_overview_training_clips\\clips'
-    vids = manager.sel_videos_in_folder(all=False, min_n=5)
+    vids = manager.sel_videos_in_folder(all=False, min_n=15, dr=fld)
 
-    fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Egzona"
-    videos = ["M1L1R_171218-1", "M1R_171218-1", "MNEP_171218-1", "M1L_171218-1"]
-    # videos = [v for v in os.listdir(fld) if 'Copy' in v]
-    
-    
-    vids = [os.path.join(fld, v+'.avi') for v in videos]
+    # manager.merge_datasets()
+    # manager.create_training_dataset()
+    manager.train_network()
 
-    # manager.add_videos_to_project(videos=vids)
-    manager.label_frames()
+    #manager.analyze_videos(videos=vids)
+    #manager.create_labeled_videos(videos=vids, trajectory=False)
+    # manager.extract_outliers(videos=vids)
+    # manager.refine_labels()
 
-
-
+    # manager.check_labels()
+    # manager.update_training_video_list()
+    # manager.train_network()
+# 
 
 

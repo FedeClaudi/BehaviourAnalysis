@@ -222,8 +222,8 @@ if __name__ == '__main__':
     # p.videofiles.populate()
     
     # p.behaviourstimuli.populate()
-    p.mantisstimuli.populate()
+    # p.mantisstimuli.populate()
 
-    # p.tracking_data.populate()
+    p.tracking_data.populate()
 
     # print(p.dlcmodels)

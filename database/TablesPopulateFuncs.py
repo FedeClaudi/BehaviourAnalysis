@@ -725,7 +725,10 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
     above_th = np.where(audio_channel_data>th)[0]
     peak_starts = [x+1 for x in np.where(np.diff(above_th)>sampling_rate)]
     stim_start_times = above_th[peak_starts]
-    stim_start_times = np.insert(stim_start_times, 0, above_th[0])
+    try:
+        stim_start_times = np.insert(stim_start_times, 0, above_th[0])
+    except:
+        return
 
     # ? to visualise the finding of stim times over the audio channel:
     # ThreatCameraTrigger_AI = tdms_df.channel_data('ThreatCameraTrigger_AI', '0')
@@ -735,7 +738,7 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
 
     # Chck we found the correct number of peaks
     if not len(stimuli) == len(stim_start_times):
-        print('Names - times: ', len(stim_names), len(stim_start_times),stim_names, stim_start_times)
+        print('Names - times: ', len(stimuli), len(stim_start_times),stimuli.keys(), stim_start_times)
         sel = input('Which to discard? ["n" if youd rather look at the plot]')
         if not 'n' in sel:
             sel = int(sel)
