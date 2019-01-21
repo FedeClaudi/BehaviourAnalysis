@@ -99,7 +99,7 @@ class analyse_all_trips:
 
 
             tr = row['tracking_data']
-            checl_tracking_plotter(tr)
+            # checl_tracking_plotter(tr)
             print(row['recording_uid'], idx, ' of ', self.tracking.shape)
             in_rois = {}
             in_roi = namedtuple('inroi', 'ins outs')
@@ -153,6 +153,8 @@ class analyse_all_trips:
                         gt = goodtime(sexit, tenter, texit, next_in, time_in_shelter, exp)
                         good_times.append(gt)
 
+
+
             # Check if trip includes trial and add to al trips dictionary
             print(' ... checking if trials')
             for g in good_times:
@@ -169,21 +171,35 @@ class analyse_all_trips:
                 endtime = g.shelter_enter+g.time_in_shelter
                 tracking_data = tr[g.shelter_exit:endtime, :]
 
+                escape_rois_id = np.trim_zeros(tracking_data[:g.shelter_enter-g.shelter_exit, -2])[-1]
+                if 22.0 == escape_rois_id:
+                    arm_taken = 'Centre'
+                elif 9.0 == escape_rois_id:
+                    arm_taken = 'Right_Far'
+                elif 13.0 == escape_rois_id:
+                    arm_taken = 'Right_Medium'
+                elif 12.0 == escape_rois_id:
+                    arm_taken = 'Left_Medium'
+                elif 8.0 == escape_rois_id:
+                    arm_taken = 'Left_Far'
+                else:
+                    continue
+                    # raise ValueError(escape_rois_id)
+
                 duration = (g.shelter_enter - g.threat_exit)/30 # ! hardcoded fps
                 smooth_speed = line_smoother(tracking_data[:,2])
                 max_speed = np.percentile(smooth_speed, 85)
 
+                # x_displacement = self.get_x_displacement(tracking_data[:, 0], tracking_data[:, 1], g.threat_exit, g.shelter_exit, g.shelter_enter)
+                # arms_lims = dict(Left_Far=(-10000, -251),
+                #                 Left_Medium=(-250, -100),
+                #                 Centre=(-99, 69),
+                #                 Right_Medium= (70, 250),
+                #                 Right_Far= (251, 10000))
 
-                x_displacement = self.get_x_displacement(tracking_data[:, 0], tracking_data[:, 1], g.threat_exit, g.shelter_exit, g.shelter_enter)
-                arms_lims = dict(Left_Far=(-10000, -251),
-                                Left_Medium=(-250, -100),
-                                Centre=(-99, 69),
-                                Right_Medium= (70, 250),
-                                Right_Far= (251, 10000))
-
-                for k, (x0, x1) in arms_lims.items():
-                    if x0 <= x_displacement <= x1:
-                        arm_taken = k
+                # for k, (x0, x1) in arms_lims.items():
+                #     if x0 <= x_displacement <= x1:
+                #         arm_taken = k
 
 
                 duration_lims = dict(Left_Far=12,

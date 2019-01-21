@@ -219,7 +219,7 @@ class PopulateDatabase:
 
 if __name__ == '__main__':
     p = PopulateDatabase()
-    p.remove_test_sessions()
+
     print(p)
 
     # p.remove_table('tracking_data')
@@ -244,5 +244,6 @@ if __name__ == '__main__':
     p.tracking_data.populate()
 
 
+    p.remove_test_sessions()
 
     print(p.sessions)

@@ -94,6 +94,7 @@ def compare_arm_probs(table):
                         stim_evoked_return = conditions('true', 'false', experiment),
                         spontaneous_return = conditions('false', 'false', experiment))
 
+
         returns_data = {k:data.loc[(data['is_escape'] == c.is_escape)&(data['is_trial']==c.is_trial)&(data['experiment_name']==c.experiment)]
                         for k,c in categories.items()}
 
