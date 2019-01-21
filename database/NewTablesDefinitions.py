@@ -106,8 +106,9 @@ class Templates(dj.Imported):
     """
 
     def make(self, key):
-        new_key = make_templates_table(key, CommonCoordinateMatrices)
+        new_key = make_templates_table(key, Sessions, CommonCoordinateMatrices)
         if new_key is not None:
+            print('Populating templates for session ', key['uid'])
             self.insert1(new_key)
 
 @schema
@@ -312,10 +313,9 @@ class AllTrips(dj.Manual):
         duration: int                           # duration of the escape in seconds
         max_speed: int                          # 85th percentile of smoothed speed trace
         is_escape: enum('true', 'false')        # did it meet the criteria for being considered an escape
+        experiment_name: varchar(128)           # name of the experiment this recording belongs to
         
         arm_taken: enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far')  # far left....
-        
-
     """
 
 if __name__ == "__main__":

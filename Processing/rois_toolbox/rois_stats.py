@@ -4,6 +4,8 @@ from Utilities.file_io.files_load_save import load_yaml
 import numpy as np
 import cv2
 from collections import namedtuple
+import matplotlib.pyplot as plt
+import os
 
 """
     Functions to extract time spent by the mouse in each of a list of user defined ROIS 
@@ -42,7 +44,7 @@ def load_rois(display=False):
     if display:
         [print('\n', n, ' - ', v) for n,v in rois.items()]
 
-def get_roi_at_each_frame(bp_data, rois=None):
+def get_roi_at_each_frame(experiment, session_name, bp_data, rois=None):
     """
     Given position data for a bodypart and the position of a list of rois, this function calculates which roi is
     the closest to the bodypart at each frame
@@ -53,6 +55,23 @@ def get_roi_at_each_frame(bp_data, rois=None):
                     two points defyining the roi: topleft(X,Y) and bottomright(X,Y).
     :return: tuple, closest roi to the bodypart at each frame
     """
+
+    def check_roi_tracking_plot(session_name, rois, centers, names, bp_data, roi_at_each_frame):
+        save_fld = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Maze_templates\\ignored\\Matched'
+        rois_ids = {p:i for i,p in enumerate(rois.keys())}
+        roi_at_each_frame_int = np.array([rois_ids[r] for r in roi_at_each_frame])
+
+        f, ax = plt.subplots()
+        ax.scatter(bp_data[:, 0], bp_data[:, 1], c=roi_at_each_frame_int, alpha=.7)
+        for roi, k in zip(centers, names):
+            ax.plot(roi[0], roi[1], 'o', label=k)
+        ax.legend()
+        # plt.show()
+        f.savefig(os.path.join(save_fld, session_name+'.png'))
+
+
+
+
     if rois is None:
         rois = load_rois()
     elif not isinstance(rois, dict): 
@@ -68,13 +87,26 @@ def get_roi_at_each_frame(bp_data, rois=None):
     for name, points in rois.items():  # a pointa is  two 2d XY coords for top left and bottom right points of roi
         if not isinstance(points, np.ndarray): continue # maze component not present in maze for this experiment
         try:
-            center_x = (points[0] + points[1]) / 2
+            center_x = points[1] + (points[3] / 2)
         except:
             raise ValueError('Couldnt find center for points: ',points, type(points))
-        center_y = (points[2] + points[3]) / 2
+        center_y = points[0] + (points[2] / 2)
+        
+        # Need to flip ROIs Y axis to  match tracking
+        dist_from_midline = 500 - center_y
+        center_y = 500+dist_from_midline
         center = np.asarray([center_x, center_y])
         centers.append(center)
         roi_names.append(name)
+
+    # Flip the tracking data on the Y axis to matche the orientation of the templates rois
+    # if 'flip' in experiment.lower():
+    #     raise NotImplementedError('Check y flippin')
+    # flipped_y = -bp_data[:, 1]
+    # shift = min(bp_data[:, 1]) - min(flipped_y)
+    # bp_data[:, 1] = np.add(flipped_y, shift)
+
+
 
     # Calc distance to each roi for each frame
     data_length = bp_data.shape[0]
@@ -90,6 +122,9 @@ def get_roi_at_each_frame(bp_data, rois=None):
     roi_at_each_frame = tuple([roi_names[x] for x in sel_rois])
     print('the mouse has visited these platforms ', set(roi_at_each_frame))
     print('and has spent this time in shelter ', roi_at_each_frame.count('s'))
+
+    # Check we got cetners correctly
+    check_roi_tracking_plot(session_name, rois, centers, roi_names, bp_data, roi_at_each_frame)
     return roi_at_each_frame
 
 

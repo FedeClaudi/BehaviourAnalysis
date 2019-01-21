@@ -2,6 +2,8 @@ mice_records: 'D:\Dropbox (UCL - SWC)\Rotation_vte\FC_animals_records.xlsx'
 exp_records: 'D:\Dropbox (UCL - SWC)\Rotation_vte\datalog.xlsx'
 
 maze_model_templates: D:\Dropbox (UCL - SWC)\Rotation_vte\Maze_templates\MazeModelTemplates.yml
+maze_templates_per_experiment: D:\Dropbox (UCL - SWC)\Rotation_vte\Maze_templates\Maze_templates_per_experiment.yml
+
 maze_templates: D:\Dropbox (UCL - SWC)\Rotation_vte\Maze_templates
 templates_matched: D:\Dropbox (UCL - SWC)\Rotation_vte\Maze_templates\ignored\Matched
 

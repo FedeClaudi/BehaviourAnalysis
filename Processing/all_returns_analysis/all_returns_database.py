@@ -23,6 +23,9 @@ class analyse_all_trips:
     """
 
     def __init__(self, erase_table=False, fill_in_table=False):
+
+        self.naughty_experiments = ['PathInt', 'Lambda Maze', 'Square Maze']
+        self.good_experiments = ['PathInt2']
         if erase_table:
             AllTrips.drop()
             print('Table erased, exiting...')
@@ -49,7 +52,7 @@ class analyse_all_trips:
 
             # Get all good trips
             self.all_trips = []
-            self.trip = namedtuple('trip', 'shelter_exit threat_enter threat_exit shelter_enter time_in_shelter tracking_data is_trial recording_uid duration max_speed is_escape arm_taken')
+            self.trip = namedtuple('trip', 'shelter_exit threat_enter threat_exit shelter_enter time_in_shelter tracking_data is_trial recording_uid duration max_speed is_escape arm_taken experiment_name')
             
             print('     ... getting trips')
             self.get_trips()
@@ -75,10 +78,28 @@ class analyse_all_trips:
         return formatted_rois
 
     def get_trips(self):
+        def checl_tracking_plotter(tracking_data):
+            f, ax = plt.subplots()
+            ax.scatter(tracking_data[:, 0], tracking_data[:, 1], c=tracking_data[:, -1], s=10)
+            plt.show()
+
+
+        recordings = pd.DataFrame(Recordings().fetch())
+        sessions = pd.DataFrame(Sessions().fetch())
         trips=[]
-        goodtime = namedtuple('gt', 'shelter_exit threat_enter threat_exit shelter_enter time_in_shelter')
+        goodtime = namedtuple('gt', 'shelter_exit threat_enter threat_exit shelter_enter time_in_shelter experiment_name')
         for idx, row in self.tracking.iterrows():
+            # To exclude trials from unwanted experiment...
+            rec = recordings.loc[recordings['recording_uid'] == row['recording_uid']]
+            sess = sessions.loc[sessions['session_name'] == rec['session_name'].values[0]]
+            exp = sess['experiment_name'].values[0]
+            
+            # if exp in self.naughty_experiments: continue
+            # if exp not in self.good_experiments: continue
+
+
             tr = row['tracking_data']
+            checl_tracking_plotter(tr)
             print(row['recording_uid'], idx, ' of ', self.tracking.shape)
             in_rois = {}
             in_roi = namedtuple('inroi', 'ins outs')
@@ -129,7 +150,7 @@ class analyse_all_trips:
                     except:
                         pass  # didn't reach threat, don't append the good times
                     else:
-                        gt = goodtime(sexit, tenter, texit, next_in, time_in_shelter)
+                        gt = goodtime(sexit, tenter, texit, next_in, time_in_shelter, exp)
                         good_times.append(gt)
 
             # Check if trip includes trial and add to al trips dictionary
@@ -151,10 +172,7 @@ class analyse_all_trips:
                 duration = (g.shelter_enter - g.threat_exit)/30 # ! hardcoded fps
                 smooth_speed = line_smoother(tracking_data[:,2])
                 max_speed = np.percentile(smooth_speed, 85)
-                if duration <= 5: # ! hardcoded arbritary variable
-                    is_escape = 'true'
-                else:
-                    is_escape = 'false'
+
 
                 x_displacement = self.get_x_displacement(tracking_data[:, 0], tracking_data[:, 1], g.threat_exit, g.shelter_exit, g.shelter_enter)
                 arms_lims = dict(Left_Far=(-10000, -251),
@@ -167,8 +185,21 @@ class analyse_all_trips:
                     if x0 <= x_displacement <= x1:
                         arm_taken = k
 
+
+                duration_lims = dict(Left_Far=12,
+                                Left_Medium=9,
+                                Centre=4,
+                                Right_Medium=9,
+                                Right_Far=12)
+
+                if duration <= duration_lims[arm_taken]: # ! hardcoded arbritary variable
+                    is_escape = 'true'
+                else:
+                    is_escape = 'false'
+
+
                 self.all_trips.append(self.trip(g.shelter_exit, g.threat_enter, g.threat_exit, g.shelter_enter,
-                            g.time_in_shelter, tracking_data, has_stim, row['recording_uid'], duration, max_speed, is_escape, arm_taken))
+                            g.time_in_shelter, tracking_data, has_stim, row['recording_uid'], duration, max_speed, is_escape, arm_taken, g.experiment_name))
                 # For each good trip get duration, max_v....
                 duration = ()
 
@@ -299,8 +330,8 @@ def check_table_inserts(table):
 
 if __name__ == '__main__':
     print('Ready')
-    # analyse_all_trips(erase_table=False, fill_in_table=True)
+    analyse_all_trips(erase_table=False, fill_in_table=True)
 
     print(AllTrips())
-    check_table_inserts(AllTrips())
+    # check_table_inserts(AllTrips())
 

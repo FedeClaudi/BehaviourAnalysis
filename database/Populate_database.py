@@ -104,6 +104,18 @@ class PopulateDatabase:
             )
             self.insert_entry_in_table(data_to_input['experiment_name'], 'experiment_name', data_to_input, table)
 
+    def remove_test_sessions(self):
+        # Some sessions on the datalog are test sessions which should not be analysed properly. 
+        test_sessions_ids = [87, 88]
+        for id in test_sessions_ids:
+            try:
+                print('Deleting...\n\n', ((self.tracking_data & 'uid={}'.format(id))))
+            except:
+                print('Could not delte sessions with id ', id)
+            else:
+                (self.tracking_data & 'uid={}'.format(id) ).delete()
+
+
     def populate_sessions_table(self):
         """  Populates the sessions table """
         table = self.sessions
@@ -137,6 +149,9 @@ class PopulateDatabase:
                 experiment_name = experiment_name
             )
             self.insert_entry_in_table(session_data['session_name'], 'session_name', session_data, table)
+        
+        # Remove test sessions
+        p.remove_test_sessions()
 
     @staticmethod
     def insert_entry_in_table(dataname, checktag, data, table, overwrite=False):
@@ -188,7 +203,6 @@ class PopulateDatabase:
             if table is None: continue
             fetched = table.fetch()
             df = pd.DataFrame(fetched)
-            print('###### {} #######'.format(name))
             toprint = tabledata(name, len(fetched), df.tail(1))
 
             summary[name] = toprint.numofentries
@@ -205,14 +219,17 @@ class PopulateDatabase:
 
 if __name__ == '__main__':
     p = PopulateDatabase()
-
+    p.remove_test_sessions()
     print(p)
 
-    # p.remove_table('mantisstimuli')
+    # p.remove_table('tracking_data')
 
     # p.populate_mice_table()
     # p.populate_experiments_table()
     # p.populate_sessions_table()
+
+    
+
     # p.dlcmodels.populate()
 
     # p.commoncoordinatematrices.populate()
@@ -222,8 +239,10 @@ if __name__ == '__main__':
     # p.videofiles.populate()
     
     # p.behaviourstimuli.populate()
-    # p.mantisstimuli.populate()
+    # p.mantisstimuli.populate()rt
 
     p.tracking_data.populate()
 
-    # print(p.dlcmodels)
+
+
+    print(p.sessions)

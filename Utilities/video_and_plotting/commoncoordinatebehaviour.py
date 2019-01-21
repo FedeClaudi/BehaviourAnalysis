@@ -20,7 +20,8 @@ def run(videopath, maze_model=None):
         maze_model = cv2.cvtColor(maze_model,cv2.COLOR_RGB2GRAY)
 
     # Define points to be used for alignemt
-    points = np.array([[435, 290], [565, 290], [435, 710], [565, 710]])
+    points = np.array([[435, 290], [565, 290], [500, 250],
+                    [435, 710], [565, 710], [500, 620]])
 
     # <- uncomment to display point on image
     # for i, p in enumerate(points):
@@ -28,6 +29,7 @@ def run(videopath, maze_model=None):
     # cv2.imshow('cc', maze_model)
     # cv2.waitKey(2000)
     # cv2.destroyAllWindows()
+    # return
 
 
     # Get the background (first frame) of the video being processed
@@ -62,8 +64,9 @@ def run(videopath, maze_model=None):
     if padded.dtype != maze_model.dtype:
         raise ValueError('Datatypes dont match', padded.dtype, maze_model.dtype)
 
-    # Get fisheye correction matriz path
+    # Get fisheye correction matriz path and correct
     fisheye = 'Utilities\\video_and_plotting\\fisheye_maps.npy'
+
 
     # Call the registration function
     """
@@ -92,8 +95,8 @@ def define_roi_on_template():
 
 if __name__ == "__main__":
     testfile = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video\\180606_CA2762.avi'
-    # run(testfile)
-    define_roi_on_template()
+    run(testfile)
+    # define_roi_on_template()
     
 
 

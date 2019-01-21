@@ -274,7 +274,7 @@ def make_commoncoordinatematrices_table(table, key, sessions, videofiles):
     table.insert1(key)
 
 
-def make_templates_table(key, ccm):
+def make_templates_table(key, sessions, ccm):
     """[allows user to define ROIs on the standard maze model that match the ROIs]
     """
     # Get all possible components name
@@ -299,8 +299,15 @@ def make_templates_table(key, ccm):
     paths = load_yaml('paths.yml')
     rois = load_yaml(paths['maze_model_templates'])
 
+    # Only keep the rois relevant for each experiment
+    sessions = pd.DataFrame(sessions().fetch())
+    experiment = sessions.loc[sessions['uid'] == key['uid']].experiment_name.values[0]
+    rois_per_exp = load_yaml(paths['maze_templates_per_experiment'])
+    rois_per_exp = rois_per_exp[experiment]
+    selected_rois = {k:(p if k in rois_per_exp else -1)  for k,p in rois.items()}
+
     # return new key
-    return {**key, **rois}
+    return {**key, **selected_rois}
 
 
 def make_recording_table(table, key):
@@ -857,13 +864,15 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
             # Get position of maze templates - and shelter
             templates_idx = [i for i, t in enumerate(templates.fetch()) if t['uid'] == key['uid']][0]
             rois = pd.DataFrame(templates.fetch()).iloc[templates_idx]
+
             del rois['uid'], rois['session_name'], 
 
             # Calcualate in which ROI the body is at each frame - and distance from the shelter
-            corrected_data['roi_at_each_frame'] = get_roi_at_each_frame(corrected_data, dict(rois))  # ? roi name
+            corrected_data['roi_at_each_frame'] = get_roi_at_each_frame(experiment, key['recording_uid'], corrected_data, dict(rois))  # ? roi name
             # ! dj limitation here
             warnings.warn('Currently DJ canot store string of lists so roi_at_each_Frame is not saved in the databse')
-            corrected_data['roi_at_each_frame'] = np.zeros((corrected_data.shape[0]))
+            rois_ids = {p:i for i,p in enumerate(rois.keys())}  # assign a numeric value to each ROI
+            corrected_data['roi_at_each_frame'] = np.array([rois_ids[r] for r in corrected_data['roi_at_each_frame']])
             
         # Insert into part table
         bp_data[bp] = corrected_data
