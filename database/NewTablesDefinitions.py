@@ -318,6 +318,17 @@ class AllTrips(dj.Manual):
         arm_taken: enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far')  # far left....
     """
 
+@schema
+class AllExplorations(dj.Manual):
+    definition = """
+        exploration_id: int
+        ---
+        recording_uid: varchar(128)
+        experiment_name: varchar(128)
+        tracking_data: longblob
+    """
+
+
 if __name__ == "__main__":
     import sys
     sys.path.append('./')
