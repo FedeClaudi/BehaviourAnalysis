@@ -19,7 +19,7 @@ experiment: 'forceplate'
 experimenter: 'Egzona'
 
 # DLC select videos options
-number_of_training_videos: 5   # prop of videos to use to generate the training set [roughly]
+number_of_training_videos: 10   # prop of videos to use to generate the training set [roughly]
 min_num_vids: 3                 # min number of videos to be used
 video_format: 'mp4'
 

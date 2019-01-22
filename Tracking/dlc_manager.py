@@ -154,7 +154,7 @@ class DLCManager:
         if videos is None: videos = self.sel_videos_in_folder()
 
         deeplabcut.extract_outlier_frames(self.dlc_paths['cfg_path'], videos, automatic=True, 
-                                            outlieralgorithm='jump', epsilon=30, p_bound=.01)
+                                            outlieralgorithm='jump', epsilon=15, p_bound=.01)
 
     def refine_labels(self):
         deeplabcut.refine_labels(self.dlc_paths['cfg_path'])
@@ -205,20 +205,20 @@ if __name__ == "__main__":
     manager = DLCManager()
     fld = "Z:\\branco\\Federico\\raw_behaviour\\maze\\_overview_training_clips"
 
-    vids = manager.sel_videos_in_folder(all=True, min_n=15, dr=fld)
+    vids = manager.sel_videos_in_folder(all=False, min_n=15, dr=fld)
 
     # manager.merge_datasets()
     # manager.create_training_dataset()
     # manager.train_network()
-    vids = vids[-5:]
-    manager.analyze_videos(videos=vids)
-    manager.create_labeled_videos(videos=vids, trajectory=False)
-    manager.extract_outliers(videos=vids)
+    # manager.analyze_videos(videos=vids)
+    # manager.create_labeled_videos(videos=vids, trajectory=False)
+    # manager.extract_outliers(videos=vids)
     # manager.refine_labels()
 
     # manager.check_labels()
     # manager.update_training_video_list()
-    # manager.train_network()
+    
+    manager.train_network()
 # 
 
 
