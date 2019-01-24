@@ -313,7 +313,7 @@ def calc_ang_velocity(angles):
     ang_vel_rads = np.insert(np.diff(np.unwrap(angles_radis)), 0, 0)
     return np.degrees(ang_vel_rads)
 
-def correct_tracking_data(uncorrected, M, xpad, ypad, exp_name):
+def correct_tracking_data(uncorrected, M, xpad, ypad, exp_name, sess_uid):
 
     """[Corrects tracking data (as extracted by DLC) using a transform Matrix obtained via the CommonCoordinateBehaviour
         toolbox. ]
@@ -339,7 +339,17 @@ def correct_tracking_data(uncorrected, M, xpad, ypad, exp_name):
     # Define translation
     content = load_yaml('Utilities\\video_and_plotting\\template_points.yml')
     translators = content['translators']
-    x_translation, y_translation = translators[exp_name]
+
+    if exp_name != 'PathInt2': 
+        x_translation, y_translation = translators[exp_name]
+    else:
+        # Path Int2 experiments were done within other maze designs experiments, so we need to select the correct translator. 
+        if sess_uid < 74:
+            x_translation, y_translation = translators[exp_name]
+        elif 74 < sess_uid < 90:
+            x_translation, y_translation = translators['Square Maze']
+        else:
+            x_translation, y_translation = translators['FlipFlop Maze']
     
     corrected[:, 0] = np.add(corrected[:, 0],  x_translation)
     corrected[:, 1] = np.add(-np.add(corrected[:, 1], 0), 1000)

@@ -69,8 +69,11 @@ class PopulateDatabase:
         """
         removes a single table from the database
         """
-        tb = self.all_tables[tablename]
-        tb.drop()
+        if isinstance(tablename, str):
+            tablename = [tablename]
+        for table in tablename:
+            tb = self.all_tables[table]
+            tb.drop()
         sys.exit()
 
 
@@ -104,16 +107,16 @@ class PopulateDatabase:
             )
             self.insert_entry_in_table(data_to_input['experiment_name'], 'experiment_name', data_to_input, table)
 
-    def remove_test_sessions(self):
-        # Some sessions on the datalog are test sessions which should not be analysed properly. 
-        test_sessions_ids = [87, 88]
-        for id in test_sessions_ids:
-            try:
-                print('Deleting...\n\n', ((self.tracking_data & 'uid={}'.format(id))))
-            except:
-                print('Could not delte sessions with id ', id)
-            else:
-                (self.tracking_data & 'uid={}'.format(id) ).delete()
+    # def remove_test_sessions(self):
+    #     # Some sessions on the datalog are test sessions which should not be analysed properly. 
+    #     test_sessions_ids = [87, 88]
+    #     for id in test_sessions_ids:
+    #         try:
+    #             print('Deleting...\n\n', ((self.tracking_data & 'uid={}'.format(id))))
+    #         except:
+    #             print('Could not delte sessions with id ', id)
+    #         else:
+    #             (self.tracking_data & 'uid={}'.format(id) ).delete()
 
 
     def populate_sessions_table(self):
@@ -151,7 +154,7 @@ class PopulateDatabase:
             self.insert_entry_in_table(session_data['session_name'], 'session_name', session_data, table)
         
         # Remove test sessions
-        p.remove_test_sessions()
+        # p.remove_test_sessions()
 
     @staticmethod
     def insert_entry_in_table(dataname, checktag, data, table, overwrite=False):
@@ -222,28 +225,27 @@ if __name__ == '__main__':
 
     print(p)
 
-    # p.remove_table('tracking_data')
+    # p.remove_table(['templates', 'tracking_data'])
 
     # p.populate_mice_table()
     # p.populate_experiments_table()
-    # p.populate_sessions_table()
-
-    
-
+    # p.populate_sessions_table()y
     # p.dlcmodels.populate()
+
+    # p.recordings.populate()
+    # p.videofiles.populate()
 
     # p.commoncoordinatematrices.populate()
     # p.templates.populate()
 
-    # p.recordings.populate()
-    # p.videofiles.populate()
+
     
     # p.behaviourstimuli.populate()
-    # p.mantisstimuli.populate()rt
+    # p.mantisstimuli.populate()
 
-    p.tracking_data.populate()
+    # p.tracking_data.populate()
 
 
-    p.remove_test_sessions()
+    # p.remove_test_sessions()
 
-    print(p.sessions)
+    # print(p.sessions)

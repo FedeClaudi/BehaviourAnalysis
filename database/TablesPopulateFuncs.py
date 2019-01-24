@@ -791,7 +791,7 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
 
     if 'lambda' in experiment.lower(): return
 
-    fast_mode = False # ! fast MODE
+    fast_mode = True # ! fast MODE
     to_include = dict(
             bodyparts=['snout', 'neck', 'body', 'tail_base'],
             segments=['head', 'body_upper', 'body_lower']
@@ -838,7 +838,7 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
 
         # Get XY pose and correct with CCM matrix
         xy = posedata[scorer[0], bp].values[:, :2]
-        corrected_data = correct_tracking_data(xy, ccm['correction_matrix'], ccm['top_pad'], ccm['side_pad'], experiment)
+        corrected_data = correct_tracking_data(xy, ccm['correction_matrix'], ccm['top_pad'], ccm['side_pad'], experiment, session['uid'])
         temp_dict = {}
         temp_dict['x'] = corrected_data[:, 0]
         temp_dict['y'] = corrected_data[:, 1]
