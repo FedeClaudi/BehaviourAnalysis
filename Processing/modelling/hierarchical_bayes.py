@@ -12,11 +12,12 @@ import scipy.stats as stats
 import math
 import matplotlib.mlab as mlab
 import matplotlib as mpl
+import seaborn as sns
 
-mpl.rcParams['text.color'] = 'w'
-mpl.rcParams['xtick.color'] = 'w'
-mpl.rcParams['ytick.color'] = 'w'
-mpl.rcParams['axes.labelcolor'] = 'w'
+mpl.rcParams['text.color'] = 'k'
+mpl.rcParams['xtick.color'] = 'k'
+mpl.rcParams['ytick.color'] = 'k'
+mpl.rcParams['axes.labelcolor'] = 'k'
 
 
 
@@ -47,13 +48,37 @@ class BayesModeler:
         self.sym_data = datatuple(sym_binary, sym_binary_by_session)
 
         self.print_data_summary()
+        self.data = self.organise_data_in_df()
 
         # Initialise empty variables, to be filled with modeling
         self.grouped_samples = None
         self.individuals_samples = None
 
-    def clean_up_data(self):
-        pass
+    def organise_data_in_df(self):
+        asym_trials = self.asym_data.by_session
+        sym_trials = self.sym_data.by_session
+
+        asym_sessions, sym_session = asym_trials.shape[0], sym_trials.shape[0]
+
+        data = dict(session = [], trial_n=[], trial_outcome=[], experiment=[])
+        for session_n in np.arange(asym_sessions + sym_session):
+            if session_n < asym_sessions:
+                trials = asym_trials[session_n, :]
+                exp = 0
+            else:
+                trials = sym_trials[session_n-asym_sessions, :]
+                exp = 1
+
+            trials = trials[~np.isnan(trials)]
+            for trial_n, trial in enumerate(trials):
+                data['session'].append(session_n)
+                data['trial_n'].append(trial_n)
+                data['trial_outcome'].append(np.int(trial))
+                data['experiment'].append(exp)
+
+        datadf = pd.DataFrame.from_dict(data)
+        
+        return datadf
 
     def save_data(self):
         try:
@@ -62,7 +87,6 @@ class BayesModeler:
         except:
             print('Did not save')
         
-
     def print_data_summary(self):
         data = [self.asym_data, self.sym_data]
         names = ['Asym data', 'Sym data']
@@ -84,7 +108,7 @@ class BayesModeler:
             """.format(n, mean_of_individual_probs, grouped_prob, n_sessions, n_trials, ))
 
 
-    def model_grouped(self):
+    def model_grouped(self, display_distributions=True):
         print('\n\nClustering groups')
         """
             Assume that the sequence of L/R trials for each mouse is generated through a Bernoulli 
@@ -106,81 +130,115 @@ class BayesModeler:
             # Define the deterministic delta function. This is our unknown of interest.
             delta = pm.Deterministic("delta", p_asym - p_sym)
 
-
             # Set of observations, in this case we have two observation datasets.
             obs_asym = pm.Bernoulli("obs_A", p_asym, observed=self.asym_data.all_trials)
             obs_sym = pm.Bernoulli("obs_B", p_sym, observed=self.sym_data.all_trials)
 
+            # Estimated posterior distributions to use for 
+            est_asym =  pm.Bernoulli("predicted_A", p_asym)
+            est_sym =  pm.Bernoulli("predicted_B", p_sym)
+
             # Fit the model 
             step = pm.Metropolis()
-            trace = pm.sample(20000, step=step)
-            burned_trace=trace[1000:]
+            trace = pm.sample(20000 , step=step)
+            burned_trace=trace[5000:]
 
         self.grouped_samples = dict(asym = burned_trace["p_asym"], sym = burned_trace["p_sym"], delta=burned_trace['delta'])
 
+        if display_distributions:
+            pm.traceplot(burned_trace)
 
-    def model_individuals(self):
+            f, axarr = plt.subplots(nrows=4, facecolor=[.2, .2, .2], figsize=(10, 10))
+
+            priors_samples = (p_asym.random(size=20000),  p_sym.random(size=20000))
+            priors = ['p_asym', 'p_sym']
+            for samp, prior in zip(priors_samples, priors):
+                axarr[0].hist(samp, bins=100, alpha=.5, normed=True, histtype="stepfilled", label=prior)
+            axarr[0].set(title='Priors', facecolor=[.2, .2, .2], xlim=[-.1, 1.1])
+            axarr[0].legend()
+
+            axarr[1].hist(burned_trace["p_asym"], bins=100, label='Asym posterior')
+            axarr[1].hist(burned_trace['p_sym'], bins=100, label='Sym posterior')
+            axarr[1].set(title='Posteriors', facecolor=[.2, .2, .2], xlim=[-.1, 1.1])
+            axarr[1].legend
+
+
+            axarr[2].hist(self.asym_data.all_trials, color='w', normed=True,  label='Asym Trials')
+            axarr[2].hist(burned_trace['predicted_A'], color='r', alpha=.5,  normed=True, label='Est. Asym Trials')
+            axarr[2].set(title='asym trials', xlim=[-.5, 1.5], facecolor=[.2, .2, .2])
+            axarr[2].legend()
+
+
+            axarr[3].hist(self.sym_data.all_trials, color='w', normed=True, label='Sym Trials')
+            axarr[3].hist(burned_trace['predicted_B'], color='r', alpha=.5,  normed=True, label='Est. Sym Trials')
+            axarr[3].set(title='sym trials', xlim=[-.5, 1.5], facecolor=[.2, .2, .2])
+            axarr[3].legend()
+
+
+
+
+
+    def model_individuals(self, display_distributions=True):
         print('\n\nClustering individuals')
-        # Create a record of which sessions belong to which dataset
-        asym, sym = self.asym_data.by_session, self.sym_data.by_session
-        n_sessions_asym = asym.shape[0]
-        n_sessions_sym = sym.shape[0]
-        tot_sessions = n_sessions_asym + n_sessions_sym
+        sessions = set(self.data['session'])
+        
+        individuals = []
+        for session in sessions:
+            # if session == 10: break
 
-        dataset_record = np.array([0 if i < n_sessions_asym else 1 for i in np.arange(tot_sessions)])
-
-        p_individuals, n_trials_individuals = [], []
-        for session_n, session_dataset in enumerate(dataset_record):
-            print('\n\n Modelling session {} of {}'.format(session_n+1, len(dataset_record)))
-            # if session_n > 2: continue
-            if session_dataset == 0:
-                data = asym[session_n, :]
-            else:
-                data = sym[session_n-asym.shape[0], :]
-            data = data[~np.isnan(data)] # ? remove nans
-            n_trials = len(data)
-            # if n_trials == 0:
-            #     a = 1
-            #     continue
+            trials_df = self.data.loc[self.data['session'] == session]
+            exp_id = trials_df['experiment'].values[0]
+            trials = trials_df['trial_outcome'].values
 
             with pm.Model() as individual_model:
                 p_individual = pm.Uniform("p_individual", 0, 1)
-                # obs_individual = pm.Bernoulli("obs_individual", p_individual, observed=self.asym_data.all_trials)
+                obs_individual = pm.Bernoulli("obs_individual", p_individual, observed=trials)
+                est_individual = pm.Bernoulli("est_individual", p_individual)
 
                 # Fit the model 
                 step = pm.Metropolis()
-                trace = pm.sample(20000, step=step)
+                trace = pm.sample(10000, step=step)
                 burned_trace=trace[1000:]
 
-                p_individuals.append(burned_trace['p_individual'])
-                n_trials_individuals.append(n_trials)
+            individuals.append((exp_id, trials, burned_trace))
+        
+        if display_distributions:
+            [pm.traceplot(burned) for _, _, burned in individuals]
 
-        self.individuals_samples = [(i, p, t) for i,p,t in zip(dataset_record, p_individuals, n_trials_individuals)]
-        a=1
+        asym_traces = [burned['p_individual'] for exp, _, burned in individuals if exp==0]
+
+        colors=[[.8, .4, .4], [.4, .8, .4]]
+        f, axarr = plt.subplots(nrows=2, ncols=2, facecolor=[.2, .2, .2])
+        for exp, trials, burned in individuals:
+            axarr[0, exp].hist(burned['p_individual'], bins=100, histtype='step', alpha=.5) # , alpha=trials.mean())
+            sns.kdeplot(burned['p_individual'], ax=axarr[1, exp], shade=True, alpha=.1)
+        for ax in axarr.flatten():
+            ax.set(facecolor=[.2, .2, .2], xlim=[0, 1], xlabel='p(R)', ylabel='frequency')
+        axarr[0, 0].set(title='ASYM, posterior p(R) individuals')
+        axarr[0, 1].set(title='SYM, posterior p(R) individuals')
+                
+
+
+        # self.individuals_samples = [(i, p, t) for i,p,t in zip(dataset_record, p_individuals, n_trials_individuals)]
+        # a=1
 
 
     def model_hierarchical(self):
-        asym = self.asym_data.by_session
-        n_sessions = asym.shape[0]
-        n_trials = np.tile(asym.shape[0], n_sessions)
-        observed_rates = np.nanmean(asym, 1)
-        observed_counts = observed_counts = np.nansum(asym, 1)
+        asym_trials = self.data.loc[self.data['experiment']==0]['trial_outcome']
+        asym_sessions = len(set(asym_trials['session']))
 
-        with pm.Model() as model:
-            mu, sigma = np.nanmean(observed_rates), np.nanstd(observed_rates)
 
-            true_p = pm.Normal('true_p', mu=mu, sd=sigma, shape=n_sessions)
-            observed_values = pm.Binomial('observed_values', n_trials, true_p, observed=observed_counts)
+        with pm.Model() as hierarchical_model:
+            # Hyper prior
+            mu_p = pm.Normal('mu_p', mu=.5, alpha=1)
+            sigma_p = pm.HalfCauchy('sigma_p', beta=1)
 
-            # Fit the model 
-            step = pm.Metropolis()
-            trace = pm.sample(20000, step=step)
-            burned_trace=trace[1000:]
+            # p for each mouse which is drawn from a Normal with mean mu_p
+            p = np.Normal('p', mu=mu_p, sd=sigma_p, shape=asym_sessions)
 
-        f, ax = plt.subplots()
-        [ax.hist(burned_trace['true_p'][:][:, i], alpha=.2) for i in range(n_sessions)]
-        ax.set(xlim=[0, 1])
-        a = 1
+            # likelihood and estimated
+            hierarchical_p = pm.Bernoulli('hieararchical_p')
+
 
     def plot_posteriors_histo(self):
 
@@ -223,9 +281,10 @@ class BayesModeler:
 
 if __name__ == "__main__":
     modeller = BayesModeler()
-    modeller.save_data()
-    # modeller.model_hierarchical()
+    # modeller.save_data()
+
     # modeller.model_grouped()
+    modeller.model_individuals()
     
     # modeller.plot_posteriors_histo()
 

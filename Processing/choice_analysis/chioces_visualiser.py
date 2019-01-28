@@ -13,10 +13,10 @@ import math
 import matplotlib.mlab as mlab
 import matplotlib as mpl
 
-mpl.rcParams['text.color'] = 'w'
-mpl.rcParams['xtick.color'] = 'w'
-mpl.rcParams['ytick.color'] = 'w'
-mpl.rcParams['axes.labelcolor'] = 'w'
+mpl.rcParams['text.color'] = 'k'
+mpl.rcParams['xtick.color'] = 'k'
+mpl.rcParams['ytick.color'] = 'k'
+mpl.rcParams['axes.labelcolor'] = 'k'
 
 from database.NewTablesDefinitions import *
 from database.dj_config import start_connection
