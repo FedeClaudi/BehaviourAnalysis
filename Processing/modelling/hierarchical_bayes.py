@@ -254,22 +254,24 @@ class BayesModeler:
             asym_traces = [burned['p_individual'] for exp, _, burned in individuals if exp==0]
             sym_traces = [burned['p_individual'] for exp, _, burned in individuals if exp==1]
 
-            np.save('.\Processing\modelling\asym_individual_traces.npy', asym_traces)
-            np.save('.\Processing\modelling\sym_individual_traces.npy', sym_traces)
+            np.save('.\\Processing\\modelling\\asym_individual_traces.npy', asym_traces)
+            np.save('.\\Processing\\modelling\\sym_individual_traces.npy', sym_traces)
 
-            colors=[[.8, .4, .4], [.4, .8, .4]]
-            f, axarr = plt.subplots(nrows=3, ncols=2, facecolor=[.2, .2, .2])
-            for exp, trials, burned in individuals:
-                axarr[0, exp].hist(burned['p_individual'], bins=100, histtype='step', alpha=.5) # , alpha=trials.mean())
-                sns.kdeplot(burned['p_individual'], ax=axarr[1, exp], shade=True, alpha=.1)
-            for ax in axarr.flatten():
-                ax.set(facecolor=[.2, .2, .2], xlim=[0, 1], xlabel='p(R)', ylabel='frequency')
-            axarr[0, 0].set(title='ASYM, posterior p(R) individuals')
-            axarr[0, 1].set(title='SYM, posterior p(R) individuals')
+colors=[[.8, .4, .4], [.4, .8, .4]]
+f, axarr = plt.subplots(nrows=3, ncols=2, facecolor=[.2, .2, .2])
+for exp, trials, burned in individuals:
+    axarr[0, exp].hist(burned['p_individual'], bins=100, histtype='step', alpha=.5) # , alpha=trials.mean())
+    sns.kdeplot(burned['p_individual'], ax=axarr[1, exp], shade=True, alpha=.1)
+for ax in axarr.flatten():
+    ax.set(facecolor=[.2, .2, .2], xlim=[0, 1], xlabel='p(R)', ylabel='frequency')
+axarr[0, 0].set(title='ASYM, posterior p(R) individuals')
+axarr[0, 1].set(title='SYM, posterior p(R) individuals')
 
-            axarr[0, 2].hist(asym_traces, bins=100, histtype='step', alpha=.5)
-                        
+axarr[2,0].hist(np.concatenate(asym_traces), alpha=.8)
+sns.kdeplot(np.concatenate(asym_traces), ax=axarr[2, 0], color=colors[0], shade=True, alpha=.8)  
+sns.kdeplot(np.concatenate(sym_traces), ax=axarr[2, 1], color=colors[1], shade=True)        
 
+            axarr
         a = 1
         # self.individuals_samples = [(i, p, t) for i,p,t in zip(dataset_record, p_individuals, n_trials_individuals)]
         # a=1
