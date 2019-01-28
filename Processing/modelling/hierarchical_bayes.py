@@ -1,8 +1,8 @@
 import sys
 sys.path.append('./')
+
+
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 import pandas as pd
 from pandas.plotting import scatter_matrix
 from collections import namedtuple
@@ -10,6 +10,7 @@ from itertools import combinations
 import time
 import scipy.stats as stats
 import math
+<<<<<<< HEAD
 import matplotlib.mlab as mlab
 import matplotlib as mpl
 import seaborn as sns
@@ -20,32 +21,73 @@ mpl.rcParams['ytick.color'] = 'k'
 mpl.rcParams['axes.labelcolor'] = 'k'
 
 
+=======
+>>>>>>> 986dfeb4f088a51ba238e865518c014948d05abe
 
 import numpy as np
 import scipy.stats as stats
-import matplotlib.pyplot as plt
 import itertools
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pymc3 as pm
 import scipy
 import scipy.stats as stats
 
-from Processing.choice_analysis.chioces_visualiser import ChoicesVisualiser as chioce_data
+if sys.platform != 'darwin':
+    print('Importing choice visualiser')
+    from Processing.choice_analysis.chioces_visualiser import ChoicesVisualiser as chioce_data
 
+
+import matplotlib
+gui_env = ['TKAgg','GTKAgg','Qt4Agg','WXAgg']
+for gui in gui_env:
+    try:
+        matplotlib.use(gui,warn=False, force=True)
+        from matplotlib import pyplot as plt
+        break
+    except:
+        continue
+print("Using:",matplotlib.get_backend())
+from matplotlib import pyplot as plt
+# import matplotlib.patches as patches
+# import matplotlib.mlab as mlab
+# import matplotlib as mpl
+
+# mpl.rcParams['text.color'] = 'w'
+# mpl.rcParams['xtick.color'] = 'w'
+# mpl.rcParams['ytick.color'] = 'w'
+# mpl.rcParams['axes.labelcolor'] = 'w'
 
 class BayesModeler:
-    def __init__(self):
-        data = chioce_data(run=False)
+    # TODO Convert by_session numpy array to pandas df with a row for each trial (mouse id, exp, trial_number ...)
+    # to avoid having nans in the dataset
 
-        # Get all binary outcomes for both experiments
+
+    def __init__(self, load_data=False):
+        if sys.platform == "darwin": load_data = True
+        
+        # ? Get Data
         datatuple = namedtuple('data', 'all_trials by_session')
-        asym_binary, asym_binary_by_session = data.get_experiment_binary_outcomes('PathInt2')
-        sym_binary, sym_binary_by_session = data.get_experiment_binary_outcomes('Square Maze')
+        if not load_data:
+            # Get data from database
+            data = chioce_data(run=False)
 
-        self.asym_data = datatuple(asym_binary, asym_binary_by_session) # All trials grouped together and trials grouped by session
-        self.sym_data = datatuple(sym_binary, sym_binary_by_session)
+            # Get all binary outcomes for both experiments
+            
+            asym_binary, asym_binary_by_session = data.get_experiment_binary_outcomes('PathInt2')
+            sym_binary, sym_binary_by_session = data.get_experiment_binary_outcomes('Square Maze')
+
+            self.asym_data = datatuple(asym_binary, asym_binary_by_session) # All trials grouped together and trials grouped by session
+            self.sym_data = datatuple(sym_binary, sym_binary_by_session)
+
+            
+        else:
+            # Load previously saved data
+            asym_by_session = np.load('Processing/modelling/asym_trials.npy')
+            sym_by_session = np.load('Processing/modelling/sym_trials.npy')
+            
+            self.asym_data = datatuple(asym_by_session.flatten(), asym_by_session)
+            self.sym_data = datatuple(sym_by_session.flatten(), sym_by_session)
 
         self.print_data_summary()
         self.data = self.organise_data_in_df()
@@ -80,6 +122,8 @@ class BayesModeler:
         
         return datadf
 
+
+
     def save_data(self):
         try:
             np.save('.\\Processing\\modelling\\asym_trials.npy', self.asym_data.by_session)
@@ -96,7 +140,7 @@ class BayesModeler:
             individuals_probs = np.round(np.nanmean(d.by_session, 1), 2)
             n_sessions = d.by_session.shape[0]
             mean_of_individual_probs = np.round(np.nanmean(individuals_probs), 2)
-            n_trials = d.by_session.shape[1]
+            n_trials = np.sum(d.by_session)
 
             print("""
             {}:
@@ -107,6 +151,9 @@ class BayesModeler:
             
             """.format(n, mean_of_individual_probs, grouped_prob, n_sessions, n_trials, ))
 
+    ################################################################################
+    ################################################################################
+    ################################################################################
 
     def model_grouped(self, display_distributions=True):
         print('\n\nClustering groups')
@@ -124,9 +171,13 @@ class BayesModeler:
 
         # Set up the pymc3 model.  assume Uniform priors for p_asym and p_sym.
         with pm.Model() as model:
-            p_asym = pm.Uniform("p_asym", 0, 1)
-            p_sym = pm.Uniform("p_sym", 0, 1)
+            # p_asym = pm.Uniform("p_asym", 0, 1)
+            # p_sym = pm.Uniform("p_sym", 0, 1)
             
+            p_asym = pm.Normal("p_asym", 0, 1)
+            p_sym = pm.Normal("p_sym", 0, 1)
+            
+
             # Define the deterministic delta function. This is our unknown of interest.
             delta = pm.Deterministic("delta", p_asym - p_sym)
 
@@ -222,7 +273,6 @@ class BayesModeler:
         # self.individuals_samples = [(i, p, t) for i,p,t in zip(dataset_record, p_individuals, n_trials_individuals)]
         # a=1
 
-
     def model_hierarchical(self):
         asym_trials = self.data.loc[self.data['experiment']==0]['trial_outcome']
         asym_sessions = len(set(asym_trials['session']))
@@ -279,6 +329,26 @@ class BayesModeler:
 
 
 
+def tests():
+    #set constants
+    p_true = 0.05  # remember, this is unknown.
+    N = 15000
+
+    # sample N Bernoulli random variables from Ber(0.05).
+    # each random variable has a 0.05 chance of being a 1.
+    # this is the data-generation step
+    occurrences = stats.bernoulli.rvs(p_true, size=N)
+
+    with pm.Model() as model:
+        p = pm.Uniform('p', lower=0, upper=1)
+        obs = pm.Bernoulli("obs", p, observed=occurrences)
+        step = pm.Metropolis()
+        trace = pm.sample(18000, step=step)
+        burned_trace = trace[1000:]
+
+    print(burned_trace['p'].mean(), burned_trace['p'].std())
+    a = 1
+
 if __name__ == "__main__":
     modeller = BayesModeler()
     # modeller.save_data()
@@ -288,7 +358,9 @@ if __name__ == "__main__":
     
     # modeller.plot_posteriors_histo()
 
-    plt.show()
+    tests()
+
+    # plt.show()
 
 
 
