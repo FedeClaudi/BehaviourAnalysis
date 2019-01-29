@@ -62,7 +62,8 @@ class BayesModeler:
 
     def __init__(self, load_data=False):
         if sys.platform == "darwin": load_data = True
-        
+        cleanup_data = True
+
         # ? Get Data
         datatuple = namedtuple('data', 'all_trials by_session')
         if not load_data:
@@ -80,14 +81,18 @@ class BayesModeler:
             
         else:
             # Load previously saved data
-            asym_by_session = np.load('Processing/modelling/asym_trials.npy')
-            sym_by_session = np.load('Processing/modelling/sym_trials.npy')
-            
-            self.asym_data = datatuple(asym_by_session.flatten(), asym_by_session)
-            self.sym_data = datatuple(sym_by_session.flatten(), sym_by_session)
+            try: 
+                asym_by_session = np.load('Processing/modelling/asym_trials.npy')
+                sym_by_session = np.load('Processing/modelling/sym_trials.npy')
+                
+                self.asym_data = datatuple(asym_by_session.flatten(), asym_by_session)
+                self.sym_data = datatuple(sym_by_session.flatten(), sym_by_session)
+            except: 
+                cleanup_data = False
 
-        self.print_data_summary()
-        self.data = self.organise_data_in_df()
+        if cleanup_data:
+            self.print_data_summary()
+            self.data = self.organise_data_in_df()
 
         # Initialise empty variables, to be filled with modeling
         self.grouped_samples = None
@@ -118,8 +123,6 @@ class BayesModeler:
         datadf = pd.DataFrame.from_dict(data)
         
         return datadf
-
-
 
     def save_data(self):
         try:
@@ -222,56 +225,86 @@ class BayesModeler:
             axarr[3].set(title='sym trials', xlim=[-.5, 1.5], facecolor=[.2, .2, .2])
             axarr[3].legend()
 
-        a =1 
+        return burned_trace
 
-    def model_individuals(self, display_distributions=True):
+    def model_individuals(self, display_distributions=True, load_traces=True):
         print('\n\nClustering individuals')
-        sessions = set(self.data['session'])
         
-        individuals = []
-        for session in sessions:
-            # if session == 3: break
-            print('Processing session {} of {}'.format(session, self.data['session'].values[-1]))
-            trials_df = self.data.loc[self.data['session'] == session]
-            exp_id = trials_df['experiment'].values[0]
-            trials = trials_df['trial_outcome'].values
+        if sys.platform == "darwin":
+            load_traces = True
 
-            with pm.Model() as individual_model:
-                p_individual = pm.Uniform("p_individual", 0, 1)
-                obs_individual = pm.Bernoulli("obs_individual", p_individual, observed=trials)
-                est_individual = pm.Bernoulli("est_individual", p_individual)
+        if not load_traces:
+            individuals = []
+            sessions = set(self.data['session'])
+            for session in sessions:
+                # if session == 3: break
+                print('Processing session {} of {}'.format(session, self.data['session'].values[-1]))
+                trials_df = self.data.loc[self.data['session'] == session]
+                exp_id = trials_df['experiment'].values[0]
+                trials = trials_df['trial_outcome'].values
 
-                # Fit the model 
-                step = pm.Metropolis()
-                trace = pm.sample(10000, step=step)
-                burned_trace=trace[1000:]
+                with pm.Model() as individual_model:
+                    p_individual = pm.Uniform("p_individual", 0, 1)
+                    obs_individual = pm.Bernoulli("obs_individual", p_individual, observed=trials)
+                    est_individual = pm.Bernoulli("est_individual", p_individual)
 
-            individuals.append((exp_id, trials, burned_trace))
+                    # Fit the model 
+                    step = pm.Metropolis()
+                    trace = pm.sample(10000, step=step)
+                    burned_trace=trace[1000:]
+
+                individuals.append((exp_id, trials, burned_trace))
+        else:
+            print('  loading traces') # load stached data and organise them for plotti
+            asym_traces = np.load('./Processing/modelling/asym_individual_traces.npy')
+            sym_traces = np.load('./Processing/modelling/sym_individual_traces.npy')
+            all_traces = np.vstack([asym_traces, sym_traces])
+            all_sessions = all_traces.shape[0]
+            exp_ids = np.hstack([np.zeros(asym_traces.shape[0]), np.ones(sym_traces.shape[0])])
+            individuals = [(np.int(exp_ids[i]), 0, dict(p_individual=all_traces[i, :])) for i in np.arange(all_sessions)]
+
         
         if display_distributions:
             # [pm.traceplot(burned) for _, _, burned in individuals]
 
-            asym_traces = [burned['p_individual'] for exp, _, burned in individuals if exp==0]
-            sym_traces = [burned['p_individual'] for exp, _, burned in individuals if exp==1]
+            if not load_traces:
+                asym_traces = [burned['p_individual'] for exp, _, burned in individuals if exp==0]
+                sym_traces = [burned['p_individual'] for exp, _, burned in individuals if exp==1]
 
-            np.save('.\\Processing\\modelling\\asym_individual_traces.npy', asym_traces)
-            np.save('.\\Processing\\modelling\\sym_individual_traces.npy', sym_traces)
+                np.save('.\\Processing\\modelling\\asym_individual_traces.npy', asym_traces)
+                np.save('.\\Processing\\modelling\\sym_individual_traces.npy', sym_traces)
 
-colors=[[.8, .4, .4], [.4, .8, .4]]
-f, axarr = plt.subplots(nrows=3, ncols=2, facecolor=[.2, .2, .2])
-for exp, trials, burned in individuals:
-    axarr[0, exp].hist(burned['p_individual'], bins=100, histtype='step', alpha=.5) # , alpha=trials.mean())
-    sns.kdeplot(burned['p_individual'], ax=axarr[1, exp], shade=True, alpha=.1)
-for ax in axarr.flatten():
-    ax.set(facecolor=[.2, .2, .2], xlim=[0, 1], xlabel='p(R)', ylabel='frequency')
-axarr[0, 0].set(title='ASYM, posterior p(R) individuals')
-axarr[0, 1].set(title='SYM, posterior p(R) individuals')
+            colors=[[.8, .4, .4], [.4, .8, .4]]
+            f, axarr = plt.subplots(nrows=3, ncols=2, facecolor=[.2, .2, .2])
 
-axarr[2,0].hist(np.concatenate(asym_traces), alpha=.8)
-sns.kdeplot(np.concatenate(asym_traces), ax=axarr[2, 0], color=colors[0], shade=True, alpha=.8)  
-sns.kdeplot(np.concatenate(sym_traces), ax=axarr[2, 1], color=colors[1], shade=True)        
+            # plot histograms and kde for individual mice
+            for exp, trials, burned in individuals:
+                axarr[0, exp].hist(burned['p_individual'], bins=100, histtype='step', alpha=.5) # , alpha=trials.mean())
+                sns.kdeplot(burned['p_individual'], ax=axarr[1, exp], shade=True, alpha=.1)
 
-            axarr
+            # plot comulative kde
+            sns.kdeplot(np.concatenate(asym_traces), ax=axarr[2, 0], color=colors[0], shade=True, alpha=.8, label='Comulative posterior of individual modelling')  
+            sns.kdeplot(np.concatenate(sym_traces), ax=axarr[2, 1], color=colors[1], shade=True, alpha=.8, label='Comulative posterior of individual modelling')   
+
+            # Plot histograms from grouped modelling
+            try:
+                grouped_traces = self.model_grouped(display_distributions=False)
+            except:
+                pass
+            else:
+                axarr[2, 0].hist(grouped_traces['p_asym'], bins=100, label='Posterior of grouped modelling')
+                axarr[2, 1].hist(grouped_traces['p_sym'], bins=100, label='Posterior of grouped modelling')
+                axarr[2, 0].legend()
+                axarr[2, 1].legend()
+
+            # Add background color and legends to axes
+            for ax in axarr.flatten():
+                ax.set(facecolor=[.2, .2, .2], xlim=[0, 1], xlabel='p(R)', ylabel='frequency')
+            axarr[0, 0].set(title='ASYM, posterior p(R) individuals')
+            axarr[0, 1].set(title='SYM, posterior p(R) individuals')     
+            axarr[2, 0].set(title="Comulative posterior KDE")
+            axarr[2, 1].set(title="Comulative posterior KDE")
+
         a = 1
         # self.individuals_samples = [(i, p, t) for i,p,t in zip(dataset_record, p_individuals, n_trials_individuals)]
         # a=1
@@ -314,7 +347,6 @@ sns.kdeplot(np.concatenate(sym_traces), ax=axarr[2, 1], color=colors[1], shade=T
             burned_trace=trace[50000:]
 
         pm.traceplot(burned_trace)
-        a =1
 
 
     def plot_posteriors_histo(self):
