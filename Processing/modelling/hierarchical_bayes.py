@@ -391,10 +391,10 @@ class BayesModeler:
 
 if __name__ == "__main__":
     modeller = BayesModeler()
-    # modeller.save_data()
+    modeller.save_data()
 
     # modeller.model_grouped()
-    modeller.model_individuals()
+    # modeller.model_individuals()
     # modeller.model_hierarchical()
 
     plt.show()
