@@ -317,49 +317,7 @@ class BayesModeler:
             axarr[2, 1].set(title="Comulative posterior KDE")
 
         a = 1
-        # self.individuals_samples = [(i, p, t) for i,p,t in zip(dataset_record, p_individuals, n_trials_individuals)]
-        # a=1
-
-    # def model_hierarchical(self):
-    #     print('Hierarchical modelling')
-    #     asym_trials_data = self.data.loc[self.data['experiment']==0]
-
-    #     # Get n trials and observed rate p(R) for each mouse in database
-    #     n_trials, successes = [], []
-    #     for session in set(asym_trials_data['session'].values):
-    #         trials = asym_trials_data.loc[asym_trials_data['session']==session]['trial_outcome'].values
-    #         n_trials.append(len(trials))
-    #         successes.append(np.sum(trials))
-
-    #     asym_experiments = asym_trials_data['experiment'].values
-    #     asym_sessions = asym_trials_data['session'].values
-    #     asym_trials = asym_trials_data['trial_outcome'].values
-
-    #     n_sessions = max(asym_sessions)+1
-    #     sessions = list(set(asym_sessions))
-
-    #     with pm.Model() as hierarchical_model:
-    #         # Hyper prior
-    #         hyper_p_mu = pm.Uniform('hyper_p_mu', lower=0, upper=1)
-    #         hyper_p_sd = pm.Uniform('hyper_p_sd', lower=0, upper=1)
-
-    #         # p for each mouse which is drawn from a Normal with mean mu_p
-    #         p = pm.Normal('p', mu=hyper_p_mu, sd=hyper_p_sd, shape=n_sessions)
-
-    #         # create a p_vector to match data shape
-    #         p_vector = [p[s] for s in asym_sessions]
-
-    #         # likelihood and estimated
-    #         pred_p = pm.Bernoulli('pred_p', p[asym_sessions], observed=asym_trials)
-    #         # est_p = pm.Bernoulli('est_p', p[asym_sessions], shape=len(set(asym_sessions)))
-
-    #         step = pm.Metropolis()
-    #         trace = pm.sample(2000000  , step=step)
-    #         burned_trace=trace[50000:]
-
-    #     pm.traceplot(burned_trace)
-
-
+  
     def model_hierarchical(self):
         # Create a dataframe with observed p(R)
         rates_dict = dict(n_trials=[], observed_rates=[], experiment=[], successes=[])
@@ -376,7 +334,7 @@ class BayesModeler:
         asym_n_trials = rates.loc[rates['experiment']==0]['n_trials'].values
         asym_sessions_count =  rates.loc[rates['experiment']==0].shape[0]
         asym_successes = rates.loc[rates['experiment']==0]['successes'].values
-
+        asym_rates = rates.loc[rates['experiment']==0]['observed_rates'].values
 
         # Model
         with pm.Model() as hierarchical_model:
@@ -399,15 +357,25 @@ class BayesModeler:
             # sym_sd_p = pm.HalfStudentT('sym_sd_p', nu=3, sd=2.5)
 
             # Define the two intermediate normal distributions
-            asym_p = pm.Normal('asym_p', mu=asym_mu_p, sd=asym_sd_p)
+            asym_p = pm.Normal('asym_p', mu=asym_mu_p, sd=asym_sd_p, shape=asym_sessions_count)
             # sym_p = pm.Normal('sym_p', mu=sym_mu_p, sd=sym_sd_p)
 
             # Define the individuals binomial distributions
-            likelihood = pm.Binomial('likelihood', asym_n_trials, asym_p, observed=asym_successes)
+            likelihood = pm.Binomial('likelihood', asym_n_trials, asym_p, observed=asym_successes, shape=asym_sessions_count)
+            # estimate = pm.Binomial('estimate', asym_n_trials, asym_p,    shape=asym_sessions_count)
 
-            trace = pm.sample(20000)
-        a = 1
+            # likelihood = pm.Bernoulli('likelihoood', p=asym_p, observed=asym_rates, shape=asym_sessions_count)
+            # estimate = pm.Bernoulli('estimate', p=asym_p, shape=asym_sessions_count)
 
+            step = pm.Metropolis()
+            trace = pm.sample(800000, step=step)
+            burned_trace = trace[20000:]
+
+        pm.traceplot(burned_trace)
+
+        # f, axarr = plt.subplots(nrows=2)
+        # axarr[0].hist(burned_trace['likelihood'])
+        # axarr[1].hist(burned_trace['estimate'])
 
     def plot_posteriors_histo(self):
 
@@ -446,6 +414,62 @@ class BayesModeler:
 
                 ax.legend(loc="upper left")
 
+    def summary_plots(self):
+        # Load the data
+        asym_trials = np.load('Processing/modelling/asym_trials.npy')
+        sym_trials = np.load('Processing/modelling/sym_trials.npy')
+
+        grouped_traces_load = np.load('./Processing/modelling/grouped_traces.npy')
+        grouped_traces = {}
+        grouped_traces['p_asym'] = [grouped_traces_load[i]['p_asym'] for i in np.arange(len(grouped_traces_load))]
+        grouped_traces['p_sym'] = [grouped_traces_load[i]['p_sym'] for i in np.arange(len(grouped_traces_load))]
+
+
+        asym_traces = np.load('./Processing/modelling/asym_individual_traces.npy')
+        sym_traces = np.load('./Processing/modelling/sym_individual_traces.npy')
+        all_traces = np.vstack([asym_traces, sym_traces])
+        all_sessions = all_traces.shape[0]
+        exp_ids = np.hstack([np.zeros(asym_traces.shape[0]), np.ones(sym_traces.shape[0])])
+        individuals = [(np.int(exp_ids[i]), 0, dict(p_individual=all_traces[i, :])) for i in np.arange(all_sessions)]
+
+
+        # plt the grouped data
+        colors = ["#A60628", "#467821", "#7A68A6"]
+
+        f, ax = plt.subplots()
+
+        sns.kdeplot(grouped_traces['p_asym'], ax=ax, color=colors[0], label='Asymmetric maze', shade=True)
+        sns.kdeplot(grouped_traces['p_sym'], ax=ax, color=colors[1], label='Symmetric maze', shade=True)
+        ax.axvline(np.nanmean(self.asym_data.all_trials),  color=[.6, .2, .2], linestyle=":")
+        ax.axvline(np.nanmean(self.sym_data.all_trials),
+                   color=[.2, .6, .2], linestyle=":")
+
+        ax.legend()
+        ax.set(title='Grouped model poseterior $p(R)$', xlabel='$p(R)$', ylabel='density', xlim=[0, 1])
+
+
+        # Plot the individuals data
+        f, axarr = plt.subplots(nrows=4)
+
+        for exp, trials, burned in individuals:
+            sns.kdeplot(burned['p_individual'], ax=axarr[exp], color=colors[exp], shade=True, alpha=.05, linewidth=2)
+            sns.kdeplot(burned['p_individual'], ax=axarr[exp], color=colors[exp], shade=False, linewidth=1.5, alpha=.8)
+
+        sns.kdeplot(np.concatenate(asym_traces), ax=axarr[2], color=colors[0], shade=True, alpha=.3, )  
+        sns.kdeplot(np.concatenate(sym_traces), ax=axarr[2], color=colors[1], shade=True, alpha=.3, )   
+        sns.kdeplot(np.concatenate(asym_traces), ax=axarr[2], color=colors[0], shade=False, alpha=.8, label='Asymmetric maze')  
+        sns.kdeplot(np.concatenate(sym_traces), ax=axarr[2], color=colors[1], shade=False, alpha=.8, label='Symmetric maze')   
+
+        sns.kdeplot(grouped_traces['p_asym'], ax=axarr[-1], color=colors[0], label='Asymmetric maze', shade=True)
+        sns.kdeplot(grouped_traces['p_sym'], ax=axarr[-1], color=colors[1], label='Symmetric maze', shade=True)
+
+        axarr[0].set(title='Asym. maze - individuals p(R) posterior', xlabel='$p(R)$', ylabel='Density', xlim=[0, 1])
+        axarr[1].set(title='Sym. maze - individuals p(R) posterior', xlabel='$p(R)$', ylabel='Density', xlim=[0, 1])
+        axarr[2].set(title='Comulative p(R) posterior', xlabel='$p(R)$', ylabel='Density', xlim=[0, 1])
+        axarr[3].set(title='Grouped p(R) posterior', xlabel='$p(R)$', ylabel='Density', xlim=[0, 1])
+
+        axarr[2].legend()
+        axarr[3].legend()
 
 
 
@@ -455,7 +479,9 @@ if __name__ == "__main__":
 
     # modeller.model_grouped()
     # modeller.model_individuals()
-    modeller.model_hierarchical()
+    # modeller.model_hierarchical()
+
+    modeller.summary_plots()
 
     plt.show()
 
