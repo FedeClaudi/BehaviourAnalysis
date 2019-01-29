@@ -288,7 +288,7 @@ class BayesModeler:
 
             # Plot histograms from grouped modelling
             try:
-                grouped_traces = self.model_grouped(display_distributions=False)
+                grouped_traces = self.model_grouped(display_distributions=True)
             except:
                 pass
             else:
@@ -391,10 +391,10 @@ class BayesModeler:
 
 if __name__ == "__main__":
     modeller = BayesModeler()
-    modeller.save_data()
+    # modeller.save_data()
 
     # modeller.model_grouped()
-    # modeller.model_individuals()
+    modeller.model_individuals()
     # modeller.model_hierarchical()
 
     plt.show()
