@@ -155,7 +155,7 @@ class BayesModeler:
     ################################################################################
     ################################################################################
 
-    def model_grouped(self, display_distributions=True):
+    def model_grouped(self, display_distributions=True, save_traces=True):
         print('\n\nClustering groups')
         """
             Assume that the sequence of L/R trials for each mouse is generated through a Bernoulli 
@@ -196,6 +196,9 @@ class BayesModeler:
             burned_trace=trace[1000:]
 
         self.grouped_samples = dict(asym = burned_trace["p_asym"], sym = burned_trace["p_sym"], delta=burned_trace['delta'])
+
+        if save_traces:
+            np.save('.\\Processing\\modelling\\grouped_traces.npy', burned_trace)
 
         if display_distributions:
             pm.traceplot(burned_trace)
@@ -391,10 +394,10 @@ class BayesModeler:
 
 if __name__ == "__main__":
     modeller = BayesModeler()
-    # modeller.save_data()
+    modeller.save_data()
 
-    # modeller.model_grouped()
-    modeller.model_individuals()
+    modeller.model_grouped()
+    # modeller.model_individuals()
     # modeller.model_hierarchical()
 
     plt.show()
