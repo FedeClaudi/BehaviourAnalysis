@@ -278,31 +278,39 @@ class BayesModeler:
                 np.save('.\\Processing\\modelling\\sym_individual_traces.npy', sym_traces)
 
             colors=[[.8, .4, .4], [.4, .8, .4]]
-            f, axarr = plt.subplots(nrows=3, ncols=2, facecolor=[.2, .2, .2])
+            f, axarr = plt.subplots(nrows=4, ncols=2, facecolor=[.2, .2, .2])
 
             # plot histograms and kde for individual mice
             for exp, trials, burned in individuals:
                 axarr[0, exp].hist(burned['p_individual'], bins=100, histtype='step', alpha=.5) # , alpha=trials.mean())
-                sns.kdeplot(burned['p_individual'], ax=axarr[1, exp], shade=True, alpha=.1)
+                sns.kdeplot(burned['p_individual'], ax=axarr[1, exp], shade=True, alpha=.7)
 
             # plot comulative kde
-            sns.kdeplot(np.concatenate(asym_traces), ax=axarr[2, 0], color=colors[0], shade=True, alpha=.8, label='Comulative posterior of individual modelling')  
-            sns.kdeplot(np.concatenate(sym_traces), ax=axarr[2, 1], color=colors[1], shade=True, alpha=.8, label='Comulative posterior of individual modelling')   
+            sns.kdeplot(np.concatenate(asym_traces), ax=axarr[2, 0], color=colors[0], shade=True, alpha=.8, label='individual modelling')  
+            sns.kdeplot(np.concatenate(sym_traces), ax=axarr[2, 1], color=colors[1], shade=True, alpha=.8, label='individual modelling')   
 
             # Plot histograms from grouped modelling
             try:
-                grouped_traces = self.model_grouped(display_distributions=True)
+                # grouped_traces = self.model_grouped(display_distributions=True)
+                if sys.platform == 'darwin':
+                    grouped_traces_load = np.load('./Processing/modelling/grouped_traces.npy')
+                    grouped_traces = {}
+                    grouped_traces['p_asym'] = [grouped_traces_load[i]['p_asym'] for i in np.arange(len(grouped_traces_load))]
+                    grouped_traces['p_sym'] = [grouped_traces_load[i]['p_sym'] for i in np.arange(len(grouped_traces_load))]
+                else: raise NotImplementedError
             except:
                 pass
             else:
-                axarr[2, 0].hist(grouped_traces['p_asym'], bins=100, label='Posterior of grouped modelling')
-                axarr[2, 1].hist(grouped_traces['p_sym'], bins=100, label='Posterior of grouped modelling')
-                axarr[2, 0].legend()
-                axarr[2, 1].legend()
+                # axarr[2, 0].hist(grouped_traces['p_asym'], bins=100, label='grouped modelling', normed=True)
+                # axarr[2, 1].hist(grouped_traces['p_sym'], bins=100, label='grouped modelling', normed=True)
+                sns.kdeplot(grouped_traces['p_asym'], ax=axarr[3, 0], color=colors[0], label='grouped modelling')
+                sns.kdeplot(grouped_traces['p_sym'], ax=axarr[3, 1], color=colors[1], label='grouped modelling')
+                axarr[3, 0].set(title="Grouped modelling posterior distribution")
+                axarr[3, 1].set(title="Grouped modelling posterior distribution")
 
             # Add background color and legends to axes
             for ax in axarr.flatten():
-                ax.set(facecolor=[.2, .2, .2], xlim=[0, 1], xlabel='p(R)', ylabel='frequency')
+                ax.set(xlim=[0, 1], xlabel='p(R)', ylabel='frequency') # facecolor=[.2, .2, .2]
             axarr[0, 0].set(title='ASYM, posterior p(R) individuals')
             axarr[0, 1].set(title='SYM, posterior p(R) individuals')     
             axarr[2, 0].set(title="Comulative posterior KDE")
@@ -312,44 +320,93 @@ class BayesModeler:
         # self.individuals_samples = [(i, p, t) for i,p,t in zip(dataset_record, p_individuals, n_trials_individuals)]
         # a=1
 
+    # def model_hierarchical(self):
+    #     print('Hierarchical modelling')
+    #     asym_trials_data = self.data.loc[self.data['experiment']==0]
+
+    #     # Get n trials and observed rate p(R) for each mouse in database
+    #     n_trials, successes = [], []
+    #     for session in set(asym_trials_data['session'].values):
+    #         trials = asym_trials_data.loc[asym_trials_data['session']==session]['trial_outcome'].values
+    #         n_trials.append(len(trials))
+    #         successes.append(np.sum(trials))
+
+    #     asym_experiments = asym_trials_data['experiment'].values
+    #     asym_sessions = asym_trials_data['session'].values
+    #     asym_trials = asym_trials_data['trial_outcome'].values
+
+    #     n_sessions = max(asym_sessions)+1
+    #     sessions = list(set(asym_sessions))
+
+    #     with pm.Model() as hierarchical_model:
+    #         # Hyper prior
+    #         hyper_p_mu = pm.Uniform('hyper_p_mu', lower=0, upper=1)
+    #         hyper_p_sd = pm.Uniform('hyper_p_sd', lower=0, upper=1)
+
+    #         # p for each mouse which is drawn from a Normal with mean mu_p
+    #         p = pm.Normal('p', mu=hyper_p_mu, sd=hyper_p_sd, shape=n_sessions)
+
+    #         # create a p_vector to match data shape
+    #         p_vector = [p[s] for s in asym_sessions]
+
+    #         # likelihood and estimated
+    #         pred_p = pm.Bernoulli('pred_p', p[asym_sessions], observed=asym_trials)
+    #         # est_p = pm.Bernoulli('est_p', p[asym_sessions], shape=len(set(asym_sessions)))
+
+    #         step = pm.Metropolis()
+    #         trace = pm.sample(2000000  , step=step)
+    #         burned_trace=trace[50000:]
+
+    #     pm.traceplot(burned_trace)
+
+
     def model_hierarchical(self):
-        print('Hierarchical modelling')
-        asym_trials_data = self.data.loc[self.data['experiment']==0]
+        # Create a dataframe with observed p(R)
+        rates_dict = dict(n_trials=[], observed_rates=[], experiment=[], successes=[])
+        for session in self.data['session'].unique():
+            session_data = self.data.loc[self.data['session']==session]
+            rates_dict['n_trials'].append(session_data.shape[0])
+            rates_dict['experiment'].append(session_data['experiment'].values[0])
+            rates_dict['observed_rates'].append(np.mean(session_data['trial_outcome'].values))
+            rates_dict['successes'].append(np.sum(session_data['trial_outcome'].values))
 
-        # Get n trials and observed rate p(R) for each mouse in database
-        n_trials, successes = [], []
-        for session in set(asym_trials_data['session'].values):
-            trials = asym_trials_data.loc[asym_trials_data['session']==session]['trial_outcome'].values
-            n_trials.append(len(trials))
-            successes.append(np.sum(trials))
+        rates = pd.DataFrame.from_dict(rates_dict)  # <- dataframe of rates
 
-        asym_experiments = asym_trials_data['experiment'].values
-        asym_sessions = asym_trials_data['session'].values
-        asym_trials = asym_trials_data['trial_outcome'].values
+        # Create variables for easier indexing
+        asym_n_trials = rates.loc[rates['experiment']==0]['n_trials'].values
+        asym_sessions_count =  rates.loc[rates['experiment']==0].shape[0]
+        asym_successes = rates.loc[rates['experiment']==0]['successes'].values
 
-        n_sessions = max(asym_sessions)+1
-        sessions = list(set(asym_sessions))
 
+        # Model
         with pm.Model() as hierarchical_model:
-            # Hyper prior
-            hyper_p_mu = pm.Uniform('hyper_p_mu', lower=0, upper=1)
-            hyper_p_sd = pm.Uniform('hyper_p_sd', lower=0, upper=1)
+            """ 
+                The p(R) of each mouse is modelled as a Bernoulli distribution with 'n' trials and 'p' probability. 
+                    - n is fiexed and is equivalent to the number of trials of each mouse
+                    - p is what we want to find out by fitting the model to the observed p(R)
 
-            # p for each mouse which is drawn from a Normal with mean mu_p
-            p = pm.Normal('p', mu=hyper_p_mu, sd=hyper_p_sd, shape=n_sessions)
+                The true underlying rates are thought to be drawn from a Normal distribution (one for each experiment) with
+                mean mu and standard devation std where:
+                    - mu has a prior that is uniform between 0 and 1
+                    - std is drawn from a half t-test distribution
+            """
 
-            # create a p_vector to match data shape
-            p_vector = [p[s] for s in asym_sessions]
+            # Define hyperpriors: mu and std of Normal distribution
+            asym_mu_p = pm.Uniform('asym_mu_p', lower=0,upper=1)
+            # sym_mu_p = pm.Uniform('sym_mu_p', lower=0, upper=1)
 
-            # likelihood and estimated
-            pred_p = pm.Bernoulli('pred_p', p[asym_sessions], observed=asym_trials)
-            # est_p = pm.Bernoulli('est_p', p[asym_sessions], shape=len(set(asym_sessions)))
+            asym_sd_p = pm.HalfStudentT('asym_sd_p', nu=3, sd=2.5)
+            # sym_sd_p = pm.HalfStudentT('sym_sd_p', nu=3, sd=2.5)
 
-            step = pm.Metropolis()
-            trace = pm.sample(2000000  , step=step)
-            burned_trace=trace[50000:]
+            # Define the two intermediate normal distributions
+            asym_p = pm.Normal('asym_p', mu=asym_mu_p, sd=asym_sd_p)
+            # sym_p = pm.Normal('sym_p', mu=sym_mu_p, sd=sym_sd_p)
 
-        pm.traceplot(burned_trace)
+            # Define the individuals binomial distributions
+            likelihood = pm.Binomial('likelihood', asym_n_trials, asym_p, observed=asym_successes)
+
+            trace = pm.sample(20000)
+        a = 1
 
 
     def plot_posteriors_histo(self):
@@ -394,11 +451,11 @@ class BayesModeler:
 
 if __name__ == "__main__":
     modeller = BayesModeler()
-    modeller.save_data()
+    # modeller.save_data()
 
-    modeller.model_grouped()
+    # modeller.model_grouped()
     # modeller.model_individuals()
-    # modeller.model_hierarchical()
+    modeller.model_hierarchical()
 
     plt.show()
 

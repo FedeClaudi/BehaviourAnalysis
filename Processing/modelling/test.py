@@ -91,7 +91,7 @@ def define_data():
         model_trace = pm.sample(5000)
 
     print('plotting')
-    pm.traceplot(model_trace[1000:], njobs=1)
+    pm.traceplot(model_trace[1000:])
 
 
 if __name__ == "__main__":
