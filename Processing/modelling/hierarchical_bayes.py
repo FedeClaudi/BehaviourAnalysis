@@ -1,7 +1,6 @@
 import sys
 sys.path.append('./')
 
-
 import numpy as np
 import pandas as pd
 from pandas.plotting import scatter_matrix
@@ -20,8 +19,6 @@ mpl.rcParams['xtick.color'] = 'k'
 mpl.rcParams['ytick.color'] = 'k'
 mpl.rcParams['axes.labelcolor'] = 'k'
 
-
-
 import numpy as np
 import scipy.stats as stats
 import itertools
@@ -32,37 +29,19 @@ import scipy
 import scipy.stats as stats
 
 if sys.platform != 'darwin':
-    print('Importing choice visualiser')
     from Processing.choice_analysis.chioces_visualiser import ChoicesVisualiser as chioce_data
 
-
 import matplotlib
-# gui_env = ['TKAgg','GTKAgg','Qt4Agg','WXAgg']
-# for gui in gui_env:
-#     try:
-#         matplotlib.use(gui,warn=False, force=True)
-#         from matplotlib import pyplot as plt
-#         break
-#     except:
-#         continue
-# print("Using:",matplotlib.get_backend())
 from matplotlib import pyplot as plt
-# import matplotlib.patches as patches
-# import matplotlib.mlab as mlab
-# import matplotlib as mpl
 
-# mpl.rcParams['text.color'] = 'w'
-# mpl.rcParams['xtick.color'] = 'w'
-# mpl.rcParams['ytick.color'] = 'w'
-# mpl.rcParams['axes.labelcolor'] = 'w'
 
 class BayesModeler:
-    # TODO Convert by_session numpy array to pandas df with a row for each trial (mouse id, exp, trial_number ...)
-    # to avoid having nans in the dataset
-
-
     def __init__(self,  load_data=False):
-        if sys.platform == "darwin": load_data = True
+        if sys.platform == "darwin": 
+            load_data = True
+            self.data_fld = './Processing/modelling/data'
+        else:
+            self.data_fld = '.\\Processing\\modelling\\data'
         cleanup_data = True
 
         # ? Get Data
@@ -79,7 +58,6 @@ class BayesModeler:
             self.asym_data = datatuple(asym_binary, asym_binary_by_session) # All trials grouped together and trials grouped by session
             self.sym_data = datatuple(sym_binary, sym_binary_by_session)
 
-            
         else:
             # Load previously saved data
             try: 
@@ -94,7 +72,6 @@ class BayesModeler:
         if cleanup_data:
             self.print_data_summary()
             self.data = self.organise_data_in_df()
-
 
 
     def organise_data_in_df(self):
@@ -125,8 +102,8 @@ class BayesModeler:
 
     def save_data(self):
         try:
-            np.save('.\\Processing\\modelling\\asym_trials.npy', self.asym_data.by_session)
-            np.save('.\\Processing\\modelling\\sym_trials.npy', self.sym_data.by_session)
+            np.save(os.path.join(self.data_fld, 'asym_trials.npy'), self.asym_data.by_session)
+            np.save(os.path.join('sym_trials.npy'), self.sym_data.by_session)
         except:
             print('Did not save')
         
@@ -165,7 +142,6 @@ class BayesModeler:
 
             To use an objective prior we assume that for both experiment the prior on 'p' is a uniform
             distribution in [0, 1].
-
         """
 
         # Set up the pymc3 model.  assume Uniform priors for p_asym and p_sym.
@@ -197,36 +173,11 @@ class BayesModeler:
         self.grouped_samples = dict(asym = burned_trace["p_asym"], sym = burned_trace["p_sym"], delta=burned_trace['delta'])
 
         if save_traces:
-            np.save('.\\Processing\\modelling\\grouped_traces.npy', burned_trace)
+            np.save(os.path.join(self.data_fld, 'grouped_traces.npy'), burned_trace)
 
         if display_distributions:
             pm.traceplot(burned_trace)
-            # pm.posteriorplot.plot_posterior(burned_trace)
-
-            f, axarr = plt.subplots(nrows=4, facecolor=[.2, .2, .2], figsize=(10, 10))
-
-            priors_samples = (p_asym.random(size=20000),  p_sym.random(size=20000))
-            priors = ['p_asym', 'p_sym']
-            for samp, prior in zip(priors_samples, priors):
-                axarr[0].hist(samp, bins=100, alpha=.5, normed=True, histtype="stepfilled", label=prior)
-            axarr[0].set(title='Priors', facecolor=[.2, .2, .2], xlim=[-.1, 1.1])
-            axarr[0].legend()
-
-            axarr[1].hist(burned_trace["p_asym"], bins=100, label='Asym posterior')
-            axarr[1].hist(burned_trace['p_sym'], bins=100, label='Sym posterior')
-            axarr[1].set(title='Posteriors', facecolor=[.2, .2, .2], xlim=[-.1, 1.1])
-            axarr[1].legend
-
-            axarr[2].hist(self.asym_data.all_trials, color='w', normed=True,  label='Asym Trials')
-            axarr[2].hist(burned_trace['predicted_A'], color='r', alpha=.5,  normed=True, label='Est. Asym Trials')
-            axarr[2].set(title='asym trials', xlim=[-.5, 1.5], facecolor=[.2, .2, .2])
-            axarr[2].legend()
-
-            axarr[3].hist(self.sym_data.all_trials, color='w', normed=True, label='Sym Trials')
-            axarr[3].hist(burned_trace['predicted_B'], color='r', alpha=.5,  normed=True, label='Est. Sym Trials')
-            axarr[3].set(title='sym trials', xlim=[-.5, 1.5], facecolor=[.2, .2, .2])
-            axarr[3].legend()
-
+            pm.posteriorplot.plot_posterior(burned_trace)
         return burned_trace
 
     def model_individuals(self, display_distributions=True, load_traces=True):
@@ -256,64 +207,26 @@ class BayesModeler:
                     burned_trace=trace[1000:]
 
                 individuals.append((exp_id, trials, burned_trace))
+
+            # Savee data
+            asym_traces = [burned['p_individual'] for exp, _, burned in individuals if exp==0]
+            sym_traces = [burned['p_individual'] for exp, _, burned in individuals if exp==1]
+
+            np.save(os.path.join(self.data, 'asym_individual_traces.npy'), asym_traces)
+            np.save(os.path.join(self.data, 'sym_individual_traces.npy'), sym_traces)
+
         else:
             print('  loading traces') # load stached data and organise them for plotti
-            asym_traces = np.load('./Processing/modelling/asym_individual_traces.npy')
-            sym_traces = np.load('./Processing/modelling/sym_individual_traces.npy')
+            asym_traces = np.load(os.path.join(self.data, 'asym_individual_traces.npy'))
+            sym_traces = np.load(os.path.join(self.data, 'sym_individual_traces.npy'))
             all_traces = np.vstack([asym_traces, sym_traces])
             all_sessions = all_traces.shape[0]
             exp_ids = np.hstack([np.zeros(asym_traces.shape[0]), np.ones(sym_traces.shape[0])])
             individuals = [(np.int(exp_ids[i]), 0, dict(p_individual=all_traces[i, :])) for i in np.arange(all_sessions)]
-
         
         if display_distributions:
-            # [pm.traceplot(burned) for _, _, burned in individuals]
+            [pm.traceplot(burned) for _, _, burned in individuals]
 
-            if not load_traces:
-                asym_traces = [burned['p_individual'] for exp, _, burned in individuals if exp==0]
-                sym_traces = [burned['p_individual'] for exp, _, burned in individuals if exp==1]
-
-                np.save('.\\Processing\\modelling\\asym_individual_traces.npy', asym_traces)
-                np.save('.\\Processing\\modelling\\sym_individual_traces.npy', sym_traces)
-
-            colors=[[.8, .4, .4], [.4, .8, .4]]
-            f, axarr = plt.subplots(nrows=4, ncols=2, facecolor=[.2, .2, .2])
-
-            # plot histograms and kde for individual mice
-            for exp, trials, burned in individuals:
-                axarr[0, exp].hist(burned['p_individual'], bins=100, histtype='step', alpha=.5) # , alpha=trials.mean())
-                sns.kdeplot(burned['p_individual'], ax=axarr[1, exp], shade=True, alpha=.7)
-
-            # plot comulative kde
-            sns.kdeplot(np.concatenate(asym_traces), ax=axarr[2, 0], color=colors[0], shade=True, alpha=.8, label='individual modelling')  
-            sns.kdeplot(np.concatenate(sym_traces), ax=axarr[2, 1], color=colors[1], shade=True, alpha=.8, label='individual modelling')   
-
-            # Plot histograms from grouped modelling
-            try:
-                # grouped_traces = self.model_grouped(display_distributions=True)
-                if sys.platform == 'darwin':
-                    grouped_traces_load = np.load('./Processing/modelling/grouped_traces.npy')
-                    grouped_traces = {}
-                    grouped_traces['p_asym'] = [grouped_traces_load[i]['p_asym'] for i in np.arange(len(grouped_traces_load))]
-                    grouped_traces['p_sym'] = [grouped_traces_load[i]['p_sym'] for i in np.arange(len(grouped_traces_load))]
-                else: raise NotImplementedError
-            except:
-                pass
-            else:
-                # axarr[2, 0].hist(grouped_traces['p_asym'], bins=100, label='grouped modelling', normed=True)
-                # axarr[2, 1].hist(grouped_traces['p_sym'], bins=100, label='grouped modelling', normed=True)
-                sns.kdeplot(grouped_traces['p_asym'], ax=axarr[3, 0], color=colors[0], label='grouped modelling')
-                sns.kdeplot(grouped_traces['p_sym'], ax=axarr[3, 1], color=colors[1], label='grouped modelling')
-                axarr[3, 0].set(title="Grouped modelling posterior distribution")
-                axarr[3, 1].set(title="Grouped modelling posterior distribution")
-
-            # Add background color and legends to axes
-            for ax in axarr.flatten():
-                ax.set(xlim=[0, 1], xlabel='p(R)', ylabel='frequency') # facecolor=[.2, .2, .2]
-            axarr[0, 0].set(title='ASYM, posterior p(R) individuals')
-            axarr[0, 1].set(title='SYM, posterior p(R) individuals')     
-            axarr[2, 0].set(title="Comulative posterior KDE")
-            axarr[2, 1].set(title="Comulative posterior KDE")
 
     def model_hierarchical(self, save_traces=True):
         """
@@ -326,7 +239,9 @@ class BayesModeler:
                 - mu has a prior that is uniform between 0 and 1
                 - std is drawn from a half t-test distribution
         """
+
         if save_traces:
+            print('Hierarchical modelling... ')
             # Ge the observed p(R) for each mouse in each experiment
             rates = []
             for session in self.data['session'].unique():
@@ -359,20 +274,22 @@ class BayesModeler:
             sym_trials = [t for e,r,t in rates if e == 1]
             n_trials = [len(t) for t in sym_trials]
             max_t = np.max(n_trials)+1
-            empty = [np.full(max_t, np.nan)
-                     for t in np.arange(len(sym_trials))]
+            empty = [np.full(max_t, np.nan) for t in np.arange(len(sym_trials))]
             sym_padded = []
             for i, (t,n,e) in enumerate(zip(sym_trials, n_trials, empty)):
                 e[:n] = t
                 sym_padded.append(e)
 
-            fps = ['./Processing/modelling/part_pooled_asym', './Processing/modelling/part_pooled_sym']
+            fps = [os.path.join(self.data_fld, 'part_pooled_asym'), 
+                    os.path.join(self.data_fld, 'part_pooled_sym')]
             # datasets = [(asym_n_sessions, asym_index, asym_ftrials, fps[0]),
             #             (sym_n_sessions, sym_index, sym_ftrials, fps[1])]
             datasets = [(asym_n_sessions, asym_index, np.vstack(asym_padded).T, fps[0]), (sym_n_sessions, sym_index, np.vstack(sym_padded).T, fps[1])]
 
             traces = []
             for n_sessions, index, ftrials, path in datasets:
+                print('Ready to model')
+                
                 # Create PyMC3 model
                 with pm.Model() as model:
                     """ 
@@ -388,16 +305,16 @@ class BayesModeler:
                     sigma_a = pm.HalfCauchy('sigma_a', 5)
 
                     # Random intercepts
-                    a = pm.Normal('a', mu=mu_a, sd=sigma_a, shape=n_sessions)
+                    a = pm.Normal('a', mu=mu_a, sd=sigma_a) # , shape=n_sessions)
 
                     # Model error
                     sigma_y = pm.HalfCauchy('sigma_y', 5)
 
                     # Expected value
-                    y_hat = a[index]
+                    # y_hat = a[index]
 
                     # Data likelihood
-                    y_like = pm.Normal('y_like', mu=y_hat, sd=sigma_y, observed=ftrials)
+                    y_like = pm.Normal('y_like', mu=a, sd=sigma_y, observed=ftrials) # mu_y_hat
 
                     step = pm.Metropolis()
                     partial_pooling_trace = pm.sample(5000, tune=1000, njobs=1)
@@ -409,8 +326,8 @@ class BayesModeler:
                     np.save(path+'_{}.npy'.format(i), partial_pooling_trace['a'][:, i])
 
         else:
-            traces = [np.load('./Processing/modelling/part_pooled_asym.npy'), 
-                        np.load('./Processing/modelling/part_pooled_sym.npy')]
+            traces = [np.load(os.path.join(self.data, 'part_pooled_asym.npy')), 
+                        np.load(os.path.join(self.data, 'part_pooled_sym.npy'))]
 
     ################################################################################
     ################################################################################
@@ -418,8 +335,8 @@ class BayesModeler:
 
     def summary_plots(self):
         # Load the data
-        asym_trials = np.load('Processing/modelling/asym_trials.npy')
-        sym_trials = np.load('Processing/modelling/sym_trials.npy')
+        asym_trials = np.load(os.path.join(self.data, 'asym_trials.npy'))
+        sym_trials = np.load(os.path.join(self.data, 'sym_trials.npy'))
 
         grouped_traces_load = np.load('./Processing/modelling/grouped_traces.npy')
         grouped_traces = {}
@@ -427,13 +344,20 @@ class BayesModeler:
         grouped_traces['p_sym'] = [grouped_traces_load[i]['p_sym'] for i in np.arange(len(grouped_traces_load))]
 
 
-        asym_traces = np.load('./Processing/modelling/asym_individual_traces.npy')
-        sym_traces = np.load('./Processing/modelling/sym_individual_traces.npy')
+        asym_traces = np.load(os.path.join(self.data, 'asym_individual_traces.npy'))
+        sym_traces = np.load(os.path.join(self.data, 'sym_individual_traces.npy'))
         all_traces = np.vstack([asym_traces, sym_traces])
         all_sessions = all_traces.shape[0]
         exp_ids = np.hstack([np.zeros(asym_traces.shape[0]), np.ones(sym_traces.shape[0])])
         individuals = [(np.int(exp_ids[i]), 0, dict(p_individual=all_traces[i, :])) for i in np.arange(all_sessions)]
 
+
+        pooled_files = [os.path.join(self.data_fld, f) for f in os.listdir(self.data_fld) if 'part_pooled' in f]
+        asym_traces = [np.load(f) for f in pooled_files if 'asym' in f]
+        asym_traces = np.vstack(asym_traces)
+        sym_traces = [np.load(f) for f in pooled_files if not 'asym' in f]
+        sym_traces = np.vstack(sym_traces)
+        traces = [asym_traces, sym_traces]
 
         # plt the grouped data
         colors = ["#A60628", "#467821", "#7A68A6"]
@@ -443,12 +367,10 @@ class BayesModeler:
         sns.kdeplot(grouped_traces['p_asym'], ax=ax, color=colors[0], label='Asymmetric maze', shade=True)
         sns.kdeplot(grouped_traces['p_sym'], ax=ax, color=colors[1], label='Symmetric maze', shade=True)
         ax.axvline(np.nanmean(self.asym_data.all_trials),  color=[.6, .2, .2], linestyle=":")
-        ax.axvline(np.nanmean(self.sym_data.all_trials),
-                   color=[.2, .6, .2], linestyle=":")
+        ax.axvline(np.nanmean(self.sym_data.all_trials), color=[.2, .6, .2], linestyle=":")
 
         ax.legend()
         ax.set(title='Grouped model poseterior $p(R)$', xlabel='$p(R)$', ylabel='density', xlim=[0, 1])
-
 
         # Plot the individuals data
         f, axarr = plt.subplots(nrows=4)
@@ -474,17 +396,6 @@ class BayesModeler:
         axarr[3].legend()
 
         # Plot the partial pooled model
-        dir = './Processing/modelling'
-        pooled_files = [os.path.join(dir, f) for f in os.listdir(dir) if 'part_pooled' in f]
-
-        asym_traces = [np.load(f) for f in pooled_files if 'asym' in f]
-        asym_traces = np.vstack(asym_traces)
-
-        sym_traces = [np.load(f) for f in pooled_files if not 'asym' in f]
-        sym_traces = np.vstack(sym_traces)
-
-        traces = [asym_traces, sym_traces]
-
         f, axarr = plt.subplots(nrows=3)
 
         for i in [0, 1]:
@@ -510,9 +421,9 @@ if __name__ == "__main__":
 
     # modeller.model_grouped()
     # modeller.model_individuals()
-    # modeller.model_hierarchical()
+    modeller.model_hierarchical()
 
-    modeller.summary_plots()
+    # modeller.summary_plots()
 
     plt.show()
 
