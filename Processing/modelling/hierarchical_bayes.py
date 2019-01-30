@@ -13,6 +13,7 @@ import math
 import matplotlib.mlab as mlab
 import matplotlib as mpl
 import seaborn as sns
+import os
 
 mpl.rcParams['text.color'] = 'k'
 mpl.rcParams['xtick.color'] = 'k'
@@ -60,7 +61,7 @@ class BayesModeler:
     # to avoid having nans in the dataset
 
 
-    def __init__(self, load_data=False):
+    def __init__(self,  load_data=False):
         if sys.platform == "darwin": load_data = True
         cleanup_data = True
 
@@ -94,9 +95,7 @@ class BayesModeler:
             self.print_data_summary()
             self.data = self.organise_data_in_df()
 
-        # Initialise empty variables, to be filled with modeling
-        self.grouped_samples = None
-        self.individuals_samples = None
+
 
     def organise_data_in_df(self):
         asym_trials = self.asym_data.by_session
@@ -251,7 +250,7 @@ class BayesModeler:
                     obs_individual = pm.Bernoulli("obs_individual", p_individual, observed=trials)
                     est_individual = pm.Bernoulli("est_individual", p_individual)
 
-                    # Fit the model 
+                    # Fit the model
                     step = pm.Metropolis()
                     trace = pm.sample(10000, step=step)
                     burned_trace=trace[1000:]
@@ -316,103 +315,106 @@ class BayesModeler:
             axarr[2, 0].set(title="Comulative posterior KDE")
             axarr[2, 1].set(title="Comulative posterior KDE")
 
-        a = 1
-  
-    def model_hierarchical(self):
-        # Create a dataframe with observed p(R)
-        rates_dict = dict(n_trials=[], observed_rates=[], experiment=[], successes=[])
-        for session in self.data['session'].unique():
-            session_data = self.data.loc[self.data['session']==session]
-            rates_dict['n_trials'].append(session_data.shape[0])
-            rates_dict['experiment'].append(session_data['experiment'].values[0])
-            rates_dict['observed_rates'].append(np.mean(session_data['trial_outcome'].values))
-            rates_dict['successes'].append(np.sum(session_data['trial_outcome'].values))
+    def model_hierarchical(self, save_traces=True):
+        """
+            The p(R) of each mouse is modelled as a Bernoulli distribution with 'n' trials and 'p' probability.
+                - n is fiexed and is equivalent to the number of trials of each mouse
+                - p is what we want to find out by fitting the model to the observed p(R)
 
-        rates = pd.DataFrame.from_dict(rates_dict)  # <- dataframe of rates
+            The true underlying rates are thought to be drawn from a Normal distribution (one for each experiment) with
+            mean mu and standard devation std where:
+                - mu has a prior that is uniform between 0 and 1
+                - std is drawn from a half t-test distribution
+        """
+        if save_traces:
+            # Ge the observed p(R) for each mouse in each experiment
+            rates = []
+            for session in self.data['session'].unique():
+                session_data = self.data.loc[self.data['session'] == session]
+                exp = session_data['experiment'].values[0]
+                rate = np.mean(session_data['trial_outcome'].values)
+                trials = session_data['trial_outcome'].values
+                rates.append((exp, rate, trials))
 
-        # Create variables for easier indexing
-        asym_n_trials = rates.loc[rates['experiment']==0]['n_trials'].values
-        asym_sessions_count =  rates.loc[rates['experiment']==0].shape[0]
-        asym_successes = rates.loc[rates['experiment']==0]['successes'].values
-        asym_rates = rates.loc[rates['experiment']==0]['observed_rates'].values
+            # Rearrange data
+            asym_rates = [r for e,r,t in rates if e == 0]
+            asym_n_sessions = len(asym_rates)
+            asym_index = np.arange(asym_n_sessions)
+            asym_ftrials = stats.bernoulli.rvs(p=np.array(asym_rates), size=(15, asym_n_sessions)) # ! Fake trials, to create an array with uniforme size
 
-        # Model
-        with pm.Model() as hierarchical_model:
-            """ 
-                The p(R) of each mouse is modelled as a Bernoulli distribution with 'n' trials and 'p' probability. 
-                    - n is fiexed and is equivalent to the number of trials of each mouse
-                    - p is what we want to find out by fitting the model to the observed p(R)
+            sym_rates = [r for e,r,t in rates if e == 1]
+            sym_n_sessions = len(sym_rates)
+            sym_index = np.arange(sym_n_sessions)
+            sym_ftrials = stats.bernoulli.rvs(p=np.array(sym_rates), size=(15, sym_n_sessions)) # ! Fake trials, to create an array with uniforme size
 
-                The true underlying rates are thought to be drawn from a Normal distribution (one for each experiment) with
-                mean mu and standard devation std where:
-                    - mu has a prior that is uniform between 0 and 1
-                    - std is drawn from a half t-test distribution
-            """
+            asym_trials = [t for e,r,t in rates if e == 0]
+            n_trials = [len(t) for t in asym_trials]
+            max_t = np.max(n_trials)+1
+            empty = [np.full(max_t, np.nan) for t in np.arange(len(asym_trials))]
+            asym_padded = []
+            for i, (t,n,e) in enumerate(zip(asym_trials, n_trials, empty)):
+                e[:n] = t
+                asym_padded.append(e)
+            
+            sym_trials = [t for e,r,t in rates if e == 1]
+            n_trials = [len(t) for t in sym_trials]
+            max_t = np.max(n_trials)+1
+            empty = [np.full(max_t, np.nan)
+                     for t in np.arange(len(sym_trials))]
+            sym_padded = []
+            for i, (t,n,e) in enumerate(zip(sym_trials, n_trials, empty)):
+                e[:n] = t
+                sym_padded.append(e)
 
-            # Define hyperpriors: mu and std of Normal distribution
-            asym_mu_p = pm.Uniform('asym_mu_p', lower=0,upper=1)
-            # sym_mu_p = pm.Uniform('sym_mu_p', lower=0, upper=1)
+            fps = ['./Processing/modelling/part_pooled_asym', './Processing/modelling/part_pooled_sym']
+            # datasets = [(asym_n_sessions, asym_index, asym_ftrials, fps[0]),
+            #             (sym_n_sessions, sym_index, sym_ftrials, fps[1])]
+            datasets = [(asym_n_sessions, asym_index, np.vstack(asym_padded).T, fps[0]), (sym_n_sessions, sym_index, np.vstack(sym_padded).T, fps[1])]
 
-            asym_sd_p = pm.HalfStudentT('asym_sd_p', nu=3, sd=2.5)
-            # sym_sd_p = pm.HalfStudentT('sym_sd_p', nu=3, sd=2.5)
+            traces = []
+            for n_sessions, index, ftrials, path in datasets:
+                # Create PyMC3 model
+                with pm.Model() as model:
+                    """ 
+                        We want to create a hierarchical model in which each individual's trials are assumed
+                        to be generated through a bernoulli distribution, we want to discover
+                        the true underlying rate of each individual's distribution. 
+                        To do so we assume that each individual's rate is pulled from a normal distribution, to
+                        model the fact that we think that all individuals have a similar strategy.
+                    """
 
-            # Define the two intermediate normal distributions
-            asym_p = pm.Normal('asym_p', mu=asym_mu_p, sd=asym_sd_p, shape=asym_sessions_count)
-            # sym_p = pm.Normal('sym_p', mu=sym_mu_p, sd=sym_sd_p)
+                    # Priors
+                    mu_a = pm.Normal('mu_a', mu=0.5, sd=0.1) # 1e5)
+                    sigma_a = pm.HalfCauchy('sigma_a', 5)
 
-            # Define the individuals binomial distributions
-            likelihood = pm.Binomial('likelihood', asym_n_trials, asym_p, observed=asym_successes, shape=asym_sessions_count)
-            # estimate = pm.Binomial('estimate', asym_n_trials, asym_p,    shape=asym_sessions_count)
+                    # Random intercepts
+                    a = pm.Normal('a', mu=mu_a, sd=sigma_a, shape=n_sessions)
 
-            # likelihood = pm.Bernoulli('likelihoood', p=asym_p, observed=asym_rates, shape=asym_sessions_count)
-            # estimate = pm.Bernoulli('estimate', p=asym_p, shape=asym_sessions_count)
+                    # Model error
+                    sigma_y = pm.HalfCauchy('sigma_y', 5)
 
-            step = pm.Metropolis()
-            trace = pm.sample(800000, step=step)
-            burned_trace = trace[20000:]
+                    # Expected value
+                    y_hat = a[index]
 
-        pm.traceplot(burned_trace)
+                    # Data likelihood
+                    y_like = pm.Normal('y_like', mu=y_hat, sd=sigma_y, observed=ftrials)
 
-        # f, axarr = plt.subplots(nrows=2)
-        # axarr[0].hist(burned_trace['likelihood'])
-        # axarr[1].hist(burned_trace['estimate'])
+                    step = pm.Metropolis()
+                    partial_pooling_trace = pm.sample(5000, tune=1000, njobs=1)
+                    # partial_pooling_trace = pm.sample(20000, step=step, tune=2000)
 
-    def plot_posteriors_histo(self):
+                # pm.traceplot(partial_pooling_trace)
+                print(partial_pooling_trace['a'].shape)
+                for i in np.arange(partial_pooling_trace['a'].shape[1]):
+                    np.save(path+'_{}.npy'.format(i), partial_pooling_trace['a'][:, i])
 
-        colors = ["#A60628", "#467821", "#7A68A6"]
+        else:
+            traces = [np.load('./Processing/modelling/part_pooled_asym.npy'), 
+                        np.load('./Processing/modelling/part_pooled_sym.npy')]
 
-        if self.grouped_samples is not None:
-
-            #histogram of posteriors
-            f, axarr = plt.subplots(nrows=2, facecolor=[.2, .2, .2])
-
-            for (name, traces), color in zip(self.grouped_samples.items(), colors):
-                if name == 'delta': continue
-                axarr[0].set(facecolor=[.2, .2, .2], xlim=[0, 1], title='Posteriors of GROUPED modelling')
-                axarr[0].hist(traces, histtype='stepfilled', bins=25, alpha=0.85,
-                        label="posterior of ${}$".format(name), color=color, normed=True)
-                # ax.vlines(np.mean(asym_binary), 0, 20, linestyle="--", label="true $p_A$ (unknown)", color='w')
-                axarr[0].legend(loc="upper left")
-
-            axarr[1].set(facecolor=[.2, .2, .2])
-            axarr[1].hist(self.grouped_samples['delta'], histtype='stepfilled', bins=25, alpha=0.85,
-                    label="posterior of $delta$", color=colors[-1], normed=True)
-            # ax.vlines(np.mean(asym_binary), 0, 20, linestyle="--", label="true $p_A$ (unknown)", color='w')
-            axarr[1].legend(loc="upper right")
-
-
-        if self.individuals_samples is not None:
-            #histogram of posteriors
-            f, axarr = plt.subplots(nrows=len(self.individuals_samples), facecolor=[.2, .2, .2])
-            datasets = ['Asym', 'Sym']
-            for ax, (dataset, traces, n_trials) in zip(axarr, self.individuals_samples):
-                color=colors[dataset]
-
-                ax.set(facecolor=[.2, .2, .2], xlim=[0, 1], title='Posteriors of GROUPED modelling - {} - #{} trials'.format(datasets[dataset], n_trials))
-                ax.hist(traces, histtype='stepfilled', bins=25, alpha=0.85,
-                        color=color, normed=True)
-
-                ax.legend(loc="upper left")
+    ################################################################################
+    ################################################################################
+    ################################################################################
 
     def summary_plots(self):
         # Load the data
@@ -470,6 +472,35 @@ class BayesModeler:
 
         axarr[2].legend()
         axarr[3].legend()
+
+        # Plot the partial pooled model
+        dir = './Processing/modelling'
+        pooled_files = [os.path.join(dir, f) for f in os.listdir(dir) if 'part_pooled' in f]
+
+        asym_traces = [np.load(f) for f in pooled_files if 'asym' in f]
+        asym_traces = np.vstack(asym_traces)
+
+        sym_traces = [np.load(f) for f in pooled_files if not 'asym' in f]
+        sym_traces = np.vstack(sym_traces)
+
+        traces = [asym_traces, sym_traces]
+
+        f, axarr = plt.subplots(nrows=3)
+
+        for i in [0, 1]:
+            print(traces[0].shape, traces[1].shape)
+            for trace in np.arange(traces[i].shape[0]):
+                    sns.kdeplot(traces[i][trace, :], ax=axarr[i], color=colors[i], shade=True, alpha=.1)
+                    sns.kdeplot(traces[i][trace, :], ax=axarr[i], color=colors[i], shade=False, alpha=.8)
+
+        sns.kdeplot(np.concatenate(traces[0]), ax=axarr[2], color=colors[0], shade=True, alpha=.1)
+        sns.kdeplot(np.concatenate(traces[0]), ax=axarr[2], color=colors[0], shade=False, alpha=.8)
+        sns.kdeplot(np.concatenate(traces[1]), ax=axarr[2], color=colors[1], shade=True, alpha=.1)
+        sns.kdeplot(np.concatenate(traces[1]), ax=axarr[2], color=colors[1], shade=False, alpha=.8)
+
+        axarr[0].set(title='Partial pooled model - Asym. posteriors', xlabel='$p(R)$', ylabel='density', xlim=[0, 1])
+        axarr[1].set(title='Partial pooled model - Sym. posteriors', xlabel='$p(R)$', ylabel='density', xlim=[0, 1])
+        axarr[2].set(title='Comulative of posteriors', xlabel='$p(R)$', ylabel='density', xlim=[0, 1])
 
 
 
