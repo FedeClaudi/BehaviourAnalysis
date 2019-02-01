@@ -24,8 +24,8 @@ def run():
         p values are chosen randomly between 0 and 1
     """
     m = 20
-    n = 10000
-    p_min, p_max = 0.2, .5
+    n = 10
+    p_min, p_max = 0.9, 1
 
     p = np.random.uniform(p_min, p_max, size=m)
     trials = stats.bernoulli.rvs(p=p, size=(n, m))
@@ -48,11 +48,12 @@ def run():
         thetas = pm.Beta('thetas', alpha=phi*kappa, beta=(1.0-phi)*kappa, shape=m)
 
         offset_thetas = pm.Deterministic("offset_thetas", thetas + offset*kappa)
-        y = pm.Binomial('y', n=n, p=thetas, observed=hits)
-        ye = pm.Binomial('ye', n=n, p=thetas, shape=m)
+        # y = pm.Binomial('y', n=n, p=thetas, observed=hits)
+        y= pm.Normal('y', mu=thetas, sd=1, observed=hits)
+
 
         # step = pm.Metropolis()
-        partial_pooling_trace = pm.sample(2000, tune=1000, nuts_kwargs={'target_accept': 0.95}) 
+        partial_pooling_trace = pm.sample(2000, tune=100, nuts_kwargs={'target_accept': 0.95}) 
 
 
 

@@ -6,7 +6,7 @@ import pandas as pd
 from scipy.spatial import distance
 from math import factorial, atan2, degrees, acos, sqrt, pi
 import math
-
+import matplotlib.pyplot as plt
 from Utilities.file_io.files_load_save import load_yaml
 
 
@@ -329,9 +329,9 @@ def correct_tracking_data(uncorrected, M, xpad, ypad, exp_name, sess_uid):
     m3d = np.append(M, np.zeros((1,3)),0)
     corrected = np.zeros((uncorrected.shape[0], 3))
     for framen in range(uncorrected.shape[0]):
-        x,y = uncorrected[framen, 0], uncorrected[framen, 1]
+        x,y = uncorrected[framen, 0]+ypad, uncorrected[framen, 1]+xpad
         corrected[framen, :2]= (np.matmul(m3d, [x, y, 1]))[:2]
-        xpad_corr, ypad_corr = (np.matmul(m3d, [xpad, ypad, 1]))[:2]
+        # xpad_corr, ypad_corr = (np.matmul(m3d, [xpad, ypad, 1]))[:2]
 
     # Shift in X and Y according to how the frame was padded when creating the transform matrix
     # also flip and shift Y otherwise it'll be upside down
@@ -351,10 +351,14 @@ def correct_tracking_data(uncorrected, M, xpad, ypad, exp_name, sess_uid):
         else:
             x_translation, y_translation = translators['FlipFlop Maze']
     
-    corrected[:, 0] = np.add(corrected[:, 0],  x_translation)
-    corrected[:, 1] = np.add(-np.add(corrected[:, 1], 0), 1000)
-    corrected[:, 1] = np.add(corrected[:, 1], y_translation)
+    # corrected[:, 0] = np.add(corrected[:, 0],  x_translation)
+    # corrected[:, 1] = np.add(-np.add(corrected[:, 1], 0), 1000)
+    # corrected[:, 1] = np.add(corrected[:, 1], y_translation)
 
+    # corrected[:, 1] = np.add(300, -np.subtract(corrected[:, 1], 300))
+    # corrected[:, 0] = np.add(xpad, corrected[:, 0])
+    # corrected[:, 1] = np.add(ypad, corrected[:, 1])
+    a = 1
 
     # import matplotlib.pyplot as plt
     # plt.plot(uncorrected[:, 0], uncorrected[:, 1])

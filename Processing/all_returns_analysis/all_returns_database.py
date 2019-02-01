@@ -17,6 +17,31 @@ from Utilities.file_io.files_load_save import load_yaml
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 
 
+class Trip:
+    def __init__(self):
+        """
+            fake class used to store data about each shelter - threat - shelter trip
+        """
+        self.shelter_exit = None        # The frame number at which the mouse leaves the shelter
+        self.threat_enter = None        # The frame number at which the mouse enters the therat
+        self.threat_exit = None         # The frame number at which the mouse leaves the threat
+        self.shelter_enter = None       # The frame number at which the mouse reaches the shelter
+        self.time_in_shelter = None     # time spent in the shelter before leaving again    
+        self.tracking_data = None       # Numpyu array with X, Y, S, O... at each frame
+        self.is_trial = None            # Bool
+        self.recording_uid = None       # Str
+        self.duration = None            # Escape duration from levae threat to at shelter in seconds
+        self.is_escape = None           # Bool
+        self.arm_taken = None           # Str
+        self.experiment_name = None     # Str
+        self.max_speed = None               
+        
+    def _as_dict(self):
+        return self.__dict__
+
+
+
+
 class analyse_all_trips:
     """ 
         get all trips data from the database
@@ -24,37 +49,20 @@ class analyse_all_trips:
     """
 
     def __init__(self, erase_table=False, fill_in_table=False):
-
-        self.naughty_experiments = ['PathInt', 'Lambda Maze', 'Square Maze']
-        self.good_experiments = ['PathInt2']
         if erase_table:
-            AllTrips.drop()
-            print('Table erased, exiting...')
-            sys.exit()
+            self.erase_table()
 
-        if fill_in_table:
-            # Get tracking data
-            print('     ... fetching data')
-            #  (mouse & 'dob > "2017-01-01"' & 'sex = "M"').fetch()
-            # all_bp_tracking = pd.DataFrame(TrackingData.BodyPartData.fetch())
-            fetched = (TrackingData.BodyPartData & 'bpname = "body"').fetch()
+        if fill_in_table: # Get tracking data
+            self.fetch_data()
 
-            all_bp_tracking = pd.DataFrame(fetched)
-            self.tracking = all_bp_tracking.loc[all_bp_tracking['bpname'] == 'body']
 
-            # bodyaxis_tracking = pd.DataFrame(TrackingData.BodySegmentData.fetch())
-            self.ba_tracking = pd.DataFrame((TrackingData.BodySegmentData & 'bp1 = "body_axis"').fetch())
-            self.stimuli = pd.DataFrame(BehaviourStimuli.fetch())
-
-            print('... ready')
-
-            # Get ROIs coordinates
-            self.rois = self.get_rois()
-
-            # Get all good trips
+            # Prepare variables
+            self.exclude_by_exp = True
+            self.naughty_experiments = ['PathInt', 'Lambda Maze', ]
+            self.good_experiments = ['PathInt2', 'Square Maze', 'TwoAndahalf Maze']
             self.all_trips = []
-            self.trip = namedtuple('trip', 'shelter_exit threat_enter threat_exit shelter_enter time_in_shelter tracking_data is_trial recording_uid duration max_speed is_escape arm_taken experiment_name')
-            
+
+            # Get all the times the mouse goes from the threat to the shelter
             print('     ... getting trips')
             self.get_trips()
 
@@ -64,221 +72,235 @@ class analyse_all_trips:
 
             print(self.table)
 
+    def erase_table(self):
+        """ drops table from DataJoint database """
+        AllTrips.drop()
+        print('Table erased, exiting...')
+        sys.exit()
+
+    def fetch_data(self):
+        """ 
+            Gets the relevant data from the the DataJoint database
+        """ 
+
+        print('     ... fetching data')
+            
+        fetched = (TrackingData.BodyPartData & 'bpname = "body"').fetch()
+
+        # Get BODY tracking data
+        all_bp_tracking = pd.DataFrame(fetched)
+        self.tracking = all_bp_tracking.loc[all_bp_tracking['bpname'] == 'body']
+
+        # Get BODY AXIS tracking data
+        self.ba_tracking = pd.DataFrame((TrackingData.BodySegmentData & 'bp1 = "body_axis"').fetch())
+
+        # Get all stimuli
+        self.stimuli = pd.DataFrame(BehaviourStimuli.fetch())
+
+        print('... ready')
+
     #####################################################################
     #####################################################################
 
-    def get_rois(self):
-        # roi = namedtuple('roi', 'x0 x1 width y0 y1 height')
-        # formatted_rois = {}
-        # rois_dict = load_yaml('Utilities\\video_and_plotting\\template_points.yml')
+    def get_rois_enters_exits(self, tr):
+        """
+            Returns a dict where for each roi there is a tuple with a list of all the frames at which the mouse enters the roi and a list
+            for when it exits the roi
+        """
 
-        # for roi_name, cc in rois_dict.items():
-        #     if roi_name == 'translators': continue
-        #     formatted_rois[roi_name] = roi(cc['x'], cc['x']+cc['width'], cc['width'],
-        #                                     cc['y'], cc['y']-cc['height'], cc['height'])
-        # return formatted_rois
-        rois = dict(shelter=0, threat=1)
-        return rois
+        # Define variables
+        in_rois = {}
+        in_roi_tup = namedtuple('inroi', 'ins outs') # For each roi store the times the mouse enters and exits
+        rois = dict(shelter=0, threat=1) 
+
+        roi_at_each_frame = tr[:, -1]
+
+        # Loop over each desired roi
+        for i, (roi, cc) in enumerate(rois.items()):
+            in_roi = np.where(roi_at_each_frame==cc)[0]
+
+            # get times at which it enters and exits
+            xx = np.zeros(tr.shape[0])
+            xx[in_roi] = 1
+            enter_exit = np.diff(xx)
+            enters, exits = np.where(np.diff(xx)>0)[0], np.where(np.diff(xx)<0)[0]
+            in_rois[roi] = in_roi_tup(list(enters), list(exits))
+        return in_rois
+
+    def get_complete_trips(self, in_rois):
+        """
+            For each time the mouse leaves the shelter, only keep the last time before the mouse got to the threat and back. 
+            i.e. if the mouse leaves the shelter briefly and then returns before doing a complete trip, disregard. 
+        """
+        print(' ... getting good trips')
+        good_trips = []
+
+        for sexit in in_rois['shelter'].outs:
+            # get time in which it returns to the shelter 
+            try:
+                next_in = [i for i in in_rois['shelter'].ins if i > sexit][0] # Next time the mouse returns to the shelter
+                time_in_shelter = [i for i in in_rois['shelter'].outs if i > next_in][0]-next_in  # time spent in shelter after return
+            except:
+                if sexit == in_rois['shelter'].outs[-1]: continue
+                else:
+                    raise ValueError
+
+            # Check if it reached the threat after leaving the shelter
+            at_threat = [i for i in in_rois['threat'].ins if i > sexit and i < next_in]              
+            if at_threat:
+                tenter = at_threat[0]
+                try:
+                    texit = [t for t in in_rois['threat'].outs if t>=tenter and t<=next_in][-1]
+                except:
+                    raise ValueError
+                    pass  # didn't reach threat, don't append the good times
+                else:
+                    gt = Trip()  # Instantiate an instance of the class and populate it with data
+                    gt.shelter_exit, gt.threat_enter, gt.threat_exit, gt.shelter_enter, gt.time_in_shelter = sexit, tenter, texit, next_in, time_in_shelter
+                    good_trips.append(gt)
+
+        return good_trips
+
+    def inspect_trips(self, complete_trips, exp, row, tr):
+        """
+            For each trip, check if it includes a trial, on which arm the return happened. 
+            How long the return lasted, if it classifies as an escape...
+        """
+        warnings.warn('Lots of hardcoded variables')
+        print(' ... getting more info about the trips')
+        for g in complete_trips:
+            # Get the stimuli of this recording and see if one happened between when the mouse left the shelter and when it leaves the threat
+            rec_stimuli = self.stimuli.loc[self.stimuli['recording_uid'] == row['recording_uid']]
+            stims_in_time = [s for s in rec_stimuli['stim_start'].values if g.threat_enter<s<g.threat_exit]
+            
+            if stims_in_time:
+                # Sanity check
+                has_stim = 'true'
+            else:
+                has_stim = 'false'
+
+            # Get remaining variables
+            endtime = g.shelter_enter+g.time_in_shelter  # Take tracking data up to this time
+            tracking_data = tr[g.shelter_exit:endtime, :]
+            escape_start, escape_end = g.threat_exit -g.shelter_exit,  g.shelter_enter-g.shelter_exit
+
+            # Ignore returns that are faster than 1s, probably errors
+            if escape_end-escape_start <= 30*.5: continue # ! hardcoded fps
+
+
+            # Get the arm of escape
+            try:
+                y_midpoint = np.where(tracking_data[escape_start:escape_end,1]>=550)[0][0]  # midpoint on the y axis, used to check which arm was takem
+            except:
+                raise ValueError
+                print('smth went wrong')
+                continue
+
+            escape_rois_ids = np.trim_zeros(tracking_data[escape_start:escape_end, -1])
+            escape_rois_id = escape_rois_ids[y_midpoint]
+            # ! Based on the IDs of the platforms. Not very elegant but works it seems
+            if 22.0 == escape_rois_id:
+                arm_taken = 'Centre'
+            elif escape_rois_id in [9.0, 5.0, 15.0, 14.0]:
+                arm_taken = 'Right_Far'
+            elif escape_rois_id in [8.0, 2.0, 10.0, 11.0]:
+                arm_taken = 'Left_Far'
+            elif escape_rois_id in [13.0, 6.0, 18.0]:
+                if 22.0 in escape_rois_ids:
+                    arm_taken == "Centre"
+                elif 14.0 in escape_rois_ids[y_midpoint:y_midpoint+60] or 5.0 in escape_rois_ids[y_midpoint:y_midpoint+60]:
+                    arm_taken = 'Right_Far'
+                else:
+                    arm_taken = 'Right_Medium'
+            elif escape_rois_id in [12.0, 3.0, 17.0]:
+                if 22.0 in escape_rois_ids:
+                    arm_taken = 'Centre'
+                elif 11.0 in escape_rois_ids[y_midpoint:y_midpoint+60] or 2.0 in escape_rois_ids[y_midpoint:y_midpoint+60]:
+                    arm_taken = 'Left_Far'
+                else: 
+                    arm_taken = 'Left_Medium'
+            else:
+                raise ValueError
+
+            # Get the duration of the escape
+            duration = (g.shelter_enter - g.threat_exit)/30 # ! hardcoded fps
+            smooth_speed = line_smoother(tracking_data[:,2])
+            max_speed = np.percentile(smooth_speed, 85)
+
+            # ! arbritary
+            duration_lims = dict(Left_Far=9,
+                            Left_Medium=6,
+                            Centre=4,
+                            Right_Medium=6,
+                            Right_Far=9)
+
+            if duration <= duration_lims[arm_taken]: # ! hardcoded arbritary variable
+                is_escape = 'true'
+            else:
+                is_escape = 'false'
+
+            # Update more variables of the trip class
+            g.tracking_data = tracking_data
+            g.is_trial = has_stim
+            g.recording_uid = row['recording_uid']
+            g.duration = duration
+            g.max_speed = max_speed
+            g.is_escape = is_escape
+            g.arm_taken = arm_taken
+            g.experiment_name = exp
+
+            self.all_trips.append(g)
 
     def get_trips(self):
-        def checl_tracking_plotter(tracking_data):
-            f, ax = plt.subplots()
-            ax.scatter(tracking_data[:, 0], tracking_data[:, 1], c=tracking_data[:, -1], s=10)
-            plt.show()
-
-
+        """
+            Gets all the time the mouse leaves the shelter, goes to threat and then goes back to the shelter. 
+            Once all the trips are identified, the tracking data for those time intervals are selected, the escape arm is classified
+            and the trip is checked to see if its an escape and if it happened after a trial
+        """
+        # Get recordings and sessions data
         recordings = pd.DataFrame(Recordings().fetch())
         sessions = pd.DataFrame(Sessions().fetch())
-        trips=[]
-        goodtime = namedtuple('gt', 'shelter_exit threat_enter threat_exit shelter_enter time_in_shelter experiment_name')
+
+        # Loop over each entry in the tracking table
         for idx, row in self.tracking.iterrows():
-            # To exclude trials from unwanted experiment...
-            rec = recordings.loc[recordings['recording_uid'] == row['recording_uid']]
-            sess = sessions.loc[sessions['session_name'] == rec['session_name'].values[0]]
-            exp = sess['experiment_name'].values[0]
-            
-            # if exp in self.naughty_experiments: continue
-            # if exp not in self.good_experiments: continue
+            """
+                FETCH AND EXCLUDE DATA
+            """
+            if self.exclude_by_exp:    
+                # To exclude trials from unwanted experiment get the experiment matching the tracking data
+                rec = recordings.loc[recordings['recording_uid'] == row['recording_uid']]
+                sess = sessions.loc[sessions['session_name'] == rec['session_name'].values[0]]
+                exp = sess['experiment_name'].values[0]
+                        
+                if exp in self.naughty_experiments: continue
+                if exp not in self.good_experiments: continue
 
+            # Get the tracking data as a numpy array
             tr = row['tracking_data']
-            # checl_tracking_plotter(tr)
             print(row['recording_uid'], idx, ' of ', self.tracking.shape)
-            in_rois = {}
-            in_roi_tup = namedtuple('inroi', 'ins outs')
+
+            """
+                GET ALL THE TIMES THE MOUSE IS IN SHELTER OR IN THREAT
+            """
             print('  ... getting times in rois')
-            roi_at_each_frame = tr[:, -1]
-            for i, (roi, cc) in enumerate(self.rois.items()):
-                # # Get time points in which mouse is in roi
-                # x = line_smoother(tr[:, 0])
-                # y = line_smoother(tr[:, 1])
-                # in_x =np.where((cc.x0<=x) & (x<= cc.x1))
-                # in_y = np.where((cc.y1<=y) & (y<= cc.y0))
-
-                # in_xy = np.intersect1d(in_x, in_y)
-                # in_xy = in_xy[in_xy>=9000]  # ? not sure what this line does
-                # # raise NotImplementedError('Check what the line above does you dummy')
-
-                in_roi = np.where(roi_at_each_frame==cc)[0]
-
-                # get times at which it enters and exits
-                xx = np.zeros(tr.shape[0])
-                xx[in_roi] = 1
-                enter_exit = np.diff(xx)
-                enters, exits = np.where(np.diff(xx)>0)[0], np.where(np.diff(xx)<0)[0]
-                in_rois[roi] = in_roi_tup(list(enters), list(exits))
-
-            # Get bodylength and add it to tracking data
-            try:  # can only do this if we have body length in tracking data
-                blen = self.ba_tracking.loc['recording_uid' == row['recording_uid']]['tracking_data'].values
-            except:
-                warnings.warn('No body length recorded')
-                blen = np.zeros((tr.shape[0],1))
-            tr = np.append(tr, blen, axis=1)
-
-            # get complete s-t-s trips
-            print(' ... getting good trips')
-            good_times = []
-            for sexit in in_rois['shelter'].outs:
-                # get time in which it returns to the shelter 
-                try:
-                    next_in = [i for i in in_rois['shelter'].ins if i > sexit][0]
-                    time_in_shelter = [i for i in in_rois['shelter'].outs if i > next_in][0]-next_in  # time spent in shelter after return
-                except:
-                    break
-
-                # Check if it reached the threat
-                at_threat = [i for i in in_rois['threat'].ins if i > sexit and i < next_in]              
-                if at_threat:
-                    tenter = at_threat[0]
-                    try:
-                        texit = [t for t in in_rois['threat'].outs if t>tenter and t<next_in][-1]
-                    except:
-                        pass  # didn't reach threat, don't append the good times
-                    else:
-                        gt = goodtime(sexit, tenter, texit, next_in, time_in_shelter, exp)
-                        good_times.append(gt)
+            in_rois = self.get_rois_enters_exits(tr)
 
 
+            """
+                GET ALL THE TIMES A MOUSE DOES A COMPLETE S-T-S TRIP
+            """
+            # ! THIS MIGHT NEED TO CHANGE ?
+            complete_trips = self.get_complete_trips(in_rois)
 
-            # Check if trip includes trial and add to al trips dictionary
-            print(' ... checking if trials')
-            for good_time_n, g in enumerate(good_times):
-                rec_stimuli = self.stimuli.loc[self.stimuli['recording_uid'] == row['recording_uid']]
-                stims_in_time = [s for s in rec_stimuli['stim_start'].values if g[0]<s<g[2]]
-                if stims_in_time:
-                    has_stim = 'true'
-                else:
-                    has_stim = 'false'
+            """
+                INSPECT THE TRIPS TO ADD FURTHER DETAILS
+            """
+            self.inspect_trips(complete_trips, exp,row, tr)
 
-                # 'shelter_exit threat_enter threat_exit shelter_enter time_in_shelter tracking_data is_trial recording_uid duration max_speed is_escape arm_taken')
-
-                # Get remaining variables
-                endtime = g.shelter_enter+g.time_in_shelter
-                tracking_data = tr[g.shelter_exit:endtime, :]
-
-                
-
-                escape_start, escape_end = g.threat_exit -g.shelter_exit,  g.shelter_enter-g.shelter_exit
-                # Ignore returns that are faster than 1s, probably errors
-                if escape_end-escape_start <= 30*1: continue # ! hardcoded fps
-
-                escape_rois_ids = np.trim_zeros(tracking_data[escape_start:escape_end, -2])
-                
-                try:
-                    y_midpoint = np.where(tracking_data[escape_start:escape_end,1]>=550)[0][0]
-                except:
-                    print('smth went wrong')
-                    continue
-                
-                escape_rois_id = escape_rois_ids[y_midpoint]
-                if 22.0 == escape_rois_id:
-                    arm_taken = 'Centre'
-                elif escape_rois_id in [9.0, 5.0, 15.0, 14.0]:
-                    arm_taken = 'Right_Far'
-                elif escape_rois_id in [8.0, 2.0, 10.0, 11.0]:
-                    arm_taken = 'Left_Far'
-                elif escape_rois_id in [13.0, 6.0, 18.0]:
-                    if 22.0 in escape_rois_ids:
-                        arm_taken == "Centre"
-                    elif 14.0 in escape_rois_ids[y_midpoint:y_midpoint+60] or 5.0 in escape_rois_ids[y_midpoint:y_midpoint+60]:
-                        arm_taken = 'Right_Far'
-                    else:
-                        arm_taken = 'Right_Medium'
-
-                elif escape_rois_id in [12.0, 3.0, 17.0]:
-                    if 22.0 in escape_rois_ids:
-                        arm_taken = 'Centre'
-                    elif 11.0 in escape_rois_ids[y_midpoint:y_midpoint+60] or 2.0 in escape_rois_ids[y_midpoint:y_midpoint+60]:
-                        arm_taken = 'Left_Far'
-                    else: 
-                        arm_taken = 'Left_Medium'
-                else:
-                    continue
-                    # raise ValueError(escape_rois_id)
-
-                # Manually checking arm of escape
-                # print(arm_taken)
-                # if 'Medium' in arm_taken.split('_'):
-                #     f, ax = plt.subplots(facecolor=[.2, .2, .2])
-                #     ax.plot(tracking_data[:, 0], tracking_data[:, 1], color='k', alpha=.5)
-                #     ax.scatter(tracking_data[escape_start:escape_end, 0], tracking_data[escape_start:escape_end, 1], c=tracking_data[escape_start:escape_end, -2])
-                #     ax.set(title=arm_taken)
-                #     fld = 'C:\\Users\\Federico\\Desktop\\test'
-                #     try:
-                #         f.savefig(os.path.join(fld, '{}.png'.format(good_time_n)))
-                #     except:
-                #         pass
-                #     # plt.close('all')
-
-                #     plt.show()
-
-                # escape_id = input("""
-                #     Please Select arm of escape:
-                #         - q: left far
-                #         - w: left medium
-                #         - e: centre
-                #         - r: right medium
-                #         - t: right far
-                # """)
-
-
-                # if escape_id: # if I don;t press anything it means it was correct
-                #     input_lookup = dict(
-                #         q='Left_Far',
-                #         w='Left_Medium',
-                #         e='Centre',
-                #         r='Right_Medium',
-                #         t='Right_Far'
-                #     )
-                #     try:
-                #         arm_taken = input_lookup[escape_id]
-                #     except:
-                #         a = 1
-
-                duration = (g.shelter_enter - g.threat_exit)/30 # ! hardcoded fps
-                smooth_speed = line_smoother(tracking_data[:,2])
-                max_speed = np.percentile(smooth_speed, 85)
-
-
-                duration_lims = dict(Left_Far=9,
-                                Left_Medium=6,
-                                Centre=4,
-                                Right_Medium=6,
-                                Right_Far=9)
-
-                if duration <= duration_lims[arm_taken]: # ! hardcoded arbritary variable
-                    is_escape = 'true'
-                else:
-                    is_escape = 'false'
-
-
-                self.all_trips.append(self.trip(g.shelter_exit, g.threat_enter, g.threat_exit, g.shelter_enter,
-                            g.time_in_shelter, tracking_data, has_stim, row['recording_uid'], duration, max_speed, is_escape, arm_taken, g.experiment_name))
- 
 
     def insert_trips_in_table(self):
         for i, trip in enumerate(self.all_trips): 
-            key = trip._asdict()
+            key = trip._as_dict() 
             key['trip_id'] = i
             try:
                 self.table.insert1(key)
@@ -291,8 +313,6 @@ class analyse_all_trips:
 def check_table_inserts(table):
     data = pd.DataFrame(table.fetch())
 
-    # data = data.loc[data['is_trial']=='true']
-    
     # Plot XY traces sorted by arm taken
     arms = ['Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far']
     f, axarr = plt.subplots(3, 2, facecolor =[.2,  .2, .2])
@@ -302,24 +322,81 @@ def check_table_inserts(table):
     for i, (arm, ax) in enumerate(zip(arms, axarr)):
         sel = data.loc[data['arm_taken'] == arm]
         for idx, row in sel.iterrows():
-            t0, t1 = row['threat_exit']-row['shelter_exit'], row['shelter_enter']-row['shelter_exit']
+            t0, t1, t2 = row['threat_enter']-row['shelter_exit'], row['shelter_enter']-row['shelter_exit'], row['threat_exit']-row['shelter_exit']
             tracking = row['tracking_data']
-            ax.scatter(tracking[t0:t0+150, 0], tracking[t0:t0+150, 1],c=tracking[t0:t0+150, -2],    s=1, alpha=.5)
-            axarr[-1].scatter(tracking[t0:t0+150, 0], tracking[t0:t0+150, 1], c=colors[i],  s=1, alpha=.25)
+            ax.scatter(tracking[t0:t2, 0], tracking[t0:t2, 1],c=[.8, .8, .8],    s=1, alpha=.15)
+            ax.scatter(tracking[t2:t1, 0], tracking[t2:t1, 1],c=tracking[t2:t1, -1],    s=1, alpha=.5)
+            axarr[-1].scatter(tracking[t0:t1, 0], tracking[t0:t1, 1], c=tracking[t0:t1, -1],  s=1, alpha=.25)
             if tracking.shape[0] > arr_size: arr_size = tracking.shape[0]
         ax.set(title=arm, facecolor=[.2, .2, .2], xlim=[0, 1000], ylim=[200, 800])
     axarr[-1].set(facecolor=[.2, .2, .2])
-        
-
     plt.show()
+
+
+def check_all_trials_included(table):
+    """
+    In principle all trials should be included in All Returns, lets check
+    """
+    data = pd.DataFrame(table.fetch())
+    recordings = Recordings().fetch("recording_uid")
+    stimuli = pd.DataFrame(BehaviourStimuli.fetch())
+
+    fetched = (TrackingData.BodyPartData & 'bpname = "body"').fetch()
+    all_bp_tracking = pd.DataFrame(fetched)
+    body_tracking = all_bp_tracking.loc[all_bp_tracking['bpname'] == 'body']
+    
+    for i, rec in enumerate(recordings):
+        print('Checking rec {} of {}'.format(i, len(recordings)))
+        r_stim_times = stimuli.loc[stimuli['recording_uid'] == rec]['stim_start'].values
+        rtrips = data.loc[(data['recording_uid'] == rec)&(data['is_trial']=='true')]
+
+        if not np.any(rtrips['recording_uid'].values): continue
+
+        for si, stim_time in enumerate(r_stim_times):
+            if stim_time == -1: continue # just a place holder empty stim table entry
+
+            # Check if there is a trial trip that includes it
+            entry_in_t_before_stim = np.where(rtrips['threat_enter'].values <= stim_time)[0]
+
+            if not len(entry_in_t_before_stim): 
+                # raise ValueError('Didnt find any good time')
+                print('     Didnt find any good time')
+                continue
+            else:
+                last_entry_index = entry_in_t_before_stim[-1]
+
+            try:
+                prev_enter = rtrips['threat_enter'].values[last_entry_index]
+                next_exit = rtrips['threat_exit'].values[last_entry_index]
+            except:
+                raise ValueError('      smth went wrong')
+            else:
+                if not prev_enter < stim_time < next_exit: 
+                    rec_tracking = body_tracking.loc[body_tracking['recording_uid']==rec]['tracking_data'].values[0]
+                    t0, t1 = -600, 600
+                    plt.scatter(rec_tracking[stim_time+t0:stim_time+t1, 0], rec_tracking[stim_time+t0:stim_time+t1, 1], c=rec_tracking[stim_time+t0:stim_time+t1, -1])
+
+
+                    # raise ValueError('Timings wrong')
+                    print('     Timings wrong')
+                    print('     {} - stim {} if {}'.format(rec, si, len(r_stim_times)))
+
+                    tracking = rtrips['tracking_data'].values[last_entry_index]
+                    plt.scatter(tracking[:, 0], tracking[:, 1])
+
+    # If we got here everything was good
+    print('All trials are included')
+
 
 
 
 
 if __name__ == '__main__':
     # print('Ready')
-    analyse_all_trips(erase_table=False, fill_in_table=True)
+    # analyse_all_trips(erase_table=False, fill_in_table=True)
 
     print(AllTrips())
     check_table_inserts(AllTrips())
+
+    # check_all_trials_included(AllTrips())
 
