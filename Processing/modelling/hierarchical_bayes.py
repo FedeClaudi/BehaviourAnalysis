@@ -13,6 +13,7 @@ import matplotlib.mlab as mlab
 import matplotlib as mpl
 import seaborn as sns
 import os
+import theano.tensor as tt
 
 mpl.rcParams['text.color'] = 'k'
 mpl.rcParams['xtick.color'] = 'k'
@@ -180,7 +181,7 @@ class BayesModeler:
             pm.posteriorplot.plot_posterior(burned_trace)
         return burned_trace
 
-    def model_individuals(self, display_distributions=True, load_traces=True):
+    def model_individuals(self, display_distributions=True, load_traces=False):
         print('\n\nClustering individuals')
         
         if sys.platform == "darwin":
@@ -206,19 +207,20 @@ class BayesModeler:
                     trace = pm.sample(10000, step=step)
                     burned_trace=trace[1000:]
 
+
                 individuals.append((exp_id, trials, burned_trace))
 
             # Savee data
             asym_traces = [burned['p_individual'] for exp, _, burned in individuals if exp==0]
             sym_traces = [burned['p_individual'] for exp, _, burned in individuals if exp==1]
 
-            np.save(os.path.join(self.data, 'asym_individual_traces.npy'), asym_traces)
-            np.save(os.path.join(self.data, 'sym_individual_traces.npy'), sym_traces)
+            np.save(os.path.join(self.data_fld, 'asym_individual_traces.npy'), asym_traces)
+            np.save(os.path.join(self.data_fld, 'sym_individual_traces.npy'), sym_traces)
 
         else:
             print('  loading traces') # load stached data and organise them for plotti
-            asym_traces = np.load(os.path.join(self.data, 'asym_individual_traces.npy'))
-            sym_traces = np.load(os.path.join(self.data, 'sym_individual_traces.npy'))
+            asym_traces = np.load(os.path.join(self.data_fld, 'asym_individual_traces.npy'))
+            sym_traces = np.load(os.path.join(self.data_fld, 'sym_individual_traces.npy'))
             all_traces = np.vstack([asym_traces, sym_traces])
             all_sessions = all_traces.shape[0]
             exp_ids = np.hstack([np.zeros(asym_traces.shape[0]), np.ones(sym_traces.shape[0])])
@@ -228,20 +230,10 @@ class BayesModeler:
             [pm.traceplot(burned) for _, _, burned in individuals]
 
 
-    def model_hierarchical(self, save_traces=True):
-        """
-            The p(R) of each mouse is modelled as a Bernoulli distribution with 'n' trials and 'p' probability.
-                - n is fiexed and is equivalent to the number of trials of each mouse
-                - p is what we want to find out by fitting the model to the observed p(R)
-
-            The true underlying rates are thought to be drawn from a Normal distribution (one for each experiment) with
-            mean mu and standard devation std where:
-                - mu has a prior that is uniform between 0 and 1
-                - std is drawn from a half t-test distribution
-        """
-
+    def model_hierarchical(self, save_traces=True, use_model=1, use_fake_data=False):
         if save_traces:
             print('Hierarchical modelling... ')
+
             # Ge the observed p(R) for each mouse in each experiment
             rates = []
             for session in self.data['session'].unique():
@@ -263,75 +255,238 @@ class BayesModeler:
             sym_ftrials = stats.bernoulli.rvs(p=np.array(sym_rates), size=(15, sym_n_sessions)) # ! Fake trials, to create an array with uniforme size
 
             asym_trials = [t for e,r,t in rates if e == 0]
-            n_trials = [len(t) for t in asym_trials]
-            max_t = np.max(n_trials)+1
+            asym_n_trials = [len(t) for t in asym_trials]
+            max_t = np.max(asym_n_trials)+1
             empty = [np.full(max_t, np.nan) for t in np.arange(len(asym_trials))]
             asym_padded = []
-            for i, (t,n,e) in enumerate(zip(asym_trials, n_trials, empty)):
+            for i, (t,n,e) in enumerate(zip(asym_trials, asym_n_trials, empty)):
                 e[:n] = t
                 asym_padded.append(e)
             
             sym_trials = [t for e,r,t in rates if e == 1]
-            n_trials = [len(t) for t in sym_trials]
-            max_t = np.max(n_trials)+1
+            sym_n_trials = [len(t) for t in sym_trials]
+            max_t = np.max(sym_n_trials)+1
             empty = [np.full(max_t, np.nan) for t in np.arange(len(sym_trials))]
             sym_padded = []
-            for i, (t,n,e) in enumerate(zip(sym_trials, n_trials, empty)):
+            for i, (t,n,e) in enumerate(zip(sym_trials, sym_n_trials, empty)):
                 e[:n] = t
                 sym_padded.append(e)
 
             fps = [os.path.join(self.data_fld, 'part_pooled_asym'), 
                     os.path.join(self.data_fld, 'part_pooled_sym')]
-            # datasets = [(asym_n_sessions, asym_index, asym_ftrials, fps[0]),
-            #             (sym_n_sessions, sym_index, sym_ftrials, fps[1])]
-            datasets = [(asym_n_sessions, asym_index, np.vstack(asym_padded).T, fps[0]), (sym_n_sessions, sym_index, np.vstack(sym_padded).T, fps[1])]
+            
+            # Prepare datsets to pass to model
+            if use_fake_data:
+                datasets = [(asym_n_sessions, asym_index, asym_ftrials, fps[0], asym_n_trials),
+                        (sym_n_sessions, sym_index, sym_ftrials, fps[1], sym_n_trials)]
+            else:
+                datasets = [(asym_n_sessions, asym_index, np.vstack(asym_padded).T, fps[0], asym_n_trials),
+                        (sym_n_sessions, sym_index, np.vstack(sym_padded).T, fps[1], sym_n_trials)]
 
-            traces = []
-            for n_sessions, index, ftrials, path in datasets:
-                print('Ready to model')
-                
-                # Create PyMC3 model
-                with pm.Model() as model:
-                    """ 
-                        We want to create a hierarchical model in which each individual's trials are assumed
-                        to be generated through a bernoulli distribution, we want to discover
-                        the true underlying rate of each individual's distribution. 
-                        To do so we assume that each individual's rate is pulled from a normal distribution, to
-                        model the fact that we think that all individuals have a similar strategy.
-                    """
-
-                    # Priors
-                    mu_a = pm.Normal('mu_a', mu=0.5, sd=0.1) # 1e5)
-                    sigma_a = pm.HalfCauchy('sigma_a', 5)
-
-                    # Random intercepts
-                    a = pm.Normal('a', mu=mu_a, sd=sigma_a) # , shape=n_sessions)
-
-                    # Model error
-                    sigma_y = pm.HalfCauchy('sigma_y', 5)
-
-                    # Expected value
-                    # y_hat = a[index]
-
-                    # Data likelihood
-                    y_like = pm.Normal('y_like', mu=a, sd=sigma_y, observed=ftrials) # mu_y_hat
-
-                    step = pm.Metropolis()
-                    partial_pooling_trace = pm.sample(5000, tune=1000, njobs=1)
-                    # partial_pooling_trace = pm.sample(20000, step=step, tune=2000)
-
-                # pm.traceplot(partial_pooling_trace)
-                print(partial_pooling_trace['a'].shape)
-                for i in np.arange(partial_pooling_trace['a'].shape[1]):
-                    np.save(path+'_{}.npy'.format(i), partial_pooling_trace['a'][:, i])
+            # Use the selected model
+            models = [self.hm_0, self.hm_1, self.hm_2, self.hm_3]
+            models[use_model](datasets)
 
         else:
             traces = [np.load(os.path.join(self.data, 'part_pooled_asym.npy')), 
                         np.load(os.path.join(self.data, 'part_pooled_sym.npy'))]
 
+
+    def hm_0(self, datasets):
+        print('Using hierarchical model 0')
+        for n_sessions, index, ftrials, path, _ in datasets:
+            print('Ready to model')
+
+            # Create PyMC3 model
+            with pm.Model() as model:
+                """ 
+                    We want to create a hierarchical model in which each individual's trials are assumed
+                    to be generated through a bernoulli distribution, we want to discover
+                    the true underlying rate of each individual's distribution. 
+                    To do so we assume that each individual's rate is pulled from a normal distribution, to
+                    model the fact that we think that all individuals have a similar strategy.
+                """
+
+                # Priors
+                mu_a = pm.Normal('mu_a', mu=0.5, sd= 1)
+                sigma_a = pm.HalfCauchy('sigma_a', 5)
+                # sigma_a = 1
+
+                # Random intercepts
+                a = pm.Normal('a', mu=mu_a, sd=sigma_a, shape=n_sessions)
+
+                # Model error
+                sigma_y = pm.HalfCauchy('sigma_y', 5)
+
+                # Expected value
+                y_hat = a[index]
+
+                # Data likelihood
+                y_like = pm.Normal('y_like', mu=y_hat, sd=sigma_y, observed=ftrials) # mu_y_hat
+                y_est = pm.Normal('y_est', mu=y_hat, sd=sigma_y, shape=n_sessions)
+
+                # y_like = pm.Bernoulli('y_like', p=y_hat, observed=ftrials) # mu_y_hat
+
+                step = pm.Metropolis()
+                partial_pooling_trace = pm.sample(30000, tune=5000, target_accept=.9)
+                # partial_pooling_trace = pm.sample(20000, step=step, tune=2000)
+
+            # pm.traceplot(partial_pooling_trace)
+            
+            # Save
+            for i in np.arange(partial_pooling_trace['a'].shape[1]):
+                np.save(path+'_{}.npy'.format(i), partial_pooling_trace['a'][:, i])
+            
+
+    def hm_1(self, datasets):
+        print('Using hierarchical model 1')
+        # https://docs.pymc.io/notebooks/hierarchical_partial_pooling.html
+        names = ['asym', 'sym']
+        # Prep data
+        for i, (n_sessions, index, ftrials, path, n_trials) in enumerate(datasets):
+            if np.any(np.isnan(ftrials)):
+                # Convert to sparse matrix
+                # indices = np.nonzero(~np.isnan(ftrials))
+                # sps = scipy.sparse.coo_matrix((ftrials[indices], indices), shape=ftrials.shape)
+
+                nonnan = np.vstack(~np.isnan(ftrials))
+                n_trials = np.sum(nonnan, 0)
+                hits = np.nansum(ftrials, 0).astype(np.int8)
+
+                print(names[i])
+
+            else:
+                # we are using fake data :)
+                hits = np.sum(ftrials, 0).T
+                n_trials = np.tile(ftrials.shape[0]+1, n_sessions)
+                
+
+            if 1 == 1:
+                with pm.Model() as model:
+                    phi = pm.Uniform('phi', lower=0.0, upper=1.0)
+
+                    kappa_log = pm.Exponential('kappa_log', lam=1.5)
+                    kappa = pm.Deterministic('kappa', tt.exp(kappa_log))
+
+                    thetas = pm.Beta('thetas', alpha=phi*kappa, beta=(1.0-phi)*kappa, shape=n_sessions)
+                    y = pm.Binomial('y', n=n_trials, p=thetas, observed=hits)
+
+                                        
+                    pm.model_to_graphviz(model).view()
+                    return
+
+                    # step = pm.Metropolis()
+                    trace = pm.sample(6000, tune=2000, nuts_kwargs={'target_accept': 0.95}) 
+
+                np.save(os.path.join(self.data_fld, 'part_pooled_{}_hm_1.npy'.format(names[i])), trace)
+
+        pm.traceplot(trace) 
+
+        plt.show()
+        a = 1
+
+
+    def hm_2(self, datasets):
+        # https://twiecki.io/blog/2017/02/08/bayesian-hierchical-non-centered/
+        print('Using hierarchical model 2')
+        names = ['asym', 'sym']
+        # Prep data
+        for i, (n_sessions, index, ftrials, path, n_trials) in enumerate(datasets):
+            if np.any(np.isnan(ftrials)):
+                nonnan = np.vstack(~np.isnan(ftrials))
+                n_trials = np.sum(nonnan, 0)
+                hits = np.nansum(ftrials, 0).astype(np.int8)
+                index = np.arange(n_sessions)
+
+                observed_rates = np.divide(hits, n_trials)
+                fake_trials = stats.bernoulli.rvs(p=observed_rates, size=(20, n_sessions))
+
+                print(names[i])
+
+            else:
+                # we are using fake data :)
+                hits = np.sum(ftrials, 0).T
+
+
+            with pm.Model() as model:
+                phi = pm.Uniform('phi', lower=0.0, upper=1.0)
+
+                kappa_log = pm.Exponential('kappa_log', lam=1.5)
+                kappa = pm.Deterministic('kappa', tt.exp(kappa_log))
+
+                thetas = pm.Beta('thetas', alpha=phi*kappa, beta=(1.0-phi)*kappa, shape=n_sessions)
+                offset = pm.Normal('offset', mu=0, sd=1, shape = n_sessions)
+                offset_thetas = pm.Deterministic("offset_thetas", thetas + offset)
+
+                y = pm.Binomial('y', n=n_trials, p=thetas, observed=hits)
+
+                # step = pm.Metropolis()
+                trace = pm.sample(6000, tune=2000, nuts_kwargs={'target_accept': 0.95}) 
+                
+
+
+            pm.traceplot(trace)
+            plt.show()
+
+    def hm_3(self, datasets):
+        print('Using hierarchical model 2')
+        names = ['asym', 'sym']
+        # Prep data
+        for i, (n_sessions, index, ftrials, path, n_trials) in enumerate(datasets):
+            if np.any(np.isnan(ftrials)):
+                nonnan = np.vstack(~np.isnan(ftrials))
+                n_trials = np.sum(nonnan, 0)
+                hits = np.nansum(ftrials, 0).astype(np.int8)
+                index = np.arange(n_sessions)
+
+                observed_rates = np.divide(hits, n_trials)
+                fake_trials = stats.bernoulli.rvs(p=observed_rates, size=(20, n_sessions))
+
+                print(names[i])
+
+            else:
+                # we are using fake data :)
+                hits = np.sum(ftrials, 0).T
+
+
+            with pm.Model() as model:
+                mu = pm.Uniform('mu', lower=0.0, upper=1.0)
+                sigma = pm.HalfCauchy('sigma', beta=5)
+
+                theta1 = pm.Normal("theta1", mu=mu, sd=sigma)
+
+                thetas = pm.Normal("thetas", mu=theta1, sd=sigma)
+
+                # y = pm.Binomial('y', n=n_trials, p=thetas, observed=hits)
+
+                trace = pm.sample(3000, tune=1000, nuts_kwargs={'target_accept': 0.95})
+
+            pm.traceplot(trace)
+            plt.show()
+
+
+
+
+
+
+
+
+
+
     ################################################################################
     ################################################################################
     ################################################################################
+    @staticmethod
+    def plot_distr(distr):
+        try:
+            samples = distr.random(size=5000)
+        except: return
+        else:
+            plt.figure()
+            plt.hist(samples)
+            plt.title(str(distr))
+            return True
+
 
     def summary_plots(self):
         # Load the data
