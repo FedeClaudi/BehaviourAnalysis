@@ -2,9 +2,11 @@
 #   model_name: repeat the model name
 #   camera: which camera can you use it for
 #   cfg_file_path: path to the config file 
+#   iteration: number of the iteration to use
 
 
 overview: 
     model_name: 'Maze-Federico-2018-11-24'
     camera: 'overview'
     cfg_file_path: 'D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets\Maze-Federico-2018-11-24\config.yaml'
+    iteration: 3

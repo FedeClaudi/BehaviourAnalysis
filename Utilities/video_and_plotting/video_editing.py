@@ -734,14 +734,14 @@ if __name__ == '__main__':
 
     # editor.manual_video_inspect(os.path.join(videofld, '181205_CA3661_1Overview__joined.mp4'))
 
-    fld = "Z:\\branco\\Federico\\raw_behaviour\\maze\\video"
-    vid = '181211_CA3695_1Overview.mp4'
-    editor.manual_video_inspect(os.path.join(fld, vid))
+    # fld = "Z:\\branco\\Federico\\raw_behaviour\\maze\\video"
+    # vid = '181211_CA3695_1Overview.mp4'
+    # editor.manual_video_inspect(os.path.join(fld, vid))
 
 
 
 
-
+    converter.tdmstovideo_converter()
 
 
 
