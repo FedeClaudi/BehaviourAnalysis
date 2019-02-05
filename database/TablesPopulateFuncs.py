@@ -209,28 +209,29 @@ def make_dlcmodels_table(table):
     print(table)
     
 
-def make_commoncoordinatematrices_table(table, key, sessions, videofiles):
+def make_commoncoordinatematrices_table(table, key, sessions, videofiles, fast_mode=False):
     """make_commoncoordinatematrices_table [Allows user to align frame to model
     and stores transform matrix for future use]
     
     Arguments:
         key {[dict]} -- [key attribute of table autopopulate method from dj]
     """
-    # If an entry with the same date exists already, avoid re doing the points mapping
-    this_date = [s for s in sessions.fetch(as_dict=True) if s['uid']==key['uid']][0]['date']
-    old_entries = [e for e in sessions.fetch(as_dict=True) if e['uid'] in table.fetch('uid')]
-    
-    if old_entries:
-        old_entry = [o for o in old_entries if o['date']==this_date]
-        if old_entry:
-            old_matrix = [m for m in table.fetch(as_dict=True) if m['uid']==old_entry[0]['uid']][0]
-            key['maze_model'] = old_matrix['maze_model']
-            key['correction_matrix'] = old_matrix['correction_matrix']
-            key['alignment_points'] = old_matrix['alignment_points']
-            key['top_pad'] = old_matrix['top_pad']
-            key['side_pad'] = old_matrix['top_pad']
-            table.insert1(key)
-            return
+    if fast_mode: # ? just do one session per day
+        # If an entry with the same date exists already, avoid re doing the points mapping
+        this_date = [s for s in sessions.fetch(as_dict=True) if s['uid']==key['uid']][0]['date']
+        old_entries = [e for e in sessions.fetch(as_dict=True) if e['uid'] in table.fetch('uid')]
+        
+        if old_entries:
+            old_entry = [o for o in old_entries if o['date']==this_date]
+            if old_entry:
+                old_matrix = [m for m in table.fetch(as_dict=True) if m['uid']==old_entry[0]['uid']][0]
+                key['maze_model'] = old_matrix['maze_model']
+                key['correction_matrix'] = old_matrix['correction_matrix']
+                key['alignment_points'] = old_matrix['alignment_points']
+                key['top_pad'] = old_matrix['top_pad']
+                key['side_pad'] = old_matrix['top_pad']
+                table.insert1(key)
+                return
 
     # Get the maze model template
     maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')
@@ -789,7 +790,7 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
     session = [s for s in fetched_sessions if s['uid']==key['uid']][0]
     experiment = session['experiment_name']
 
-    if 'lambda' in experiment.lower(): return
+    if 'lambda' in experiment.lower(): return  # ? skip this useless experiment :)
 
     fast_mode = True # ! fast MODE
     to_include = dict(

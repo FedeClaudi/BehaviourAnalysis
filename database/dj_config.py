@@ -13,7 +13,7 @@ def start_connection():
 
     """
     dbname = 'Database'    # Name of the database subfolder with data
-    dj.config['database.host'] = "127.0.0.1" 
+    dj.config['database.host'] = "127.18.0.1" 
     dj.config['database.user'] = 'root'
     dj.config['database.password'] = 'fede'
     dj.config['database.safemode'] = False

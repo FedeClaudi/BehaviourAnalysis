@@ -49,8 +49,8 @@ def run(videopath, maze_model=None):
     # Pad the background frame to be of the right size for template matching
     ret, frame = cap.read()
     if not ret: 
-        return None, None, None, None
-        # raise FileNotFoundError('Could not open videopath', videopath)
+        # return None, None, None, None
+        raise FileNotFoundError('Could not open videopath', videopath)
 
     top_pad, side_pad = int(np.floor((1000-height)/2)), int(np.floor((1000-width)/2))
     padded = cv2.copyMakeBorder(frame, top_pad,  top_pad, side_pad, side_pad,

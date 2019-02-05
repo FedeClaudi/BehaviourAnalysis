@@ -123,7 +123,36 @@ def display_maze_components():
     cv2.imshow('bg', background)
     cv2.waitKey(0)
 
+
+def user_click_rois_locations():
+    def register_click(event,x,y, flags, data):
+        if event == cv2.EVENT_LBUTTONDOWN:
+                clicks = np.reshape(np.array([x, y]),(1,2))
+                data = np.concatenate((data[1], clicks))
+                
+
+    clicks_data = np.array(([], [])).T
+
+    maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')
+    maze_model = cv2.resize(maze_model, (1000, 1000))
+    maze_model = cv2.cvtColor(maze_model,cv2.COLOR_RGB2GRAY)
+
+    paths = load_yaml('paths.yml')
+    rois = load_yaml(paths['maze_model_templates']) 
+    rois_names = list(rois.keys())
+
+    cv2.startWindowThread()
+    cv2.namedWindow('background')
+    cv2.imshow('background', maze_model)
+
+    while True:
+        number_clicked_points = clicks_data.shape[0]
+        if number_clicked_points < len(rois_names):
+            print('Please define position of roi: {}'.format(rois_names[number_clicked_points]))
+
+
 if __name__ == "__main__":
-    display_maze_components()
+    # display_maze_components()
+    user_click_rois_locations()
 
 

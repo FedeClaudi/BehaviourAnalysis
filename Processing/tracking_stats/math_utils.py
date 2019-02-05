@@ -313,7 +313,7 @@ def calc_ang_velocity(angles):
     ang_vel_rads = np.insert(np.diff(np.unwrap(angles_radis)), 0, 0)
     return np.degrees(ang_vel_rads)
 
-def correct_tracking_data(uncorrected, M, xpad, ypad, exp_name, sess_uid):
+def correct_tracking_data(uncorrected, M, ypad, xpad, exp_name, sess_uid):
 
     """[Corrects tracking data (as extracted by DLC) using a transform Matrix obtained via the CommonCoordinateBehaviour
         toolbox. ]
@@ -328,42 +328,23 @@ def correct_tracking_data(uncorrected, M, xpad, ypad, exp_name, sess_uid):
     # Do the correction
     m3d = np.append(M, np.zeros((1,3)),0)
     corrected = np.zeros((uncorrected.shape[0], 3))
-    for framen in range(uncorrected.shape[0]):
-        x,y = uncorrected[framen, 0]+ypad, uncorrected[framen, 1]+xpad
-        corrected[framen, :2]= (np.matmul(m3d, [x, y, 1]))[:2]
-        # xpad_corr, ypad_corr = (np.matmul(m3d, [xpad, ypad, 1]))[:2]
+    x, y = np.add(uncorrected[:, 0], xpad), np.add(uncorrected[:, 1], ypad)  # Shift all traces correctly based on how the frame was padded during alignment 
+    for framen in range(uncorrected.shape[0]): # Correct the X, Y for each frame
+        xx,yy = x[framen], y[framen]
+        corrected[framen, :2] = (np.matmul(m3d, [xx, yy, 1]))[:2]
+
+
+    # Flip the tracking on the Y axis to have the shelter on top
+    midline_distance = np.subtract(corrected[:, 1], 490)
+    corrected[:, 1] = np.subtract(490, midline_distance)
 
     # Shift in X and Y according to how the frame was padded when creating the transform matrix
     # also flip and shift Y otherwise it'll be upside down
     # The values by which each experiment is shifted is specified in a yml
     # Define translation
-    content = load_yaml('Utilities\\video_and_plotting\\template_points.yml')
-    translators = content['translators']
+    # content = load_yaml('Utilities\\video_and_plotting\\template_points.yml')
+    # translators = content['translators']
 
-    if exp_name != 'PathInt2': 
-        x_translation, y_translation = translators[exp_name]
-    else:
-        # Path Int2 experiments were done within other maze designs experiments, so we need to select the correct translator. 
-        if sess_uid < 74:
-            x_translation, y_translation = translators[exp_name]
-        elif 74 < sess_uid < 90:
-            x_translation, y_translation = translators['Square Maze']
-        else:
-            x_translation, y_translation = translators['FlipFlop Maze']
-    
-    # corrected[:, 0] = np.add(corrected[:, 0],  x_translation)
-    # corrected[:, 1] = np.add(-np.add(corrected[:, 1], 0), 1000)
-    # corrected[:, 1] = np.add(corrected[:, 1], y_translation)
-
-    # corrected[:, 1] = np.add(300, -np.subtract(corrected[:, 1], 300))
-    # corrected[:, 0] = np.add(xpad, corrected[:, 0])
-    # corrected[:, 1] = np.add(ypad, corrected[:, 1])
-    a = 1
-
-    # import matplotlib.pyplot as plt
-    # plt.plot(uncorrected[:, 0], uncorrected[:, 1])
-    # plt.plot(corrected[:, 0], corrected[:, 1])    
-    # plt.show()
     return corrected
 
 def line_smoother(y, window_size=31, order=5, deriv=0, rate=1):

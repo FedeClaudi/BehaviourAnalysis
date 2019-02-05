@@ -62,7 +62,7 @@ def get_roi_at_each_frame(experiment, session_name, bp_data, rois=None):
         roi_at_each_frame_int = np.array([rois_ids[r] for r in roi_at_each_frame])
 
         f, ax = plt.subplots()
-        ax.scatter(bp_data[:, 0], bp_data[:, 1], c=roi_at_each_frame_int, alpha=.7)
+        ax.scatter(bp_data[:, 0], bp_data[:, 1], c=roi_at_each_frame_int, alpha=.4)
         for roi, k in zip(centers, names):
             ax.plot(roi[0], roi[1], 'o', label=k)
         ax.legend()
