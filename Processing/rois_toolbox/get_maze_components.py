@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import os
 import numpy as np
 from collections import namedtuple
+import yaml
 
 def get_rois_from_templates(session_name, videopath, templates_fld):
     """ Uses template matching to identify the different components of the maze and their location """
@@ -127,11 +128,13 @@ def display_maze_components():
 def user_click_rois_locations():
     def register_click(event,x,y, flags, data):
         if event == cv2.EVENT_LBUTTONDOWN:
-                clicks = np.reshape(np.array([x, y]),(1,2))
-                data = np.concatenate((data[1], clicks))
+                # clicks = np.reshape(np.array([x, y]),(1,2))
+
+                data[0].append(x)
+                data[1].append(y)
                 
 
-    clicks_data = np.array(([], [])).T
+    clicks_data = [[], []]
 
     maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')
     maze_model = cv2.resize(maze_model, (1000, 1000))
@@ -145,10 +148,40 @@ def user_click_rois_locations():
     cv2.namedWindow('background')
     cv2.imshow('background', maze_model)
 
+    cv2.setMouseCallback('background', register_click, clicks_data)  # Mouse callback
+
     while True:
-        number_clicked_points = clicks_data.shape[0]
+        number_clicked_points = len(clicks_data[0])
+        k = cv2.waitKey(10)
         if number_clicked_points < len(rois_names):
             print('Please define position of roi: {}'.format(rois_names[number_clicked_points]))
+            if k == ord('u'):
+                print('Updating')
+                # Update positions
+                for x,y in zip(clicks_data[0], clicks_data[1]):
+                    cv2.circle(maze_model, (x, y), 10, 0, -1)
+                    cv2.imshow('background', maze_model)
+
+            elif k == ord('q'):
+                break
+        else:
+            break
+    
+
+
+    save_name = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Maze_templates\\UserSelectedMazeModelTemplates.yml'
+
+    rois = {n:(x,y) for n, x, y in zip(rois_names, clicks_data[0], clicks_data[1])}
+    with open(save_name, 'w') as outfile:
+        yaml.dump(rois, outfile, default_flow_style=False)
+
+    f, ax = plt.subplots()
+    ax.imshow(maze_model)
+    for name, x, y in zip(rois_names, clicks_data[0], clicks_data[1]):
+        ax.plot(x, y, 'o', label=name)
+    ax.legend()
+    plt.show()
+
 
 
 if __name__ == "__main__":

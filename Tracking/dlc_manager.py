@@ -205,8 +205,9 @@ if __name__ == "__main__":
     manager = DLCManager()
     fld = "Z:\\branco\\Federico\\raw_behaviour\\maze\\_overview_training_clips"
 
-    vids = manager.sel_videos_in_folder(all=False, min_n=15, dr=fld)
+    vids = manager.sel_videos_in_folder(all=False, min_n=5, dr=fld)
 
-    manager.train_network()
+    manager.analyze_videos()
+    manager.create_labeled_videos()
 
 

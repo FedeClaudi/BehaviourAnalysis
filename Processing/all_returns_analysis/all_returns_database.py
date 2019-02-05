@@ -8,6 +8,7 @@ from pandas.plotting import scatter_matrix
 from collections import namedtuple
 from itertools import combinations
 import time
+import yaml
 
 from database.NewTablesDefinitions import *
 from database.dj_config import start_connection
@@ -15,6 +16,7 @@ from database.dj_config import start_connection
 from Processing.tracking_stats.math_utils import line_smoother
 from Utilities.file_io.files_load_save import load_yaml
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
+from Processing.tracking_stats.math_utils import calc_distance_between_points_2d
 
 
 class Trip:
@@ -40,8 +42,6 @@ class Trip:
         return self.__dict__
 
 
-
-
 class analyse_all_trips:
     """ 
         get all trips data from the database
@@ -49,6 +49,7 @@ class analyse_all_trips:
     """
 
     def __init__(self, erase_table=False, fill_in_table=False):
+        self.debug = False   # Plot stuff to check things
         if erase_table:
             self.erase_table()
 
@@ -102,11 +103,33 @@ class analyse_all_trips:
     #####################################################################
     #####################################################################
 
-    def get_rois_enters_exits(self, tr):
+    def get_rois_enters_exits(self, tr, rois_coords=None):
         """
             Returns a dict where for each roi there is a tuple with a list of all the frames at which the mouse enters the roi and a list
             for when it exits the roi
         """
+
+        def remove_errors(times, roi, tr):
+            """
+                Excludes the events that happened too far from the ROI
+            """
+            th = 200
+
+            # Need to flip ROIs Y axis to  match tracking
+            roix, roiy = roi[0], roi[1]
+            dist_from_midline = 500 - roiy
+            roiy = 500 + dist_from_midline
+
+            good = []
+            for t in times:
+                x,y = tr[t, 0], tr[t, 1]
+                # distance = abs(calc_distance_between_points_2d((x,y), roi))
+                if abs(roix-x)<th and abs(roiy-y)<th:
+                    good.append(t)
+            return good
+
+
+
 
         # Define variables
         in_rois = {}
@@ -116,15 +139,36 @@ class analyse_all_trips:
         roi_at_each_frame = tr[:, -1]
 
         # Loop over each desired roi
+        in_roi_times = []
         for i, (roi, cc) in enumerate(rois.items()):
             in_roi = np.where(roi_at_each_frame==cc)[0]
+            in_roi_times.append(in_roi)
 
             # get times at which it enters and exits
             xx = np.zeros(tr.shape[0])
             xx[in_roi] = 1
             enter_exit = np.diff(xx)
             enters, exits = np.where(np.diff(xx)>0)[0], np.where(np.diff(xx)<0)[0]
-            in_rois[roi] = in_roi_tup(list(enters), list(exits))
+
+            # Exclude entry and exit time that happened too far from the ROIs centre (likely errors)
+            good_entries, good_exits = remove_errors(enters, rois_coords[roi[0]], tr ), remove_errors(exits, rois_coords[roi[0]], tr)
+            in_rois[roi] = in_roi_tup(list(good_entries), list(good_exits))
+
+        if self.debug:
+            f, ax = plt.subplots()
+            ax.scatter(tr[:, 0], tr[:, 1], c=[.2, .2, .2], alpha=.8)
+            for c, times in zip(['b', 'y'], in_roi_times):
+                ax.scatter(tr[times, 0], tr[times, 1], c=c)
+            ax.scatter(tr[in_rois['shelter'].ins, 0], tr[in_rois['shelter'].ins, 1], c='r')
+            ax.scatter(tr[in_rois['threat'].ins, 0], tr[in_rois['threat'].ins, 1], c='g')
+            ax.scatter(tr[in_rois['shelter'].outs, 0], tr[in_rois['shelter'].outs, 1], c='r', alpha=.5)
+            ax.scatter(tr[in_rois['threat'].outs, 0], tr[in_rois['threat'].outs, 1], c='g', alpha=.5)
+            ax.plot(rois_coords['s'][0], (500 + (500-rois_coords['s'][1])), '+', color='r', label='shelter')
+            ax.plot(rois_coords['t'][0], (500 + (500-rois_coords['t'][1])), '+', color='g', label='threat')
+            ax.legend()
+
+            # plt.show()
+
         return in_rois
 
     def get_complete_trips(self, in_rois):
@@ -141,9 +185,15 @@ class analyse_all_trips:
                 next_in = [i for i in in_rois['shelter'].ins if i > sexit][0] # Next time the mouse returns to the shelter
                 time_in_shelter = [i for i in in_rois['shelter'].outs if i > next_in][0]-next_in  # time spent in shelter after return
             except:
-                if sexit == in_rois['shelter'].outs[-1]: continue
+                if sexit == in_rois['shelter'].outs[-1]: 
+                    next_in = [i for i in in_rois['shelter'].ins if i > sexit]
+                    if not next_in: continue
+                    else:
+                        next_in = next_in[0]
+                        time_in_shelter == -1
                 else:
-                    raise ValueError
+                    continue
+                    # raise ValueError
 
             # Check if it reached the threat after leaving the shelter
             at_threat = [i for i in in_rois['threat'].ins if i > sexit and i < next_in]              
@@ -156,7 +206,11 @@ class analyse_all_trips:
                     pass  # didn't reach threat, don't append the good times
                 else:
                     gt = Trip()  # Instantiate an instance of the class and populate it with data
-                    gt.shelter_exit, gt.threat_enter, gt.threat_exit, gt.shelter_enter, gt.time_in_shelter = sexit, tenter, texit, next_in, time_in_shelter
+                    gt.shelter_exit = sexit
+                    gt.threat_enter = tenter
+                    gt.threat_exit = texit
+                    gt.shelter_enter = next_in
+                    gt.time_in_shelter = time_in_shelter
                     good_trips.append(gt)
 
         return good_trips
@@ -260,6 +314,7 @@ class analyse_all_trips:
         # Get recordings and sessions data
         recordings = pd.DataFrame(Recordings().fetch())
         sessions = pd.DataFrame(Sessions().fetch())
+        templates = Templates.fetch()
 
         # Loop over each entry in the tracking table
         for idx, row in self.tracking.iterrows():
@@ -279,11 +334,15 @@ class analyse_all_trips:
             tr = row['tracking_data']
             print(row['recording_uid'], idx, ' of ', self.tracking.shape)
 
+            # Get the templates position
+            templates_idx = [i for i, t in enumerate(templates) if t['uid'] == row['uid']][0]
+            rois_coords = pd.DataFrame(templates).iloc[templates_idx]
+
             """
                 GET ALL THE TIMES THE MOUSE IS IN SHELTER OR IN THREAT
             """
             print('  ... getting times in rois')
-            in_rois = self.get_rois_enters_exits(tr)
+            in_rois = self.get_rois_enters_exits(tr, rois_coords)
 
 
             """
@@ -379,7 +438,7 @@ def check_all_trials_included(table):
 
                     # raise ValueError('Timings wrong')
                     print('     Timings wrong')
-                    print('     {} - stim {} if {}'.format(rec, si, len(r_stim_times)))
+                    print('     {} - stim {} of {}'.format(rec, si, len(r_stim_times)))
 
                     tracking = rtrips['tracking_data'].values[last_entry_index]
                     plt.scatter(tracking[:, 0], tracking[:, 1])
@@ -392,11 +451,13 @@ def check_all_trials_included(table):
 
 
 if __name__ == '__main__':
-    # print('Ready')
+
     # analyse_all_trips(erase_table=False, fill_in_table=True)
 
-    print(AllTrips())
+    
     check_table_inserts(AllTrips())
 
-    # check_all_trials_included(AllTrips())
+    check_all_trials_included(AllTrips())
+
+    print(AllTrips())
 

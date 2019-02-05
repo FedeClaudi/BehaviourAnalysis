@@ -89,12 +89,15 @@ def get_roi_at_each_frame(experiment, session_name, bp_data, rois=None):
         try:
             center_x = points[1] + (points[3] / 2)
         except:
-            raise ValueError('Couldnt find center for points: ',points, type(points))
-        center_y = points[0] + (points[2] / 2)
+            # raise ValueError('Couldnt find center for points: ',points, type(points))
+            center_x = points[0]
+            center_y = points[1]
+        else:
+            center_y = points[0] + (points[2] / 2)
         
         # Need to flip ROIs Y axis to  match tracking
         dist_from_midline = 500 - center_y
-        center_y = 500+dist_from_midline
+        center_y = 500 + dist_from_midline
         center = np.asarray([center_x, center_y])
         centers.append(center)
         roi_names.append(name)
