@@ -9,7 +9,8 @@ from collections import namedtuple
 from itertools import combinations
 from matplotlib import colors as mcolors
 
-
+from sklearn import datasets, linear_model
+from sklearn.metrics import mean_squared_error, r2_score
 
 from database.NewTablesDefinitions import *
 from database.dj_config import start_connection
@@ -91,7 +92,50 @@ def explore_correlations_in_exploration():
     plt.show()
 
 
+def trials_explorations():
+    def make_regression(data, v):
+        x = data['session_number_trials'].values
+        y = data[v].values
+        x, y = x[:, np.newaxis], y[:, np.newaxis]
+        regr = linear_model.LinearRegression()
+        regr.fit(x, y)
+        y_pred = regr.predict(x)
+        return x, y, y_pred, regr
 
+    # Get and clean up exploration data
+    explorations = pd.DataFrame(AllExplorations.fetch())
+    explorations = cleanup_explorations(explorations)
+    explorations = expand_features(explorations)
+
+    experiments = set(explorations['experiment_name'].values)
+    colors = ['r', 'g', 'b', 'k', 'm', 'y']
+
+    # Plot scatter plots to look at correlation
+    variables = ['duration', 'total_travel', '%_time_in_shelt', '%_time_on_T', 'median_vel','normalised_distance', '%S/%T']
+
+    f, axarr = plt.subplots(4, 2)
+    f2, axarr2 = plt.subplots(4, 2)
+    axarr, axarr2 = axarr.flatten(), axarr2.flatten()
+
+    for i, v in enumerate(variables):
+        for color, exp in zip(colors, experiments):
+            exp_data = explorations.loc[explorations['experiment_name'] == exp]
+            x, y, y_pred, regr = make_regression(exp_data, v)
+            
+            axarr[i].plot(x, y_pred, c=color, linewidth=2, label='${} - : {}$'.format(exp, np.round(regr.coef_[0][0], 2)), alpha=.8)
+            axarr[i].scatter(x, y, s=15, alpha=.5, color=color)
+
+        axarr[i].legend()
+        axarr[i].set(title='# Trials vs {}'.format(v), xlabel='# Trials', ylabel=v)
+
+        x, y, y_pred, regr = make_regression(explorations, v)
+        axarr2[i].plot(x, y_pred, c='r', linewidth=2, label='${} - : {}$'.format(exp, np.round(regr.coef_[0][0], 2)), alpha=.8)
+        axarr2[i].scatter(x, y, s=15, alpha=.5, color='k')
+        # axarr2[i].legend()
+        axarr2[i].set(title='# Trials vs {}'.format(v), xlabel='# Trials', ylabel=v)
+
+
+    plt.show()
 
 
 
@@ -99,7 +143,8 @@ def explore_correlations_in_exploration():
 if __name__ == "__main__":
     print(AllExplorations())
 
-    explore_correlations_in_exploration()
+    # explore_correlations_in_exploration()
+    trials_explorations()
 
 
 

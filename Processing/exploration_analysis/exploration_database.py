@@ -194,7 +194,8 @@ class AllExplorationsPopulate:
                 tot_time_in_shelter = time_in_shelt,
                 tot_time_on_threat = time_on_t, 
                 duration = duration,
-                median_vel = median_velocity
+                median_vel = median_velocity,
+                session_number_trials = session_stims.shape[0]
             )
 
             try:

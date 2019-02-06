@@ -331,6 +331,7 @@ class AllExplorations(dj.Manual):
         tot_time_on_threat: int         # Number of seconds spent on threat platf
         duration: int                   # Total duration of the exploration in seconds
         median_vel: int                  # median velocity in px/s 
+        session_number_trials: int      # Number of trials in the session following the expl
     """
 
 
