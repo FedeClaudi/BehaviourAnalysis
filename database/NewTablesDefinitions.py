@@ -323,9 +323,13 @@ class AllExplorations(dj.Manual):
     definition = """
         exploration_id: int
         ---
-        recording_uid: varchar(128)
+        session_uid: varchar(128)
         experiment_name: varchar(128)
         tracking_data: longblob
+        total_travel: int               # Total distance covered by the mouse
+        tot_time_in_shelter: int        # Number of seconds spent in the shelter
+        duration: int                   # Total duration of the exploration in seconds
+        median_vel: int                  # median velocity in px/s 
     """
 
 

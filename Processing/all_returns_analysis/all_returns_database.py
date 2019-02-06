@@ -59,8 +59,8 @@ class analyse_all_trips:
 
             # Prepare variables
             self.exclude_by_exp = True
-            self.naughty_experiments = ['PathInt', 'Lambda Maze', ]
-            self.good_experiments = ['PathInt2', 'Square Maze', 'TwoAndahalf Maze']
+            self.naughty_experiments = ['Lambda Maze', ]
+            self.good_experiments = ['PathInt2', 'Square Maze', 'TwoAndahalf Maze', 'PathInt', 'FlipFlop Maze', 'FlipFlop2 Maze']
             self.all_trips = []
 
             # Get all the times the mouse goes from the threat to the shelter
@@ -91,9 +91,6 @@ class analyse_all_trips:
         # Get BODY tracking data
         all_bp_tracking = pd.DataFrame(fetched)
         self.tracking = all_bp_tracking.loc[all_bp_tracking['bpname'] == 'body']
-
-        # Get BODY AXIS tracking data
-        self.ba_tracking = pd.DataFrame((TrackingData.BodySegmentData & 'bp1 = "body_axis"').fetch())
 
         # Get all stimuli
         self.stimuli = pd.DataFrame(BehaviourStimuli.fetch())
@@ -455,7 +452,7 @@ if __name__ == '__main__':
     # analyse_all_trips(erase_table=False, fill_in_table=True)
 
     
-    check_table_inserts(AllTrips())
+    # check_table_inserts(AllTrips())
 
     check_all_trials_included(AllTrips())
 

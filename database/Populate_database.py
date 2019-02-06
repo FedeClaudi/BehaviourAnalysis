@@ -22,6 +22,14 @@ from database.NewTablesDefinitions import *
 from Utilities.video_and_plotting.video_editing import *
 from Utilities.stim_times_loader import *
 
+def disable_pandas_warnings():
+    import warnings
+    warnings.resetwarnings()  # Maybe somebody else is messing with the warnings system?
+    warnings.filterwarnings('ignore')  # Ignore everything
+    # ignore everything does not work: ignore specific messages, using regex
+    warnings.filterwarnings('ignore', '.*A value is trying to be set on a copy of a slice from a DataFrame.*')
+    warnings.filterwarnings('ignore', '.*indexing past lexsort depth may impact performance*')
+
 
 class PopulateDatabase:
     def __init__(self):
@@ -221,11 +229,12 @@ class PopulateDatabase:
 
 
 if __name__ == '__main__':
+    disable_pandas_warnings()
     p = PopulateDatabase()
 
     print(p)
 
-    # p.remove_table(['tracking_data', 'templates'])
+    # p.remove_table(['tracking_data'])
 
     # p.populate_mice_table()
     # p.populate_experiments_table()

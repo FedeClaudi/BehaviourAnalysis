@@ -128,9 +128,6 @@ class ClipWriter:
 
 
 
-
-
-
 def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False):
     def write_clip(video, savename, stim_frame, stim_duration, prestim, poststim, clean_vids, posedata):
         # parameters to draw on frame
@@ -290,11 +287,67 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
                 
                 
 
-            
+
+def make_video_with_all_escapes():
+    savename = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\all_trials4.mp4'
+    # Get background
+    maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')
+    maze_model = cv2.resize(maze_model, (1000, 1000))
+    # maze_model = cv2.cvtColor(maze_model,cv2.COLOR_RGB2GRAY)
+
+    # Get returns data and tracking data
+    all_escapes = pd.DataFrame(AllTrips().fetch())
+    # all_escapes = all_escapes.loc[all_escapes['is_escape'] == 'true']
+    is_this_an_escape = all_escapes['is_escape']
+
+
+    # Open Video writer
+    editor = Editor()
+    writer = editor.open_cvwriter(savename, w=1000,
+                                        h=1000, framerate=30, iscolor=True)
+
+    # Extract tracking data
+    print('Ready to get data')
+    tracking_datas = []
+    for index, row in all_escapes.iterrows():
+        t0, t1 = row['threat_exit']-row['shelter_exit']-30, row['shelter_enter']-row['shelter_exit']
+        tracking = row['tracking_data'][t0:t1].astype(np.int16)
+        x= tracking[:, 0]
+        y = np.add(490, np.subtract(490, tracking[:, 1]))  # Invert on the Y axis
+        v = tracking[:, 2] 
+
+        tracking_datas.append(np.array([x, y, v]).T)
+
+    # make videos 
+    print('Ready to write video')
+    framen = 0
+    while True:
+        # try:
+        print('Writing frame: ', framen)
+        bg = maze_model.copy()
+        for i, tr in enumerate(tracking_datas):
+            if framen < tr.shape[0]:
+                vv = np.int(tr[framen, 2])*50
+                if vv > 255: vv=255
+                if is_this_an_escape[i] == 'true':
+                    color = (0, vv, 0)
+                else:
+                    color = (0, 0, vv)
+                cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), 3, color, -1)
+
+        writer.write(bg)
+        framen += 1
+        if framen == 10*30: break
+
+        # cv2.imshow('a', bg)
+        # cv2.waitKey(1)
+    writer.release()
+
 
 
 if __name__ == "__main__":
     paths = load_yaml('./paths.yml')
 
-    create_trials_clips(clean_vids=False)
+    # create_trials_clips(clean_vids=False)
+    make_video_with_all_escapes()
 
