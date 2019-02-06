@@ -328,6 +328,7 @@ class AllExplorations(dj.Manual):
         tracking_data: longblob
         total_travel: int               # Total distance covered by the mouse
         tot_time_in_shelter: int        # Number of seconds spent in the shelter
+        tot_time_on_threat: int         # Number of seconds spent on threat platf
         duration: int                   # Total duration of the exploration in seconds
         median_vel: int                  # median velocity in px/s 
     """

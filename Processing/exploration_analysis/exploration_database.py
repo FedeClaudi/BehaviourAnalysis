@@ -180,7 +180,7 @@ class AllExplorationsPopulate:
                     CALCULATE STUFF BASED ON TRACKING DATA
             """
 
-            median_velocity, time_in_shelt, distance_covered, duration = self.calculations_on_tracking_data(tracking_array,session_fps)
+            median_velocity, time_in_shelt, time_on_t, distance_covered, duration = self.calculations_on_tracking_data(tracking_array,session_fps)
 
             """
                     ADD ENTRY TO TABLE
@@ -192,6 +192,7 @@ class AllExplorationsPopulate:
                 tracking_data = tracking_array,
                 total_travel = distance_covered,
                 tot_time_in_shelter = time_in_shelt,
+                tot_time_on_threat = time_on_t, 
                 duration = duration,
                 median_vel = median_velocity
             )
@@ -218,7 +219,10 @@ class AllExplorationsPopulate:
         median_velocity = np.nanmedian(data[:, 2])*fps
 
         # Calc time in shelter
-        time_in_shelt = np.where(data[:, -1]==0)[0].shape[0]
+        time_in_shelt = int(round(np.where(data[:, -1]==0)[0].shape[0]/fps))
+
+        # Calc time on T
+        time_on_t = int(round(np.where(data[:, -1]==1)[0].shape[0]/fps))
 
         # Calc total distance covered
         distance_covered = int(round(np.sum(data[:, 2])))
@@ -226,7 +230,7 @@ class AllExplorationsPopulate:
         # Calc duration in seconds
         duration = int(round(data.shape[0]/fps))
 
-        return median_velocity, time_in_shelt, distance_covered, duration
+        return median_velocity, time_in_shelt, time_on_t, distance_covered, duration
 
 
 
