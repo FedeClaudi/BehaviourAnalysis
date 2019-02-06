@@ -12,6 +12,8 @@ from database.NewTablesDefinitions import *
 from Processing.plot.plotting_utils import *
 from Processing.plot.video_plotting_toolbox import *
 
+from database.database_fetch import *
+
 
 class ClipWriter:
     def __init__(self, videopath, stimuli, clean_vids):
@@ -297,26 +299,43 @@ def make_video_with_all_escapes():
 
     # Get returns data and tracking data
     all_escapes = pd.DataFrame(AllTrips().fetch())
-    # all_escapes = all_escapes.loc[all_escapes['is_escape'] == 'true']
+    all_escapes = all_escapes.loc[all_escapes['is_escape'] == 'true']
     is_this_an_escape = all_escapes['is_escape']
 
 
     # Open Video writer
     editor = Editor()
     writer = editor.open_cvwriter(savename, w=1000,
-                                        h=1000, framerate=30, iscolor=True)
+                                        h=1000, framerate=20, iscolor=True)
 
     # Extract tracking data
-    print('Ready to get data')
-    tracking_datas = []
-    for index, row in all_escapes.iterrows():
-        t0, t1 = row['threat_exit']-row['shelter_exit']-30, row['shelter_enter']-row['shelter_exit']
-        tracking = row['tracking_data'][t0:t1].astype(np.int16)
-        x= tracking[:, 0]
-        y = np.add(490, np.subtract(490, tracking[:, 1]))  # Invert on the Y axis
-        v = tracking[:, 2] 
+    bodyparts = ['left_ear', 'snout', 'right_ear', 'neck', 'body', 'tail_base']
+    # bodyparts = ['snout', 'body']
+    colors = dict(
+        body=(255, 100, 100),
+        snout=(100, 100, 255),
+        left_ear = (75, 75, 200),
+        right_ear = (75, 75, 200),
+        neck = (200, 75, 75),
+        tail_base = (150, 50, 50)
+    )
 
-        tracking_datas.append(np.array([x, y, v]).T)
+    print('Ready to get data')
+    tracking_datas = {bp:[] for bp in bodyparts}
+    for index, row in all_escapes.iterrows():
+        print('Fetching data from entry {} of {}'.format(index, all_escapes.shape[0]))
+        t0, t1 = row['threat_exit']-30, row['shelter_enter']
+        # Get the tracking data for each bodypart in each recording
+        for bp in bodyparts:
+            recording_tracking = get_tracking_given_recuid_and_bp(row['recording_uid'], bp)
+            x = recording_tracking['tracking_data'].values[0][t0:t1, 0].astype(np.int16)
+            y = recording_tracking['tracking_data'].values[0][t0:t1, 1].astype(np.int16)
+            v = recording_tracking['tracking_data'].values[0][t0:t1, 2].astype(np.int16)
+            y = np.add(490, np.subtract(490, y))
+
+            tracking_datas[bp].append(np.array([x, y, v]).T)
+
+        if index == 250: break
 
     # make videos 
     print('Ready to write video')
@@ -325,15 +344,12 @@ def make_video_with_all_escapes():
         # try:
         print('Writing frame: ', framen)
         bg = maze_model.copy()
-        for i, tr in enumerate(tracking_datas):
-            if framen < tr.shape[0]:
-                vv = np.int(tr[framen, 2])*50
-                if vv > 255: vv=255
-                if is_this_an_escape[i] == 'true':
-                    color = (0, vv, 0)
-                else:
-                    color = (0, 0, vv)
-                cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), 3, color, -1)
+        for bp in bodyparts:
+            tracking = tracking_datas[bp]
+            for i, tr in enumerate(tracking):
+                if framen < tr.shape[0]:
+
+                    cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), 3, colors[bp], -1)
 
         writer.write(bg)
         framen += 1

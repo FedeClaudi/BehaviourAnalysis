@@ -257,15 +257,7 @@ class VideoConverter:
         print('Converted {} frames in {}s\n\n'.format(tot_frames, round(end-start)))
 
 class Editor:
-    def __repr__(self):
-        functions = [
-            'def concatenate_clips(paths_tuple)', 'def save_clip(clip, folder, name, format, fps)',
-            'def split_clip(clip, number_of_clips=4, ispath=False)', 'def opencv_write_clip(videopath, frames_data, ...)',
-            'def open_cvwriter(filepath...)', 'def compress_clip(videopath, compress_factor...)', 'def mirros_cropper()']
 
-        print('The Editor class has functions:\n')
-        [print('FUNCTION: ', f, '\n\n') for f in functions]
-        return ''
 
     @staticmethod
     def concatenate_clips(paths_tuple):
