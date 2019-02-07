@@ -291,7 +291,7 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
 
 
 def make_video_with_all_escapes(select_escapes=True, select_stim_evoked=True):
-    savename = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\all_escapes_bydur.mp4'
+    savename = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\all_escapes_byescapearm.mp4'
     # Get background
     maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')
     maze_model = cv2.resize(maze_model, (1000, 1000))
@@ -325,6 +325,13 @@ def make_video_with_all_escapes(select_escapes=True, select_stim_evoked=True):
     durations_sortidx = np.argsort(durations)
     colorspace = np.linspace(10, 244, len(durations)+100)
     duration_colors = [(0, int(c/2), c) for c in colorspace]
+    
+    # make colors based on arm of origin and escape
+    escape_arms = list(all_escapes['arm_taken'].values)
+    arms = set(escape_arms)
+    escape_arms_colors = {arm:(int(np.random.randint(10, 240, 1)[0]), 
+                        int(np.random.randint(10, 240, 1)[0]),
+                        int(np.random.randint(10, 240, 1)[0])) for arm in arms}
 
     # Open Video writer
     editor = Editor()
@@ -349,7 +356,7 @@ def make_video_with_all_escapes(select_escapes=True, select_stim_evoked=True):
     for index, row in all_escapes.iterrows():
         print('Fetching data from entry {} of {}'.format(counter, all_escapes.shape[0]))
         counter += 1
-        t0, t1 = row['threat_exit']-30, row['shelter_enter']
+        t0, t1 = row['threat_exit']-90, row['shelter_enter']
         # Get the tracking data for each bodypart in each recording
         for bp in bodyparts:
             recording_tracking = get_tracking_given_recuid_and_bp(row['recording_uid'], bp)
@@ -379,7 +386,7 @@ def make_video_with_all_escapes(select_escapes=True, select_stim_evoked=True):
                     if max_v < 2: max_v = 2
                     elif max_v > 12: max_v = 10
 
-                    color = duration_colors[durations_sortidx[i]]
+                    color = escape_arms_colors[escape_arms[i]]
 
                     if select_escapes and not select_stim_evoked:
                         cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), int(max_v),colors[bp], -1)
@@ -393,7 +400,8 @@ def make_video_with_all_escapes(select_escapes=True, select_stim_evoked=True):
                             pass
                             cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), int(max_v), color, -1)
                         else:
-                            cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), int(max_v), color, -1)
+                            # cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), int(max_v), color, -1)
+                            pass
                     else:
                         raise ValueError
 

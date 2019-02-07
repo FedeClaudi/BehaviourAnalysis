@@ -145,40 +145,59 @@ class BayesModeler:
             distribution in [0, 1].
         """
 
+        # ! HAND defined data for test
+        lights_off_trials = [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1]
+        lights_onoff_trilas = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0]
+
+
         # Set up the pymc3 model.  assume Uniform priors for p_asym and p_sym.
         with pm.Model() as model:
             p_asym = pm.Uniform("p_asym", 0, 1)
             p_sym = pm.Uniform("p_sym", 0, 1)
-
-            # bounded_normal = pm.Bound(pm.Normal, lower=0, upper=1)
-            # p_asym = bounded_normal("p_asym", mu=0.1, sd=.1)
-            # p_sym = bounded_normal("p_sym", mu=0.9, sd=.1)
-
+            p_lightsoff = pm.Uniform("p_lightsoff", 0, 1)
+            p_lightsonoff = pm.Uniform("p_lightsonoff", 0, 1)
 
             # Define the deterministic delta function. This is our unknown of interest.
-            delta = pm.Deterministic("delta", p_asym - p_sym)
+            # delta = pm.Deterministic("delta", p_asym - p_sym)
 
             # Set of observations, in this case we have two observation datasets.
-            obs_asym = pm.Bernoulli("obs_A", p_asym, observed=self.asym_data.all_trials)
-            obs_sym = pm.Bernoulli("obs_B", p_sym, observed=self.sym_data.all_trials)
+            obs_asym = pm.Bernoulli("obs_asym", p_asym, observed=self.asym_data.all_trials)
+            obs_sym = pm.Bernoulli("obs_sym", p_sym, observed=self.sym_data.all_trials)
+            obs_lightsoff = pm.Bernoulli("obs_lightsoff", p_lightsoff, observed=lights_off_trials)
+            obs_lightsonoff = pm.Bernoulli("obs_lightsonoff", p_lightsonoff, observed=lights_onoff_trilas)
 
             # Estimated posterior distributions to use for 
-            est_asym =  pm.Bernoulli("predicted_A", p_asym)
-            est_sym =  pm.Bernoulli("predicted_B", p_sym)
+            # est_asym =  pm.Bernoulli("predicted_A", p_asym)
+            # est_sym =  pm.Bernoulli("predicted_B", p_sym)
 
             # Fit the model 
             step = pm.Metropolis()
             trace = pm.sample(18000 , step=step)
             burned_trace=trace[1000:]
 
-        self.grouped_samples = dict(asym = burned_trace["p_asym"], sym = burned_trace["p_sym"], delta=burned_trace['delta'])
+        # self.grouped_samples = dict(asym = burned_trace["p_asym"], sym = burned_trace["p_sym"], delta=burned_trace['delta'])
 
         if save_traces:
-            np.save(os.path.join(self.data_fld, 'grouped_traces.npy'), burned_trace)
+            np.save(os.path.join(self.data_fld, 'grouped_traces_test.npy'), burned_trace)
 
         if display_distributions:
-            pm.traceplot(burned_trace)
-            pm.posteriorplot.plot_posterior(burned_trace)
+            # pm.traceplot(burned_trace)
+            # pm.posteriorplot.plot_posterior(burned_trace)
+            # plt the grouped data
+            colors = ["#A60628", "#467821", "#7A68A6", [.8, .4, .4]]
+
+            f, ax = plt.subplots()
+
+            sns.kdeplot(burned_trace['p_asym'], ax=ax, color=colors[0], label='Asymmetric maze', shade=False)
+            sns.kdeplot(burned_trace['p_sym'], ax=ax, color=colors[1], label='Symmetric maze', shade=False)
+            sns.kdeplot(burned_trace['p_lightsoff'], ax=ax, color=colors[2], label='lights OFF', shade=True)
+            sns.kdeplot(burned_trace['p_lightsonoff'], ax=ax, color=colors[3], label='exp lights ON', shade=True)
+            # ax.axvline(np.nanmean(self.asym_data.all_trials),  color=[.6, .2, .2], linestyle=":")
+            # ax.axvline(np.nanmean(self.sym_data.all_trials), color=[.2, .6, .2], linestyle=":")
+
+            ax.legend()
+            ax.set(title='Grouped model poseterior $p(R)$', xlabel='$p(R)$', ylabel='density', xlim=[0, 1])
+            a = 1
         return burned_trace
 
     def model_individuals(self, display_distributions=True, load_traces=False):
@@ -490,83 +509,85 @@ class BayesModeler:
 
     def summary_plots(self):
         # Load the data
-        asym_trials = np.load(os.path.join(self.data, 'asym_trials.npy'))
-        sym_trials = np.load(os.path.join(self.data, 'sym_trials.npy'))
+        # asym_trials = np.load(os.path.join(self.data, 'asym_trials.npy'))
+        # sym_trials = np.load(os.path.join(self.data, 'sym_trials.npy'))
 
-        grouped_traces_load = np.load('./Processing/modelling/grouped_traces.npy')
+        grouped_traces_load = np.load('./Processing/modelling/data/grouped_traces_test.npy')
         grouped_traces = {}
         grouped_traces['p_asym'] = [grouped_traces_load[i]['p_asym'] for i in np.arange(len(grouped_traces_load))]
         grouped_traces['p_sym'] = [grouped_traces_load[i]['p_sym'] for i in np.arange(len(grouped_traces_load))]
 
 
-        asym_traces = np.load(os.path.join(self.data, 'asym_individual_traces.npy'))
-        sym_traces = np.load(os.path.join(self.data, 'sym_individual_traces.npy'))
-        all_traces = np.vstack([asym_traces, sym_traces])
-        all_sessions = all_traces.shape[0]
-        exp_ids = np.hstack([np.zeros(asym_traces.shape[0]), np.ones(sym_traces.shape[0])])
-        individuals = [(np.int(exp_ids[i]), 0, dict(p_individual=all_traces[i, :])) for i in np.arange(all_sessions)]
+        # asym_traces = np.load(os.path.join(self.data, 'asym_individual_traces.npy'))
+        # sym_traces = np.load(os.path.join(self.data, 'sym_individual_traces.npy'))
+        # all_traces = np.vstack([asym_traces, sym_traces])
+        # all_sessions = all_traces.shape[0]
+        # exp_ids = np.hstack([np.zeros(asym_traces.shape[0]), np.ones(sym_traces.shape[0])])
+        # individuals = [(np.int(exp_ids[i]), 0, dict(p_individual=all_traces[i, :])) for i in np.arange(all_sessions)]
 
 
-        pooled_files = [os.path.join(self.data_fld, f) for f in os.listdir(self.data_fld) if 'part_pooled' in f]
-        asym_traces = [np.load(f) for f in pooled_files if 'asym' in f]
-        asym_traces = np.vstack(asym_traces)
-        sym_traces = [np.load(f) for f in pooled_files if not 'asym' in f]
-        sym_traces = np.vstack(sym_traces)
-        traces = [asym_traces, sym_traces]
+        # pooled_files = [os.path.join(self.data_fld, f) for f in os.listdir(self.data_fld) if 'part_pooled' in f]
+        # asym_traces = [np.load(f) for f in pooled_files if 'asym' in f]
+        # asym_traces = np.vstack(asym_traces)
+        # sym_traces = [np.load(f) for f in pooled_files if not 'asym' in f]
+        # sym_traces = np.vstack(sym_traces)
+        # traces = [asym_traces, sym_traces]
 
         # plt the grouped data
-        colors = ["#A60628", "#467821", "#7A68A6"]
+        colors = ["#A60628", "#467821", "#7A68A6", "#7A68A6", 'm']
 
         f, ax = plt.subplots()
 
         sns.kdeplot(grouped_traces['p_asym'], ax=ax, color=colors[0], label='Asymmetric maze', shade=True)
         sns.kdeplot(grouped_traces['p_sym'], ax=ax, color=colors[1], label='Symmetric maze', shade=True)
-        ax.axvline(np.nanmean(self.asym_data.all_trials),  color=[.6, .2, .2], linestyle=":")
-        ax.axvline(np.nanmean(self.sym_data.all_trials), color=[.2, .6, .2], linestyle=":")
+        sns.kdeplot(grouped_traces['p_lightsoff'], ax=ax, color=colors[2], label='lights OFF', shade=True)
+        sns.kdeplot(grouped_traces['p_lightsonoff'], ax=ax, color=colors[3], label='exp lights ON', shade=True)
+        # ax.axvline(np.nanmean(self.asym_data.all_trials),  color=[.6, .2, .2], linestyle=":")
+        # ax.axvline(np.nanmean(self.sym_data.all_trials), color=[.2, .6, .2], linestyle=":")
 
         ax.legend()
         ax.set(title='Grouped model poseterior $p(R)$', xlabel='$p(R)$', ylabel='density', xlim=[0, 1])
 
-        # Plot the individuals data
-        f, axarr = plt.subplots(nrows=4)
+        # # Plot the individuals data
+        # f, axarr = plt.subplots(nrows=4)
 
-        for exp, trials, burned in individuals:
-            sns.kdeplot(burned['p_individual'], ax=axarr[exp], color=colors[exp], shade=True, alpha=.05, linewidth=2)
-            sns.kdeplot(burned['p_individual'], ax=axarr[exp], color=colors[exp], shade=False, linewidth=1.5, alpha=.8)
+        # for exp, trials, burned in individuals:
+        #     sns.kdeplot(burned['p_individual'], ax=axarr[exp], color=colors[exp], shade=True, alpha=.05, linewidth=2)
+        #     sns.kdeplot(burned['p_individual'], ax=axarr[exp], color=colors[exp], shade=False, linewidth=1.5, alpha=.8)
 
-        sns.kdeplot(np.concatenate(asym_traces), ax=axarr[2], color=colors[0], shade=True, alpha=.3, )  
-        sns.kdeplot(np.concatenate(sym_traces), ax=axarr[2], color=colors[1], shade=True, alpha=.3, )   
-        sns.kdeplot(np.concatenate(asym_traces), ax=axarr[2], color=colors[0], shade=False, alpha=.8, label='Asymmetric maze')  
-        sns.kdeplot(np.concatenate(sym_traces), ax=axarr[2], color=colors[1], shade=False, alpha=.8, label='Symmetric maze')   
+        # sns.kdeplot(np.concatenate(asym_traces), ax=axarr[2], color=colors[0], shade=True, alpha=.3, )  
+        # sns.kdeplot(np.concatenate(sym_traces), ax=axarr[2], color=colors[1], shade=True, alpha=.3, )   
+        # sns.kdeplot(np.concatenate(asym_traces), ax=axarr[2], color=colors[0], shade=False, alpha=.8, label='Asymmetric maze')  
+        # sns.kdeplot(np.concatenate(sym_traces), ax=axarr[2], color=colors[1], shade=False, alpha=.8, label='Symmetric maze')   
 
-        sns.kdeplot(grouped_traces['p_asym'], ax=axarr[-1], color=colors[0], label='Asymmetric maze', shade=True)
-        sns.kdeplot(grouped_traces['p_sym'], ax=axarr[-1], color=colors[1], label='Symmetric maze', shade=True)
+        # sns.kdeplot(grouped_traces['p_asym'], ax=axarr[-1], color=colors[0], label='Asymmetric maze', shade=True)
+        # sns.kdeplot(grouped_traces['p_sym'], ax=axarr[-1], color=colors[1], label='Symmetric maze', shade=True)
 
-        axarr[0].set(title='Asym. maze - individuals p(R) posterior', xlabel='$p(R)$', ylabel='Density', xlim=[0, 1])
-        axarr[1].set(title='Sym. maze - individuals p(R) posterior', xlabel='$p(R)$', ylabel='Density', xlim=[0, 1])
-        axarr[2].set(title='Comulative p(R) posterior', xlabel='$p(R)$', ylabel='Density', xlim=[0, 1])
-        axarr[3].set(title='Grouped p(R) posterior', xlabel='$p(R)$', ylabel='Density', xlim=[0, 1])
+        # axarr[0].set(title='Asym. maze - individuals p(R) posterior', xlabel='$p(R)$', ylabel='Density', xlim=[0, 1])
+        # axarr[1].set(title='Sym. maze - individuals p(R) posterior', xlabel='$p(R)$', ylabel='Density', xlim=[0, 1])
+        # axarr[2].set(title='Comulative p(R) posterior', xlabel='$p(R)$', ylabel='Density', xlim=[0, 1])
+        # axarr[3].set(title='Grouped p(R) posterior', xlabel='$p(R)$', ylabel='Density', xlim=[0, 1])
 
-        axarr[2].legend()
-        axarr[3].legend()
+        # axarr[2].legend()
+        # axarr[3].legend()
 
-        # Plot the partial pooled model
-        f, axarr = plt.subplots(nrows=3)
+        # # Plot the partial pooled model
+        # f, axarr = plt.subplots(nrows=3)
 
-        for i in [0, 1]:
-            print(traces[0].shape, traces[1].shape)
-            for trace in np.arange(traces[i].shape[0]):
-                    sns.kdeplot(traces[i][trace, :], ax=axarr[i], color=colors[i], shade=True, alpha=.1)
-                    sns.kdeplot(traces[i][trace, :], ax=axarr[i], color=colors[i], shade=False, alpha=.8)
+        # for i in [0, 1]:
+        #     print(traces[0].shape, traces[1].shape)
+        #     for trace in np.arange(traces[i].shape[0]):
+        #             sns.kdeplot(traces[i][trace, :], ax=axarr[i], color=colors[i], shade=True, alpha=.1)
+        #             sns.kdeplot(traces[i][trace, :], ax=axarr[i], color=colors[i], shade=False, alpha=.8)
 
-        sns.kdeplot(np.concatenate(traces[0]), ax=axarr[2], color=colors[0], shade=True, alpha=.1)
-        sns.kdeplot(np.concatenate(traces[0]), ax=axarr[2], color=colors[0], shade=False, alpha=.8)
-        sns.kdeplot(np.concatenate(traces[1]), ax=axarr[2], color=colors[1], shade=True, alpha=.1)
-        sns.kdeplot(np.concatenate(traces[1]), ax=axarr[2], color=colors[1], shade=False, alpha=.8)
+        # sns.kdeplot(np.concatenate(traces[0]), ax=axarr[2], color=colors[0], shade=True, alpha=.1)
+        # sns.kdeplot(np.concatenate(traces[0]), ax=axarr[2], color=colors[0], shade=False, alpha=.8)
+        # sns.kdeplot(np.concatenate(traces[1]), ax=axarr[2], color=colors[1], shade=True, alpha=.1)
+        # sns.kdeplot(np.concatenate(traces[1]), ax=axarr[2], color=colors[1], shade=False, alpha=.8)
 
-        axarr[0].set(title='Partial pooled model - Asym. posteriors', xlabel='$p(R)$', ylabel='density', xlim=[0, 1])
-        axarr[1].set(title='Partial pooled model - Sym. posteriors', xlabel='$p(R)$', ylabel='density', xlim=[0, 1])
-        axarr[2].set(title='Comulative of posteriors', xlabel='$p(R)$', ylabel='density', xlim=[0, 1])
+        # axarr[0].set(title='Partial pooled model - Asym. posteriors', xlabel='$p(R)$', ylabel='density', xlim=[0, 1])
+        # axarr[1].set(title='Partial pooled model - Sym. posteriors', xlabel='$p(R)$', ylabel='density', xlim=[0, 1])
+        # axarr[2].set(title='Comulative of posteriors', xlabel='$p(R)$', ylabel='density', xlim=[0, 1])
 
 
 
@@ -574,9 +595,9 @@ if __name__ == "__main__":
     modeller = BayesModeler()
     # modeller.save_data()
 
-    # modeller.model_grouped()
+    modeller.model_grouped()
     # modeller.model_individuals()
-    modeller.model_hierarchical()
+    # modeller.model_hierarchical()
 
     # modeller.summary_plots()
 
