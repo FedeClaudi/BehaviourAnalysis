@@ -20,6 +20,14 @@ from Processing.tracking_stats.math_utils import line_smoother
 from Utilities.file_io.files_load_save import load_yaml
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 
+from database.database_fetch import *
+
+
+###################################################################################################
+#####    DATA MANIPULATION FUNCTIONS         ##############
+###################################################################################################
+
+
 
 def cleanup_explorations(explorations):
     # Remove columns 
@@ -41,6 +49,51 @@ def expand_features(explorations):
     explorations['%S/%T'] =  np.divide(explorations['%_time_in_shelt'].values, explorations['%_time_on_T'].values)
 
     return explorations
+
+def get_info_first_trial_after_exploration(explorations):
+    sel_trial = 3
+    all_returns = pd.DataFrame((AllTrips & 'is_escape="true"' & 'is_trial="true"').fetch())
+    recordings = pd.DataFrame(Recordings.fetch())
+
+    time_in_shelter, max_speed = [], []
+    # Get the first stim evoked escape of each session
+    for ui in explorations['session_uid'].values:
+        recs = get_recs_given_sessuid(ui, recordings)
+        recs_names = list(recs['recording_uid'].values)
+        for r in sorted(recs_names):
+            r_escapes = all_returns.loc[all_returns['recording_uid'] == r]
+            if r_escapes.shape[0] > sel_trial:
+                time_in_shelter.append(r_escapes.iloc[1]['time_in_shelter']/ 30) # ! hardcoded FPS)
+                # ms = np.percentile(r_escapes.iloc[0]['tracking_data'][:, 2], 99.9)
+                ms = np.max(r_escapes.iloc[sel_trial]['tracking_data'][:, 2])
+                if ms > 50:
+                    ms = np.percentile(r_escapes.iloc[sel_trial]['tracking_data'][:, 2], 99)
+                max_speed.append(ms)
+                break
+            elif r_escapes.shape[0]:
+                # time_in_shelter.append(time_in_shelter.append(r_escapes.iloc[0]['time_in_shelter']/ 30))
+                # ms = np.max(r_escapes.iloc[0]['tracking_data'][:, 2])
+                # if ms > 50:
+                #     ms = np.percentile(r_escapes.iloc[0]['tracking_data'][:, 2], 99)
+                # max_speed.append(ms)
+                time_in_shelter.append(np.nan)
+                max_speed.append(np.nan)
+                break
+
+
+
+    explorations['time_in_s_after_ft'] = time_in_shelter 
+    explorations['ft_max_speed'] = max_speed
+
+    f, ax = plt.subplots()
+    ax.scatter(time_in_shelter, max_speed, c='k')
+    plt.show()                
+
+
+
+###################################################################################################
+########   PLOTTING FUNCTIONS    ###########################################
+###################################################################################################
 
 
 def plot_explorations():
@@ -107,12 +160,14 @@ def trials_explorations():
     explorations = pd.DataFrame(AllExplorations.fetch())
     explorations = cleanup_explorations(explorations)
     explorations = expand_features(explorations)
+    get_info_first_trial_after_exploration(explorations)
 
     experiments = set(explorations['experiment_name'].values)
     colors = ['r', 'g', 'b', 'k', 'm', 'y']
 
     # Plot scatter plots to look at correlation
-    variables = ['duration', 'total_travel', '%_time_in_shelt', '%_time_on_T', 'median_vel','normalised_distance', '%S/%T']
+    variables = ['duration', 'total_travel', '%_time_in_shelt', '%_time_on_T', 'median_vel',
+                'normalised_distance', 'ft_max_speed', 'time_in_s_after_ft']
 
     f, axarr = plt.subplots(4, 2)
     f2, axarr2 = plt.subplots(4, 2)
@@ -162,13 +217,76 @@ def explorations_heatmap():
     plt.show()
         
 
+def exploration_time_on_each_platform():
+    maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')
+    maze_model = cv2.resize(maze_model, (1000, 1000))
+
+    paths = load_yaml('paths.yml')
+    rois = load_yaml(paths['maze_model_templates'])
+
+    rois_ids = load_yaml('Processing\\rois_toolbox\\rois_lookup.yml')
+    rois_lookup = {v:k for k,v in rois_ids.items()}
+
+
+    explorations = pd.DataFrame(AllExplorations.fetch())
+    experiments = set(explorations['experiment_name'].values)
+
+
+
+
+    f, axarr = plt.subplots(3, 2)
+    axarr = axarr.flatten() 
+
+    for i, exp in enumerate(experiments):
+        data = explorations.loc[explorations['experiment_name']==exp]
+
+        all_mice_rois = np.vstack(data['tracking_data'].values)[:, -1]
+
+        # f, ax = plt.subplots()
+        # for i in set(all_mice_rois):
+        #     idx = np.where(all_mice_rois == int(i))[0]
+        #     ax.scatter(np.vstack(data['tracking_data'].values)[idx, 0], np.vstack(data['tracking_data'].values)[idx, 1],
+        #             label=i)
+        # ax.legend()
+        # plt.show()
+
+        tot_frames = all_mice_rois.shape[0]
+
+        all_roy_stays = []
+        axarr[i].imshow(maze_model)
+        for r in set(all_mice_rois):
+            try: 
+                roi_stay = np.where(all_mice_rois == int(r))[0].shape[0]/tot_frames
+            except:
+                roi_stay = 0
+            all_roy_stays.append(roi_stay)
+
+            if 'b' in rois_lookup[int(r)]:
+                col = 'b'
+            else:
+                col = 'r'
+
+            roi_coords = rois[rois_lookup[int(r)]]
+            if 'b' not in rois_lookup[int(r)]:
+                axarr[i].text(roi_coords[0]-60, roi_coords[1]+10, '{}%'.format(round(roi_stay*100,0)), fontsize=12, color='green')
+            axarr[i].scatter(roi_coords[0], roi_coords[1], s=roi_stay*1500, c=col, alpha=.5, label=rois_lookup[int(r)])
+            
+
+        if round(np.sum(np.array(all_roy_stays)), 3) != 1 : raise ValueError
+
+        # axarr[i].legend()
+        axarr[i].set(title=exp)
+
+    a = 1
+    plt.show()
+
 
 
 if __name__ == "__main__":
     print(AllExplorations())
 
-    # explore_correlations_in_exploration()
-    explorations_heatmap()
+    exploration_time_on_each_platform()
+    # explorations_heatmap()
 
 
 

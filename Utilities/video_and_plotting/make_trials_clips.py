@@ -290,17 +290,41 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
                 
 
 
-def make_video_with_all_escapes():
-    savename = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\all_trials6.mp4'
+def make_video_with_all_escapes(select_escapes=True, select_stim_evoked=True):
+    savename = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\all_escapes_bydur.mp4'
     # Get background
     maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')
     maze_model = cv2.resize(maze_model, (1000, 1000))
 
     # Get returns data and tracking data
     all_escapes = pd.DataFrame(AllTrips().fetch())
-    # all_escapes = all_escapes.loc[all_escapes['is_escape'] == 'true']
-    is_this_an_escape = all_escapes['is_escape']
+    if select_escapes:
+        all_escapes = all_escapes.loc[all_escapes['is_escape'] == 'true']
+    else:
+        is_this_an_escape = list(all_escapes['is_escape'].values)
 
+    if select_stim_evoked:
+        is_this_evoked = list(all_escapes['is_trial'].values)
+
+
+    # Make random colors
+    random_colors = [(int(np.random.randint(10, 240, 1)[0]), 
+                        int(np.random.randint(10, 240, 1)[0]),
+                        int(np.random.randint(10, 240, 1)[0]))
+                        for i in np.arange(1000)]
+
+    # Make colors based on experiment
+    experiments = list(all_escapes['experiment_name'].values)
+    experiment_names = set(experiments)
+    experiment_colors = {exp:(int(np.random.randint(10, 240, 1)[0]), 
+                        int(np.random.randint(10, 240, 1)[0]),
+                        int(np.random.randint(10, 240, 1)[0])) for exp in experiment_names}
+
+    # Make colors based on order of arrival
+    durations = list(all_escapes['duration'].values)
+    durations_sortidx = np.argsort(durations)
+    colorspace = np.linspace(10, 244, len(durations)+100)
+    duration_colors = [(0, int(c/2), c) for c in colorspace]
 
     # Open Video writer
     editor = Editor()
@@ -331,12 +355,13 @@ def make_video_with_all_escapes():
             recording_tracking = get_tracking_given_recuid_and_bp(row['recording_uid'], bp)
             x = recording_tracking['tracking_data'].values[0][t0:t1, 0].astype(np.int16)
             y = recording_tracking['tracking_data'].values[0][t0:t1, 1].astype(np.int16)
-            v = recording_tracking['tracking_data'].values[0][t0:t1, 2].astype(np.int16)
-            y = np.add(490, np.subtract(490, y))
+            v =  line_smoother(recording_tracking['tracking_data'].values[0][t0:t1, 2].astype(np.int16))
+            y = np.add(495, np.subtract(495, y))
 
-            tracking_datas[bp].append(np.array([x, y, v]).T)
+            tracking_datas[bp].append(np.array([x, y, v]).T.astype(np.int16))
 
-        # if counter == 100: break
+
+
 
     # make videos 
     print('Ready to write video')
@@ -353,10 +378,24 @@ def make_video_with_all_escapes():
                     # max_v = int(np.max(tracking_datas['body'][i][:, 2])/2)
                     if max_v < 2: max_v = 2
                     elif max_v > 12: max_v = 10
-                    if is_this_an_escape[i] == 'true':
+
+                    color = duration_colors[durations_sortidx[i]]
+
+                    if select_escapes and not select_stim_evoked:
                         cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), int(max_v),colors[bp], -1)
+                    elif not select_escapes and not select_stim_evoked:
+                        if is_this_an_escape[i] == 'true':
+                            cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), int(max_v),colors[bp], -1)
+                        else:
+                            cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), int(max_v), colors[bp], 1)
+                    elif select_escapes and select_stim_evoked:
+                        if is_this_evoked[i] == 'true':
+                            pass
+                            cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), int(max_v), color, -1)
+                        else:
+                            cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), int(max_v), color, -1)
                     else:
-                        cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), int(max_v), colors[bp], 1)
+                        raise ValueError
 
         writer.write(bg)
         framen += 1

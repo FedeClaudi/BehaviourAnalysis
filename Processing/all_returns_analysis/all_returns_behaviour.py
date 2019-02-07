@@ -70,9 +70,9 @@ def compare_arm_probs(table):
             arms_props[arm] = tuple([round(arms_taken[cond].count(arm)/tot_returns[cond], 3)] for cond in categories.keys())
     
         arms_props = pd.DataFrame.from_dict(arms_props)
-        print(arms_props)
 
-        f, axes = plt.subplots(len(categories.keys()), 2, facecolor=[.2, .2, .2])
+        plt.subplots_adjust(hspace=.8)
+        f, axes = plt.subplots(len(categories.keys()), 2)
         y = np.arange(len(arms_set))
         colors = ['b', 'r', 'g', 'm', 'y', 'c']
 
