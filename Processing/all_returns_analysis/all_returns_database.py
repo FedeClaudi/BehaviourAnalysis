@@ -54,8 +54,8 @@ class analyse_all_trips:
             self.erase_table()
 
         if fill_in_table: # Get tracking data
+            self.table = AllTrips()
             self.fetch_data()
-
 
             # Prepare variables
             self.exclude_by_exp = True
@@ -68,10 +68,9 @@ class analyse_all_trips:
             self.get_trips()
 
             # Insert good trips into trips table
-            self.table = AllTrips()
+            
             self.insert_trips_in_table()
 
-            print(self.table)
 
     def erase_table(self):
         """ drops table from DataJoint database """
@@ -173,7 +172,6 @@ class analyse_all_trips:
             For each time the mouse leaves the shelter, only keep the last time before the mouse got to the threat and back. 
             i.e. if the mouse leaves the shelter briefly and then returns before doing a complete trip, disregard. 
         """
-        print(' ... getting good trips')
         good_trips = []
 
         for sexit in in_rois['shelter'].outs:
@@ -218,7 +216,6 @@ class analyse_all_trips:
             How long the return lasted, if it classifies as an escape...
         """
         warnings.warn('Lots of hardcoded variables')
-        print(' ... getting more info about the trips')
         for g in complete_trips:
             # Get the stimuli of this recording and see if one happened between when the mouse left the shelter and when it leaves the threat
             rec_stimuli = self.stimuli.loc[self.stimuli['recording_uid'] == row['recording_uid']]
@@ -313,6 +310,9 @@ class analyse_all_trips:
         sessions = pd.DataFrame(Sessions().fetch())
         templates = Templates.fetch()
 
+        # Get entries already in table
+        in_table = pd.DataFrame(self.table.fetch())['recording_uid'].values
+
         # Loop over each entry in the tracking table
         for idx, row in self.tracking.iterrows():
             """
@@ -321,6 +321,10 @@ class analyse_all_trips:
             if self.exclude_by_exp:    
                 # To exclude trials from unwanted experiment get the experiment matching the tracking data
                 rec = recordings.loc[recordings['recording_uid'] == row['recording_uid']]
+                if rec['recording_uid'] in in_table: continue
+
+
+
                 sess = sessions.loc[sessions['session_name'] == rec['session_name'].values[0]]
                 exp = sess['experiment_name'].values[0]
                         
@@ -329,7 +333,7 @@ class analyse_all_trips:
 
             # Get the tracking data as a numpy array
             tr = row['tracking_data']
-            print(row['recording_uid'], idx, ' of ', self.tracking.shape)
+            print(row['recording_uid'], idx)
 
             # Get the templates position
             templates_idx = [i for i, t in enumerate(templates) if t['uid'] == row['uid']][0]
@@ -338,7 +342,6 @@ class analyse_all_trips:
             """
                 GET ALL THE TIMES THE MOUSE IS IN SHELTER OR IN THREAT
             """
-            print('  ... getting times in rois')
             in_rois = self.get_rois_enters_exits(tr, rois_coords)
 
 
@@ -370,7 +373,7 @@ def check_table_inserts(table):
     data = pd.DataFrame(table.fetch())
 
     # Plot XY traces sorted by arm taken
-    arms = ['Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far']
+    arms = set(data['arm_taken'].values)
     f, axarr = plt.subplots(3, 2, facecolor =[.2,  .2, .2])
     axarr = axarr.flatten()
     arr_size = 0
@@ -380,9 +383,9 @@ def check_table_inserts(table):
         for idx, row in sel.iterrows():
             t0, t1, t2 = row['threat_enter']-row['shelter_exit'], row['shelter_enter']-row['shelter_exit'], row['threat_exit']-row['shelter_exit']
             tracking = row['tracking_data']
-            ax.scatter(tracking[t0:t2, 0], tracking[t0:t2, 1],c=[.8, .8, .8],    s=1, alpha=.15)
+            # ax.scatter(tracking[t0:t2, 0], tracking[t0:t2, 1],c=[.8, .8, .8],    s=1, alpha=.15)
             ax.scatter(tracking[t2:t1, 0], tracking[t2:t1, 1],c=tracking[t2:t1, -1],    s=1, alpha=.5)
-            axarr[-1].scatter(tracking[t0:t1, 0], tracking[t0:t1, 1], c=tracking[t0:t1, -1],  s=1, alpha=.25)
+            # axarr[-1].scatter(tracking[t0:t1, 0], tracking[t0:t1, 1], c=tracking[t0:t1, -1],  s=1, alpha=.25)
             if tracking.shape[0] > arr_size: arr_size = tracking.shape[0]
         ax.set(title=arm, facecolor=[.2, .2, .2], xlim=[0, 1000], ylim=[200, 800])
     axarr[-1].set(facecolor=[.2, .2, .2])
@@ -449,12 +452,12 @@ def check_all_trials_included(table):
 
 if __name__ == '__main__':
 
-    # analyse_all_trips(erase_table=False, fill_in_table=True)
+    analyse_all_trips(erase_table=False, fill_in_table=True)
 
     
-    # check_table_inserts(AllTrips())
+    check_table_inserts(AllTrips())
 
-    check_all_trials_included(AllTrips())
+    # check_all_trials_included(AllTrips())
 
     print(AllTrips())
 

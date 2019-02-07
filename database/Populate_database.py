@@ -246,7 +246,7 @@ if __name__ == '__main__':
     # p.videofiles.populate()
 
     # p.commoncoordinatematrices.populate()
-    # p.templates.populate()
+    p.templates.populate()
 
 
     

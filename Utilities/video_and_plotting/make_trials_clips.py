@@ -291,15 +291,14 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
 
 
 def make_video_with_all_escapes():
-    savename = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\all_trials4.mp4'
+    savename = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\all_trials6.mp4'
     # Get background
     maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')
     maze_model = cv2.resize(maze_model, (1000, 1000))
-    # maze_model = cv2.cvtColor(maze_model,cv2.COLOR_RGB2GRAY)
 
     # Get returns data and tracking data
     all_escapes = pd.DataFrame(AllTrips().fetch())
-    all_escapes = all_escapes.loc[all_escapes['is_escape'] == 'true']
+    # all_escapes = all_escapes.loc[all_escapes['is_escape'] == 'true']
     is_this_an_escape = all_escapes['is_escape']
 
 
@@ -322,8 +321,10 @@ def make_video_with_all_escapes():
 
     print('Ready to get data')
     tracking_datas = {bp:[] for bp in bodyparts}
+    counter  = 0
     for index, row in all_escapes.iterrows():
-        print('Fetching data from entry {} of {}'.format(index, all_escapes.shape[0]))
+        print('Fetching data from entry {} of {}'.format(counter, all_escapes.shape[0]))
+        counter += 1
         t0, t1 = row['threat_exit']-30, row['shelter_enter']
         # Get the tracking data for each bodypart in each recording
         for bp in bodyparts:
@@ -335,7 +336,7 @@ def make_video_with_all_escapes():
 
             tracking_datas[bp].append(np.array([x, y, v]).T)
 
-        if index == 250: break
+        # if counter == 100: break
 
     # make videos 
     print('Ready to write video')
@@ -348,12 +349,92 @@ def make_video_with_all_escapes():
             tracking = tracking_datas[bp]
             for i, tr in enumerate(tracking):
                 if framen < tr.shape[0]:
-
-                    cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), 3, colors[bp], -1)
+                    max_v = int(tracking_datas['body'][i][framen, 2]/2)
+                    # max_v = int(np.max(tracking_datas['body'][i][:, 2])/2)
+                    if max_v < 2: max_v = 2
+                    elif max_v > 12: max_v = 10
+                    if is_this_an_escape[i] == 'true':
+                        cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), int(max_v),colors[bp], -1)
+                    else:
+                        cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), int(max_v), colors[bp], 1)
 
         writer.write(bg)
         framen += 1
         if framen == 10*30: break
+
+        # cv2.imshow('a', bg)
+        # cv2.waitKey(1)
+    writer.release()
+
+
+def make_video_with_all_explorations():
+    savename = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\all_explorations.mp4'
+    # Get background
+    maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')
+    maze_model = cv2.resize(maze_model, (1000, 1000))
+
+    # Get returns data and tracking data
+    all_explorations = pd.DataFrame(AllExplorations().fetch())
+
+    # Open Video writer
+    editor = Editor()
+    writer = editor.open_cvwriter(savename, w=1000,
+                                        h=1000, framerate=120, iscolor=True)
+
+    # Extract tracking data
+    bodyparts = ['left_ear', 'snout', 'right_ear', 'neck', 'body', 'tail_base']
+    # bodyparts = ['snout', 'body']
+    colors = dict(
+        body=(255, 100, 100),
+        snout=(100, 100, 255),
+        left_ear = (75, 75, 200),
+        right_ear = (75, 75, 200),
+        neck = (200, 75, 75),
+        tail_base = (150, 50, 50)
+    )
+
+    print('Ready to get data')
+    tracking_datas = {bp:[] for bp in bodyparts}
+    counter  = 0
+    for index, row in all_explorations.iterrows():
+        print('Fetching data from entry {} of {}'.format(counter, all_explorations.shape[0]))
+        counter += 1
+
+        # Get the tracking data for each bodypart in each recording
+        for bp in bodyparts:
+            # recording_tracking = get_tracking_given_recuid_and_bp(row['recording_uid'], bp)
+            # x = recording_tracking['tracking_data'].values[0][:, 0].astype(np.int16)
+            # y = recording_tracking['tracking_data'].values[0][:, 1].astype(np.int16)
+            # v = recording_tracking['tracking_data'].values[0][:, 2].astype(np.int16)
+            x = row['tracking_data'][:, 0].astype(np.int16)
+            y = row['tracking_data'][:, 1].astype(np.int16)
+            v = row['tracking_data'][:, 2].astype(np.int16)
+            y = np.add(490, np.subtract(490, y))
+            tracking_datas[bp].append(np.array([x, y, v]).T)
+
+        # if counter == 10: break
+
+    # Calc video duration
+    durations = all_explorations['duration'].values
+    number_of_frames = np.percentile(durations, 75)*30
+
+    # make videos 
+    print('Ready to write video')
+    for framen in np.arange(int(number_of_frames)):
+        print('Writing frame: ', framen, ' of ', number_of_frames)
+        bg = maze_model.copy()
+        for bp in bodyparts:
+            tracking = tracking_datas[bp]
+            for i, tr in enumerate(tracking):
+                if framen < tr.shape[0]:
+                    v = tr[framen, -1]
+                    if v < 2: v = 2
+                    elif v > 15: v = 15
+                    cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), int(v), colors[bp], -1)
+
+        writer.write(bg)
+        framen += 1
+
 
         # cv2.imshow('a', bg)
         # cv2.waitKey(1)

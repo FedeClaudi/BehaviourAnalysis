@@ -8,6 +8,7 @@ from pandas.plotting import scatter_matrix
 from collections import namedtuple
 from itertools import combinations
 from matplotlib import colors as mcolors
+import seaborn as sns
 
 from sklearn import datasets, linear_model
 from sklearn.metrics import mean_squared_error, r2_score
@@ -138,13 +139,36 @@ def trials_explorations():
     plt.show()
 
 
+def explorations_heatmap():
+    # Get and clean up exploration data
+    explorations = pd.DataFrame(AllExplorations.fetch())
+
+
+    experiments = set(explorations['experiment_name'].values)
+
+    f, axarr = plt.subplots(3, 2)
+    axarr = axarr.flatten()
+
+    for i, exp in enumerate(experiments):
+        data = explorations.loc[explorations['experiment_name']==exp]
+
+        tracking = data['tracking_data'].values
+        tracking = np.vstack(tracking)
+
+        # sns.jointplot(tracking[:, 0], tracking[:, 1], kind='kde', ax=axarr[i])
+        axarr[i].hexbin(tracking[:, 0], tracking[:, 1], cmap=plt.cm.BuGn_r, bins ='log')
+        axarr[i].set(title=exp, xlim=[0, 800], ylim=[200, 800])
+
+    plt.show()
+        
+
 
 
 if __name__ == "__main__":
     print(AllExplorations())
 
     # explore_correlations_in_exploration()
-    trials_explorations()
+    explorations_heatmap()
 
 
 
