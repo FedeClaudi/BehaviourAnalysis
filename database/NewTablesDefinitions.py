@@ -289,7 +289,8 @@ class DLCmodels(dj.Lookup):
         model_name: varchar(256)                        # name given to the model
         ---
         cfg_file_path: varchar(256)                     # path to the cfg.yml file
-        camera: enum('overview', 'threat', 'mirrors')   # for which kind of video it can be used
+        camera: enum('overview', 'threat', 'mirrors', 'overview_mantis')   # for which kind of video it can be used
+        iteration: int
     """
 
     def populate(self):
@@ -315,7 +316,8 @@ class AllTrips(dj.Manual):
         is_escape: enum('true', 'false')        # did it meet the criteria for being considered an escape
         experiment_name: varchar(128)           # name of the experiment this recording belongs to
         
-        arm_taken: enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far')  # far left....
+        escape_arm: enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far')  # far left....
+        origin_arm:  enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far')
     """
 
 @schema

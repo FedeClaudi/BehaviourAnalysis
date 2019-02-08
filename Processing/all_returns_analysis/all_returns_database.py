@@ -34,7 +34,8 @@ class Trip:
         self.recording_uid = None       # Str
         self.duration = None            # Escape duration from levae threat to at shelter in seconds
         self.is_escape = None           # Bool
-        self.arm_taken = None           # Str
+        self.escape_arm = None           # Str
+        self.origin_arm = None
         self.experiment_name = None     # Str
         self.max_speed = None               
         
@@ -215,6 +216,34 @@ class analyse_all_trips:
             For each trip, check if it includes a trial, on which arm the return happened. 
             How long the return lasted, if it classifies as an escape...
         """
+
+        def get_arm_given_rois(roi_id, roi_ids, y_midpoint):
+            # ! Based on the IDs of the platforms. Not very elegant but works it seems
+            if 22.0 == roi_id:
+                arm_taken = 'Centre'
+            elif roi_id in [9.0, 5.0, 15.0, 14.0]:
+                arm_taken = 'Right_Far'
+            elif roi_id in [8.0, 2.0, 10.0, 11.0]:
+                arm_taken = 'Left_Far'
+            elif roi_id in [13.0, 6.0, 18.0]:
+                if 22.0 in roi_ids:
+                    arm_taken = "Centre"
+                elif 14.0 in roi_ids[y_midpoint:y_midpoint+60] or 5.0 in roi_ids[y_midpoint:y_midpoint+60]:
+                    arm_taken = 'Right_Far'
+                else:
+                    arm_taken = 'Right_Medium'
+            elif roi_id in [12.0, 3.0, 17.0]:
+                if 22.0 in roi_ids:
+                    arm_taken = 'Centre'
+                elif 11.0 in roi_ids[y_midpoint:y_midpoint+60] or 2.0 in roi_ids[y_midpoint:y_midpoint+60]:
+                    arm_taken = 'Left_Far'
+                else: 
+                    arm_taken = 'Left_Medium'
+            else:
+                raise ValueError
+            return arm_taken
+
+
         warnings.warn('Lots of hardcoded variables')
         for g in complete_trips:
             # Get the stimuli of this recording and see if one happened between when the mouse left the shelter and when it leaves the threat
@@ -231,6 +260,7 @@ class analyse_all_trips:
             endtime = g.shelter_enter+g.time_in_shelter  # Take tracking data up to this time
             tracking_data = tr[g.shelter_exit:endtime, :]
             escape_start, escape_end = g.threat_exit -g.shelter_exit,  g.shelter_enter-g.shelter_exit
+            outward_trip_end = g.threat_enter - g.shelter_exit
 
             # Ignore returns that are faster than 1s, probably errors
             if escape_end-escape_start <= 30*.5: continue # ! hardcoded fps
@@ -239,6 +269,7 @@ class analyse_all_trips:
             # Get the arm of escape
             try:
                 y_midpoint = np.where(tracking_data[escape_start:escape_end,1]>=550)[0][0]  # midpoint on the y axis, used to check which arm was takem
+                y_midpoint_origin = np.where(tracking_data[0:outward_trip_end,1]<=550)[0][0]
             except:
                 raise ValueError
                 print('smth went wrong')
@@ -246,29 +277,24 @@ class analyse_all_trips:
 
             escape_rois_ids = np.trim_zeros(tracking_data[escape_start:escape_end, -1])
             escape_rois_id = escape_rois_ids[y_midpoint]
-            # ! Based on the IDs of the platforms. Not very elegant but works it seems
-            if 22.0 == escape_rois_id:
-                arm_taken = 'Centre'
-            elif escape_rois_id in [9.0, 5.0, 15.0, 14.0]:
-                arm_taken = 'Right_Far'
-            elif escape_rois_id in [8.0, 2.0, 10.0, 11.0]:
-                arm_taken = 'Left_Far'
-            elif escape_rois_id in [13.0, 6.0, 18.0]:
-                if 22.0 in escape_rois_ids:
-                    arm_taken == "Centre"
-                elif 14.0 in escape_rois_ids[y_midpoint:y_midpoint+60] or 5.0 in escape_rois_ids[y_midpoint:y_midpoint+60]:
-                    arm_taken = 'Right_Far'
-                else:
-                    arm_taken = 'Right_Medium'
-            elif escape_rois_id in [12.0, 3.0, 17.0]:
-                if 22.0 in escape_rois_ids:
-                    arm_taken = 'Centre'
-                elif 11.0 in escape_rois_ids[y_midpoint:y_midpoint+60] or 2.0 in escape_rois_ids[y_midpoint:y_midpoint+60]:
-                    arm_taken = 'Left_Far'
-                else: 
-                    arm_taken = 'Left_Medium'
-            else:
-                raise ValueError
+            escape_arm = get_arm_given_rois(escape_rois_id, escape_rois_ids, y_midpoint)
+            
+            # Get the arm of origin
+            # ! this bit of code is very ugly, need a more elegant solution
+            origin_rois_ids = np.trim_zeros(tracking_data[0:outward_trip_end, -1])
+            origin_rois_ids = origin_rois_ids[origin_rois_ids > 2]
+            origin_rois_ids_c = origin_rois_ids.copy()
+            origin_rois_id = origin_rois_ids[-1]
+            if origin_rois_id < 1: 
+                # Something went wrong, try removing frames with abnormally high speed values to see if the problem is due to tracking errors
+                high_velocity_frames = np.where(tracking_data[0:outward_trip_end,2] >= 28)[0]
+                origin_rois_ids_c[high_velocity_frames] =  origin_rois_ids_c[high_velocity_frames-1] =  origin_rois_ids_c[high_velocity_frames+1] = -1
+                origin_rois_ids = origin_rois_ids_c[origin_rois_ids_c > 2]
+                origin_rois_id = origin_rois_ids[-1]
+                if origin_rois_id == np.nan: raise ValueError
+                # raise ValueError
+
+            origin_arm = get_arm_given_rois(origin_rois_id, origin_rois_ids, y_midpoint)
 
             # Get the duration of the escape
             duration = (g.shelter_enter - g.threat_exit)/30 # ! hardcoded fps
@@ -282,7 +308,7 @@ class analyse_all_trips:
                             Right_Medium=6,
                             Right_Far=9)
 
-            if duration <= duration_lims[arm_taken]: # ! hardcoded arbritary variable
+            if duration <= duration_lims[escape_arm]: # ! hardcoded arbritary variable
                 is_escape = 'true'
             else:
                 is_escape = 'false'
@@ -294,8 +320,9 @@ class analyse_all_trips:
             g.duration = duration
             g.max_speed = max_speed
             g.is_escape = is_escape
-            g.arm_taken = arm_taken
+            g.escape_arm = escape_arm
             g.experiment_name = exp
+            g.origin_arm = origin_arm
 
             self.all_trips.append(g)
 
@@ -321,7 +348,7 @@ class analyse_all_trips:
             if self.exclude_by_exp:    
                 # To exclude trials from unwanted experiment get the experiment matching the tracking data
                 rec = recordings.loc[recordings['recording_uid'] == row['recording_uid']]
-                if rec['recording_uid'] in in_table: continue
+                if rec['recording_uid'].values[0] in in_table: continue
 
 
 
@@ -373,20 +400,24 @@ def check_table_inserts(table):
     data = pd.DataFrame(table.fetch())
 
     # Plot XY traces sorted by arm taken
-    arms = set(data['arm_taken'].values)
+    arms = set(data['escape_arm'].values)
     f, axarr = plt.subplots(3, 2, facecolor =[.2,  .2, .2])
     axarr = axarr.flatten()
-    arr_size = 0
+
     colors =['r', 'b', 'm', 'g', 'y']
     for i, (arm, ax) in enumerate(zip(arms, axarr)):
-        sel = data.loc[data['arm_taken'] == arm]
-        for idx, row in sel.iterrows():
+        sel = data.loc[data['escape_arm'] == arm]
+        sel2 = data.loc[data['origin_arm'] == arm]
+        # for idx, row in sel.iterrows():
+        #     t0, t1, t2 = row['threat_enter']-row['shelter_exit'], row['shelter_enter']-row['shelter_exit'], row['threat_exit']-row['shelter_exit']
+        #     tracking = row['tracking_data']
+        #     ax.scatter(tracking[t2:t1, 0], tracking[t2:t1, 1],c=tracking[t2:t1, -1],    s=1, alpha=.5)
+
+        for idx, row in sel2.iterrows():
             t0, t1, t2 = row['threat_enter']-row['shelter_exit'], row['shelter_enter']-row['shelter_exit'], row['threat_exit']-row['shelter_exit']
             tracking = row['tracking_data']
-            # ax.scatter(tracking[t0:t2, 0], tracking[t0:t2, 1],c=[.8, .8, .8],    s=1, alpha=.15)
-            ax.scatter(tracking[t2:t1, 0], tracking[t2:t1, 1],c=tracking[t2:t1, -1],    s=1, alpha=.5)
-            # axarr[-1].scatter(tracking[t0:t1, 0], tracking[t0:t1, 1], c=tracking[t0:t1, -1],  s=1, alpha=.25)
-            if tracking.shape[0] > arr_size: arr_size = tracking.shape[0]
+            ax.scatter(tracking[0:t0, 0], tracking[0:t0, 1],c=tracking[0:t0, -1],    s=1, alpha=.5)
+
         ax.set(title=arm, facecolor=[.2, .2, .2], xlim=[0, 1000], ylim=[200, 800])
     axarr[-1].set(facecolor=[.2, .2, .2])
     plt.show()
@@ -452,7 +483,7 @@ def check_all_trials_included(table):
 
 if __name__ == '__main__':
 
-    analyse_all_trips(erase_table=False, fill_in_table=True)
+    # analyse_all_trips(erase_table=False, fill_in_table=True)
 
     
     check_table_inserts(AllTrips())

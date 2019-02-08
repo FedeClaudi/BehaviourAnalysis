@@ -166,8 +166,9 @@ class FilesAutomationToolbox:
                 if not number_of_frames: continue
 
                 try:
+                    if number_of_frames[0] == 0: continue
                     if 0 in number_of_frames:  raise ValueError(number_of_frames)
-                    if len(number_of_frames) not in [3, 6]: raise ValueError(number_of_frames)
+                    # if len(number_of_frames) not in [3, 6]: raise ValueError(number_of_frames)
 
                     tot = np.sum(np.array(number_of_frames))
                     # table_entry = self.video_metadata.fetch()
@@ -175,16 +176,22 @@ class FilesAutomationToolbox:
                     metadata = pd.DataFrame(self.video_metadata.fetch())
                     entry = metadata.loc[metadata['videopath'] == os.path.join(self.videos_fld, t)]
 
-                    if tot != entry['number_of_frames'].values: raise ValueError
+                    if tot != entry['number_of_frames'].values[0]: raise ValueError('crap')
                     try:
                         a = np.where(np.abs(np.diff(np.array(number_of_frames)))>1)[0][0]
                     except: 
-                        print(' ... ',  number_of_frames)
+                        print(' ...  correctly converted all ',  tot, 'frames')
                     else: 
-                        
                         raise ValueError(a, number_of_frames)
                 except:
-                    raise ValueError('Incorrect number of frames in clips for video: ', t)
+                    entry = metadata.loc[metadata['videopath'] == os.path.join(self.videos_fld, t)]
+
+                    if entry.shape[0] == 0:
+                        warnings.warn('Need to load videos metadata first!!')
+                        continue
+                    else:
+                        raise ValueError('Incorrect number of frames in clips for video: ', t)
+                    # print('Incorrect number of frames in clips for video: ', t)
 
     def fillin_incompletevideos(self):
         inc_table = VideosIncomplete()
@@ -209,10 +216,13 @@ class FilesAutomationToolbox:
 
 if __name__ == "__main__":
     automation = FilesAutomationToolbox()
-    automation.convert_tdms_to_mp4()
+
+    # automation.convert_tdms_to_mp4()
+
     # automation.get_list_uncoverted_tdms_videos()
-    # automation.get_list_not_tracked_videos()
+    automation.get_list_not_tracked_videos()
+
+    # automation.extract_videotdms_metadata()
     # automation.check_video_conversion_correct()
-    automation.extract_videotdms_metadata()
 
     # automation.macro()

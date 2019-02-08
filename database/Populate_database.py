@@ -234,26 +234,26 @@ if __name__ == '__main__':
 
     print(p)
 
-    # p.remove_table(['tracking_data'])
+    # p.remove_table(['dlcmodels'])
 
     # p.populate_mice_table()
     # p.populate_experiments_table()
     # p.populate_sessions_table()y
-    # p.dlcmodels.populate()
+    p.dlcmodels.populate()
 
     # p.recordings.populate()
 
     # p.videofiles.populate()
 
     # p.commoncoordinatematrices.populate()
-    p.templates.populate()
+    # p.templates.populate()
 
 
     
     # p.behaviourstimuli.populate()
     # p.mantisstimuli.populate()
 
-    p.tracking_data.populate()
+    # p.tracking_data.populate()
 
 
     # p.remove_test_sessions()

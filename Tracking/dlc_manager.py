@@ -209,5 +209,6 @@ if __name__ == "__main__":
 
     manager.analyze_videos()
     manager.create_labeled_videos()
+    manager.extract_outliers()
 
 

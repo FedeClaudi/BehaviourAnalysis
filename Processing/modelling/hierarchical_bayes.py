@@ -147,7 +147,7 @@ class BayesModeler:
 
         # ! HAND defined data for test
         lights_off_trials = [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1]
-        lights_onoff_trilas = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0]
+        lights_onoff_trilas = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1]
 
 
         # Set up the pymc3 model.  assume Uniform priors for p_asym and p_sym.

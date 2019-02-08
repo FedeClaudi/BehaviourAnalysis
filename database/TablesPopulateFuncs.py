@@ -187,6 +187,7 @@ def make_dlcmodels_table(table):
     
     for model in models.values():
         if model['camera'] in cameras_in_table:
+            continue
             # one with the same camera is already present
             # if same name: overwrite
             # else: replace?
@@ -197,7 +198,7 @@ def make_dlcmodels_table(table):
                 var = 'camera'
                 print('A model for camera {} already exists, replace?'.format(model['camera']))
             
-            print('Old model: ', (table & '{}={}'.format[var, model[var]]))
+            print('Old model: ', (table & '{}={}'.format(var, model[var])))
             print('New model: ', model)
             yn = input('Overwrite? [y/n]')
             if y != 'y': continue
