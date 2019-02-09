@@ -25,6 +25,7 @@ from Processing.tracking_stats.math_utils import line_smoother
 from Utilities.file_io.files_load_save import load_yaml
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 
+from database.database_fetch import get_maze_template
 
 
 
@@ -264,7 +265,52 @@ class ChoicesVisualiser:
             
 
 
+def plot_stim_onset():
+    """
+        For stim evoked escapes in the two arms sym and asym maze plot the position of the mouse at stim onset
+    """
+    # Get data
+    asym_escapes = pd.DataFrame((AllTrips & "is_escape='true'" & "is_trial='true'"& 'experiment_name="PathInt2"').fetch())
+    sym_escapes1 = pd.DataFrame((AllTrips & "is_escape='true'"& "is_trial='true'" & 'experiment_name="TwoAndahalf Maze"' ).fetch())
+    sym_escapes2= pd.DataFrame((AllTrips & "is_escape='true'" & "is_trial='true'"& 'experiment_name="Square Maze"' ).fetch())
+    sym_escapes = pd.concat([sym_escapes1, sym_escapes2])
+
+    all_escapes = pd.concat([asym_escapes, sym_escapes])
+
+    # Plot
+    f, axarr = plt.subplots(2)
+    labels, titles =['Left', 'Right'], ['Sym maze [ $R$ - right, $G$ left]', 'Asym maze']
+
+    template = get_maze_template()
+    for ax in axarr:
+        ax.imshow(template)
+
+
+    for i, row in all_escapes.iterrows():
+        if row['experiment_name'] == "PathInt2":
+            exp_n = 1
+        else:
+            exp_n = 0
+        
+        if 'Right' in row['escape_arm']:
+            col = [.8, .6, .6]
+        elif 'Left' in row['escape_arm']:
+            col = [.6, .8, .6]
+        else:
+            col = 'm'
+
+        onset_tr = row['tracking_data'][row['stim_frame']-row['shelter_exit'], :]
+
+        axarr[exp_n].scatter(onset_tr[0], onset_tr[1], c=col, s=30, alpha=.75, label=labels[exp_n])
+
+    for i, ax in enumerate(axarr):
+        # ax.legend()
+        ax.set(title=titles[i], xlim=[350, 650], ylim=[80, 420])
+
+
 if __name__ == "__main__":
-    ChoicesVisualiser()
+    # ChoicesVisualiser()
+
+    plot_stim_onset()
 
     plt.show()

@@ -96,7 +96,7 @@ class PopulateDatabase:
             mouse_data = dict(
                 mouse_id = m[''],
                 strain = m['Strain'],
-                dob = m['DOB'].strip(),
+                dob = str(m['DOB']).strip(),
                 sex = 'M',
                 single_housed = 'Y',
                 enriched_cage = 'Y'
@@ -238,10 +238,11 @@ if __name__ == '__main__':
 
     # p.populate_mice_table()
     # p.populate_experiments_table()
-    # p.populate_sessions_table()y
-    p.dlcmodels.populate()
+    # p.populate_sessions_table()
 
-    # p.recordings.populate()
+    # p.dlcmodels.populate()
+
+    p.recordings.populate()
 
     # p.videofiles.populate()
 

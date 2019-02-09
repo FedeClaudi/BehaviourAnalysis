@@ -217,21 +217,18 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
     videofiles = VideoFiles()
     
     videos_df = pd.DataFrame(videofiles.fetch())
-
+    videoname = None
     for recn, rec in enumerate(recs.fetch(as_dict=True)):
         # Get the stim table entry and clip ame
         print('Processing recording {} of {}'.format(recn, len(recs.fetch())))
-        if rec['uid']<194: 
-            print(' ... skipped')
-            continue
+        # if rec['uid']<194: 
+        #     print(' ... skipped')
+        #     continue
 
         if rec['software'] == 'behaviour':
             stims = [s for s in behav_stims if s['recording_uid']==rec['recording_uid']]
         else:
             stims = [s for s in mantis_stims if s['recording_uid'] == rec['recording_uid']]
-
-
-        
 
         stimuli_dict = {}
         for stimn, stim in enumerate(stims):
@@ -263,6 +260,7 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
             else:
                 dur = stim['duration']  # ! hardcoded duration in fps
                 stimuli_dict[stimn] = (int(stim['overview_frame']), dur)
+
                 # Get the corrisponding videofile
                 # Get video path
                 entry = videos_df.loc[(videos_df['recording_uid'] == stim['recording_uid']) & (videos_df['camera_name'] == 'overview')]
@@ -285,13 +283,14 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
 
                 stimuli_dict[stimn] = (int(stim['overview_frame']), dur)
 
-        ClipWriter(videoname, stimuli_dict, clean_vids)
+        if videoname is not None:
+            ClipWriter(videoname, stimuli_dict, clean_vids)
                 
                 
 
 
-def make_video_with_all_escapes(select_escapes=True, select_stim_evoked=True):
-    savename = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\all_escapes_byescapearm.mp4'
+def make_video_with_all_escapes(select_escapes=True, select_stim_evoked=False, select_exp = None):
+    savename = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\sym_maze3.mp4'
     # Get background
     maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')
     maze_model = cv2.resize(maze_model, (1000, 1000))
@@ -305,6 +304,13 @@ def make_video_with_all_escapes(select_escapes=True, select_stim_evoked=True):
 
     if select_stim_evoked:
         is_this_evoked = list(all_escapes['is_trial'].values)
+
+    if select_exp:
+        sq = ['Square Maze', 'TwoAndahalf Maze']
+        if select_exp in sq:
+            all_escapes = pd.concat([all_escapes.loc[all_escapes['experiment_name']==exp] for exp in sq])
+        else:
+            all_escapes = all_escapes.loc[all_escapes['experiment_name']==select_exp]
 
 
     # Make random colors
@@ -327,11 +333,12 @@ def make_video_with_all_escapes(select_escapes=True, select_stim_evoked=True):
     duration_colors = [(0, int(c/2), c) for c in colorspace]
     
     # make colors based on arm of origin and escape
-    escape_arms = list(all_escapes['arm_taken'].values)
+    escape_arms = list(all_escapes['escape_arm'].values)
     arms = set(escape_arms)
-    escape_arms_colors = {arm:(int(np.random.randint(10, 240, 1)[0]), 
-                        int(np.random.randint(10, 240, 1)[0]),
-                        int(np.random.randint(10, 240, 1)[0])) for arm in arms}
+    # escape_arms_colors = {arm:(int(np.random.randint(10, 240, 1)[0]), 
+    #                     int(np.random.randint(10, 240, 1)[0]),
+    #                     int(np.random.randint(10, 240, 1)[0])) for arm in arms}
+    escape_arms_colors = {arm:((0, 255, 0) if 'Left' in arm else (255, 0, 0)) for arm in arms}
 
     # Open Video writer
     editor = Editor()
@@ -367,9 +374,6 @@ def make_video_with_all_escapes(select_escapes=True, select_stim_evoked=True):
 
             tracking_datas[bp].append(np.array([x, y, v]).T.astype(np.int16))
 
-
-
-
     # make videos 
     print('Ready to write video')
     framen = 0
@@ -386,15 +390,20 @@ def make_video_with_all_escapes(select_escapes=True, select_stim_evoked=True):
                     if max_v < 2: max_v = 2
                     elif max_v > 12: max_v = 10
 
-                    color = escape_arms_colors[escape_arms[i]]
+                    if 'snout' in bp.lower():
+                        color= (0, 0, 255)
+                    else:
+                        color = escape_arms_colors[escape_arms[i]]
 
                     if select_escapes and not select_stim_evoked:
-                        cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), int(max_v),colors[bp], -1)
+                        cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), int(max_v), color, -1)
+
                     elif not select_escapes and not select_stim_evoked:
                         if is_this_an_escape[i] == 'true':
-                            cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), int(max_v),colors[bp], -1)
+                            cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), int(max_v),color, -1)
                         else:
-                            cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), int(max_v), colors[bp], 1)
+                            cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), int(max_v), color, 1)
+
                     elif select_escapes and select_stim_evoked:
                         if is_this_evoked[i] == 'true':
                             pass
@@ -403,7 +412,7 @@ def make_video_with_all_escapes(select_escapes=True, select_stim_evoked=True):
                             # cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), int(max_v), color, -1)
                             pass
                     else:
-                        raise ValueError
+                        cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), int(max_v), color, -1)
 
         writer.write(bg)
         framen += 1
@@ -493,5 +502,5 @@ if __name__ == "__main__":
     paths = load_yaml('./paths.yml')
 
     # create_trials_clips(clean_vids=False)
-    make_video_with_all_escapes()
+    make_video_with_all_escapes(select_exp='Square Maze')
 

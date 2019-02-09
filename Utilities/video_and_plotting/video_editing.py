@@ -379,6 +379,24 @@ class Editor:
             writer.release()
         cap.release()
 
+    def tile_clips(self, clips_l, savepath):
+        caps = [ cv2.VideoCapture(videofilepath) for videofilepath in clips_l]
+
+        nframes, width, height, fps = self.get_video_params(caps[0])
+        width *= len(caps)
+        writer = self.open_cvwriter(savepath, w=width, h=height, framerate=fps, iscolor=True)
+
+        while True:
+            try:
+                frames = [cap.read()[1] for cap in caps]
+            except:
+                break
+            else:
+
+                tot_frame = np.hstack(frames)
+
+                writer.write(tot_frame)
+        writer.release()
 
 
     @staticmethod
@@ -515,8 +533,6 @@ class Editor:
                 except:
                     print('Joining Failed... removing incopmlete file: ', args[0])
                     os.remove(args[0])
-
-
 
     @staticmethod
     def compress_clip(videopath, compress_factor, save_path=None, start_frame=0, stop_frame=None):
@@ -731,9 +747,13 @@ if __name__ == '__main__':
     # editor.manual_video_inspect(os.path.join(fld, vid))
 
 
+    fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze'
+    videos = ['sym_maze3.mp4', 'asym_maze3.mp4']
+    vv = [os.path.join(fld, v) for v in videos]
+    save = os.path.join(fld, 'symasym2.mp4')
+    editor.tile_clips(vv, save)
 
-
-    converter.tdmstovideo_converter()
+    # converter.tdmstovideo_converter()
 
 
 

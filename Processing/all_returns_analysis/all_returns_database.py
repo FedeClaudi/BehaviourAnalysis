@@ -37,7 +37,8 @@ class Trip:
         self.escape_arm = None           # Str
         self.origin_arm = None
         self.experiment_name = None     # Str
-        self.max_speed = None               
+        self.max_speed = None         #
+        self.stim_frame = None
         
     def _as_dict(self):
         return self.__dict__
@@ -124,9 +125,6 @@ class analyse_all_trips:
                 if abs(roix-x)<th and abs(roiy-y)<th:
                     good.append(t)
             return good
-
-
-
 
         # Define variables
         in_rois = {}
@@ -253,8 +251,10 @@ class analyse_all_trips:
             if stims_in_time:
                 # Sanity check
                 has_stim = 'true'
+                stim_frame = stims_in_time[-1]
             else:
                 has_stim = 'false'
+                stim_frame = -1
 
             # Get remaining variables
             endtime = g.shelter_enter+g.time_in_shelter  # Take tracking data up to this time
@@ -323,6 +323,7 @@ class analyse_all_trips:
             g.escape_arm = escape_arm
             g.experiment_name = exp
             g.origin_arm = origin_arm
+            g.stim_frame = stim_frame
 
             self.all_trips.append(g)
 
@@ -348,7 +349,7 @@ class analyse_all_trips:
             if self.exclude_by_exp:    
                 # To exclude trials from unwanted experiment get the experiment matching the tracking data
                 rec = recordings.loc[recordings['recording_uid'] == row['recording_uid']]
-                if rec['recording_uid'].values[0] in in_table: continue
+                # if rec['recording_uid'].values[0] in in_table: continue
 
 
 
@@ -393,6 +394,14 @@ class analyse_all_trips:
                 print('inserted: ', key['recording_uid'])
             except:
                 print(' !!! - did not insert !!! - ', key['recording_uid'])
+
+
+"""
+############################################################################################################################
+############################################################################################################################
+############################################################################################################################
+############################################################################################################################
+"""
 
 
 
@@ -479,14 +488,20 @@ def check_all_trials_included(table):
 
 
 
+"""
+############################################################################################################################
+############################################################################################################################
+############################################################################################################################
+############################################################################################################################
+"""
 
 
 if __name__ == '__main__':
 
-    # analyse_all_trips(erase_table=False, fill_in_table=True)
+    analyse_all_trips(erase_table=False, fill_in_table=True)
 
     
-    check_table_inserts(AllTrips())
+    # check_table_inserts(AllTrips())
 
     # check_all_trials_included(AllTrips())
 

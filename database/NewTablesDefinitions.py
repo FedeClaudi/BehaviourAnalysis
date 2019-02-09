@@ -318,6 +318,8 @@ class AllTrips(dj.Manual):
         
         escape_arm: enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far')  # far left....
         origin_arm:  enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far')
+
+        stim_frame: int                         # if is_trial add the frame of stim on set
     """
 
 @schema

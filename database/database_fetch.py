@@ -1,6 +1,7 @@
 import sys
 sys.path.append('./')
 from database.NewTablesDefinitions import *
+import cv2
 
 
 """Bunch of functions to facilitate retrieving filtered data from the database tables
@@ -41,3 +42,15 @@ def get_sessuid_given_recuid(recuid, sessions):
 
 def get_recs_given_sessuid(uid, recordings):
     return recordings.loc[recordings['uid'] == int(uid)]
+
+
+
+
+
+
+
+def get_maze_template():
+    maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')
+    maze_model = cv2.resize(maze_model, (1000, 1000))
+
+    return maze_model
