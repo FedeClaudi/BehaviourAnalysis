@@ -4,8 +4,6 @@ import os
 import sys
 sys.path.append('./') 
 
-from database.dj_config import start_connection
-start_connection()
 from database.Populate_database import PopulateDatabase
 from database.NewTablesDefinitions import *
 from database.auxillary_tables import VideoTdmsMetadata
@@ -178,8 +176,14 @@ class FilesAutomationToolbox:
                     print(' ...  correctly converted all ',  tot, 'frames [{} converted]'.format(tot))
                 # else: 
                 #     raise ValueError('Tot frames, converted frames:', a, number_of_frames)
-                
 
+    def remove_stupid_videofiles(self):
+        dr = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video'
+        for f in os.listdir(dr):
+            if 'top' in f or 'side' in f or 'catwalk' in f:
+                if os.path.getsize(os.path.join(dr, f)) < 2000:
+                    os.remove(os.path.join(dr, f))
+            
 
 
     def fillin_incompletevideos(self):
@@ -215,3 +219,5 @@ if __name__ == "__main__":
     # automation.check_video_conversion_correct()
 
     # automation.macro()
+
+    # automation.remove_stupid_videofiles()

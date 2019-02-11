@@ -1,8 +1,8 @@
 import sys
 sys.path.append('./')   # <- necessary to import packages from other directories within the project
 
-from database.dj_config import start_connection
-start_connection()
+# from database.dj_config import start_connection
+# start_connection()
 
 import os
 import warnings
@@ -234,7 +234,7 @@ if __name__ == '__main__':
 
     print(p)
 
-    # p.remove_table(['dlcmodels'])
+    # p.remove_table(['videofiles'])
 
     # p.populate_mice_table()
     # p.populate_experiments_table()
@@ -242,7 +242,7 @@ if __name__ == '__main__':
 
     # p.dlcmodels.populate()
 
-    p.recordings.populate()
+    # p.recordings.populate()
 
     # p.videofiles.populate()
 
@@ -252,9 +252,9 @@ if __name__ == '__main__':
 
     
     # p.behaviourstimuli.populate()
-    # p.mantisstimuli.populate()
+    p.mantisstimuli.populate()
 
-    # p.tracking_data.populate()
+    p.tracking_data.populate()
 
 
     # p.remove_test_sessions()

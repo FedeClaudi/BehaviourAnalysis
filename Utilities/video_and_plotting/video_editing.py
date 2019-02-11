@@ -751,9 +751,9 @@ if __name__ == '__main__':
 
 
     fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze'
-    videos = ['sym_maze3.mp4', 'asym_maze3.mp4']
+    videos = ['sym_maze_tostim.mp4', 'asym_maze_tostim.mp4']
     vv = [os.path.join(fld, v) for v in videos]
-    save = os.path.join(fld, 'symasym2.mp4')
+    save = os.path.join(fld, 'symasym_tostim.mp4')
     editor.tile_clips(vv, save)
 
     # converter.tdmstovideo_converter()

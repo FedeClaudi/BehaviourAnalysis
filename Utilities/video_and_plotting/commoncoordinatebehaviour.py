@@ -49,7 +49,7 @@ def run(videopath, maze_model=None):
     # Pad the background frame to be of the right size for template matching
     ret, frame = cap.read()
     if not ret: 
-        pritt('!!!!! Could not open videopath', videopath)
+        print('!!!!! Could not open videopath', videopath)
         return None, None, None, None
         # raise FileNotFoundError('Could not open videopath', videopath)
 

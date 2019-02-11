@@ -130,6 +130,7 @@ class ClipWriter:
 
 
 
+
 def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False):
     def write_clip(video, savename, stim_frame, stim_duration, prestim, poststim, clean_vids, posedata):
         # parameters to draw on frame

@@ -349,7 +349,7 @@ def make_recording_table(table, key):
                     in os.listdir(tb.analog_input_folder) 
                     if rec_name in f]
         if not aifile:
-            print('aifile not found for session: ', key)
+            print('aifile not found for session: ', key, '\n\n')
             return
         else:
             aifile = aifile[0]
@@ -719,6 +719,22 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
         stimuli_groups = tdms_df.group_channels('AudioIRLED_analog')
     stimuli = {s.path:s.data[0] for s in stimuli_groups}
 
+    # Check if there is any stim
+    if not len(stimuli.keys()):
+        # There were no stimuli, let's insert a fake one to avoid loading the same files over and over again
+        print(' No stim detected, inserting fake place holder')
+        stim_key = key.copy()
+        stim_key['stimulus_uid'] = stim_key['recording_uid']+'_{}'.format(0)
+        stim_key['overview_frame'] = -1
+        stim_key['threat_frame'] = -1
+        stim_key['duration'] = -1 
+        stim_key['overview_frame_off'] =  -1
+        stim_key['threat_frame_off'] = -1
+        stim_key['stim_name'] = 'nan'
+        stim_key['stim_type'] = 'nan' 
+
+        table.insert1(stim_key)
+        return
 
     # Get stim times from audio channel data
     if  'AudioFromSpeaker_AI' in groups:
@@ -737,6 +753,7 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
     try:
         stim_start_times = np.insert(stim_start_times, 0, above_th[0])
     except:
+        raise ValueError
         return
 
     # ? to visualise the finding of stim times over the audio channel:
@@ -751,12 +768,17 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
         sel = input('Which to discard? ["n" if youd rather look at the plot]')
         if not 'n' in sel:
             sel = int(sel)
-            np.delete(stim_start_times, sel)
         else:
             plot_signals(audio_channel_data, stim_start_times)
             plt.show()
             sel = input('Which to discard? ')
+        if len(stim_start_times) > len(stimuli):
             np.delete(stim_start_times, int(sel))
+        else:
+            del stimuli[list(stimuli.keys())[sel]]
+
+    if not len(stimuli) == len(stim_start_times):
+        raise ValueError
 
     # Go from stim time in number of samples to number of frames
     fps_overview = 40
