@@ -367,7 +367,7 @@ class analyse_all_trips:
             templates_idx = [i for i, t in enumerate(templates) if t['uid'] == row['uid']][0]
             rois_coords = pd.DataFrame(templates).iloc[templates_idx]
 
-            """
+        """
                 GET ALL THE TIMES THE MOUSE IS IN SHELTER OR IN THREAT
             """
             in_rois = self.get_rois_enters_exits(tr, rois_coords)

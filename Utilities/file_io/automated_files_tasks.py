@@ -163,35 +163,24 @@ class FilesAutomationToolbox:
                     cap = cv2.VideoCapture(os.path.join(self.videos_fld, mp4))
                     nframes, width, height, fps = editor.get_video_params(cap)
                     number_of_frames.append(nframes)
-                if not number_of_frames: continue
+                if not number_of_frames or number_of_frames[0] == 0:
+                    continue 
 
-                try:
-                    if number_of_frames[0] == 0: continue
-                    if 0 in number_of_frames:  raise ValueError(number_of_frames)
-                    # if len(number_of_frames) not in [3, 6]: raise ValueError(number_of_frames)
+                # Check that we are sure about the total number of frames
+                tot = np.sum(np.array(number_of_frames))
+                metadata = pd.DataFrame(self.video_metadata.fetch())
+                entry = metadata.loc[metadata['videopath'] == os.path.join(self.videos_fld, t)]
+                if not entry.shape[0]: raise FileNotFoundError('Load video metadata first')
 
-                    tot = np.sum(np.array(number_of_frames))
-                    # table_entry = self.video_metadata.fetch()
-                    
-                    metadata = pd.DataFrame(self.video_metadata.fetch())
-                    entry = metadata.loc[metadata['videopath'] == os.path.join(self.videos_fld, t)]
+                if tot != entry['number_of_frames'].values[0]: raise ValueError('Tot frames, converted frames:', a, number_of_frames)
 
-                    if tot != entry['number_of_frames'].values[0]: raise ValueError('crap')
-                    try:
-                        a = np.where(np.abs(np.diff(np.array(number_of_frames)))>1)[0][0]
-                    except: 
-                        print(' ...  correctly converted all ',  tot, 'frames')
-                    else: 
-                        raise ValueError(a, number_of_frames)
-                except:
-                    entry = metadata.loc[metadata['videopath'] == os.path.join(self.videos_fld, t)]
+                else: 
+                    print(' ...  correctly converted all ',  tot, 'frames [{} converted]'.format(tot))
+                # else: 
+                #     raise ValueError('Tot frames, converted frames:', a, number_of_frames)
+                
 
-                    if entry.shape[0] == 0:
-                        warnings.warn('Need to load videos metadata first!!')
-                        continue
-                    else:
-                        raise ValueError('Incorrect number of frames in clips for video: ', t)
-                    # print('Incorrect number of frames in clips for video: ', t)
+
 
     def fillin_incompletevideos(self):
         inc_table = VideosIncomplete()
@@ -219,7 +208,7 @@ if __name__ == "__main__":
 
     # automation.convert_tdms_to_mp4()
 
-    # automation.get_list_uncoverted_tdms_videos()
+    automation.get_list_uncoverted_tdms_videos()
     automation.get_list_not_tracked_videos()
 
     # automation.extract_videotdms_metadata()

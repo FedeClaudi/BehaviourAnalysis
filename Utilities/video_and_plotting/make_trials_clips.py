@@ -289,11 +289,15 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
                 
 
 
-def make_video_with_all_escapes(select_escapes=True, select_stim_evoked=False, select_exp = None):
-    savename = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\sym_maze3.mp4'
+def make_video_with_all_escapes(select_escapes=True, select_stim_evoked=True, select_exp = None, align_to_stim=True):
+    savename = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\asym_maze_tostim.mp4'
     # Get background
     maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')
     maze_model = cv2.resize(maze_model, (1000, 1000))
+
+    # Set options
+    if align_to_stim:
+        select_stim_evoked = True
 
     # Get returns data and tracking data
     all_escapes = pd.DataFrame(AllTrips().fetch())
@@ -303,6 +307,8 @@ def make_video_with_all_escapes(select_escapes=True, select_stim_evoked=False, s
         is_this_an_escape = list(all_escapes['is_escape'].values)
 
     if select_stim_evoked:
+        all_escapes = all_escapes.loc[all_escapes['is_trial'] == 'true']
+    else:
         is_this_evoked = list(all_escapes['is_trial'].values)
 
     if select_exp:
@@ -335,9 +341,6 @@ def make_video_with_all_escapes(select_escapes=True, select_stim_evoked=False, s
     # make colors based on arm of origin and escape
     escape_arms = list(all_escapes['escape_arm'].values)
     arms = set(escape_arms)
-    # escape_arms_colors = {arm:(int(np.random.randint(10, 240, 1)[0]), 
-    #                     int(np.random.randint(10, 240, 1)[0]),
-    #                     int(np.random.randint(10, 240, 1)[0])) for arm in arms}
     escape_arms_colors = {arm:((0, 255, 0) if 'Left' in arm else (255, 0, 0)) for arm in arms}
 
     # Open Video writer
@@ -359,11 +362,16 @@ def make_video_with_all_escapes(select_escapes=True, select_stim_evoked=False, s
 
     print('Ready to get data')
     tracking_datas = {bp:[] for bp in bodyparts}
+    stim_onsets = []
     counter  = 0
     for index, row in all_escapes.iterrows():
         print('Fetching data from entry {} of {}'.format(counter, all_escapes.shape[0]))
         counter += 1
-        t0, t1 = row['threat_exit']-90, row['shelter_enter']
+        if align_to_stim:
+            t0, t1 = row['stim_frame']-30, row['shelter_enter']
+        else:  # align to when the leave the threat platform
+            t0, t1 = row['threat_exit']-90, row['shelter_enter']
+
         # Get the tracking data for each bodypart in each recording
         for bp in bodyparts:
             recording_tracking = get_tracking_given_recuid_and_bp(row['recording_uid'], bp)
@@ -373,6 +381,8 @@ def make_video_with_all_escapes(select_escapes=True, select_stim_evoked=False, s
             y = np.add(495, np.subtract(495, y))
 
             tracking_datas[bp].append(np.array([x, y, v]).T.astype(np.int16))
+
+        stim_onsets.append(row['stim_frame'])
 
     # make videos 
     print('Ready to write video')
@@ -405,12 +415,8 @@ def make_video_with_all_escapes(select_escapes=True, select_stim_evoked=False, s
                             cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), int(max_v), color, 1)
 
                     elif select_escapes and select_stim_evoked:
-                        if is_this_evoked[i] == 'true':
-                            pass
                             cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), int(max_v), color, -1)
-                        else:
-                            # cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), int(max_v), color, -1)
-                            pass
+
                     else:
                         cv2.circle(bg, (tr[framen, 0], tr[framen, 1]), int(max_v), color, -1)
 
@@ -502,5 +508,5 @@ if __name__ == "__main__":
     paths = load_yaml('./paths.yml')
 
     # create_trials_clips(clean_vids=False)
-    make_video_with_all_escapes(select_exp='Square Maze')
+    make_video_with_all_escapes(select_exp='PathInt2')
 

@@ -145,10 +145,13 @@ class VideoConverter:
             return props, tot
 
     def tdmstovideo_converter(self):
-        def write_clip(arguments, limits=None):
+        def write_clip(arguments, limits=None, clean_name=False):
             """ create a .cv2 videowriter and start writing """
             vidname, w, h, framerate, data = arguments
-            vidname = '{}__{}.mp4'.format(vidname, limits[0])
+            if clean_name:
+                vidname = '{}.mp4'.format(vidname)
+            else:
+                vidname = '{}__{}.mp4'.format(vidname, limits[0])
             fourcc = cv2.VideoWriter_fourcc(*'MP4V')
             videowriter = cv2.VideoWriter(os.path.join(self.folder, vidname), fourcc,
                                             framerate, (w, h), iscolor)
@@ -216,7 +219,7 @@ class VideoConverter:
 
         if num_processes == 1:
             limits = [0, tot_frames-1]
-            write_clip(params, limits)
+            write_clip(params, limits, clean_name=True)
             clip_names = ['{}.mp4'.format(self.filename)]
         else:
             # Get frames range for each video writer that will run in parallel
