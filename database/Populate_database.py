@@ -234,7 +234,7 @@ if __name__ == '__main__':
 
     print(p)
 
-    # p.remove_table(['videofiles'])
+    # p.remove_table(['tracking_data'])
 
     # p.populate_mice_table()
     # p.populate_experiments_table()
@@ -248,11 +248,9 @@ if __name__ == '__main__':
 
     # p.commoncoordinatematrices.populate()
     # p.templates.populate()
-
-
     
-    # p.behaviourstimuli.populate()
-    p.mantisstimuli.populate()
+    # p.behaviourstimuli.populate() 
+    # p.mantisstimuli.populate()
 
     p.tracking_data.populate()
 

@@ -37,7 +37,7 @@ class ChoicesVisualiser:
         self.work_on_experiments = ['Square Maze','PathInt2']
 
         # Get variables
-        self.recording_uid, self.is_trial, self.is_escape, self.experiment_name, self.arm_taken = AllTrips.fetch('recording_uid', 'is_trial', 'is_escape', 'experiment_name', 'arm_taken')
+        self.recording_uid, self.is_trial, self.is_escape, self.experiment_name, self.arm_taken = AllTrips.fetch('recording_uid', 'is_trial', 'is_escape', 'experiment_name', 'escape_arm')
         self.recordings_sessions_lookup, self.sessions_recordings_lookup = self.get_sessions()
         self.experiments = sorted(set(self.experiment_name))
         self.arms = sorted(set(self.arm_taken))
@@ -105,7 +105,7 @@ class ChoicesVisualiser:
 
         return probabilities
 
-    def get_experiment_binary_outcomes(self, experiment):
+    def get_experiment_binary_outcomes(self, experiment, stim_evoked = True):
         selected = self.get_experiment_data(experiment)
         experiment_sessions = set(selected['session'].values)
         experiment_arms = ['Left_Far', 'Right_Medium']
@@ -114,7 +114,10 @@ class ChoicesVisualiser:
         max_trials_per_session = 0
         for i, session in enumerate(experiment_sessions):
             # Get the data for each session in the experiment
-            session_data = selected.loc[(selected['session']==session)&(selected['is_escape']=='true')]
+            if stim_evoked:
+                session_data = selected.loc[(selected['session']==session)&(selected['is_escape']=='true')&(selected['is_trial']=='true')]
+            else:
+                session_data = selected.loc[(selected['session']==session)&(selected['is_escape']=='true')]
             if session_data.shape[0] != 0: 
                 sesssion_arms = list(session_data['arm'].values)
                 # Get the probability of escaping on each arm for each session
@@ -309,7 +312,7 @@ def plot_stim_onset():
 
 
 if __name__ == "__main__":
-    # ChoicesVisualiser()
+    ChoicesVisualiser()
 
     plot_stim_onset()
 

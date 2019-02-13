@@ -77,8 +77,13 @@ class SetUpTracking:
 
             # Move video to local HD: otherwise analysis breaks if internet connection is unstable
             complete_path = os.path.join(self.video_folder, video)
+            
+            if os.path.getsize(complete_path) < 2000: continue # Check that video has frames
+            
             move_video_path = os.path.join('M:\\', video)
             if os.path.isfile(move_video_path):
+                
+
                 # Video already there, but is it complete
                 if not os.path.getsize(move_video_path) == os.path.getsize(complete_path):
                     # Nope, move it 
@@ -87,6 +92,16 @@ class SetUpTracking:
             else:
                 move_video(complete_path, move_video_path)
             
+            # Check that moving video worked correctly
+            if not os.path.getsize(complete_path) == os.path.getsize(move_video_path): raise ValueError('Smth went wrong while moving the video')
+
+            try:
+                cap = cv2.VideoCapture(move_video_path)
+                if not cap.isOpened(): raise ValueError
+            except: 
+                cap = cv2.VideoCapture(complete_path)
+                if not cap.isOpened(): raise ValueError('Original video file might be corrupted', complete_path)
+                else: raise ValueError('Smth went wrong with moving video', move_video_path)
 
             # Run DLC analysis
             analyze_videos(config_path, [move_video_path], gputouse=0, save_as_csv=False)
@@ -107,7 +122,7 @@ class SetUpTracking:
                     raise FileExistsError('Could not move pose file from {} to {}'.format(origin, dest))
 
             # Remove video file moved to local harddrive
-            os.remove(move_video_path)
+            # os.remove(move_video_path)
 
             # All done, on to the next
 

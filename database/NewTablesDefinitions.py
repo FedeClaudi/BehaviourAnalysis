@@ -303,6 +303,7 @@ class AllTrips(dj.Manual):
         # stores info about each time the mouse makes a shetler-threat-shelter trip
         trip_id: int                            # comulative trip number
         ---
+        session_uid: varchar(128)       
         recording_uid: varchar(128)             # reference to the recording the trip belongs to
         shelter_exit: int                       # frame number at which it left shelter
         shelter_enter: int                      # frame at which it returned
@@ -317,9 +318,10 @@ class AllTrips(dj.Manual):
         experiment_name: varchar(128)           # name of the experiment this recording belongs to
         
         escape_arm: enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far')  # far left....
-        origin_arm:  enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far')
+        origin_arm:  enum('Left',  'Centre', 'Right')
 
         stim_frame: int                         # if is_trial add the frame of stim on set
+        stim_type: enum('audio', 'visual', 'nan')
     """
 
 @schema

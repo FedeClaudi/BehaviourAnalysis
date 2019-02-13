@@ -89,7 +89,6 @@ def sort_mantis_files():
         log.write('Completed Folder {}\n\n'.format(fld))
     log.close()
 
-
 def rename_pose_files():
     fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\pose'
 

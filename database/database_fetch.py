@@ -38,7 +38,7 @@ def get_videometadata_given_sessuid(uid, videometadata):
 def get_sessuid_given_recuid(recuid, sessions):
     r = recuid.split('_')
     session_name = r[0]+'_'+r[1]
-    return sessions.loc[session['session_name']==session_name]
+    return sessions.loc[sessions['session_name']==session_name], session_name
 
 def get_recs_given_sessuid(uid, recordings):
     return recordings.loc[recordings['uid'] == int(uid)]

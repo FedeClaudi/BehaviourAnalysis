@@ -815,7 +815,7 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
 
     if 'lambda' in experiment.lower(): return  # ? skip this useless experiment :)
 
-    fast_mode = False # ! fast MODE
+    fast_mode = True # ! fast MODE
     to_include = dict(
             bodyparts=['snout', 'neck', 'body', 'tail_base', 'left_ear', 'right_ear'],
             segments=['head', 'body_upper', 'body_lower']

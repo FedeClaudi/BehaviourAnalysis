@@ -18,6 +18,7 @@ from Utilities.file_io.files_load_save import load_yaml
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 from Processing.tracking_stats.math_utils import calc_distance_between_points_2d
 
+from database.database_fetch import *
 
 class Trip:
     def __init__(self):
@@ -39,6 +40,8 @@ class Trip:
         self.experiment_name = None     # Str
         self.max_speed = None         #
         self.stim_frame = None
+        self.stim_type = None
+        self.session_uid = None
         
     def _as_dict(self):
         return self.__dict__
@@ -61,8 +64,8 @@ class analyse_all_trips:
 
             # Prepare variables
             self.exclude_by_exp = True
-            self.naughty_experiments = ['Lambda Maze', ]
-            self.good_experiments = ['PathInt2', 'Square Maze', 'TwoAndahalf Maze', 'PathInt', 'FlipFlop Maze', 'FlipFlop2 Maze']
+            self.naughty_experiments = ['Lambda Maze', 'FlipFlop Maze', 'FlipFlop2 Maze']
+            self.good_experiments = ['PathInt2', 'Square Maze', 'TwoAndahalf Maze','PathInt',   ]
             self.all_trips = []
 
             # Get all the times the mouse goes from the threat to the shelter
@@ -95,6 +98,8 @@ class analyse_all_trips:
 
         # Get all stimuli
         self.stimuli = pd.DataFrame(BehaviourStimuli.fetch())
+
+        self.sessions = pd.DataFrame(Sessions.fetch())
 
         print('... ready')
 
@@ -246,15 +251,17 @@ class analyse_all_trips:
         for g in complete_trips:
             # Get the stimuli of this recording and see if one happened between when the mouse left the shelter and when it leaves the threat
             rec_stimuli = self.stimuli.loc[self.stimuli['recording_uid'] == row['recording_uid']]
-            stims_in_time = [s for s in rec_stimuli['stim_start'].values if g.threat_enter<s<g.threat_exit]
+            stims_in_time = [(s, i) for i, s in enumerate(rec_stimuli['stim_start'].values) if g.threat_enter<s<g.threat_exit]
             
             if stims_in_time:
                 # Sanity check
                 has_stim = 'true'
-                stim_frame = stims_in_time[-1]
+                stim_frame = stims_in_time[-1][0]
+                stim_type = [t for t in rec_stimuli['stim_type'].values][ stims_in_time[-1][1]]
             else:
                 has_stim = 'false'
                 stim_frame = -1
+                stim_type = 'nan'
 
             # Get remaining variables
             endtime = g.shelter_enter+g.time_in_shelter  # Take tracking data up to this time
@@ -279,39 +286,55 @@ class analyse_all_trips:
             escape_rois_id = escape_rois_ids[y_midpoint]
             escape_arm = get_arm_given_rois(escape_rois_id, escape_rois_ids, y_midpoint)
             
-            # Get the arm of origin
+            # Get first and last roi of outward jurney
             # ! this bit of code is very ugly, need a more elegant solution
             origin_rois_ids = np.trim_zeros(tracking_data[0:outward_trip_end, -1])
             origin_rois_ids = origin_rois_ids[origin_rois_ids > 2]
             origin_rois_ids_c = origin_rois_ids.copy()
-            origin_rois_id = origin_rois_ids[-1]
-            if origin_rois_id < 1: 
+            origin_last = origin_rois_ids[-1]
+            if origin_last < 1: 
                 # Something went wrong, try removing frames with abnormally high speed values to see if the problem is due to tracking errors
                 high_velocity_frames = np.where(tracking_data[0:outward_trip_end,2] >= 28)[0]
                 origin_rois_ids_c[high_velocity_frames] =  origin_rois_ids_c[high_velocity_frames-1] =  origin_rois_ids_c[high_velocity_frames+1] = -1
                 origin_rois_ids = origin_rois_ids_c[origin_rois_ids_c > 2]
-                origin_rois_id = origin_rois_ids[-1]
-                if origin_rois_id == np.nan: raise ValueError
+                origin_last = origin_rois_ids[-1]
+                if origin_last == np.nan: raise ValueError
                 # raise ValueError
 
-            origin_arm = get_arm_given_rois(origin_rois_id, origin_rois_ids, y_midpoint)
+            if origin_last == 17.0:
+                origin_arm = 'Left'
+            elif origin_last == 18.0:
+                origin_arm = 'Right'
+            elif origin_last == 22.0:
+                origin_arm = 'Centre'
+            else:
+                raise ValueError
 
             # Get the duration of the escape
             duration = (g.shelter_enter - g.threat_exit)/30 # ! hardcoded fps
             smooth_speed = line_smoother(tracking_data[:,2])
             max_speed = np.percentile(smooth_speed, 85)
 
+            # t0, t1 = g.threat_exit - g.shelter_exit, g.shelter_enter - g.shelter_exit
+            # plt.figure()
+            # plt.plot(tracking_data[:, 0], tracking_data[:, 1], color='k')
+            # plt.plot(tracking_data[t0:t1, 0], tracking_data[t0:t1, 1], color='r')
+            # plt.show()
+
             # ! arbritary
-            duration_lims = dict(Left_Far=9,
-                            Left_Medium=6,
-                            Centre=4,
-                            Right_Medium=6,
-                            Right_Far=9)
+            duration_lims = dict(Left_Far=12,
+                            Left_Medium=4,
+                            Centre=3,
+                            Right_Medium=4,
+                            Right_Far=12)
 
             if duration <= duration_lims[escape_arm]: # ! hardcoded arbritary variable
                 is_escape = 'true'
             else:
                 is_escape = 'false'
+        
+            # Get session uid
+            _, sess_uid = get_sessuid_given_recuid(row['recording_uid'], self.sessions)
 
             # Update more variables of the trip class
             g.tracking_data = tracking_data
@@ -324,6 +347,8 @@ class analyse_all_trips:
             g.experiment_name = exp
             g.origin_arm = origin_arm
             g.stim_frame = stim_frame
+            g.stim_type = stim_type
+            g.session_uid = sess_uid
 
             self.all_trips.append(g)
 
@@ -409,7 +434,7 @@ def check_table_inserts(table):
     data = pd.DataFrame(table.fetch())
 
     # Plot XY traces sorted by arm taken
-    arms = set(data['escape_arm'].values)
+    arms = set(data['origin_arm'].values)
     f, axarr = plt.subplots(3, 2, facecolor =[.2,  .2, .2])
     axarr = axarr.flatten()
 
@@ -423,11 +448,12 @@ def check_table_inserts(table):
         #     ax.scatter(tracking[t2:t1, 0], tracking[t2:t1, 1],c=tracking[t2:t1, -1],    s=1, alpha=.5)
 
         for idx, row in sel2.iterrows():
-            t0, t1, t2 = row['threat_enter']-row['shelter_exit'], row['shelter_enter']-row['shelter_exit'], row['threat_exit']-row['shelter_exit']
+            t0= row['threat_enter']-row['shelter_exit']
             tracking = row['tracking_data']
-            ax.scatter(tracking[0:t0, 0], tracking[0:t0, 1],c=tracking[0:t0, -1],    s=1, alpha=.5)
+            x = 100
+            ax.scatter(tracking[t0-x:t0, 0], tracking[t0-x:t0, 1],c=tracking[t0-x:t0, -1],    s=1, alpha=.5)
 
-        ax.set(title=arm, facecolor=[.2, .2, .2], xlim=[0, 1000], ylim=[200, 800])
+        ax.set(title=arm, xlim=[0, 1000], ylim=[200, 800])
     axarr[-1].set(facecolor=[.2, .2, .2])
     plt.show()
 
@@ -488,6 +514,23 @@ def check_all_trials_included(table):
 
 
 
+def check_durations(table):
+    data = pd.DataFrame(table.fetch())
+    f, ax = plt.subplots()
+
+    sigma = .1
+    mu =0.01
+
+    for idx, row in data.iterrows():
+        t, t1 = row['threat_exit'], row['shelter_enter']
+        d = row['duration']
+        ax.plot(row['tracking_data'][t:t1, 1], color='k', alpha=.5)
+        noise = sigma * np.random.randn(1) + mu
+        ax.scatter(d*30, 630 + noise, s=30, c='r', alpha=.5)
+    
+    ax.set(ylim=[620, 740], xlim=[0, 300])
+
+
 """
 ############################################################################################################################
 ############################################################################################################################
@@ -505,5 +548,9 @@ if __name__ == '__main__':
 
     # check_all_trials_included(AllTrips())
 
+    # check_durations(AllTrips())
+
     print(AllTrips())
+
+    plt.show()
 

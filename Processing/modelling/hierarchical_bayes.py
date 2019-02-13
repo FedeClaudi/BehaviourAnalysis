@@ -34,6 +34,7 @@ if sys.platform != 'darwin':
 
 import matplotlib
 from matplotlib import pyplot as plt
+from database.NewTablesDefinitions import *
 
 
 class BayesModeler:
@@ -148,31 +149,33 @@ class BayesModeler:
         # ! HAND defined data for test
         lights_off_trials = [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1]
         lights_onoff_trilas = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1]
+        lights_on_trials = [1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0]
 
+        asym = pd.DataFrame((AllTrips & "is_escape='true'" & "is_trial='true'").fetch())
+
+        asym_trials = [1 if 'Right' in a else 0 for a in asym['escape_arm'].values]
 
         # Set up the pymc3 model.  assume Uniform priors for p_asym and p_sym.
         with pm.Model() as model:
             p_asym = pm.Uniform("p_asym", 0, 1)
-            p_sym = pm.Uniform("p_sym", 0, 1)
+            # p_sym = pm.Uniform("p_sym", 0, 1)
             p_lightsoff = pm.Uniform("p_lightsoff", 0, 1)
             p_lightsonoff = pm.Uniform("p_lightsonoff", 0, 1)
+            p_lightson = pm.Uniform("p_lightson", 0, 1)
 
             # Define the deterministic delta function. This is our unknown of interest.
             # delta = pm.Deterministic("delta", p_asym - p_sym)
 
             # Set of observations, in this case we have two observation datasets.
             obs_asym = pm.Bernoulli("obs_asym", p_asym, observed=self.asym_data.all_trials)
-            obs_sym = pm.Bernoulli("obs_sym", p_sym, observed=self.sym_data.all_trials)
+            # obs_sym = pm.Bernoulli("obs_sym", p_sym, observed=self.sym_data.all_trials)
             obs_lightsoff = pm.Bernoulli("obs_lightsoff", p_lightsoff, observed=lights_off_trials)
             obs_lightsonoff = pm.Bernoulli("obs_lightsonoff", p_lightsonoff, observed=lights_onoff_trilas)
-
-            # Estimated posterior distributions to use for 
-            # est_asym =  pm.Bernoulli("predicted_A", p_asym)
-            # est_sym =  pm.Bernoulli("predicted_B", p_sym)
+            obs_lightson = pm.Bernoulli("obs_lightson", p_lightson, observed=lights_on_trials)
 
             # Fit the model 
             step = pm.Metropolis()
-            trace = pm.sample(18000 , step=step)
+            trace = pm.sample(6000 , step=step)
             burned_trace=trace[1000:]
 
         # self.grouped_samples = dict(asym = burned_trace["p_asym"], sym = burned_trace["p_sym"], delta=burned_trace['delta'])
@@ -184,14 +187,15 @@ class BayesModeler:
             # pm.traceplot(burned_trace)
             # pm.posteriorplot.plot_posterior(burned_trace)
             # plt the grouped data
-            colors = ["#A60628", "#467821", "#7A68A6", [.8, .4, .4]]
+            colors = ["#A60628", "#467821", "#7A68A6", [.8, .4, .4],[.2, .8, .2]]
 
             f, ax = plt.subplots()
 
-            sns.kdeplot(burned_trace['p_asym'], ax=ax, color=colors[0], label='Asymmetric maze', shade=False)
-            sns.kdeplot(burned_trace['p_sym'], ax=ax, color=colors[1], label='Symmetric maze', shade=False)
+            sns.kdeplot(burned_trace['p_asym'], ax=ax, color=colors[0], label='Asymmetric', shade=False)
+            # sns.kdeplot(burned_trace['p_sym'], ax=ax, color=colors[1], label='Symmetric maze', shade=False)
             sns.kdeplot(burned_trace['p_lightsoff'], ax=ax, color=colors[2], label='lights OFF', shade=True)
             sns.kdeplot(burned_trace['p_lightsonoff'], ax=ax, color=colors[3], label='exp lights ON', shade=True)
+            sns.kdeplot(burned_trace['p_lightson'], ax=ax, color=colors[3], label='Lights ON', shade=True)
             # ax.axvline(np.nanmean(self.asym_data.all_trials),  color=[.6, .2, .2], linestyle=":")
             # ax.axvline(np.nanmean(self.sym_data.all_trials), color=[.2, .6, .2], linestyle=":")
 
