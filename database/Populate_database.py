@@ -244,21 +244,21 @@ if __name__ == '__main__':
 
     # p.dlcmodels.populate()
 
-    # p.recordings.populate()
+#     p.recordings.populate()
 
-    # p.videofiles.populate()
+#     p.videofiles.populate()
 
-    # p.commoncoordinatematrices.populate()
+#     p.commoncoordinatematrices.populate()
     # p.templates.populate()
     
     # p.behaviourstimuli.populate() 
-    p.mantisstimuli.populate()
+    # p.mantisstimuli.populate()
 
     p.tracking_data.populate()
-    p.tracking_data_justbody.populate()
+    # p.tracking_data_justbody.populate()
 
 
     # p.remove_test_sessions()
 
-    # print((p.recordings & "session_name='190208_CA378'"))
+    print((p.tracking_data_justbody).fetch("recording_uid"))
 # 

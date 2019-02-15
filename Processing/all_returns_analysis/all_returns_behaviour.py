@@ -9,7 +9,7 @@ from collections import namedtuple
 from itertools import combinations
 
 from database.NewTablesDefinitions import *
-from database.dj_config import start_connection
+from database.database_fetch import *
 
 from Processing.tracking_stats.math_utils import line_smoother
 from Utilities.file_io.files_load_save import load_yaml
@@ -104,6 +104,94 @@ def compare_arm_probs(table):
     a=1
 
 
+
+
+class InspectTrajectoryOnT:
+    def __init__(self):
+        self.sessions = set(AllTrips.fetch("session_uid"))
+        sessions, recordings = AllTrips.fetch("session_uid"), AllTrips.fetch("recording_uid")
+        self.recordings_lookup = {s:r for s,r in zip(sessions, recordings)}
+
+        self.bodyparts = ['snout', 'left_ear', 'right_ear', 'neck',  'body','tail_base']
+        cols = [[.8, .4, .4], [.6, .6, .4], [.6, .4, .4], [.4, .6, .4], [.4, .8, .4], [.4, .4, .8]]
+
+        self.colors = {bp:c for bp,c in zip(self.bodyparts, cols)}
+
+        self.save_fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\plots\\all_returns_T"
+        self.plot_sessions()
+
+
+    def plot_sessions(self):
+        for i, sess in enumerate(sorted(self.sessions)):
+            print('Processing session {} of {} - {}'.format(i, len(self.sessions), sess))
+
+            # Get escapes
+            uid = get_sessuid_given_sessname(sess)[0]
+            escapes = pd.DataFrame((AllTrips & "is_escape='true'" & "is_trial='true'" & "session_uid='{}'".format(sess)).fetch())
+
+            # Get the time between stimulus onset and threat exit
+            escape_starts = escapes['stim_frame'].values
+            escape_ends = escapes['shelter_enter'].values
+
+            # Get appropriate maze model
+            exp = get_exp_given_sessname(sess)[0]
+            model = get_maze_template(exp)
+
+            # Get the tracking for each bodypart]
+            f, axarr = plt.subplots(ncols=2, figsize=(16, 12))
+            for ax in axarr:
+                ax.imshow(model)
+
+            rec = self.recordings_lookup[sess]
+            for n, (start, end) in enumerate(zip(escape_starts, escape_ends)):
+                frames_select = np.linspace(0, end-start-1, 10).astype(np.int16)
+
+                tracking = {}
+                for bp in self.bodyparts:
+                    try:
+                        bptr= (TrackingData.BodyPartData & "recording_uid='{}'".format(rec) & "bpname='{}'".format(bp)).fetch("tracking_data")[0]
+                    except:
+                        continue
+
+                    bptr = bptr[start:end, :3]
+                    if not bptr.shape[0]: continue
+
+                    #! remove errors from tracking
+
+                    tracking[bp] = bptr
+
+
+
+                if not 'snout' in tracking.keys() or not 'body' in tracking.keys(): continue
+
+                col = [np.random.uniform(.3, 1), np.random.uniform(.3, 1), np.random.random()]
+                median_speed = np.median(tracking['body'][:, 2])
+                normed_speed = np.divide(tracking['body'][:, 2], median_speed)
+                speed_color =  [np.multiply(col,normed_speed[c]) for c in np.arange(len(normed_speed))]
+
+                linez_x = [tracking['snout'][:, 0], tracking['body'][:, 0]]
+                linez_y = [tracking['snout'][:, 1], tracking['body'][:, 1]]
+
+                for ax in axarr:
+                    ax.plot(linez_x, linez_y, color=col, alpha=.5, linewidth=3)
+                    ax.set(xticks=[], yticks=[])
+
+                axarr[0].scatter(tracking['snout'][:, 0], tracking['snout'][:, 1], c=col)
+
+                axarr[0].set(title = rec, xlim =[400, 600], ylim=[100, 430])
+                axarr[1].set(title = rec, ylim=[0, 1000])
+            xxx = [551, 448, 500]
+            yyy = [359, 360, 382]
+            axarr[0].scatter(xxx, yyy, c='m')
+            
+            
+            save_name = os.path.join(self.save_fld, sess+'.png')
+            f.savefig(save_name)
+            plt.close(f)
+
+
+
+
+
 if __name__ == "__main__":
-    compare_arm_probs(AllTrips())
-    plt.show()
+    InspectTrajectoryOnT()

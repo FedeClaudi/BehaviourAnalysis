@@ -351,7 +351,7 @@ class AllTrips(dj.Manual):
         experiment_name: varchar(128)           # name of the experiment this recording belongs to
         
         escape_arm: enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far')  # far left....
-        origin_arm:  enum('Left',  'Centre', 'Right')
+        origin_arm:  enum('Left',  'Centre', 'Right', 'Right2', 'Left2')
 
         stim_frame: int                         # if is_trial add the frame of stim on set
         stim_type: enum('audio', 'visual', 'nan')

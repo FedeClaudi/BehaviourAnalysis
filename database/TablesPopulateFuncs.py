@@ -838,15 +838,20 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
     else:
         print('Processing tracking data for : ', key['recording_uid'])
     
-    # Insert entry into MAIN CLASS for this videofile
-    table.insert1(key)
+    
     
     # Load the .h5 file with the tracking data 
     try:
+        if not 'pose' in os.path.split(vid['pose_filepath'])[-1]:
+            vid['pose_filepath'] = vid['pose_filepath'].split(".")[0]+"_pose.h5"
+
         posedata = pd.read_hdf(vid['pose_filepath'])
     except:
         print('Could not load pose data:', vid['pose_filepath'])
         return
+
+    # Insert entry into MAIN CLASS for this videofile
+    table.insert1(key)
 
     # Get the scorer name and the name of the bodyparts
     first_frame = posedata.iloc[0]

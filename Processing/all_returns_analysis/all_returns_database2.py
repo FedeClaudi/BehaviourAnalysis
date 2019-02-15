@@ -106,82 +106,6 @@ class analyse_all_trips:
         print('... ready')
 
 
-    
-    #####################################################################
-    #####################################################################
-
-    def reaction_time_analysis(self, trip, escape_arm):
-        """
-            Look at the time bewteen when the mouse first enters the threat area and when it completes the escape reaching the shelter.
-            Take the velocity relative to the bridge the mouse took to reach the shelter and use that to identify the moment the escape started
-        """
-        # Get the position of the start of the bridge used for the escape
-        bridge_rois = load_yaml('Processing\\all_returns_analysis\\Bridges_start.yml')
-        if 'Left' in escape_arm:
-            bridge = bridge_rois['B10']
-        elif 'Right' in escape_arm:
-            bridge = bridge_rois['B11']
-        else:
-            bridge = bridge_rois['B15']
-
-        # Get the tracking data for the escape as defined above
-        escape_start, escape_end = trip.threat_enter - trip.shelter_exit, trip.shelter_enter - trip.shelter_exit
-        leave_threat = trip.threat_exit - trip.shelter_exit - escape_start
-        tracking = trip.tracking_data[escape_start:escape_end, :2]
-
-        # Get the distance from start of bridge at each timepoint during escape
-        distance = calc_dist(tracking, bridge)
-
-        # Get the velocity 
-        velocity = np.diff(distance)
-
-        closest = np.argmin(distance)
-
-        zero_vel = np.where(np.abs(velocity) < .5)[0][-1]
-
-    
-        f, axarr = plt.subplots(3)
-        # axarr[0].plot(trip.tracking_data[:, 0], trip.tracking_data[:, 1], color='g')
-        # axarr[0].plot(tracking[:, 0], tracking[:, 1], color='k')
-        # axarr[0].plot(tracking[:, 0], tracking[:, 1], color='k')
-        # axarr[0].plot(bridge[0], bridge[1], 'o', color='r')
-        # axarr[0].scatter(tracking[zero_vel, 0], tracking[zero_vel, 1], c='g')
-        # axarr[0].scatter(tracking[leave_threat, 0], tracking[leave_threat, 1], c='b')
-
-        axarr[1].plot(distance, color='g')
-        # axarr[1].axvline(leave_threat)
-        # axarr[1].axvline(closest, color='r', alpha=.5)
-
-        axarr[2].scatter(np.arange(len(velocity)), velocity, c='k')
-        axarr[2].plot(velocity, color='r', linewidth=2)
-        
-        axarr[2].axvline(leave_threat, color='b', alpha=.5)
-        axarr[2].axhline(0, color='k', alpha=.5)
-
-        if trip.stim_frame > 0 :
-            axarr[2].axvline(trip.stim_frame - trip.shelter_exit - escape_start, color='m')
-
-        plt.show()
-
-        a = 1
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -234,6 +158,10 @@ class analyse_all_trips:
 
             # Exclude entry and exit time that happened too far from the ROIs centre (likely errors)
             good_entries, good_exits = remove_errors(enters, rois_coords[roi[0]], tr ), remove_errors(exits, rois_coords[roi[0]], tr)
+            try:
+                good_exits = [g for g in good_exits if g > good_entries[0]]
+            except:
+                pass
             in_rois[roi] = in_roi_tup(list(good_entries), list(good_exits))
 
         if self.debug:
@@ -259,42 +187,50 @@ class analyse_all_trips:
             i.e. if the mouse leaves the shelter briefly and then returns before doing a complete trip, disregard. 
         """
         good_trips = []
+        for shelter_exit in in_rois['shelter'].outs:
+            
+            # Get the next time the mouse is back at the shelter
+            next_at_shelter = [t for t in in_rois['shelter'].ins if t>shelter_exit]
+            if not next_at_shelter:
+                continue
+                if abs(shelter_exit - in_rois['shelter'].outs[-1]) <120: continue  # Might be that its because we are towards the end of the recording
+                else: raise ValueError
+            else: next_at_shelter = next_at_shelter[0]
 
-        for sexit in in_rois['shelter'].outs:
-            # get time in which it returns to the shelter 
-            try:
-                next_in = [i for i in in_rois['shelter'].ins if i > sexit][0] # Next time the mouse returns to the shelter
-                time_in_shelter = [i for i in in_rois['shelter'].outs if i > next_in][0]-next_in  # time spent in shelter after return
-            except:
-                if sexit == in_rois['shelter'].outs[-1]: 
-                    next_in = [i for i in in_rois['shelter'].ins if i > sexit]
-                    if not next_in: continue
-                    else:
-                        next_in = next_in[0]
-                        time_in_shelter == -1
-                else:
-                    continue
-                    # raise ValueError
+            # Check if trip duration is too short for it to be real
+            if next_at_shelter - shelter_exit < 70: continue # ? about 2s
 
-            # Check if it reached the threat after leaving the shelter
-            at_threat = [i for i in in_rois['threat'].ins if i > sexit and i < next_in]              
-            if at_threat:
-                tenter = at_threat[-1]
-                try:
-                    texit = [t for t in in_rois['threat'].outs if tenter < t < next_in][-1]
-                except:
-                    continue
-                    raise ValueError
-                    pass  # didn't reach threat, don't append the good times
-                else:
-                    gt = Trip()  # Instantiate an instance of the class and populate it with data
-                    gt.shelter_exit = sexit
-                    gt.threat_enter = tenter
-                    gt.threat_exit = texit
-                    gt.shelter_enter = next_in
-                    gt.time_in_shelter = time_in_shelter
-                    good_trips.append(gt)
+            # Get the last time the mouse left the threat platfrom before reching the shelter
+            left_threat = [t for t in in_rois['threat'].outs if shelter_exit< t <next_at_shelter]
+            if not left_threat: 
+                # The mouse didn't reach the threat platform, incomplete trip. ignore
+                continue
+            else:
+                left_threat = left_threat[-1]
 
+            # Get the last time the mouse got into the threat platform befor leaving it
+            got_at_threat = [t for t in in_rois['threat'].ins if shelter_exit< t <left_threat]
+            if not got_at_threat: continue
+            else: got_at_threat = got_at_threat[-1]
+
+
+            # Get the ammount of time spent in the shelter
+            next_left_shelter = [t for t in in_rois['shelter'].outs if t > next_at_shelter]
+            if next_left_shelter:
+                next_left_shelter = next_left_shelter[0]
+                time_in_shelter = next_left_shelter - next_at_shelter
+            else:
+                time_in_shelter = -1
+            
+
+            gt = Trip()  # Instantiate an instance of the class and populate it with data
+            gt.shelter_exit = shelter_exit
+            gt.threat_enter = got_at_threat
+            gt.threat_exit = left_threat
+            gt.shelter_enter = next_at_shelter
+            gt.time_in_shelter = time_in_shelter
+            good_trips.append(gt)
+            pass
         return good_trips
 
     def inspect_trips(self, complete_trips, exp, row, tr):
@@ -432,29 +368,32 @@ class analyse_all_trips:
             """
                 exclude trips that where too fast and those in which the mouse stayed in the shelter for less than 1 s
             """
-            if duration <= 1 or g.time_in_shelter <= 40 or g.threat_exit-g.threat_enter <=40:
-                print("||| Discarderd {} |||".format(row['recording_uid']))
-                continue
-            else:
-                # Update more variables of the trip class
-                g.tracking_data = tracking_data
-                g.is_trial = has_stim
-                g.recording_uid = row['recording_uid']
-                g.duration = duration
-                g.max_speed = max_speed
-                g.is_escape = is_escape
-                g.escape_arm = escape_arm
-                g.experiment_name = exp
-                g.origin_arm = origin_arm
-                g.stim_frame = stim_frame
-                g.stim_type = stim_type
-                g.session_uid = sess_uid
+            # if duration <= 1 or g.time_in_shelter <= 40 or g.threat_exit-g.threat_enter <=40:
+            #     if duration <= 1: msg = 'too fast'
+            #     elif  g.time_in_shelter <= 40: msg = "not enough at shelter"
+            #     elif  g.threat_exit-g.threat_enter <= 40: msg = "not enough at threat"
+            #     print("||| Discarderd {} ||| -- {}".format(row['recording_uid'], msg))
+            #     continue
+            # else:
+            # Update more variables of the trip class
+            g.tracking_data = tracking_data
+            g.is_trial = has_stim
+            g.recording_uid = row['recording_uid']
+            g.duration = duration
+            g.max_speed = max_speed
+            g.is_escape = is_escape
+            g.escape_arm = escape_arm
+            g.experiment_name = exp
+            g.origin_arm = origin_arm
+            g.stim_frame = stim_frame
+            g.stim_type = stim_type
+            g.session_uid = sess_uid
 
-                # Reaction time analysis
-                # if is_escape == 'true':
-                #     self.reaction_time_analysis(g, escape_arm)
+            # Reaction time analysis
+            # if is_escape == 'true':
+            #     self.reaction_time_analysis(g, escape_arm)
 
-                self.all_trips.append(g)
+            self.all_trips.append(g)
 
     def get_trips(self):
         """
@@ -543,7 +482,7 @@ def check_table_inserts(table):
     # Plot XY traces sorted by arm taken
     # arms = set(data['origin_arm'].values)
     arms = set(data['escape_arm'].values)
-    f, axarr = plt.subplots(4, 2, facecolor =[.2,  .2, .2])
+    f, axarr = plt.subplots(4, 3, facecolor =[.2,  .2, .2])
     axarr = axarr.flatten()
 
     colors =['r', 'b', 'm', 'g', 'y']
