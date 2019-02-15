@@ -263,7 +263,40 @@ class TrackingData(dj.Computed):
 
     def make(self, key):
         self.define_bodysegments()
-        make_trackingdata_table(self, key, VideoFiles, CommonCoordinateMatrices, Templates, Sessions)
+        make_trackingdata_table(self, key, VideoFiles, CommonCoordinateMatrices, Templates, Sessions, fast_mode=False)
+
+@schema
+class TrackingDataJustBody(dj.Computed):
+    definition = """
+        # store dlc data for bodyparts and body segments
+        -> VideoFiles
+    """
+
+    class BodyPartData(dj.Part):
+        definition = """
+            # stores X,Y,Velocity... for a single bodypart
+            -> TrackingDataJustBody
+            bpname: varchar(128)        # name of the bodypart
+            ---
+            tracking_data: longblob     # pandas dataframe with X,Y,Velocity, MazeComponent ... 
+        """
+
+
+    def define_bodysegments(self):
+        segment = namedtuple('seg', 'bp1 bp2')
+        self.segments = dict(
+            head = segment('snout', 'neck'),
+            ears=segment('left_ear', 'right_ear'),
+            body_upper=segment('neck', 'body'),
+            body_lower=segment('body', 'tail_base'),
+            
+        )
+        # tail1=segment('tail_base', 'tail_2'),
+        # tail2=segment('tail_2', 'tail_3'),
+
+    def make(self, key):
+        self.define_bodysegments()
+        make_trackingdata_table(self, key, VideoFiles, CommonCoordinateMatrices, Templates, Sessions, fast_mode=True)
 
 
 @schema

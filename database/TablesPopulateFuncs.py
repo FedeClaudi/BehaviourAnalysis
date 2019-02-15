@@ -244,7 +244,8 @@ def make_commoncoordinatematrices_table(table, key, sessions, videofiles, fast_m
             == key['session_name'] and r['camera_name']=='overview']
 
     if not rec:
-        print('Did not find recording while populating CCM table. Populate recordings first! Session: ', key['session_name'])
+        print('Did not find recording or videofiles while populating CCM table. Populate recordings and videofiles first! Session: ', key['session_name'])
+        a = 1
         return
         # raise ValueError(
         #     'Did not find recording while populating CCM table. Populate recordings first! Session: ', key['session_name'])
@@ -254,6 +255,9 @@ def make_commoncoordinatematrices_table(table, key, sessions, videofiles, fast_m
             videopath = rec['video_filepath']
         else:
             videopath = rec['converted_filepath']
+
+    if 'joined' in videopath:
+        raise ValueError
 
 
     # Apply the transorm [Call function that prepares data to feed to Philip's function]
@@ -566,10 +570,10 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
             
             # Check if anything is missing            
             if not converted_check or not pose_check:
-                add_videosincomplete_entry(videosincomplete, key, vid, converted_check, pose_check)
+                # add_videosincomplete_entry(videosincomplete, key, vid, converted_check, pose_check)
                 # ? add dummy files names which will be replaced with real ones in the future
                 if not converted_check:
-                    converted = videoname+'__joined.mp4'
+                    converted = videoname+'.mp4'
                 if not pose_check:
                     posedata = videoname+'_pose.h5'
 
@@ -807,7 +811,7 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
 #####################################################################################################################
 
 
-def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessions):
+def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessions, fast_mode=False):
     # Get the name of the experiment the video belongs to
     fetched_sessions = sessions.fetch(as_dict=True)
     session = [s for s in fetched_sessions if s['uid']==key['uid']][0]
@@ -815,7 +819,7 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
 
     if 'lambda' in experiment.lower(): return  # ? skip this useless experiment :)
 
-    fast_mode = True # ! fast MODE
+    fast_mode = fast_mode # ! fast MODE
     to_include = dict(
             bodyparts=['snout', 'neck', 'body', 'tail_base', 'left_ear', 'right_ear'],
             segments=['head', 'body_upper', 'body_lower']

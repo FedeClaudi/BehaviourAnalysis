@@ -144,6 +144,8 @@ def user_click_rois_locations():
     rois = load_yaml(paths['maze_model_templates']) 
     rois_names = list(rois.keys())
 
+    rois_names = ['B10', 'B11', 'B15']
+
     cv2.startWindowThread()
     cv2.namedWindow('background')
     cv2.imshow('background', maze_model)
@@ -169,7 +171,7 @@ def user_click_rois_locations():
     
 
 
-    save_name = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Maze_templates\\UserSelectedMazeModelTemplates.yml'
+    save_name = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Maze_templates\\Bridges_start.yml'
 
     rois = {n:(x,y) for n, x, y in zip(rois_names, clicks_data[0], clicks_data[1])}
     with open(save_name, 'w') as outfile:

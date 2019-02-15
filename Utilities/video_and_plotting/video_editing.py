@@ -109,6 +109,7 @@ class VideoConverter:
             Returns:
                 frame width, height and number of frames in the video to be converted
             """
+            print('Extranging metadata...', videotdms)
             # Find the tdms video
             paths = load_yaml('paths.yml')
             
@@ -750,11 +751,11 @@ if __name__ == '__main__':
     # editor.manual_video_inspect(os.path.join(fld, vid))
 
 
-    fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze'
-    videos = ['sym_maze_tostim.mp4', 'asym_maze_tostim.mp4']
-    vv = [os.path.join(fld, v) for v in videos]
-    save = os.path.join(fld, 'symasym_tostim.mp4')
-    editor.tile_clips(vv, save)
+    # fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze'
+    # videos = ['sym_maze_tostim.mp4', 'asym_maze_tostim.mp4']
+    # vv = [os.path.join(fld, v) for v in videos]
+    # save = os.path.join(fld, 'symasym_tostim.mp4')
+    # editor.tile_clips(vv, save)
 
     # converter.tdmstovideo_converter()
 

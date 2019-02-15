@@ -20,6 +20,8 @@ from Processing.tracking_stats.math_utils import calc_distance_between_points_2d
 
 from database.database_fetch import *
 
+from Processing.tracking_stats.math_utils import calc_distance_from_shelter as calc_dist
+
 class Trip:
     def __init__(self):
         """
@@ -102,6 +104,86 @@ class analyse_all_trips:
         self.sessions = pd.DataFrame(Sessions.fetch())
 
         print('... ready')
+
+
+    
+    #####################################################################
+    #####################################################################
+
+    def reaction_time_analysis(self, trip, escape_arm):
+        """
+            Look at the time bewteen when the mouse first enters the threat area and when it completes the escape reaching the shelter.
+            Take the velocity relative to the bridge the mouse took to reach the shelter and use that to identify the moment the escape started
+        """
+        # Get the position of the start of the bridge used for the escape
+        bridge_rois = load_yaml('Processing\\all_returns_analysis\\Bridges_start.yml')
+        if 'Left' in escape_arm:
+            bridge = bridge_rois['B10']
+        elif 'Right' in escape_arm:
+            bridge = bridge_rois['B11']
+        else:
+            bridge = bridge_rois['B15']
+
+        # Get the tracking data for the escape as defined above
+        escape_start, escape_end = trip.threat_enter - trip.shelter_exit, trip.shelter_enter - trip.shelter_exit
+        leave_threat = trip.threat_exit - trip.shelter_exit - escape_start
+        tracking = trip.tracking_data[escape_start:escape_end, :2]
+
+        # Get the distance from start of bridge at each timepoint during escape
+        distance = calc_dist(tracking, bridge)
+
+        # Get the velocity 
+        velocity = np.diff(distance)
+
+        closest = np.argmin(distance)
+
+        zero_vel = np.where(np.abs(velocity) < .5)[0][-1]
+
+    
+        f, axarr = plt.subplots(3)
+        # axarr[0].plot(trip.tracking_data[:, 0], trip.tracking_data[:, 1], color='g')
+        # axarr[0].plot(tracking[:, 0], tracking[:, 1], color='k')
+        # axarr[0].plot(tracking[:, 0], tracking[:, 1], color='k')
+        # axarr[0].plot(bridge[0], bridge[1], 'o', color='r')
+        # axarr[0].scatter(tracking[zero_vel, 0], tracking[zero_vel, 1], c='g')
+        # axarr[0].scatter(tracking[leave_threat, 0], tracking[leave_threat, 1], c='b')
+
+        axarr[1].plot(distance, color='g')
+        # axarr[1].axvline(leave_threat)
+        # axarr[1].axvline(closest, color='r', alpha=.5)
+
+        axarr[2].scatter(np.arange(len(velocity)), velocity, c='k')
+        axarr[2].plot(velocity, color='r', linewidth=2)
+        
+        axarr[2].axvline(leave_threat, color='b', alpha=.5)
+        axarr[2].axhline(0, color='k', alpha=.5)
+
+        if trip.stim_frame > 0 :
+            axarr[2].axvline(trip.stim_frame - trip.shelter_exit - escape_start, color='m')
+
+        plt.show()
+
+        a = 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     #####################################################################
     #####################################################################
@@ -349,6 +431,10 @@ class analyse_all_trips:
             g.stim_frame = stim_frame
             g.stim_type = stim_type
             g.session_uid = sess_uid
+
+            # Reaction time analysis
+            if is_escape == 'true':
+                self.reaction_time_analysis(g, escape_arm)
 
             self.all_trips.append(g)
 

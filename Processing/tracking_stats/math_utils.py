@@ -138,7 +138,7 @@ def calc_distance_between_points_two_vectors_2d(v1, v2):
     if v1.shape[1]<20000 and v1.shape[0]<20000: 
         # For short vectors use cdist
         dist = distance.cdist(v1, v2, 'euclidean')
-        dist = dist[0, :]  
+        dist = dist[:, 0]  
     else:
         dist = [calc_distance_between_points_2d(p1, p2) for p1, p2 in zip(v1, v2)]
     return dist
@@ -149,7 +149,7 @@ def calc_distance_from_shelter(v, shelter):
     
     Arguments:
         v {[np.ndarray]} -- [2D array with XY coordinates]
-        shelter {[tupple]} -- [tuple of length 2 with X and Y coordinates of shelter]
+        shelter {[tuple]} -- [tuple of length 2 with X and Y coordinates of shelter]
     """
     assert isinstance(v, np.ndarray), 'Input data needs to be a numpy array'
     assert v.shape[1] == 2, 'Input array must be a 2d array with two columns'

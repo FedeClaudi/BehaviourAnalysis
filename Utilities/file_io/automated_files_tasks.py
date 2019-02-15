@@ -121,20 +121,16 @@ class FilesAutomationToolbox:
             name = t.split('.')[0]
             conv, join = self.check_if_file_converted(name, self.videos_fld)
             if not conv: unconverted.append(t)
-            print("""
-            Video: {}
-                --- converted: {}
-                --- joined: {}
-            """.format(t, conv, join))
+            
         print('To convert: ', unconverted)
         print(len(unconverted), ' files yet to convert')
         return unconverted
 
     def get_list_not_tracked_videos(self):
         videos = [f.split('.')[0] for f in os.listdir(self.videos_fld) if 'tdms' not in f]
-        poses = [f.split('_')[0] for f in os.listdir(self.pose_fld) if 'h5' in f]
+        poses = [f.split('_')[:-1] for f in os.listdir(self.pose_fld) if 'h5' in f]
 
-        not_tracked = [f for f in videos if f not in poses and 'overview'  in f.lower()]
+        not_tracked = [f for f in videos if f.split('_') not in poses and 'overview'  in f.lower()]
         print('To track: ', not_tracked)
         print(len(not_tracked), ' files yet to track')
         return not_tracked
@@ -220,4 +216,4 @@ if __name__ == "__main__":
 
     # automation.macro()
 
-    # automation.remove_stupid_videofiles()
+    automation.remove_stupid_videofiles()

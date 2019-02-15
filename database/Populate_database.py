@@ -64,6 +64,7 @@ class PopulateDatabase:
         self.mantisstimuli = MantisStimuli()
         self.videosincomplete = VideosIncomplete()
         self.tracking_data = TrackingData()
+        self.tracking_data_justbody = TrackingDataJustBody()
         self.commoncoordinatematrices = CommonCoordinateMatrices()
         self.dlcmodels = DLCmodels()
         self.all_tables = dict(mice=self.mice, sessions= self.sessions, experiments=self.experiments,
@@ -71,7 +72,8 @@ class PopulateDatabase:
                                 mantisstimuli = self.mantisstimuli, dlcmodels = self.dlcmodels,
                                 templates=self.templates, videofiles = self.videofiles, 
                                 commoncoordinatematrices=self.commoncoordinatematrices,
-                                tracking_data = self.tracking_data, videosincomplete = self.videosincomplete)
+                                tracking_data = self.tracking_data, videosincomplete = self.videosincomplete,
+                                tracking_data_justbody = self.tracking_data_justbody)
 
     def remove_table(self, tablename):
         """
@@ -234,7 +236,7 @@ if __name__ == '__main__':
 
     print(p)
 
-    # p.remove_table(['tracking_data'])
+    # p.remove_table(['videofiles'])
 
     # p.populate_mice_table()
     # p.populate_experiments_table()
@@ -250,11 +252,13 @@ if __name__ == '__main__':
     # p.templates.populate()
     
     # p.behaviourstimuli.populate() 
-    # p.mantisstimuli.populate()
+    p.mantisstimuli.populate()
 
     p.tracking_data.populate()
+    p.tracking_data_justbody.populate()
 
 
     # p.remove_test_sessions()
 
-    # print(p.sessions)
+    # print((p.recordings & "session_name='190208_CA378'"))
+# 
