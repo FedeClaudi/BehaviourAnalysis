@@ -333,7 +333,7 @@ class DLCmodels(dj.Lookup):
 @schema
 class AllTrips(dj.Manual):
     definition = """
-        # stores info about each time the mouse makes a shetler-threat-shelter trip
+        # stores info about each time the mouse makes a shetler-threat-shelter trip 
         trip_id: int                            # comulative trip number
         ---
         session_uid: varchar(128)       
@@ -342,16 +342,16 @@ class AllTrips(dj.Manual):
         shelter_enter: int                      # frame at which it returned
         threat_enter: int                       # time at which it enters in the threat
         threat_exit: int                        # frame at which it leaves the threat to reach the shetler
-        time_in_shelter: int                    # number of frames before reemerging from the shelter
+        time_in_shelter: int                    # number of seconds before reemerging from the shelter
         tracking_data: longblob                 # tracking
         is_trial: enum('true', 'false')         # is it around a stim?
         duration: int                           # duration of the escape in seconds
-        max_speed: int                          # 85th percentile of smoothed speed trace
+        max_speed: float                          # 85th percentile of smoothed speed trace
         is_escape: enum('true', 'false')        # did it meet the criteria for being considered an escape
         experiment_name: varchar(128)           # name of the experiment this recording belongs to
         
-        escape_arm: enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far')  # far left....
-        origin_arm:  enum('Left',  'Centre', 'Right', 'Right2', 'Left2')
+        escape_arm: enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'Right2', 'Left2') 
+        origin_arm:  enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'Right2', 'Left2')
 
         stim_frame: int                         # if is_trial add the frame of stim on set
         stim_type: enum('audio', 'visual', 'nan')

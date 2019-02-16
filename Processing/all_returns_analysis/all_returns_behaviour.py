@@ -127,7 +127,7 @@ class InspectTrajectoryOnT:
 
             # Get escapes
             uid = get_sessuid_given_sessname(sess)[0]
-            escapes = pd.DataFrame((AllTrips & "is_escape='true'" & "is_trial='true'" & "session_uid='{}'".format(sess)).fetch())
+            escapes = pd.DataFrame((AllTrips &  "is_trial='true'" & "session_uid='{}'".format(sess)).fetch())
 
             # Get the time between stimulus onset and threat exit
             escape_starts = escapes['stim_frame'].values
