@@ -126,66 +126,61 @@ class InspectTrajectoryOnT:
             print('Processing session {} of {} - {}'.format(i, len(self.sessions), sess))
 
             # Get escapes
-            uid = get_sessuid_given_sessname(sess)[0]
-            escapes = pd.DataFrame((AllTrips &  "is_trial='true'" & "session_uid='{}'".format(sess)).fetch())
+            # uid = get_sessuid_given_sessname(sess)[0]
+            uid = int(sess)
+            session_name = get_sessname_given_sessuid(uid)[0]
+            escapes = pd.DataFrame((AllTrips &  "is_trial='true'" & "is_escape='true'" & "session_uid='{}'".format(sess)).fetch())
 
             # Get the time between stimulus onset and threat exit
-            escape_starts = escapes['stim_frame'].values
-            escape_ends = escapes['shelter_enter'].values
+            escape_starts = np.subtract(escapes['stim_frame'].values, escapes['shelter_exit'].values)
+            escape_ends = np.subtract(escapes['shelter_enter'].values, escapes['shelter_exit'].values)
+            trackings = escapes['tracking_data'].values
+
 
             # Get appropriate maze model
-            exp = get_exp_given_sessname(sess)[0]
+            exp = get_exp_given_sessname(session_name)[0]
             model = get_maze_template(exp)
 
             # Get the tracking for each bodypart]
-            f, axarr = plt.subplots(ncols=2, figsize=(16, 12))
+            f, axarr = plt.subplots(ncols=2, nrows=2, figsize=(16, 12))
+            axarr = axarr.flatten()
             for ax in axarr:
                 ax.imshow(model)
 
             rec = self.recordings_lookup[sess]
-            for n, (start, end) in enumerate(zip(escape_starts, escape_ends)):
+            for n, (start, end, tracking_array) in enumerate(zip(escape_starts, escape_ends, trackings)):
+                print(" trial: ", n, 'of ', len(escape_starts))
                 frames_select = np.linspace(0, end-start-1, 10).astype(np.int16)
 
                 tracking = {}
-                for bp in self.bodyparts:
-                    try:
-                        bptr= (TrackingData.BodyPartData & "recording_uid='{}'".format(rec) & "bpname='{}'".format(bp)).fetch("tracking_data")[0]
-                    except:
-                        continue
-
-                    bptr = bptr[start:end, :3]
-                    if not bptr.shape[0]: continue
-
-                    #! remove errors from tracking
-
-                    tracking[bp] = bptr
-
-
-
-                if not 'snout' in tracking.keys() or not 'body' in tracking.keys(): continue
+                tracking['snout'] = tracking_array[start:end, :, 1]
+                tracking['body'] = tracking_array[start:end, :, 0]
 
                 col = [np.random.uniform(.3, 1), np.random.uniform(.3, 1), np.random.random()]
-                median_speed = np.median(tracking['body'][:, 2])
-                normed_speed = np.divide(tracking['body'][:, 2], median_speed)
-                speed_color =  [np.multiply(col,normed_speed[c]) for c in np.arange(len(normed_speed))]
 
-                linez_x = [tracking['snout'][:, 0], tracking['body'][:, 0]]
-                linez_y = [tracking['snout'][:, 1], tracking['body'][:, 1]]
+                if 'snout' in tracking.keys() and 'body' in tracking.keys(): 
+                    linez_x = [tracking['snout'][:, 0], tracking['body'][:, 0]]
+                    linez_y = [tracking['snout'][:, 1], tracking['body'][:, 1]]
 
-                for ax in axarr:
-                    ax.plot(linez_x, linez_y, color=col, alpha=.5, linewidth=3)
-                    ax.set(xticks=[], yticks=[])
+                    for ax in axarr:
+                        try:
+                            ax.plot(linez_x, linez_y, color=col, alpha=.5, linewidth=3)
+                        except:
+                            pass
 
-                axarr[0].scatter(tracking['snout'][:, 0], tracking['snout'][:, 1], c=col)
+                        ax.set(xticks=[], yticks=[])
+
+
+                        ax.scatter(tracking['snout'][:, 0], tracking['snout'][:, 1], c=col)
 
                 axarr[0].set(title = rec, xlim =[400, 600], ylim=[100, 430])
                 axarr[1].set(title = rec, ylim=[0, 1000])
-            xxx = [551, 448, 500]
-            yyy = [359, 360, 382]
-            axarr[0].scatter(xxx, yyy, c='m')
+                axarr[2].set(title="Left Mid Platf", xlim=[200, 400], ylim=[430, 630])
+                axarr[3].set(title="Right Mid Platf", xlim=[600, 800], ylim=[430, 630])
+
             
-            
-            save_name = os.path.join(self.save_fld, sess+'.png')
+            save_name = os.path.join(self.save_fld, session_name+'.png')
+            f.tight_layout()
             f.savefig(save_name)
             plt.close(f)
 

@@ -34,7 +34,7 @@ from database.database_fetch import get_maze_template
 class ChoicesVisualiser:
     def __init__(self, run=True):
         self.selected_experiments_only = True
-        self.work_on_experiments = ['Square Maze','PathInt2']
+        self.work_on_experiments = ['Square Maze','PathInt2','PathInt2-DL', 'PathInt2-D', 'PathInt2-L']
 
         # Get variables
         self.recording_uid, self.is_trial, self.is_escape, self.experiment_name, self.arm_taken = AllTrips.fetch('recording_uid', 'is_trial', 'is_escape', 'experiment_name', 'escape_arm')

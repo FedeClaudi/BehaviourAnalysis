@@ -8,6 +8,7 @@ from pandas.plotting import scatter_matrix
 from collections import namedtuple
 from itertools import combinations
 import time
+import random
 import yaml
 
 from database.NewTablesDefinitions import *
@@ -43,6 +44,8 @@ class Trip:
         self.max_speed = None         #
         self.stim_frame = None
         self.stim_type = None
+        self.all_threat_exits = None
+        self.all_threat_enters = None
         self.session_uid = session_uid
         
     def _as_dict(self):
@@ -72,14 +75,14 @@ class analyse_all_trips:
 
             # ! arbritary
             self.duration_lims = dict(Left_Far=12,
-                            Left_Medium=4,
-                            Centre=3,
-                            Right_Medium=4,
+                            Left_Medium=6,
+                            Centre=4,
+                            Right_Medium=6,
                             Right_Far=12,
                             Right2 = 15,
                             Left2 = 15)
 
-            self.naughty_experiments = ['Lambda Maze', 'FlipFlop Maze', 'FlipFlop2 Maze']
+            self.naughty_experiments = ['Lambda Maze',]
             self.good_experiments = ['PathInt', 'PathInt2', 'Square Maze', 'TwoAndahalf Maze','PathInt','FlipFlop Maze', 'FlipFlop2 Maze',
                                     "PathInt2 D", "PathInt2 DL", "PathInt2 L", 'PathInt2-L', 'TwoArmsLong Maze', "FourArms Maze"   ]
 
@@ -88,8 +91,7 @@ class analyse_all_trips:
             self.trips = []  # * Store each trip in a list here
             self.get_trips()
 
-            # Insert good trips into trips table
-            self.insert_trips_in_table()
+
 
 
     def erase_table(self):
@@ -126,12 +128,12 @@ class analyse_all_trips:
         elif vir == 'b13':
             return 'Left2'
         elif vir == 'b10':
-            if 'p1' in rois:
+            if 'p1' in rois or 'b4' in rois:
                 return 'Left_Far'
             else:
                 return 'Left_Medium'
         elif vir == 'b11':
-            if 'p4' in rois:
+            if 'p4' in rois or 'b7' in rois:
                 return 'Right_Far'
             else:
                 return 'Right_Medium'
@@ -168,9 +170,11 @@ class analyse_all_trips:
 
             # Loop over each recording and extract the tracking data
             for rec_n, rec in enumerate(recordings):
+                print('  ...  ', rec['session_name'])
                 rec_uid = rec['recording_uid']
                 try:
                     tracking = get_tracking_given_recuid_and_bp(rec_uid, 'body')['tracking_data'].values[0]
+                    snout_tracking = get_tracking_given_recuid_and_bp(rec_uid, 'snout')['tracking_data'].values[0]
                 except:
                     print("No tracking data found for session, please load tracking data first. ")
                     continue
@@ -222,6 +226,8 @@ class analyse_all_trips:
                     # Only keep trips in wich the mouse reach threat platform and that lasted above min threshold
                     if duration/fps > self.min_round_trip_diration:
                         trip = tracking[ex:en, :]
+                        snout_trip = snout_tracking[ex:en, :]
+
                         on_threat = np.where(trip[:, -1]==1)[0]
                         if not np.any(on_threat): continue
 
@@ -244,14 +250,32 @@ class analyse_all_trips:
                                     else:
                                         time_in_shelter = -1
 
+                                    # Merge Snout and Body tracking data
+                                    tracking_data = np.zeros((trip.shape[0], 4, 2))
+                                    tracking_data[:, :, 0] = trip[:, [0, 1, 2, -1]]
+                                    tracking_data[:, :, 1] = snout_trip[:, [0, 1, 2, -1]]
+
+                                    # Get all the times the mouse entered and left the threat platform
+                                    temp = np.zeros(trip.shape[0])
+                                    temp[on_threat] = 1
+                                    t_enter_exit = np.diff(temp)  # 1 when the mouse enters the platform an 0 otherwise
+                                    t_enters, t_exits = np.where(t_enter_exit>0)[0], np.where(t_enter_exit<0)[0]
+                                    if len(t_enters) != len(t_exits): raise ValueError
+
+                                    # get escape duration
+                                    escape_duration = (en - t_exits[-1])/fps
+
+                                    # Create Trip()
                                     _trip = Trip(session_uid = str(sess), recording_uid=rec_uid)
-                                    _trip.tracking_data = trip[:, [0, 1, 2, -1]]
+                                    _trip.tracking_data = tracking_data
                                     _trip.shelter_exit, _trip.shelter_enter = ex, en
-                                    _trip.threat_enter, _trip.threat_exit =  on_threat[0],  on_threat[-1]
-                                    _trip.duration = int(round(duration/fps))
-                                    _trip.time_in_shelter = int(round(time_in_shelter))
+                                    _trip.threat_enter, _trip.threat_exit =  t_enters[0],  t_exits[-1]
+                                    _trip.duration = escape_duration
+                                    _trip.time_in_shelter = escape_duration
                                     _trip.max_speed = np.percentile(trip[:, 2], 85)
                                     _trip.experiment_name = exp
+                                    _trip.all_threat_exits = t_exits
+                                    _trip.all_threat_enters = t_enters
                                     trips.append(_trip)
                                 
                 # ? DEBUG PLOTS
@@ -269,7 +293,7 @@ class analyse_all_trips:
                         f, ax = plt.subplots()
                 for trip_n, trip in enumerate(trips):
                     # Get ROIs for outward and inward trips
-                    outw, inw = trip.tracking_data[0:trip.threat_enter, -1], trip.tracking_data[trip.threat_exit-1:, -1]
+                    outw, inw = trip.tracking_data[0:trip.threat_enter, -1, 0], trip.tracking_data[trip.threat_exit-1:, -1, 0]
 
                     # Convert them to platforms names for clarity
                     rois_lookup = load_yaml('Processing\\rois_toolbox\\rois_lookup.yml')
@@ -281,8 +305,8 @@ class analyse_all_trips:
                     if self.debug:
                         model = get_maze_template()
                         ax.imshow(model)
-                        ax.scatter(trip.tracking_data[0:trip.threat_enter, 0], trip.tracking_data[0:trip.threat_enter, 1])
-                        ax.scatter(trip.tracking_data[trip.threat_exit:, 0], trip.tracking_data[trip.threat_exit:, 1])
+                        ax.scatter(trip.tracking_data[0:trip.threat_enter, 0, 0], trip.tracking_data[0:trip.threat_enter, 1, 0])
+                        ax.scatter(trip.tracking_data[trip.threat_exit:, 0, 0], trip.tracking_data[trip.threat_exit:, 1, 0])
 
                     if not outw or not inw or len(outw) < 6 or len(inw) < 6:
                         raise ValueError
@@ -302,7 +326,8 @@ class analyse_all_trips:
                         else:
                             start = stim['overview_frame']
 
-                        if (trip.shelter_exit + trip.threat_enter) < start < (trip.shelter_exit + trip.threat_exit):
+                        # Only consider trials that happened betwee the first time mouse got on T and the first time it left T
+                        if (trip.shelter_exit + trip.all_threat_enters[0]) < start < (trip.shelter_exit + trip.all_threat_exits[0]):
                             stimz_in_time.append((start, stim['stim_type']))
                             is_trial = 'true'
 
@@ -364,7 +389,7 @@ class analyse_all_trips:
 
             for ex, tr in zip(threat_leaves, trackings):
                 frames = np.linspace(ex, tr.shape[0]-1, frames_per_escape).astype(np.int16)
-                axarr[1, i].scatter(tr[frames:, 0], tr[frames:, 1], c=tr[frames:, -1], alpha=.4)
+                axarr[1, i].scatter(tr[frames, 0], tr[frames, 1], c=tr[frames, -1], alpha=.4)
 
             arm_data_origins = trips.loc[trips['origin_arm'] == arm]
             trackings = arm_data_origins['tracking_data'].values
@@ -372,15 +397,91 @@ class analyse_all_trips:
 
             for ex, tr in zip(threat_leaves, trackings):
                 frames = np.linspace(0, ex, frames_per_escape).astype(np.int16)
-                axarr[0, i].scatter(tr[frames:, 0], tr[frames:, 1], c=tr[frames:, -1], alpha=.4)
+                axarr[0, i].scatter(tr[frames, 0], tr[frames, 1], c=tr[frames, -1], alpha=.4)
 
-            axarr[0].set(title=arm)
+            axarr[0, i].set(title=arm)
 
+
+    def plt_n_random_trips(self, n = 10):
+        while True:
+            trips = pd.DataFrame((AllTrips & "is_trial='true'").fetch())
+
+            selected_trips = random.sample(list(np.arange(trips.shape[0])), n)
+
+            trips = trips.reindex(selected_trips)
+
+            f, ax = plt.subplots()
+            ax.imshow(get_maze_template())
+
+            for i, row in trips.iterrows():
+                
+                start, stop = row['stim_frame'] - row['shelter_exit'], row['shelter_enter'] - row['shelter_exit']
+                tr = row['tracking_data']
+                ax.scatter(tr[start:stop, 0], tr[start:stop, 1],  s=tr[start:stop, 2], alpha=.5)
+
+            ax.set(ylim=[0, 1000])
+            plt.show()
+
+
+def check_all_trials_included(table):
+    """
+    In principle all trials should be included in All Returns, lets check
+    """
+    print("checking stuff")
+    data = pd.DataFrame(table.fetch())
+    recordings = Recordings().fetch("recording_uid")
+    stimuli = pd.DataFrame(BehaviourStimuli.fetch())
+
+    
+    for i, rec in enumerate(recordings):
+        print('Checking rec {} of {}'.format(i, len(recordings)))
+        r_stim_times = stimuli.loc[stimuli['recording_uid'] == rec]['stim_start'].values
+        rtrips = data.loc[(data['recording_uid'] == rec)&(data['is_trial']=='true')]
+
+        if not np.any(rtrips['recording_uid'].values): continue
+
+        for si, stim_time in enumerate(r_stim_times):
+            if stim_time == -1: continue # just a place holder empty stim table entry
+
+            # Check if there is a trial trip that includes it
+            entry_in_t_before_stim = np.where(rtrips['threat_enter'].values <= stim_time)[0]
+
+            if not len(entry_in_t_before_stim): 
+                # raise ValueError('Didnt find any good time')
+                print('     Didnt find any good time')
+                continue
+            else:
+                last_entry_index = entry_in_t_before_stim[-1]
+
+            try:
+                prev_enter = rtrips['threat_enter'].values[last_entry_index]
+                next_exit = rtrips['threat_exit'].values[last_entry_index]
+            except:
+                raise ValueError('      smth went wrong')
+            else:
+                if not prev_enter < stim_time < next_exit: 
+                    rec_tracking = get_tracking_given_recuid_and_bp(rtrips['recording_uid'].values[0], 'body')['tracking_data'].values[0]
+                    t0, t1 = -600, 600
+                    plt.scatter(rec_tracking[stim_time+t0:stim_time+t1, 0], rec_tracking[stim_time+t0:stim_time+t1, 1], c=rec_tracking[stim_time+t0:stim_time+t1, -1])
+
+
+                    # raise ValueError('Timings wrong')
+                    print('     Timings wrong')
+                    print('     {} - stim {} of {}'.format(rec, si, len(r_stim_times)))
+
+                    tracking = rtrips['tracking_data'].values[last_entry_index]
+                    plt.scatter(tracking[:, 0], tracking[:, 1])
+
+    # If we got here everything was good
+    print('All trials are included')
 
 if __name__ == '__main__':
 
-    at = analyse_all_trips(erase_table=False, fill_in_table=False)
-    at.plot_all_trip_by_arm()
+    at = analyse_all_trips(erase_table=False, fill_in_table=True)
+    # at.plot_all_trip_by_arm()
+    # at.plt_n_random_trips()
+
+    check_all_trials_included(AllTrips())
 
     plt.show()
 

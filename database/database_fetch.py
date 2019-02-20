@@ -22,7 +22,7 @@ def get_stimuli_given_sessuid(uid, stimuli=None):
         else: raise ValueError
     else:
         # Check the software of that session
-        software = (Recordings & "uid='{}'".format(uid)).fetch("software")
+        software = (Recordings & "uid='{}'".format(uid)).fetch("software")[0]
         if software == "behaviour":
             return (BehaviourStimuli & "uid='{}'".format(uid) & "stim_duration != 1").fetch()
         else:
@@ -39,8 +39,14 @@ def get_tracking_given_bp(bp):
     fetched = pd.DataFrame((TrackingData.BodyPartData & 'bpname = "{}"'.format(bp)).fetch())
     return fetched.loc[fetched['bpname'] == bp]
 
-def get_tracking_given_recuid(ruid, tracking):
-    return tracking.loc[tracking['recording_uid']==ruid]
+def get_tracking_given_recuid(ruid, tracking=None, just_body=False):
+    if tracking is not None:
+        return tracking.loc[tracking['recording_uid']==ruid]
+    else:
+        if just_body:
+            return (TrackingDataJustBody.BodyPartData & "recording_uid='{}'".format(ruid)).fetch()
+        else:
+            return (TrackingData.BodyPartData & "recording_uid='{}'".format(ruid) & "bpname='body'").fetch()
 
 def get_tracking_given_recuid_and_bp(recuid, bp):
     fetched = pd.DataFrame((TrackingData.BodyPartData & 'bpname = "{}"'.format(bp) & 'recording_uid = "{}"'.format(recuid)).fetch())
@@ -67,6 +73,10 @@ def get_recs_given_sessuid(uid, recordings=None):
 def get_sessuid_given_sessname(name):
     return (Sessions & "session_name = '{}'".format(name)).fetch('uid')
 
+def get_sessname_given_sessuid(uid):
+    return (Sessions & "uid = '{}'".format(uid)).fetch('session_name')
+
+
 def get_videometadata_given_recuid(rec, just_fps=True):
     if not just_fps:
         return (VideoFiles.Metadata & "recording_uid='{}'".format(rec)).fetch()
@@ -75,7 +85,6 @@ def get_videometadata_given_recuid(rec, just_fps=True):
 
 def get_exp_given_sessname(name):
     return (Sessions & "session_name='{}'".format(name)).fetch("experiment_name")
-
 
 
 

@@ -286,7 +286,7 @@ if __name__ == "__main__":
     print(AllExplorations())
 
     exploration_time_on_each_platform()
-    # explorations_heatmap()
+    explorations_heatmap()
 
 
 

@@ -345,10 +345,12 @@ class AllTrips(dj.Manual):
         time_in_shelter: int                    # number of seconds before reemerging from the shelter
         tracking_data: longblob                 # tracking
         is_trial: enum('true', 'false')         # is it around a stim?
-        duration: int                           # duration of the escape in seconds
-        max_speed: float                          # 85th percentile of smoothed speed trace
+        duration: float                           # duration of the escape in seconds
+        max_speed: int                          # 85th percentile of smoothed speed trace
         is_escape: enum('true', 'false')        # did it meet the criteria for being considered an escape
         experiment_name: varchar(128)           # name of the experiment this recording belongs to
+        all_threat_exits: longblob
+        all_threat_enters: longblob
         
         escape_arm: enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'Right2', 'Left2') 
         origin_arm:  enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'Right2', 'Left2')
@@ -362,7 +364,7 @@ class AllExplorations(dj.Manual):
     definition = """
         exploration_id: int
         ---
-        session_uid: varchar(128)
+        session_uid: int
         experiment_name: varchar(128)
         tracking_data: longblob
         total_travel: int               # Total distance covered by the mouse
