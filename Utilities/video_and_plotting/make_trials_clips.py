@@ -508,6 +508,6 @@ def make_video_with_all_explorations():
 if __name__ == "__main__":
     paths = load_yaml('./paths.yml')
 
-    # create_trials_clips(clean_vids=False)
-    make_video_with_all_escapes(select_exp='PathInt2')
+    create_trials_clips(clean_vids=False)
+    # make_video_with_all_escapes(select_exp='PathInt2')
 

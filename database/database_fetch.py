@@ -13,7 +13,7 @@ def get_recordings_given_sessuid(uid, recordings = None, as_dict=True):
         return recordings.loc[recordings['uid'] == uid]
     else: return (Recordings & "uid='{}'".format(uid)).fetch(as_dict=as_dict)
 
-def get_stimuli_given_sessuid(uid, stimuli=None):
+def get_stimuli_given_sessuid(uid, stimuli=None, as_dict=True):
     if stimuli is not None:
         if 'stim_duration' in stimuli.columns:
             return stimuli.loc[(stimuli['uid']==uid)&(stimuli['stim_duration'] != -1)]
@@ -22,11 +22,15 @@ def get_stimuli_given_sessuid(uid, stimuli=None):
         else: raise ValueError
     else:
         # Check the software of that session
-        software = (Recordings & "uid='{}'".format(uid)).fetch("software")[0]
+        try:
+            software = (Recordings & "uid='{}'".format(uid)).fetch("software")[0]
+        except:
+            return None
+
         if software == "behaviour":
-            return (BehaviourStimuli & "uid='{}'".format(uid) & "stim_duration != 1").fetch()
+            return (BehaviourStimuli & "uid='{}'".format(uid) & "stim_duration != 1").fetch(as_dict=as_dict)
         else:
-            return (BehaviourStimuli & "uid='{}'".format(uid) & "duration != 1").fetch()
+            return (MantisStimuli & "uid='{}'".format(uid) & "duration != 1").fetch(as_dict=as_dict)
 
 def get_stimuli_give_recuid(rec_uid):
     software = (Recordings & "recording_uid='{}'".format(rec_uid)).fetch("software")
@@ -39,14 +43,17 @@ def get_tracking_given_bp(bp):
     fetched = pd.DataFrame((TrackingData.BodyPartData & 'bpname = "{}"'.format(bp)).fetch())
     return fetched.loc[fetched['bpname'] == bp]
 
-def get_tracking_given_recuid(ruid, tracking=None, just_body=False,, bp=None):
+def get_tracking_given_recuid(ruid, tracking=None, just_body=False, bp=None, just_trackin_data=True):
     if tracking is not None:
         return tracking.loc[tracking['recording_uid']==ruid]
     else:
         if just_body:
             return (TrackingDataJustBody.BodyPartData & "recording_uid='{}'".format(ruid)).fetch()
         else:
-            return (TrackingData.BodyPartData & "recording_uid='{}'".format(ruid) & "bpname='{}}'".format(bp)).fetch()
+            if not just_trackin_data:
+                return (TrackingData.BodyPartData & "recording_uid='{}'".format(ruid) & "bpname='{}'".format(bp)).fetch()
+            else:
+                return (TrackingData.BodyPartData & "recording_uid='{}'".format(ruid) & "bpname='{}'".format(bp)).fetch('tracking_data')
 
 def get_tracking_given_recuid_and_bp(recuid, bp):
     fetched = pd.DataFrame((TrackingData.BodyPartData & 'bpname = "{}"'.format(bp) & 'recording_uid = "{}"'.format(recuid)).fetch())

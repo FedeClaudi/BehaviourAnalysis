@@ -28,6 +28,12 @@ import os
     
 """
 
+def convert_roi_id_to_tag(ids):
+    rois_lookup = load_yaml('Processing\\rois_toolbox\\rois_lookup.yml')
+    rois_lookup = {v:k for k,v in rois_lookup.items()}
+    return [rois_lookup[int(r)] for r in ids]
+
+
 
 def get_arm_given_rois(rois, direction):
         """
@@ -38,7 +44,7 @@ def get_arm_given_rois(rois, direction):
         rois = [r for r in rois if r not in ['t', 's']]
 
         if not rois:
-            raise ValueError(rois_copy)
+            return None
 
         if direction == 'out':
             vir = rois[-1]  # very important roi

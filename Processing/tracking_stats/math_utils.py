@@ -24,7 +24,7 @@ def get_roi_enters_exits(roi_tracking, roi_id):
     enter_exit = np.diff(temp)  # 1 when the mouse enters the platform an 0 otherwise
     enters, exits = np.where(enter_exit>0)[0], np.where(enter_exit<0)[0]
     return enters, exits
-               
+
 
 
 def turning_points(array):
