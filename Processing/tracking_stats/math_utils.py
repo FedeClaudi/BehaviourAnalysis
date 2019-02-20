@@ -10,6 +10,23 @@ import matplotlib.pyplot as plt
 from Utilities.file_io.files_load_save import load_yaml
 
 
+def get_roi_enters_exits(roi_tracking, roi_id):
+    """get_roi_enters_exits [Get all the timepoints in which mouse enters or exits a specific roi]
+    
+    Arguments:
+        roi_tracking {[np.array]} -- [1D array with ROI ID at each frame]
+        roi_id {[int]} -- [roi of interest]
+    """
+
+    in_roi = np.where(roi_tracking == roi_id)[0]
+    temp = np.zeros(roi_tracking.shape[0])
+    temp[in_roi] = 1
+    enter_exit = np.diff(temp)  # 1 when the mouse enters the platform an 0 otherwise
+    enters, exits = np.where(enter_exit>0)[0], np.where(enter_exit<0)[0]
+    return enters, exits
+               
+
+
 def turning_points(array):
     ''' turning_points(array) -> min_indices, max_indices
     Finds the turning points within an 1D array and returns the indices of the minimum and 

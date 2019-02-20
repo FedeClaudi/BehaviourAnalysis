@@ -376,6 +376,29 @@ class AllExplorations(dj.Manual):
     """
 
 
+@schema
+class AllTrials(dj.Manual):
+    definition = """
+        trial_id: int
+        ---
+        session_uid: int
+        recording_uid: varchar(128)
+        experiment_name: varchar(128)
+        tracking_data: longblob
+
+        stim_frame: int
+        stim_type: enum('audio', 'visual')
+        stim_duration: int
+
+        is_escape: enum('true', 'false')
+
+        escape_arm: enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'Right2', 'Left2', 'nan') 
+        origin_arm:  enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'Right2', 'Left2')
+
+        time_to_out_of_T: float
+    """
+
+
 if __name__ == "__main__":
     import sys
     sys.path.append('./')

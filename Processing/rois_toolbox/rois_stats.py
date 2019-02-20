@@ -28,6 +28,43 @@ import os
     
 """
 
+
+def get_arm_given_rois(rois, direction):
+        """
+            Get arm of origin or escape given the ROIs the mouse has been in
+            direction: str, eitehr 'in' or 'out' for outward and inward legs of the trip
+        """
+        rois_copy = rois.copy()
+        rois = [r for r in rois if r not in ['t', 's']]
+
+        if not rois:
+            raise ValueError(rois_copy)
+
+        if direction == 'out':
+            vir = rois[-1]  # very important roi
+        elif direction == "in":
+            vir = rois[0]
+
+        if 'b15' in rois:
+            return 'Centre'
+        elif vir == 'b13':
+            return 'Left2'
+        elif vir == 'b10':
+            if 'p1' in rois or 'b4' in rois:
+                return 'Left_Far'
+            else:
+                return 'Left_Medium'
+        elif vir == 'b11':
+            if 'p4' in rois or 'b7' in rois:
+                return 'Right_Far'
+            else:
+                return 'Right_Medium'
+        elif vir == 'b14':
+            return 'Right2'
+        else:
+            return None
+
+
 def load_rois(display=False):
     components = load_yaml('Processing/rois_toolbox/template_components.yml')
     rois = {}

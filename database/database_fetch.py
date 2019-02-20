@@ -39,14 +39,14 @@ def get_tracking_given_bp(bp):
     fetched = pd.DataFrame((TrackingData.BodyPartData & 'bpname = "{}"'.format(bp)).fetch())
     return fetched.loc[fetched['bpname'] == bp]
 
-def get_tracking_given_recuid(ruid, tracking=None, just_body=False):
+def get_tracking_given_recuid(ruid, tracking=None, just_body=False,, bp=None):
     if tracking is not None:
         return tracking.loc[tracking['recording_uid']==ruid]
     else:
         if just_body:
             return (TrackingDataJustBody.BodyPartData & "recording_uid='{}'".format(ruid)).fetch()
         else:
-            return (TrackingData.BodyPartData & "recording_uid='{}'".format(ruid) & "bpname='body'").fetch()
+            return (TrackingData.BodyPartData & "recording_uid='{}'".format(ruid) & "bpname='{}}'".format(bp)).fetch()
 
 def get_tracking_given_recuid_and_bp(recuid, bp):
     fetched = pd.DataFrame((TrackingData.BodyPartData & 'bpname = "{}"'.format(bp) & 'recording_uid = "{}"'.format(recuid)).fetch())
