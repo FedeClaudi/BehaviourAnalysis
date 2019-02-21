@@ -393,6 +393,7 @@ class AllTrials(dj.Manual):
         escape_arm: enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'Right2', 'Left2', 'nan') 
         origin_arm:  enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'Right2', 'Left2', 'nan')         
         time_out_of_t: float
+        fps: int
     """
 
 

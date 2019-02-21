@@ -205,7 +205,8 @@ class analyse_all_trals:
                     is_escape = is_escape,
                     escape_arm = escape_arm,
                     origin_arm = origin_arm,
-                    time_out_of_t=time_to_exit
+                    time_out_of_t=time_to_exit,
+                    fps = fps
                 )
 
                 session_trials.append(key)

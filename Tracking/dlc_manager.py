@@ -207,8 +207,6 @@ if __name__ == "__main__":
 
     vids = manager.sel_videos_in_folder(all=False, min_n=5, dr=fld)
 
-    manager.analyze_videos()
-    manager.create_labeled_videos()
-    manager.extract_outliers()
+    manager.label_frames()
 
 

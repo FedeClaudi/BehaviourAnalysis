@@ -244,15 +244,15 @@ if __name__ == '__main__':
 
     # p.dlcmodels.populate()
 
-    p.recordings.populate()
+    # p.recordings.populate()
 
-    p.videofiles.populate()
+    # p.videofiles.populate()
 
     # p.commoncoordinatematrices.populate()
     # p.templates.populate()
     
     # p.behaviourstimuli.populate() 
-    p.mantisstimuli.populate()
+    # p.mantisstimuli.populate()
 
     # p.tracking_data.populate()
     # p.tracking_data_justbody.populate()
