@@ -367,11 +367,11 @@ class AllExplorations(dj.Manual):
         session_uid: int
         experiment_name: varchar(128)
         tracking_data: longblob
-        total_travel: int               # Total distance covered by the mouse
-        tot_time_in_shelter: int        # Number of seconds spent in the shelter
-        tot_time_on_threat: int         # Number of seconds spent on threat platf
-        duration: int                   # Total duration of the exploration in seconds
-        median_vel: int                  # median velocity in px/s 
+        total_travel: float               # Total distance covered by the mouse
+        tot_time_in_shelter: float        # Number of seconds spent in the shelter
+        tot_time_on_threat: float         # Number of seconds spent on threat platf
+        duration: float                   # Total duration of the exploration in seconds
+        median_vel: float                  # median velocity in px/s 
         session_number_trials: int      # Number of trials in the session following the expl
     """
 

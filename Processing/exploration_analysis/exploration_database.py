@@ -18,33 +18,6 @@ from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 from database.database_fetch import *
 
 
-"""
-    This script should collect all explorations from all sessions into a single database table
-
-    An exploration is defined as the time between 60s after the first recording,
-    starts to just before the first stimulus.
-
-    In addition to the tracking data, in the table we should record:
-        - How much did the mouse travel during exploration
-        - How long did the exploration last
-        - How much time the mouse spend on the shelter platform
-
-    definition = 
-        exploration_id: int
-        ---
-        recording_uid: varchar(128)
-        experiment_name: varchar(128)
-        tracking_data: longblob
-        total_travel: int               # Total distance covered by the mouse
-        tot_time_in_shelter: int        # Number of seconds spent in the shelter
-        duration: int                   # Total duration of the exploration in seconds
-        median_vel: in                  # median velocity in px/s during exploration
-    
-
-""" 
-
-
-
 class AllExplorationsPopulate:
     def __init__(self, erase_table=False, fill_in_table=False):
         if erase_table:
@@ -56,14 +29,77 @@ class AllExplorationsPopulate:
             self.cutoff = 120  # ! Number of seconds to skip at the beginning of the first recording
             print('Fetching data...')
 
+            self.table = AllExplorations()
+
             self.populate()
     
     def populate(self):
-        
+        sessions, session_names, experiments = (Sessions).fetch("uid","session_name", "experiment_name")
+        sessions_in_table = [int(s) for s in (AllExplorations).fetch("session_uid")]
+
+        for n, (uid, sess_name, exp) in enumerate(sorted(zip(sessions, session_names, experiments))):
+            print(' Processing session {} of {} - {}'.format(n, len(sessions), sess_name))
+
+            if uid in sessions_in_table: continue
+
+            # Get the first stim of the session
+            session_stims = get_stimuli_given_sessuid(uid, as_dict=True)
+            if session_stims is None:
+                print('No stimuli found for session')
+                continue
+            else:
+                first_stim = session_stims[0]
+
+            # Get the start of the frame
+            if 'stim_start' in first_stim.keys():
+                start = first_stim['stim_start']
+            else:
+                start = first_stim['overview_frame']
+
+            # Get the names of all the recordings in the session
+            recordings = get_recordings_given_sessuid(uid)
+            recs = [r['recording_uid'] for r in recordings]
 
 
+            # Get in which recording the first stimulus happened
+            first_stim_rec = recs.index(first_stim['recording_uid'])
+
+            # Get the tracking datas
+            tracking_data = {r:get_tracking_given_recuid(r, bp='body') for i, r in enumerate(recs) if i <= first_stim_rec}
+
+            # Crop the last tracking data to the stimulus frame
+            tracking_data[first_stim['recording_uid']] = tracking_data[first_stim['recording_uid']][:start, :]
+
+            # Get the tracking data as an array
+            tracking_data_array = np.vstack(tracking_data.values())
+
+            # Remove the first n seconds
+            fps = get_videometadata_given_recuid(first_stim['recording_uid'])[0]
+            cutoff = self.cutoff * fps
+            tracking_data_array =tracking_data_array[cutoff:, :]
+
+            # Get more data from the tracking
+            median_velocity, time_in_shelt, time_on_t, distance_covered, duration = self.calculations_on_tracking_data(tracking_data_array)
 
 
+            # Get dict to insert in table
+            expl_id = pd.DataFrame(AllExplorations.fetch()).shape[0] = 1
+
+            key = dict(
+            exploration_id = expl_id,
+            session_uid= uid,
+            experiment_name= exp,
+            tracking_data = tracking_data_array,
+            total_travel = distance_covered,
+            tot_time_in_shelter = time_in_shelt, 
+            tot_time_on_threat = time_on_t,
+            duration = duration, 
+            median_vel = median_velocity,            
+            session_number_trials = len(session_stims)  
+            )
+
+            self.table.insert1(key)
+            
 
     def calculations_on_tracking_data(self, data, fps):
         """[Given the tracking data for an exploration, calc median velocity, distance covered and time in shetler]
@@ -76,26 +112,19 @@ class AllExplorationsPopulate:
         median_velocity = np.nanmedian(data[:, 2])*fps
 
         # Calc time in shelter
-        time_in_shelt = int(round(np.where(data[:, -1]==0)[0].shape[0]/fps))
+        time_in_shelt = np.where(data[:, -1]==0)[0].shape[0]/fps
 
         # Calc time on T
-        time_on_t = int(round(np.where(data[:, -1]==1)[0].shape[0]/fps))
+        time_on_t =np.where(data[:, -1]==1)[0].shape[0]/fps
 
         # Calc total distance covered
-        distance_covered = int(round(np.sum(data[:, 2])))
+        distance_covered = np.sum(data[:, 2])
 
         # Calc duration in seconds
-        duration = int(round(data.shape[0]/fps))
+        duration = data.shape[0]/fps
 
         return median_velocity, time_in_shelt, time_on_t, distance_covered, duration
 
-
-
-
-
-
-
-                        
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ from database.NewTablesDefinitions import *
 from database.database_fetch import *
 
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame, get_arm_given_rois, convert_roi_id_to_tag
-from Processing.tracking_stats.math_utils import get_roi_enters_exits, line_smoother, calc_distance_between_points_2d
+from Processing.tracking_stats.math_utils import get_roi_enters_exits, line_smoother, calc_distance_between_points_2d, remove_tracking_errors
 
 class analyse_all_trals:
     """ 
@@ -76,7 +76,7 @@ class analyse_all_trals:
             number_of_stimuli = len(session_stims)
 
             # Def get the tracking for each recording
-            bps = ['body', 'snout']
+            bps = ['body', 'snout', 'left_ear', 'right_ear', 'neck', 'tail_base']
             recordings = set([s['recording_uid'] for s in session_stims])
             recs_trackins = {}
             try:
@@ -89,7 +89,7 @@ class analyse_all_trals:
 
 
             for stim_n, stim in enumerate(session_stims):
-                print(' ... stim {} of {}'.format(stim_n, number_of_stimuli))
+                print(' ... stim {} of {}'.format(stim_n+1, number_of_stimuli))
 
                 # Get the tracking data for the stimulus recordings
                 
@@ -111,7 +111,7 @@ class analyse_all_trals:
                     stim_duration = stim['duration']
 
                 if start == -1 or stim_duration == .1:
-                    continue  # ? placeholder stim entry
+                    continue  # ? placeholder stim entry%R
 
                 # Get either the frame at which the next stim starts of the recording ends
                 if stim_n < number_of_stimuli-1:
@@ -134,12 +134,14 @@ class analyse_all_trals:
                     stop = start + 30*fps
 
                 # Okay get the tracking data between provisory start and stop
-                trial_tracking = {bp:tr[start:stop, :] for bp,tr in rec_tracking.items()}
+                trial_tracking = {bp:remove_tracking_errors(tr[start:stop, :]) for bp,tr in rec_tracking.items()}
 
                 # Now get shelter enters-exits from that tracking
                 shelter_enters, shelter_exits = get_roi_enters_exits(trial_tracking['body'][:, -1], 0)
 
+                check_got_at_shelt = False
                 if np.any(shelter_enters): # if we have an enter, crop the tracking accordingly
+                    check_got_at_shelt = True
                     shelter_enter = shelter_enters[0]
                     trial_tracking = {bp:tr[:shelter_enter, :] for bp,tr in trial_tracking.items()}
 
@@ -171,7 +173,7 @@ class analyse_all_trals:
                 # Check if the trial can be considered an escape
                 if escape_arm is not None:
                     trial_duration = trial_tracking['body'].shape[0]/fps
-                    if trial_duration <= self.duration_lims[escape_arm]:
+                    if trial_duration <= self.duration_lims[escape_arm] and check_got_at_shelt:
                         is_escape = 'true'
                     else:
                         is_escape = 'false'
@@ -182,8 +184,9 @@ class analyse_all_trals:
                 # Create multidimensionsal np.array for tracking data
                 useful_dims = [0, 1, 2, -1]
                 insert_tracking = np.zeros((trial_tracking['body'].shape[0], len(useful_dims), len(trial_tracking.keys())))
-                insert_tracking[:, :, 0] = trial_tracking['body'][:, useful_dims]
-                insert_tracking[:, :, 1] = trial_tracking['snout'][:, useful_dims]
+                
+                for i, bp in enumerate(bps):
+                    insert_tracking[:, :, i] = trial_tracking[bp][:, useful_dims]
 
                 if escape_arm is None:
                     escape_arm = 'nan'

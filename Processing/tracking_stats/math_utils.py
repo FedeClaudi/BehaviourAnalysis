@@ -1,13 +1,40 @@
 import sys
 sys.path.append('./')
 import numpy as np
-from scipy import misc
+from scipy import misc, signal
 import pandas as pd
 from scipy.spatial import distance
 from math import factorial, atan2, degrees, acos, sqrt, pi
 import math
 import matplotlib.pyplot as plt
 from Utilities.file_io.files_load_save import load_yaml
+
+
+def remove_tracking_errors(tracking, debug = False):
+    """
+        Get timepoints in which the velocity of a bp tracking is too high and remove them
+    """
+    filtered = np.zeros(tracking.shape)
+    for i in np.arange(tracking.shape[1]):
+        temp = tracking[:, i].copy()
+        if i <2:
+            temp[temp < 10] = np.nan
+        filtered[:, i] = signal.medfilt(temp, kernel_size  = 5)
+
+        if debug:
+            plt.figure()
+            plt.plot(tracking[:, i], color='k', linewidth=2)
+            plt.plot(temp, color='g', linewidth=1)
+            plt.plot(filtered[:, i], 'o', color='r')
+            plt.show()
+
+    return filtered
+
+
+# plt.figure()
+# plt.plot(tr[:, 1, 1])
+# plt.plot(remove_tracking_errors(tr[:, :, 1])[:, 1])
+# plt.show()
 
 
 def get_roi_enters_exits(roi_tracking, roi_id):
