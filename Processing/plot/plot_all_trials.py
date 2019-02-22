@@ -39,6 +39,8 @@ class PlotAllTrials:
         for uid in sessions:
             experiments, trials = (AllTrials & "session_uid='{}'".format(uid) & "is_escape='{}'".format(self.escapes)).fetch('experiment_name', 'tracking_data')
 
+            if not np.any(experiments): continue
+
             if not as_video:
                 self.plot_trials(trials, experiments[0], uid)
             else:
@@ -157,7 +159,7 @@ class PlotAllTrials:
             savename = exp
 
         complete_name = os.path.join(self.save_fld, savename+'.mp4')
-        if os.path.isfile(complete_name): continue
+        if os.path.isfile(complete_name): return
 
         maze_model = get_maze_template(exp=exp)
 
