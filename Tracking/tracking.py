@@ -100,16 +100,16 @@ class SetUpTracking:
                 if not cap.isOpened(): raise ValueError
             except: 
                 cap = cv2.VideoCapture(complete_path)
-                if not cap.isOpened(): raise ValueError('Original video file might be corrupted', complete_path)
-                else: raise ValueError('Smth went wrong with moving video', move_video_path)
+                if not cap.isOpened(): continue #  raise ValueError('Original video file might be corrupted', complete_path)
+                else: continue # raise ValueError('Smth went wrong with moving video', move_video_path)
 
             # Run DLC analysis
             analyze_videos(config_path, [move_video_path], gputouse=0, save_as_csv=False)
             
             # Rename and move .h5 and .pickle
             analysis_output = [f for f in os.listdir('M:\\') if '.pickle' in f or '.h5' in f]
-            if len(analysis_output) != 2:
-                raise FileNotFoundError('Incorrect number of files after analysis: ', len(analysis_output), analysis_output)
+            # if len(analysis_output) != 2:
+            #     raise FileNotFoundError('Incorrect number of files after analysis: ', len(analysis_output), analysis_output)
 
             for f in analysis_output:
                 origin = os.path.join('M:\\', f)
@@ -119,7 +119,8 @@ class SetUpTracking:
                 try:
                     shutil.move(origin, dest)
                 except:
-                    raise FileExistsError('Could not move pose file from {} to {}'.format(origin, dest))
+                    pass
+                    # raise FileExistsError('Could not move pose file from {} to {}'.format(origin, dest))
 
             # Remove video file moved to local harddrive
             # os.remove(move_video_path)
