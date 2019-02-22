@@ -389,6 +389,9 @@ class AllTrials(dj.Manual):
         stim_type: enum('audio', 'visual')
         stim_duration: int
 
+        number_of_trials: int
+        trial_number: int
+
         is_escape: enum('true', 'false')
         escape_arm: enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'Right2', 'Left2', 'nan') 
         origin_arm:  enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'Right2', 'Left2', 'nan')         

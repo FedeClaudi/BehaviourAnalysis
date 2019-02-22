@@ -207,6 +207,8 @@ class analyse_all_trals:
                     origin_arm = origin_arm,
                     time_out_of_t=time_to_exit,
                     fps = fps
+                    number_of_trials = number_of_stimuli
+                    trial_number = stim_n
                 )
 
                 session_trials.append(key)

@@ -2,6 +2,7 @@ import sys
 sys.path.append('./')
 from database.NewTablesDefinitions import *
 import cv2
+import os
 
 
 """Bunch of functions to facilitate retrieving filtered data from the database tables
@@ -83,7 +84,6 @@ def get_sessuid_given_sessname(name):
 def get_sessname_given_sessuid(uid):
     return (Sessions & "uid = '{}'".format(uid)).fetch('session_name')
 
-
 def get_videometadata_given_recuid(rec, just_fps=True):
     if not just_fps:
         return (VideoFiles.Metadata & "recording_uid='{}'".format(rec)).fetch()
@@ -93,7 +93,13 @@ def get_videometadata_given_recuid(rec, just_fps=True):
 def get_exp_given_sessname(name):
     return (Sessions & "session_name='{}'".format(name)).fetch("experiment_name")
 
+def get_video_path_give_recuid(recuid):
+    paths = (VideoFiles & "recording_uid='{}'".format(recuid)).fetch(as_dict="True")
 
+    if os.path.isfile(paths['converted_filepath']):
+        return paths['converted_filepath']
+    else:
+        return paths['video_filepath']
 
 
 
