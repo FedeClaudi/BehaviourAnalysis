@@ -78,7 +78,7 @@ class DLCManager:
         training_videos = self.sel_videos_in_folder()
         print('Creating project with {} videos'.format(len(training_videos)))
 
-        config_path = deeplabcut.create_new_project(self.settings['experiment'], self.settings['experimenter'], 
+        deeplabcut.create_new_project(self.settings['experiment'], self.settings['experimenter'], 
                                         training_videos, working_directory=self.dlc_paths['project_path'], copy_videos=True)
 
         print(config_path)
@@ -207,6 +207,5 @@ if __name__ == "__main__":
 
     vids = manager.sel_videos_in_folder(all=False, min_n=5, dr=fld)
 
-    manager.label_frames()
-
+    manager.evaluate_network()
 

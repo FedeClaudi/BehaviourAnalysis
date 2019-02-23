@@ -96,6 +96,12 @@ def get_exp_given_sessname(name):
 def get_video_path_give_recuid(recuid):
     paths = (VideoFiles & "recording_uid='{}'".format(recuid)).fetch(as_dict="True")
 
+    if len(paths) > 1:
+        paths = [p for p in paths if p['camera_name']=='overview']
+        paths = paths[0]
+    else:
+        paths = paths[0]
+
     if os.path.isfile(paths['converted_filepath']):
         return paths['converted_filepath']
     else:
@@ -121,8 +127,10 @@ def get_maze_template(exp=None):
             maze_model = cv2.imread('Utilities\\Maze_templates\\FlipFlop Maze.png')
         elif 'twoarmslong' in exp:
             maze_model = cv2.imread('Utilities\\Maze_templates\\TwoArmsLong Maze.png')
+            maze_model = np.array(maze_model[:, ::-1])
         elif 'fourarms' in exp:
             maze_model = cv2.imread('Utilities\\Maze_templates\\FourArms Maze.png')
+            maze_model = np.array(maze_model[:, ::-1])
         else:
             maze_model = cv2.imread('Utilities\\Maze_templates\\mazemodel.png')
         

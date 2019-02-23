@@ -5,7 +5,7 @@
 paths-windows: 
   dr: Z:\branco\Federico\raw_behaviour\maze\_overview_training_clips
   project_path: D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets
-  cfg_path: D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets\maze_mantis-Federico-2019-02-04\config.yaml
+  cfg_path: D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets\maze_joined-Federico-2019-02-22\config.yaml
   # dr: D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Egzona
   # project_path: D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets
   # cfg_path: D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets\forceplate-Egzona-2019-01-14\config.yaml
@@ -15,7 +15,7 @@ paths-mac:
   project_path: 'Users/federicoclaudi/Desktop'
 
 # DLC project NAME
-experiment: 'maze_mantis'
+experiment: 'maze_joined'
 experimenter: 'Federico'
 
 # DLC select videos options

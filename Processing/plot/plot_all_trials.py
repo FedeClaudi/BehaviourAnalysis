@@ -37,10 +37,10 @@ class PlotAllTrials:
         sessions = set(AllTrials.fetch('session_uid'))
 
         for uid in sessions:
-            things_to_fetch = ['experiment_name', 'tracking_data', 'fps',
-                               'number_of_trials', 'trial_number', 'recording_uid', stim_frame]
+            things_to_fetch = ['experiment_name', 'tracking_data', 'fps', 'number_of_trials', 'trial_number', 'recording_uid', 'stim_frame']
             experiments, trials, fps, number_of_trials, trial_number, rec_uid, stim_frames = \
-                (AllTrials & "session_uid='{}'".format(uid) & "is_escape='{}'".format(self.escapes)).fetch(things_to_fetch)
+                (AllTrials & "session_uid='{}'".format(uid) & "is_escape='{}'".format(self.escapes))\
+                            .fetch('experiment_name', 'tracking_data', 'fps','number_of_trials', 'trial_number', 'recording_uid', 'stim_frame')
 
             if not np.any(experiments): continue
 
@@ -48,6 +48,197 @@ class PlotAllTrials:
                 self.plot_trials(trials, experiments[0], uid)
             else:
                 self.plot_as_video(trials, experiments[0], fps[0], rec_uid, stim_frames, uid, number_of_trials[0], trial_number)
+
+
+    def plot_by_feature(self, feature):
+        # Get notes and sort them
+        features = load_yaml('Processing\\trials_analysis\\trials_observations.yml')[feature]
+        uids = np.array([u for u, n in features])
+        trials_n = np.array([n for u,n in features])
+
+        experiments, trials, fps, number_of_trials, trial_number, rec_uid, stim_frames = [],[],[],[],[],[],[],
+        for uid, n in zip(uids, trials_n):
+            exp, tr, fp, numtr, trnum, r, sfr = (AllTrials & "session_uid='{}'".format(uid) & "trial_number={}".format(n))\
+                            .fetch('experiment_name', 'tracking_data', 'fps', 'number_of_trials', 'trial_number', 'recording_uid', 'stim_frame')
+
+            if not np.any(exp): continue
+
+            experiments.append(exp[0])
+            trials.append(tr[0])
+            fps.append(fp[0])
+            number_of_trials.append(numtr[0])
+            trial_number.append(trnum[0])
+            rec_uid.append(r[0])
+            stim_frames.append(sfr[0])
+
+        self.plot_as_video(trials, experiments, 35, rec_uid, stim_frames, uid, number_of_trials, trial_number, savename=feature)
+
+    def plot_as_video(self, trials, exp,  fps, rec_uids, stim_frames, label0=None, number_of_trials = None, trial_number=None, savename=None):
+        def draw_contours(fr, cont, c1, c2):
+            if c2 is not None:
+                cv2.drawContours(fr, cont, -1, c2, 4)
+            cv2.drawContours(fr, cont, -1, c1, -1)    
+
+        # Get name of file to be saved and check if it excists already
+        if savename is None:
+            if label0 is not None:
+                savename = str(label0) + '-' + exp
+            else:
+                savename = exp
+        
+        complete_name = os.path.join(self.save_fld, savename+'.mp4')
+        if os.path.isfile(complete_name): return
+
+        # Get maze model, idxs of bodypats for contours, location of cropping for threat pltform...
+        if not isinstance(exp, list):
+            maze_model = get_maze_template(exp=exp)
+        else:
+            maze_model = get_maze_template()
+
+        bps = ['body', 'snout', 'left_ear', 'right_ear', 'neck', 'tail_base']
+        body_idxs = [2, 1, 3, 5]
+        head_idxs = [2, 1, 3, 0]
+        threat_cropping = ((570, 800), (400, 600))
+
+        # open openCV writer
+        video_editor = Editor()
+        writer = video_editor.open_cvwriter(complete_name,
+                                            w = maze_model.shape[0]*2, h=maze_model.shape[1],
+                                            framerate = fps, iscolor=True) 
+
+        # loop over each trial
+        stored_contours = []
+        for n, (tr, trial_number, rec_uid, stim_frame) in enumerate(zip(trials, trial_number, rec_uids, stim_frames)):
+            # shift all tracking Y up by 10px to align better
+            trc = tr.copy()
+            trc[:, 1, :] = np.add(trc[:, 1, :], 10)
+            tr = trc
+
+            # cv2.namedWindow('frame',cv2.WINDOW_AUTOSIZE )
+            tot_frames = tr.shape[0]
+
+            # get tracking data for the different contours to draw
+            selected_tracking = tr[:, :, body_idxs]
+            head_tracking = tr[:, :, head_idxs]
+            body_ellipse = tr[:, :, [0, 5]]
+
+            # If we have trials from different experiments, fetch the correct maze model
+            if isinstance(exp, list):
+                maze_model=get_maze_template(exp=exp[n])
+
+            # Make trial background [based on previous trials]            
+            if n == 0:
+                trial_background = maze_model.copy()
+            else:
+                trial_background = maze_model.copy()
+                if stored_contours:
+
+                    for past_trial in stored_contours:
+                        mask = np.uint8(np.ones(trial_background.shape) * 0)
+                        draw_contours(mask, past_trial,  (255, 255, 255), None)
+                        mask = mask.astype(bool)
+                        trial_background[mask] = trial_background[mask] * .8
+
+            # open recorded video and move to stim start frame
+            videopath = get_video_path_give_recuid(rec_uid)
+            cap = cv2.VideoCapture(videopath)
+            if not cap.isOpened():
+                raise FileNotFoundError
+            else:
+                cap.set(1, stim_frame)
+
+            trial_stored_contours = []
+
+            prev_frame_bl = 0
+            for frame in np.arange(tot_frames): # loop over each frame and draw
+                background = trial_background.copy()
+
+                # Get body ellipse
+                try:
+                    centre = (int(np.mean([body_ellipse[frame, 0, 0], body_ellipse[frame, 0, 1]])),
+                                int(np.mean([body_ellipse[frame, 1, 0], body_ellipse[frame, 1, 1]])))
+                except:
+                    continue
+
+                main_axis = int(calc_distance_between_points_2d(body_ellipse[frame, :2, 0], body_ellipse[frame, :2, 1]))
+                if main_axis > 100: main_axis = 10
+                elif main_axis < 15: main_axis = 15
+                if prev_frame_bl:
+                    if abs(prev_frame_bl - main_axis) > prev_frame_bl*3:
+                        main_axis = prev_frame_bl
+                    
+                prev_frame_bl = main_axis
+                
+                min_axis = int(main_axis*.3)
+                angle = angle_between_points_2d_clockwise(body_ellipse[frame, :2, 0], body_ellipse[frame, :2, 1])
+                cv2.ellipse(background, centre, (min_axis,main_axis), angle-90, 0, 360, (0, 255, 0), -1)
+                cv2.ellipse(background, centre, (min_axis,main_axis), angle-90, 0, 360, (50, 50, 50), 2)
+
+                # Draw current trial head contours
+                coords = selected_tracking[frame, :2, :].T.astype(np.int32)
+                head = head_tracking[frame, :2, :].T.astype(np.int32)
+                draw_contours(background, [head],  (0, 0, 255), (50, 50, 50))
+
+                # flip frame Y
+                background = np.array(background[::-1, :, :])
+
+                # Title
+                if isinstance(number_of_trials, list):
+                    n_of_t = number_of_trials[n]
+                else:
+                    n_of_t = number_of_trials
+
+                if isinstance(exp, list):
+                    ttl = savename + ' - ' + exp[n]
+                else:
+                    ttl = savename
+                cv2.putText(background, ttl + '- trial ' + str(trial_number) + ' of ' + str(n_of_t),
+                            (int(maze_model.shape[1]/10), int(maze_model.shape[1]/10)), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 1,
+                            (255, 255, 255), 2, cv2.LINE_AA)
+
+                # Time elapsed
+                elapsed = frame / fps
+                cv2.putText(background, str(round(elapsed, 2)),
+                            (int(maze_model.shape[0]*.75), int(maze_model.shape[1]*.9)), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 2, 
+                            (255, 255, 255), 2,cv2.LINE_AA)
+
+                # threat frame
+                threat = background[threat_cropping[0][0]:threat_cropping[0][1],
+                                    threat_cropping[1][0]:threat_cropping[1][1]]
+                threat = cv2.resize(threat, (background.shape[1], background.shape[0]))
+
+                # video frame
+                ret, videoframe = cap.read()
+                if not ret:
+                    raise ValueError
+
+                wh_ratio = videoframe.shape[0] / videoframe.shape[1] 
+                height = 350
+                width = int(250*wh_ratio)
+
+                videoframe = cv2.resize(videoframe, (height, width))
+
+                # Create the whole frame
+                shape = background.shape
+                whole_frame = np.zeros((shape[0], shape[1]*2, shape[2])).astype(np.uint8)
+                whole_frame[:, :shape[0],:] = background
+                whole_frame[:, shape[0]:,:] = threat
+                whole_frame[shape[0]-width:, :height, :] = videoframe
+
+                # Show and write
+                # cv2.imshow("frame", whole_frame)
+                # cv2.waitKey(1)
+                writer.write(whole_frame)
+
+                # Store contours points of this trials to use them as background for next
+                trial_stored_contours.append(coords)
+
+            stored_contours.append(trial_stored_contours)
+        
+        writer.release()
+
 
 
 
@@ -147,141 +338,6 @@ class PlotAllTrials:
         else:
             plt.show()
 
-    def plot_as_video(self, trials, exp,  fps, rec_uids, stim_frames, label0=None, number_of_trials = None, trial_number=None):
-        def draw_contours(fr, cont, c1, c2):
-            if c2 is not None:
-                cv2.drawContours(fr, cont, -1, c2, 4)
-            cv2.drawContours(fr, cont, -1, c1, -1)    
-
-        # Get name of file to be saved and check if it excists already
-        if label0 is not None:
-            savename = str(label0) + '-' + exp
-        else:
-            savename = exp
-        complete_name = os.path.join(self.save_fld, savename+'.mp4')
-        if os.path.isfile(complete_name): return
-
-        # Get maze model, idxs of bodypats for contours, location of cropping for threat pltform...
-        maze_model = get_maze_template(exp=exp)
-        bps = ['body', 'snout', 'left_ear', 'right_ear', 'neck', 'tail_base']
-        body_idxs = [2, 1, 3, 5]
-        head_idxs = [2, 1, 3, 0]
-        threat_cropping = ((570, 800), (400, 600))
-
-        # open openCV writer
-        video_editor = Editor()
-        writer = video_editor.open_cvwriter(complete_name,
-                                            w = maze_model.shape[0]*2, h=maze_model.shape[1],
-                                            framerate = fps, iscolor=True) 
-
-        # loop over each trial
-        stored_contours = []
-        for n, (tr, trial_number, rec_uid, stim_frame) in enumerate(zip(trials, trial_number, rec_uids, stim_frames)):
-            cv2.namedWindow('frame',cv2.WINDOW_AUTOSIZE )
-            tot_frames = tr.shape[0]
-
-            # get tracking data for the different contours to draw
-            selected_tracking = tr[:, :, body_idxs]
-            head_tracking = tr[:, :, head_idxs]
-            body_ellipse = tr[:, :, [0, 5]]
-
-            # Make trial background [based on previous trials]            
-            if n == 0:
-                trial_background = maze_model.copy()
-            else:
-                trial_background = maze_model.copy()
-                if stored_contours:
-
-                    for past_trial in stored_contours:
-                        mask = np.uint8(np.ones(trial_background.shape) * 0)
-                        draw_contours(mask, past_trial,  (255, 255, 255), None)
-                        mask = mask.astype(bool)
-                        trial_background[mask] = trial_background[mask] * .8
-
-            # open recorded video and move to stim start frame
-            videopath = get_video_path_give_recuid(rec_uid)
-            cap = cv2.VideoCapture(videopath)
-            if not cap.isOpened():
-                raise FileNotFoundError
-            else:
-                cap.set(1, stim_frame)
-
-            trial_stored_contours = []
-            for frame in np.arange(tot_frames): # loop over each frame and draw
-                background = trial_background.copy()
-
-                # Get body ellipse
-                centre = (int(np.mean([body_ellipse[frame, 0, 0], body_ellipse[frame, 0, 1]])),
-                            int(np.mean([body_ellipse[frame, 1, 0], body_ellipse[frame, 1, 1]])))
-
-                main_axis = int(calc_distance_between_points_2d(body_ellipse[frame, :2, 0], body_ellipse[frame, :2, 1]))
-                min_axis = int(main_axis*.3)
-                angle = angle_between_points_2d_clockwise(body_ellipse[frame, :2, 0], body_ellipse[frame, :2, 1])
-                cv2.ellipse(background, centre, (min_axis,main_axis), angle-90, 0, 360, (0, 255, 0), -1)
-                cv2.ellipse(background, centre, (min_axis,main_axis), angle-90, 0, 360, (50, 50, 50), 2)
-
-                # Draw current trial head contours
-                coords = selected_tracking[frame, :2, :].T.astype(np.int32)
-                head = head_tracking[frame, :2, :].T.astype(np.int32)
-                draw_contours(background, [head],  (0, 0, 255), (50, 50, 50))
-
-                # flip frame Y
-                background = background[::-1, :, :]
-
-                # Title
-                cv2.putText(background, savename + '- trial ' + trial_number + ' of ', str(number_of_trials),
-                            (50, int(maze_model.shape[1]/10)), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 1.2,
-                            (255, 255, 255), 2,cv2.LINE_AA)
-
-                # Time elapsed
-                elapsed = frame / fps
-                cv2.putText(background, str(round(elapsed, 2)),
-                            (int(maze_model.shape[0]*.75), int(maze_model.shape[1]*.9)), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 2,
-                            (255, 255, 255), 2,cv2.LINE_AA)
-
-                # threat frame
-                threat = background[threat_cropping[0][0]:threat_cropping[0][1],
-                                    threat_cropping[1][0]:threat_cropping[1][1]]
-                threat = cv2.resize(threat, (background.shape[1], background.shape[0]))
-
-                # video frame
-                ret, videoframe = cap.read()
-                if not ret:
-                    raise ValueError
-
-                wh_ratio = videoframe.shape[1] / videoframe.shape[0] 
-                height = 250
-                width = 250*wh_ratio
-
-                videoframe = cv2.resize(videoframe, (height, width))
-                videoframe = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
-
-                # Create the whole frame
-                shape = background.shape
-                whole_frame = np.zeros((shape[0], shape[1]*2, shape[2])).astype(np.uint8)
-                whole_frame[:, :shape[0],:] = background
-                whole_frame[:, shape[0]:,:] = threat
-                whole_frame[shape[0]-height:, :width, :] = videoframe
-
-                # Show and write
-                cv2.imshow("frame", whole_frame)
-                cv2.waitKey(1)
-                writer.write(whole_frame)
-
-                # Store contours points of this trials to use them as background for next
-                trial_stored_contours.append(coords)
-
-            stored_contours.append(trial_stored_contours)
-        
-        writer.release()
-
-
-
-
-        
-
 
 
     def visualise_plots(self):
@@ -318,6 +374,11 @@ if __name__ == "__main__":
     plotter = PlotAllTrials(select_escapes=True)
     # plotter.plot_by_exp()
     plotter.plot_by_session(as_video=True)
+
+    features_keys = load_yaml('Processing\\trials_analysis\\trials_observations.yml').keys()
+    for feature in features_keys:
+        plotter.plot_by_feature(feature)
+
     # plotter.visualise_plots()
 
     
