@@ -52,7 +52,6 @@ class PlotAllTrials:
             else:
                 self.plot_as_video(trials, experiments[0], fps[0], rec_uid, stim_frames, uid, number_of_trials[0], trial_number)
 
-
     def plot_by_feature(self, feature):
         # Get notes and sort them
         features = load_yaml('Processing\\trials_analysis\\trials_observations.yml')[feature]
@@ -76,7 +75,57 @@ class PlotAllTrials:
 
         self.plot_as_video(trials, experiments, 35, rec_uid, stim_frames, uid, number_of_trials, trial_number, savename=feature)
 
-    def plot_as_video(self, trials, exp,  fps, rec_uids, stim_frames, label0=None, number_of_trials = None, trial_number=None, savename=None):
+
+                    background = trial_background.copy()
+
+                    # Get body ellipse
+                    try:
+                        centre = (int(np.mean([body_ellipse[frame, 0, 0], body_ellipse[frame, 0, 1]])),
+                                int(np.mean([body_ellipse[frame, 1, 0], body_ellipse[frame, 1, 1]])))
+                    except:
+                        continue
+
+                    main_axis = int(calc_distance_between_points_2d(
+                        body_ellipse[frame, :2, 0], body_ellipse[frame, :2, 1]))
+                    if main_axis > 100:
+                        main_axis = 10
+                    elif main_axis < 15:
+                        main_axis = 15
+                    if prev_frame_bl:
+                        if abs(prev_frame_bl - main_axis) > prev_frame_bl*3:
+                            main_axis = prev_frame_bl
+
+                    prev_frame_bl = main_axis
+
+                    min_axis = int(main_axis*.3)
+                    angle = angle_between_points_2d_clockwise(
+                        body_ellipse[frame, :2, 0], body_ellipse[frame, :2, 1])
+                    cv2.ellipse(background, centre, (min_axis, main_axis),
+                                angle-90, 0, 360, (0, 255, 0), -1)
+                    cv2.ellipse(background, centre, (min_axis, main_axis),
+                                angle-90, 0, 360, (50, 50, 50), 2)
+
+                    # Draw current trial head contours
+                    coords = selected_tracking[frame, :2, :].T.astype(np.int32)
+                    head = head_tracking[frame, :2, :].T.astype(np.int32)
+                    draw_contours(background, [head],  (0, 0, 255), (50, 50, 50))
+
+                    # flip frame Y
+                    background = np.array(background[::-1, :, :])
+
+                    # store frame
+                    video[:, :, :, frame] = background
+
+                
+
+
+
+                    
+
+
+
+
+        def plot_as_video(self, trials, exp,  fps, rec_uids, stim_frames, label0=None, number_of_trials = None, trial_number=None, savename=None):
         def draw_contours(fr, cont, c1, c2):
             if c2 is not None:
                 cv2.drawContours(fr, cont, -1, c2, 4)

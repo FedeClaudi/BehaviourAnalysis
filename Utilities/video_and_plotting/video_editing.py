@@ -723,6 +723,31 @@ class Editor:
                 except:
                         raise ValueError('Could not display frame ', show_frame)
 
+        def crop_video(self, videopath, x, y):
+            cap = cv2.VideoCapture(videopath)
+            nframes, width, height, fps = self.get_video_params(cap)
+
+            path, name = os.path.split(videopath)
+            name, ext = name.split(".")
+            savename = os.path.join(path, name +"_cropped.mp4")
+
+            writer = self.open_cvwriter(savename, w=width, h=height, framerate=fps, format='.mp4', iscolor=True)
+
+            while True:
+                ret, frame = cap.read()
+                if not ret: break
+
+                cropped = frame[:y, :x, :]
+                writer.writer(cropped)
+            writer.release()
+
+
+        
+
+
+
+
+
 if __name__ == '__main__':
     
     converter = VideoConverter(None, None)
