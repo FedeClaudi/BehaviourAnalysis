@@ -262,13 +262,6 @@ class VideoConverter:
 
 class Editor:
 
-
-    @staticmethod
-    def concatenate_clips(paths_tuple):
-        clips = [VideoFileClip(p) for p in paths_tuple]
-        concatenated = concatenate_videoclips(clips)
-        return concatenated
-
     @staticmethod
     def save_clip(clip, folder, name, format, fps):
         codecs = dict(avi='png', mp4='mpeg4')
@@ -723,26 +716,53 @@ class Editor:
                 except:
                         raise ValueError('Could not display frame ', show_frame)
 
-        def crop_video(self, videopath, x, y):
-            cap = cv2.VideoCapture(videopath)
+    def crop_video(self, videopath, x, y):
+        cap = cv2.VideoCapture(videopath)
+        nframes, width, height, fps = self.get_video_params(cap)
+
+        path, name = os.path.split(videopath)
+        name, ext = name.split(".")
+        savename = os.path.join(path, name +"_cropped.mp4")
+
+        writer = self.open_cvwriter(savename, w=x, h=y, framerate=fps, format='.mp4', iscolor=True)
+
+
+        while True:
+            ret, frame = cap.read()
+            if not ret: break
+
+            cropped = frame[:y, :x, :]
+
+            # cv2.imshow("frame", cropped)
+            # cv2.waitKey(1)
+
+            writer.write(cropped)
+        writer.release()
+
+    def concatenate_videos(self, videos):
+        """[takes a list of paths as argument]
+        """
+        tot_frames = 0
+        for video in videos:
+            cap = cv2.VideoCapture(video)
             nframes, width, height, fps = self.get_video_params(cap)
+            tot_frames += nframes
 
-            path, name = os.path.split(videopath)
-            name, ext = name.split(".")
-            savename = os.path.join(path, name +"_cropped.mp4")
+        path, name = os.path.split(video)
+        name, ext = name.split(".")
+        savename = os.path.join(path, name +"_concatenated.mp4")
 
-            writer = self.open_cvwriter(savename, w=width, h=height, framerate=fps, format='.mp4', iscolor=True)
+        writer = self.open_cvwriter(savename, w=width, h=height, framerate=fps, format='.mp4', iscolor=True)
 
+        for video in videos:
+            cap = cv2.VideoCapture(video)
             while True:
                 ret, frame = cap.read()
                 if not ret: break
 
-                cropped = frame[:y, :x, :]
-                writer.writer(cropped)
-            writer.release()
+                writer.write(frame)
+        writer.release()
 
-
-        
 
 
 
@@ -755,35 +775,18 @@ if __name__ == '__main__':
     print(converter, '\n\n', editor)
 
     ###############
-    videofld = 'Z:\\branco\Federico\\raw_behaviour\\maze\\video'
-    fld = 'Z:\\branco\Federico\\raw_behaviour\\maze\\_overview_training_clips'
-    dst_fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\_overview_training_clips\\clips'
+    videofld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\plots\\funny"
+    video1 = "Square Maze_cropped.mp4"
+    video2 = "asym.mp4"
+    video3 = "PathInt_cropped.mp4"
 
-    # for clip in os.listdir(fld):
-    #     print('Processing ', clip)
-    #     try:
-    #         editor.split_clip(os.path.join(fld, clip),  number_of_clips=10, dest_fld=dst_fld)
-    #     except:
-    #         pass
+    videos = [os.path.join(videofld, video3),
+            os.path.join(videofld, video2),
+            os.path.join(videofld, video1)]
+    savepath = os.path.join(videofld, "twoexp3.mp4")
 
-
-    # editor.concated_tdms_to_mp4_clips('Z:\\branco\Federico\\raw_behaviour\\maze\\video')
-
-    # editor.manual_video_inspect(os.path.join(videofld, '181205_CA3661_1Overview__joined.mp4'))
-
-    # fld = "Z:\\branco\\Federico\\raw_behaviour\\maze\\video"
-    # vid = '181211_CA3695_1Overview.mp4'
-    # editor.manual_video_inspect(os.path.join(fld, vid))
-
-
-    # fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze'
-    # videos = ['sym_maze_tostim.mp4', 'asym_maze_tostim.mp4']
-    # vv = [os.path.join(fld, v) for v in videos]
-    # save = os.path.join(fld, 'symasym_tostim.mp4')
-    # editor.tile_clips(vv, save)
-
-    # converter.tdmstovideo_converter()
-
+    # editor.crop_video(os.path.join(videofld, video3), 1000, 1000)
+    editor.tile_clips(videos, savepath)
 
 
 
