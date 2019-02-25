@@ -10,6 +10,15 @@ import matplotlib.pyplot as plt
 from Utilities.file_io.files_load_save import load_yaml
 
 
+def calc_IdPhi(phi):
+    dPhi = abs(np.diff(phi))
+    IdPhi = np.sum(dPhi) # /len(dPhi)
+    return IdPhi
+
+def calc_LogIdPhi(phi):
+    return math.log(calc_IdPhi(phi))
+
+
 def remove_tracking_errors(tracking, debug = False):
     """
         Get timepoints in which the velocity of a bp tracking is too high and remove them

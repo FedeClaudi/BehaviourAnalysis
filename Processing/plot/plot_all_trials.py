@@ -6,6 +6,8 @@ from matplotlib.patches import Polygon
 import matplotlib.image as mpimg
 import pandas as pd
 import os
+import seaborn as sns
+import math
 
 from database.NewTablesDefinitions import *
 from database.database_fetch import *
@@ -17,7 +19,7 @@ from Utilities.video_and_plotting.video_editing import Editor
 class PlotAllTrials:
     def __init__(self, select_escapes=True):
         self.trials = AllTrials()
-        self.save_fld = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\\plots\\funny'
+        self.save_fld = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\\plots\\all_trials'
 
         if select_escapes:
             self.escapes = 'true'
@@ -25,8 +27,14 @@ class PlotAllTrials:
             self.escapes = 'false'
 
         self.to_fetch = ['experiment_name', 'tracking_data', 'fps', 'number_of_trials', 'trial_number', 
-                        'recording_uid', 'stim_frame', 'escape_arm', 'origin_arm']
+                        'recording_uid', 'stim_frame', 'escape_arm', 'origin_arm','threat_exits']
 
+
+    """
+    #####################################################################################################################################################################################################################################################
+    #####################################################################################################################################################################################################################################################
+    #####################################################################################################################################################################################################################################################
+    """
 
     def plot_by_exp(self):
         experiments = set(AllTrials.fetch('experiment_name'))
@@ -45,14 +53,14 @@ class PlotAllTrials:
         sessions = set(AllTrials.fetch('session_uid'))
 
         for uid in sessions:
-            experiments, trials, fps, number_of_trials, trial_number, rec_uid, stim_frames, escapes, origins = \
+            experiments, trials, fps, number_of_trials, trial_number, rec_uid, stim_frames, escapes, origins, t_exits = \
                 (AllTrials & "session_uid='{}'".format(uid) & "is_escape='{}'".format(self.escapes))\
                             .fetch(*self.to_fetch)
 
             if not np.any(experiments): continue
 
 
-            self.plot_as_video(trials, experiments[0], fps[0], rec_uid, stim_frames, escapes, origins, \
+            self.plot_as_video(trials, experiments[0], fps[0], rec_uid, stim_frames, escapes, origins, t_exits, \
                                 uid, number_of_trials[0], trial_number,)
 
     def plot_by_feature(self, feature):
@@ -84,8 +92,72 @@ class PlotAllTrials:
         self.plot_as_video(trials, experiments, 35, rec_uid, stim_frames, escapes, origins, \
                             uid, number_of_trials, trial_number, savename=feature)
 
+    def plot_dPhi_by_exp(self):
 
-    def plot_as_video(self, trials, exp,  fps, rec_uids, stim_frames, escapes, origins, \
+        trials, exits, ids = (AllTrials &  "experiment_name='{}'".format("FlipFlop2 Maze") & "is_escape='{}'".format('true')).fetch("tracking_data", "threat_exits", "trial_id")
+
+        df = pd.DataFrame.from_dict(dict(id=ids, tracking=trials, exits=exits, ))
+
+        body_LogIdPhi, head_LogIdPhi, head_body_angle, body_xy_l = [], [], [], []
+        for idx, trial in df.iterrows():
+            if not np.any(trial['exits']): continue
+            if trial['tracking'][0, 1, 0] > 230: continue
+
+            tr = trial['tracking']
+            ex = trial['exits']
+            body_xy = tr[:ex[0], :2, 0]
+            snout_xy = tr[:ex[0], :2, 1]
+            tail_base_xy = tr[:ex[0], :2, 5]
+
+            try:
+                body_phi = calc_angle_between_vectors_of_points_2d(body_xy.T, tail_base_xy.T)
+                head_phi = calc_angle_between_vectors_of_points_2d(snout_xy.T, body_xy.T)
+            except:
+                continue
+            
+            body_LogIdPhi.append(calc_LogIdPhi(body_phi))
+            head_LogIdPhi.append(calc_LogIdPhi(head_phi))
+            head_body_angle.append(body_phi - head_phi)
+            body_xy_l.append(body_xy)
+            
+        df['body_LogIdPhi'] = body_LogIdPhi
+        df['head_LogIdPhi'] = head_LogIdPhi
+        df['head_body_angle'] = head_body_angle
+        df['body_xy'] = body_xy_l
+
+        f, axarr = plt.subplots(nrows=2, ncols=2)
+        axarr = axarr.flatten()
+
+        sns.distplot(df['body_LogIdPhi'], ax=axarr[0], label='body_LogIdPhi', kde=False)
+        sns.distplot(df['head_LogIdPhi'], ax=axarr[0], label='head_LogIdPhi', kde=False)
+        axarr[0].legend()
+
+        for v in df['head_body_angle'].values:
+            axarr[1].plot(v)
+
+        low_dpi = df.loc[df['body_LogIdPhi'] < 6]['body_xy'].values
+        high_dpi = df.loc[df['body_LogIdPhi'] > 6]['body_xy'].values
+
+        for tr in low_dpi:
+            axarr[2].scatter(tr[:, 0], tr[:, 1], alpha=.5)
+
+        for tr in high_dpi:
+            axarr[3].scatter(tr[:, 0], tr[:, 1], alpha=.5)
+
+
+        plt.show()
+
+
+
+    """
+    #####################################################################################################################################################################################################################################################
+    #####################################################################################################################################################################################################################################################
+    #####################################################################################################################################################################################################################################################
+    """
+
+
+
+    def plot_as_video(self, trials, exp,  fps, rec_uids, stim_frames, escapes, origins, threat_exits,\
                         label0=None, number_of_trials = None, trial_number=None, savename=None):
         def draw_contours(fr, cont, c1, c2):
             if c2 is not None:
@@ -121,7 +193,7 @@ class PlotAllTrials:
 
         # loop over each trial
         stored_contours = []
-        for n, (tr, trn, rec_uid, stim_frame, escs, ors) in enumerate(zip(trials, trial_number, rec_uids, stim_frames, escapes, origins)):
+        for n, (tr, trn, rec_uid, stim_frame, escs, ors, t_exit) in enumerate(zip(trials, trial_number, rec_uids, stim_frames, escapes, origins, threat_exits)):
             # shift all tracking Y up by 10px to align better
             trc = tr.copy()
             trc[:, 1, :] = np.add(trc[:, 1, :], 10)
@@ -159,6 +231,11 @@ class PlotAllTrials:
                 raise FileNotFoundError
             else:
                 cap.set(1, stim_frame)
+
+            # Compute body and head angles and IdPhi
+            body_angle = calc_angle_between_vectors_of_points_2d(tr[:, :2, -1].T, tr[:, :2, 0].T)
+            head_angle = calc_angle_between_vectors_of_points_2d(tr[:, :2, 0].T, tr[:, :2, 1].T)
+            IdPhi = calc_IdPhi(-body_angle[:t_exit[0]])
 
             trial_stored_contours = []
 
@@ -213,21 +290,33 @@ class PlotAllTrials:
                 # Time elapsed
                 elapsed = frame / fps
                 cv2.putText(background, str(round(elapsed, 2)),
-                            (int(maze_model.shape[0]*.75), int(maze_model.shape[1]*.9)), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 2, 
+                            (int(maze_model.shape[0]*.85), int(maze_model.shape[1]*.8)), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 1.6, 
                             (255, 255, 255), 2,cv2.LINE_AA)
 
                 # Escape and Origin Arms
-                escape, origin = escs[n], ors[n]
-                cv2.putText(background, 'origin arm: '+ origin,
-                            (int(maze_model.shape[0]*.1), int(maze_model.shape[1]*.8)), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 2, 
+                cv2.putText(background, 'origin arm: '+ ors,
+                            (int(maze_model.shape[0]*.1), int(maze_model.shape[1]*.15)), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, 
                             (255, 255, 255), 2,cv2.LINE_AA)
-                cv2.putText(background, 'escape arm: '+ escape,
-                            (int(maze_model.shape[0]*.1), int(maze_model.shape[1]*.9)), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 2, 
+                cv2.putText(background, 'escape arm: '+ escs,
+                            (int(maze_model.shape[0]*.1), int(maze_model.shape[1]*.2)), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, 
                             (255, 255, 255), 2,cv2.LINE_AA)
 
+
+                # IdPhi
+                cv2.putText(background, 'IdPhi: '+ str(round(IdPhi, 2)),
+                            (int(maze_model.shape[0]*.65), int(maze_model.shape[1]*.2)), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, 
+                            (255, 255, 255), 2,cv2.LINE_AA)
+
+                # Head and body angle
+                cc = (int(maze_model.shape[0]*.66), int(maze_model.shape[1]*.88))
+                cv2.circle(background, cc, 100, (255, 255, 255), 2)
+                cv2.ellipse(background, cc, (100, 5), -body_angle[frame], -45, 45, (0, 255, 0), -1)
+                cv2.ellipse(background, cc, (50, 10), -head_angle[frame], -45, 45, (0, 0, 255), -1)
+                cv2.ellipse(background, cc, (100, 2), -head_angle[frame] - (-body_angle[frame]) - 90, -45, 45, (255, 255, 255), -1)
 
                 # threat frame
                 threat = background[threat_cropping[0][0]:threat_cropping[0][1],
@@ -253,8 +342,8 @@ class PlotAllTrials:
                 whole_frame[shape[0]-width:, :height, :] = videoframe
 
                 # Show and write
-                # cv2.imshow("frame", whole_frame)
-                # cv2.waitKey(1)
+                cv2.imshow("frame", whole_frame)
+                cv2.waitKey(1)
                 writer.write(whole_frame)
 
                 # Store contours points of this trials to use them as background for next
@@ -362,41 +451,16 @@ class PlotAllTrials:
         else:
             plt.show()
 
-
-
-    def visualise_plots(self):
-        figs = [os.path.join(self.save_fld, f) for f in os.listdir(self.save_fld) if not "_threat" in f]
-        threat_figs = [os.path.join(self.save_fld, f) for f in os.listdir(self.save_fld) if "_threat" in f]
-
-        selected = 0
-        while True:
-            f, ax = plt.subplots(figsize=(12, 8))
-            f2, ax2 = plt.subplots(figsize=(8, 12))
-
-            ax.imshow(mpimg.imread(figs[selected]))
-            ax2.imshow(mpimg.imread(threat_figs[selected]))
-
-            f.tight_layout()
-            f2.tight_layout()
-
-            plt.show()
-
-            pn = input("prev next quit")
-            if pn == "p":
-                selected -= 1
-            elif pn == "n":
-                selected += 1
-            else:
-                break
-
-
-
-
+    """
+    #####################################################################################################################################################################################################################################################
+    #####################################################################################################################################################################################################################################################
+    #####################################################################################################################################################################################################################################################
+    """
 
 
 if __name__ == "__main__":
     plotter = PlotAllTrials(select_escapes=True)
-    plotter.plot_by_exp()
+    # plotter.plot_by_exp()
     # plotter.plot_by_session(as_video=True)
 
     # features_keys = load_yaml('Processing\\trials_analysis\\trials_observations.yml').keys()
@@ -405,7 +469,7 @@ if __name__ == "__main__":
 
     # plotter.visualise_plots()
 
-    
+    plotter.plot_dPhi_by_exp()
 
 
     plt.show()
