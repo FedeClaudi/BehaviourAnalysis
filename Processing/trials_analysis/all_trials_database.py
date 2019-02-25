@@ -145,13 +145,19 @@ class analyse_all_trals:
                     shelter_enter = shelter_enters[0]
                     trial_tracking = {bp:tr[:shelter_enter, :] for bp,tr in trial_tracking.items()}
 
-                # Get arm of escape
-                escape_rois = convert_roi_id_to_tag(trial_tracking['body'][:, -1])
-                if not  escape_rois: raise ValueError
-                escape_arm = get_arm_given_rois(escape_rois, 'in')
-
                 # Get threat enters and exits
                 threat_enters, threat_exits = get_roi_enters_exits(trial_tracking['body'][:, -1], 1)
+
+                # Get arm of escape
+                if not np.any(threat_exits):
+                    t = 0
+                else:
+                    t = threat_exits[-1]
+ 
+                escape_rois = convert_roi_id_to_tag(trial_tracking['body'][t:, -1]) # ? only look at arm taken since last departure from T
+
+                if not  escape_rois: raise ValueError
+                escape_arm = get_arm_given_rois(escape_rois, 'in')
 
                 if np.any(threat_exits):
                     time_to_exit = threat_exits[0]/fps
@@ -208,7 +214,8 @@ class analyse_all_trals:
                     time_out_of_t=time_to_exit,
                     fps = fps,
                     number_of_trials = number_of_stimuli,
-                    trial_number = stim_n
+                    trial_number = stim_n,
+                    threat_exits = threat_exits
                 )
 
                 session_trials.append(key)
@@ -231,15 +238,37 @@ class analyse_all_trals:
 
 
 
+def check_arm_assignment():
+    arms = ['Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'Right2', 'Left2']
+    f, axs = plt.subplots(4, 2)
+    axs = axs.flatten()
+
+    n_datapoints = 100
+
+    for arm, ax in zip(arms, axs):
+        trackings, threat_exits = (AllTrials & "escape_arm='{}'".format(arm)).fetch("tracking_data", "threat_exits")
+
+        for tr, ex in zip(trackings, threat_exits):
+            if not np.any(ex):
+                t = 0
+            else:
+                t = ex[-1]
+
+            xx = np.linspace(t, tr.shape[0]-1, n_datapoints).astype(np.int8)
+            ax.scatter(tr[xx, 0], tr[xx, 1], c=tr[xx, 2], alpha=.3)
+            ax.set(title=arm, xlim=[0, 1000], ylim=[0, 1000])
+            
+    plt.show()
+
+
 
 if __name__ == "__main__":
-    print(AllTrials)
     # a = analyse_all_trals(erase_table=True, fill_in_table=False)
 
     a = analyse_all_trals(erase_table=False, fill_in_table=True)
                 
 
-
+    check_arm_assignment()
 
 
 

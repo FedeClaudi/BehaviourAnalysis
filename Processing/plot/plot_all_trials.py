@@ -24,33 +24,36 @@ class PlotAllTrials:
         else:
             self.escapes = 'false'
 
+        self.to_fetch = ['experiment_name', 'tracking_data', 'fps', 'number_of_trials', 'trial_number', 
+                        'recording_uid', 'stim_frame', 'escape_arm', 'origin_arm']
+
 
     def plot_by_exp(self):
         experiments = set(AllTrials.fetch('experiment_name'))
 
         # Get all trials for each experiment, regardless of the mouse they belong to
         for exp in sorted(experiments):           
-            trials, fps, number_of_trials, trial_number, rec_uid, stim_frames = \
+            trials, fps, number_of_trials, trial_number, rec_uid, stim_frames, escapes, origins= \
                 (AllTrials & "experiment_name='{}'".format(exp) & "is_escape='{}'".format(self.escapes))\
-                            .fetch('tracking_data', 'fps','number_of_trials', 'trial_number', 'recording_uid', 'stim_frame')
+                            .fetch(self.to_fetch)
 
             if not np.any(fps): continue
-            self.plot_as_video(trials, exp, 250, rec_uid, stim_frames, None, number_of_trials, trial_number)
+            self.plot_as_video(trials, exp, fps[0], rec_uid, stim_frames, escapes, origins, \
+                        None, number_of_trials, trial_number)
 
     def plot_by_session(self, as_video=False):
         sessions = set(AllTrials.fetch('session_uid'))
 
         for uid in sessions:
-            experiments, trials, fps, number_of_trials, trial_number, rec_uid, stim_frames = \
+            experiments, trials, fps, number_of_trials, trial_number, rec_uid, stim_frames, escapes, origins = \
                 (AllTrials & "session_uid='{}'".format(uid) & "is_escape='{}'".format(self.escapes))\
-                            .fetch('experiment_name', 'tracking_data', 'fps','number_of_trials', 'trial_number', 'recording_uid', 'stim_frame')
+                            .fetch(*self.to_fetch)
 
             if not np.any(experiments): continue
 
-            if not as_video:
-                self.plot_trials(trials, experiments[0], uid)
-            else:
-                self.plot_as_video(trials, experiments[0], fps[0], rec_uid, stim_frames, uid, number_of_trials[0], trial_number)
+
+            self.plot_as_video(trials, experiments[0], fps[0], rec_uid, stim_frames, escapes, origins, \
+                                uid, number_of_trials[0], trial_number,)
 
     def plot_by_feature(self, feature):
         # Get notes and sort them
@@ -59,9 +62,12 @@ class PlotAllTrials:
         trials_n = np.array([n for u,n in features])
 
         experiments, trials, fps, number_of_trials, trial_number, rec_uid, stim_frames = [],[],[],[],[],[],[],
+        escapes, origins = [], []
         for uid, n in zip(uids, trials_n):
-            exp, tr, fp, numtr, trnum, r, sfr = (AllTrials & "session_uid='{}'".format(uid) & "trial_number={}".format(n))\
-                            .fetch('experiment_name', 'tracking_data', 'fps', 'number_of_trials', 'trial_number', 'recording_uid', 'stim_frame')
+
+
+            exp, tr, fp, numtr, trnum, r, sfr, esc, ori = (AllTrials & "session_uid='{}'".format(uid) & "trial_number={}".format(n))\
+                            .fetch(*self.to_fetch)
 
             if not np.any(exp): continue
 
@@ -72,15 +78,15 @@ class PlotAllTrials:
             trial_number.append(trnum[0])
             rec_uid.append(r[0])
             stim_frames.append(sfr[0])
+            escapes.append(esc)
+            origins.append(ori)      
 
-        self.plot_as_video(trials, experiments, 35, rec_uid, stim_frames, uid, number_of_trials, trial_number, savename=feature)
-                  
-                  
+        self.plot_as_video(trials, experiments, 35, rec_uid, stim_frames, escapes, origins, \
+                            uid, number_of_trials, trial_number, savename=feature)
 
 
-
-
-    def plot_as_video(self, trials, exp,  fps, rec_uids, stim_frames, label0=None, number_of_trials = None, trial_number=None, savename=None):
+    def plot_as_video(self, trials, exp,  fps, rec_uids, stim_frames, escapes, origins, \
+                        label0=None, number_of_trials = None, trial_number=None, savename=None):
         def draw_contours(fr, cont, c1, c2):
             if c2 is not None:
                 cv2.drawContours(fr, cont, -1, c2, 4)
@@ -115,7 +121,7 @@ class PlotAllTrials:
 
         # loop over each trial
         stored_contours = []
-        for n, (tr, trn, rec_uid, stim_frame) in enumerate(zip(trials, trial_number, rec_uids, stim_frames)):
+        for n, (tr, trn, rec_uid, stim_frame, escs, ors) in enumerate(zip(trials, trial_number, rec_uids, stim_frames, escapes, origins)):
             # shift all tracking Y up by 10px to align better
             trc = tr.copy()
             trc[:, 1, :] = np.add(trc[:, 1, :], 10)
@@ -190,26 +196,38 @@ class PlotAllTrials:
                 background = np.array(background[::-1, :, :])
 
                 # Title
-                # if isinstance(number_of_trials, list):
-                #     n_of_t = number_of_trials[n]
-                # else:
-                #     n_of_t = number_of_trials
+                if isinstance(number_of_trials, list):
+                    n_of_t = number_of_trials[n]
+                else:
+                    n_of_t = number_of_trials
 
-                # if isinstance(exp, list):
-                #     ttl = savename + ' - ' + exp[n]
-                # else:
-                #     ttl = savename
-                # cv2.putText(background, ttl + '- trial ' + str(trn) + ' of ' + str(n_of_t),
-                #             (int(maze_model.shape[1]/10), int(maze_model.shape[1]/10)), 
-                #             cv2.FONT_HERSHEY_SIMPLEX, 1,
-                #             (255, 255, 255), 2, cv2.LINE_AA)
+                if isinstance(exp, list):
+                    ttl = savename + ' - ' + exp[n]
+                else:
+                    ttl = savename
+                cv2.putText(background, ttl + '- trial ' + str(trn) + ' of ' + str(n_of_t),
+                            (int(maze_model.shape[1]/10), int(maze_model.shape[1]/10)), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 1,
+                            (255, 255, 255), 2, cv2.LINE_AA)
 
-                # # Time elapsed
-                # elapsed = frame / fps
-                # cv2.putText(background, str(round(elapsed, 2)),
-                #             (int(maze_model.shape[0]*.75), int(maze_model.shape[1]*.9)), 
-                #             cv2.FONT_HERSHEY_SIMPLEX, 2, 
-                #             (255, 255, 255), 2,cv2.LINE_AA)
+                # Time elapsed
+                elapsed = frame / fps
+                cv2.putText(background, str(round(elapsed, 2)),
+                            (int(maze_model.shape[0]*.75), int(maze_model.shape[1]*.9)), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 2, 
+                            (255, 255, 255), 2,cv2.LINE_AA)
+
+                # Escape and Origin Arms
+                escape, origin = escs[n], ors[n]
+                cv2.putText(background, 'origin arm: '+ origin,
+                            (int(maze_model.shape[0]*.1), int(maze_model.shape[1]*.8)), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 2, 
+                            (255, 255, 255), 2,cv2.LINE_AA)
+                cv2.putText(background, 'escape arm: '+ escape,
+                            (int(maze_model.shape[0]*.1), int(maze_model.shape[1]*.9)), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 2, 
+                            (255, 255, 255), 2,cv2.LINE_AA)
+
 
                 # threat frame
                 threat = background[threat_cropping[0][0]:threat_cropping[0][1],
