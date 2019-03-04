@@ -1,5 +1,36 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import cv2
+import os
+
+
+def get_maze_from_image(size, maze_design):
+    # Load the model image
+    folder = "Processing/modelling/maze_path_rl/mods"
+    model = cv2.imread(os.path.join(folder, maze_design))
+
+    # blur to remove imperfections
+    kernel_size = 5
+    model = cv2.blur(model, (kernel_size, kernel_size))
+
+    # resize and change color space
+    model = cv2.resize(model, (size, size))
+    model = cv2.cvtColor(model, cv2.COLOR_BGR2GRAY)
+
+    # threshold and rotate
+    ret, model = cv2.threshold(model, 50, 255, cv2.THRESH_BINARY)
+    model = np.rot90(model, 3)
+
+    cv2.imshow("m", model)
+    cv2.waitKey(1000)
+
+
+    # return list of free spaces
+    wh = np.where(model == 255)
+    return [[x, y] for x, y in zip(wh[0], wh[1])]
+
+
+
 
 class Maze(object):
 	def __init__(self, name, grid_size, free_states, goal, start_position, start_index):

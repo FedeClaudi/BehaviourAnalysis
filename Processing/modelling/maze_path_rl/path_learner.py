@@ -1,8 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-
-
 class Model:
     def __init__(self, env):
         self.env = env 
