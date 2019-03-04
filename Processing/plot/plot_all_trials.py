@@ -27,7 +27,7 @@ class PlotAllTrials:
             self.escapes = 'false'
 
         self.to_fetch = ['experiment_name', 'tracking_data', 'fps', 'number_of_trials', 'trial_number', 
-                        'recording_uid', 'stim_frame', 'escape_arm', 'origin_arm','threat_exits']
+                        'recording_uid', 'stim_frame', 'escape_arm', 'origin_arm']
 
 
     """
@@ -53,14 +53,14 @@ class PlotAllTrials:
         sessions = set(AllTrials.fetch('session_uid'))
 
         for uid in sessions:
-            experiments, trials, fps, number_of_trials, trial_number, rec_uid, stim_frames, escapes, origins, t_exits = \
+            experiments, trials, fps, number_of_trials, trial_number, rec_uid, stim_frames, escapes, origins = \
                 (AllTrials & "session_uid='{}'".format(uid) & "is_escape='{}'".format(self.escapes))\
                             .fetch(*self.to_fetch)
 
             if not np.any(experiments): continue
 
 
-            self.plot_as_video(trials, experiments[0], fps[0], rec_uid, stim_frames, escapes, origins, t_exits, \
+            self.plot_as_video(trials, experiments[0], fps[0], rec_uid, stim_frames, escapes, origins, \
                                 uid, number_of_trials[0], trial_number,)
 
     def plot_by_feature(self, feature):
@@ -72,7 +72,6 @@ class PlotAllTrials:
         experiments, trials, fps, number_of_trials, trial_number, rec_uid, stim_frames = [],[],[],[],[],[],[],
         escapes, origins = [], []
         for uid, n in zip(uids, trials_n):
-
 
             exp, tr, fp, numtr, trnum, r, sfr, esc, ori = (AllTrials & "session_uid='{}'".format(uid) & "trial_number={}".format(n))\
                             .fetch(*self.to_fetch)
@@ -157,7 +156,7 @@ class PlotAllTrials:
 
 
 
-    def plot_as_video(self, trials, exp,  fps, rec_uids, stim_frames, escapes, origins, threat_exits,\
+    def plot_as_video(self, trials, exp,  fps, rec_uids, stim_frames, escapes, origins, \
                         label0=None, number_of_trials = None, trial_number=None, savename=None):
         def draw_contours(fr, cont, c1, c2):
             if c2 is not None:
@@ -193,7 +192,7 @@ class PlotAllTrials:
 
         # loop over each trial
         stored_contours = []
-        for n, (tr, trn, rec_uid, stim_frame, escs, ors, t_exit) in enumerate(zip(trials, trial_number, rec_uids, stim_frames, escapes, origins, threat_exits)):
+        for n, (tr, trn, rec_uid, stim_frame, escs, ors) in enumerate(zip(trials, trial_number, rec_uids, stim_frames, escapes, origins)):
             # shift all tracking Y up by 10px to align better
             trc = tr.copy()
             trc[:, 1, :] = np.add(trc[:, 1, :], 10)
@@ -235,7 +234,7 @@ class PlotAllTrials:
             # Compute body and head angles and IdPhi
             body_angle = calc_angle_between_vectors_of_points_2d(tr[:, :2, -1].T, tr[:, :2, 0].T)
             head_angle = calc_angle_between_vectors_of_points_2d(tr[:, :2, 0].T, tr[:, :2, 1].T)
-            IdPhi = calc_IdPhi(-body_angle[:t_exit[0]])
+            # IdPhi = calc_IdPhi(-body_angle[:t_exit[0]])
 
             trial_stored_contours = []
 
@@ -295,6 +294,8 @@ class PlotAllTrials:
                             (255, 255, 255), 2,cv2.LINE_AA)
 
                 # Escape and Origin Arms
+                if isinstance(ors, list) or isinstance(ors, np.ndarray): ors = ors[0]
+                if isinstance(escs, list) or isinstance(escs, np.ndarray): escs=escs[0]
                 cv2.putText(background, 'origin arm: '+ ors,
                             (int(maze_model.shape[0]*.1), int(maze_model.shape[1]*.15)), 
                             cv2.FONT_HERSHEY_SIMPLEX, 1, 
@@ -306,10 +307,10 @@ class PlotAllTrials:
 
 
                 # IdPhi
-                cv2.putText(background, 'IdPhi: '+ str(round(IdPhi, 2)),
-                            (int(maze_model.shape[0]*.65), int(maze_model.shape[1]*.2)), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 1, 
-                            (255, 255, 255), 2,cv2.LINE_AA)
+                # cv2.putText(background, 'IdPhi: '+ str(round(IdPhi, 2)),
+                #             (int(maze_model.shape[0]*.65), int(maze_model.shape[1]*.2)), 
+                #             cv2.FONT_HERSHEY_SIMPLEX, 1, 
+                #             (255, 255, 255), 2,cv2.LINE_AA)
 
                 # Head and body angle
                 cc = (int(maze_model.shape[0]*.66), int(maze_model.shape[1]*.88))
@@ -342,8 +343,8 @@ class PlotAllTrials:
                 whole_frame[shape[0]-width:, :height, :] = videoframe
 
                 # Show and write
-                cv2.imshow("frame", whole_frame)
-                cv2.waitKey(1)
+                # cv2.imshow("frame", whole_frame)
+                # cv2.waitKey(1)
                 writer.write(whole_frame)
 
                 # Store contours points of this trials to use them as background for next
@@ -463,13 +464,13 @@ if __name__ == "__main__":
     # plotter.plot_by_exp()
     # plotter.plot_by_session(as_video=True)
 
-    # features_keys = load_yaml('Processing\\trials_analysis\\trials_observations.yml').keys()
-    # for feature in features_keys:
-    #     plotter.plot_by_feature(feature)
+    features_keys = load_yaml('Processing\\trials_analysis\\trials_observations.yml').keys()
+    for feature in features_keys:
+        plotter.plot_by_feature(feature)
 
     # plotter.visualise_plots()
 
-    plotter.plot_dPhi_by_exp()
+    # plotter.plot_dPhi_by_exp()
 
 
     plt.show()
