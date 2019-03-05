@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import cv2
 import os
 from Processing.tracking_stats.math_utils import calc_distance_between_points_2d as dist
+import json
+
 
 def get_maze_from_image(size, maze_design):
 	# Load the model image
@@ -29,23 +31,64 @@ def get_maze_from_image(size, maze_design):
 
 
 
-
 class Maze(object):
 	def __init__(self, name, grid_size, free_states, goal, start_position, start_index, randomise_start):
-		self.name = name
+		self.name = name.split('.')[0]
 		self._start_index = start_index
 		self.start = start_position
 		self.grid_size = grid_size
-		self.num_actions = 4  
-		self.actions()
 		self.randomise_start = randomise_start
-		# four actions in each state -- up, right, bottom, left
+
+		self.subgoals_fld = "Processing\modelling\maze_path_rl\subgoals"
+
+		self.actions()
+		
 
 		self.free_states = free_states
 		self.goal = goal
 		self.maze = np.zeros((grid_size,grid_size))
 		for i in self.free_states:
 			self.maze[i[0]][i[1]] = 1
+
+		self.load_subgoals()
+
+	def get_subgoals(self):
+		def register_click(event,x,y, flags, data):
+			if event == cv2.EVENT_LBUTTONDOWN:
+					# clicks = np.reshape(np.array([x, y]),(1,2))
+					data.append([x,y])
+
+		clicks_data = []
+
+		maze = self.maze.copy()
+		cv2.startWindowThread()
+		cv2.namedWindow('background')
+		cv2.imshow('background', maze)
+		cv2.setMouseCallback('background', register_click, clicks_data)  # Mouse callback
+
+		while True:
+			k = cv2.waitKey(10)
+			if k == ord('u'):
+					print('Updating')
+					# Update positions
+					for x,y in clicks_data:
+						cv2.circle(maze, (x, y), 2, (255, 0, 0), 2)
+						cv2.imshow('background', maze)
+			elif k == ord('q'):
+				break
+		return clicks_data
+
+	def load_subgoals(self):
+		filename = os.path.join(self.subgoals_fld, self.name+'.json')
+		if os.path.isfile(filename):
+			self.subgoals = json.load(open(filename))
+		else:
+			self.subgoals = self.get_subgoals()
+			with open(filename, "w") as f:
+				f.write(json.dumps(self.subgoals))
+
+
+
 
 	def reset(self, random_start):
 		# reset the environment
@@ -142,7 +185,8 @@ class Maze(object):
 			self.reward = 1
 			self.game_over = True
 		else:
-			if "away" in goal: self.reward -= .1
+			# if "away" in goal: 
+			# self.reward -= .1
 			self.game_over = False
 
 		return self.next_state, self.reward, self.game_over

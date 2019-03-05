@@ -15,11 +15,11 @@ from Processing.modelling.maze_path_rl.path_learner import Model
 from Processing.modelling.maze_path_rl.path_walker import Walker
 
 
-FLAG_policy = False
+FLAG_policy = False  
 FLAG_showmaze = False
 
 randomise_start_during_training = True
-FLAG_load_trained = True
+FLAG_load_trained = False
 
 
 if __name__ == "__main__":
@@ -28,11 +28,13 @@ if __name__ == "__main__":
 
 	grid_size = 60
 
-	maze_designs = ["PathInt.png", "PathInt2.png", "FourArms Maze.png", "TwoAndahalf Maze.png",
-					"Square Maze.png", "TwoArmsLong Maze.png", "mazemodel.png", "ModelBased.png", "ModelBased_mod.png"]
+	maze_designs = ["PathInt.png", "PathInt2.png"]
+	
+	# , "FourArms Maze.png", "TwoAndahalf Maze.png",
+	# 				"Square Maze.png", "TwoArmsLong Maze.png", "mazemodel.png", "ModelBased.png", "ModelBased_mod.png"]
 	
 	for maze_design in maze_designs:
-		print(maze_design)
+		print("\n\n\n", maze_design)
 
 		# Define cells of the 2D matrix in which agent can move
 		free_states = get_maze_from_image(grid_size, maze_design)
@@ -55,7 +57,7 @@ if __name__ == "__main__":
 		# creating an instance of maze class
 		print("Creating Maze Environment")
 		env = Maze(maze_design, grid_size, free_states,
-				   goal, start_position, start_index, randomise_start_during_training)
+					goal, start_position, start_index, randomise_start_during_training)
 		
 
 		print("Learning the policy")
@@ -73,4 +75,4 @@ if __name__ == "__main__":
 		# Save policies
 		model.save()
 
-		plt.show()
+	# plt.show()
