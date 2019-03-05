@@ -81,8 +81,8 @@ class Maze(object):
 	def load_subgoals(self):
 		filename = os.path.join(self.subgoals_fld, self.name+'.json')
 		if os.path.isfile(filename):
-			temp = json.load(open(filename))
-			self.subgoals = [x[::-1] for x in temp]  # switch x and y because of opencv
+			self.subgoals = json.load(open(filename))
+			# self.subgoals = [x[::-1] for x in temp]  # switch x and y because of opencv
 		else:
 			self.subgoals = self.get_subgoals()
 			fixed = [x[::-1] for x in self.subgoals]
@@ -111,13 +111,12 @@ class Maze(object):
 			0: 'left',
 			1: 'right',
 			2: 'up',
-			3: 'down',}
-
-		# 	4: "up-left",
-		# 	5: "up-right",
-		# 	6: "down-right",
-		# 	7: "down-left"
-		# }
+			3: 'down',
+			4: "up-left",
+			5: "up-right",
+			6: "down-right",
+			7: "down-left"
+		}
 
 	def act(self, action, move_away_reward, policy, goal):
 		def move(action, curr):

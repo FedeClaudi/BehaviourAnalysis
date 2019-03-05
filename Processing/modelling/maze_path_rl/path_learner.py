@@ -30,7 +30,7 @@ class Model:
 
     def policies(self):
         # Get basic policies
-        policies = ("away", "direct_vector", "intermediate", "combined")
+        policies = ("shelter", "away", "direct_vector", "intermediate", "combined")
         self.Q = {p:self.empty_policy() for p in policies}
 
         # Get subgoal policies

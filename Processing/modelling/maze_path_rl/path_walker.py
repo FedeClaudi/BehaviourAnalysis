@@ -86,43 +86,38 @@ class Walker:
                 start_walks.append(walk)
             self.walks.append(start_walks)
 
-    def clean_walk(self, goal):
-        offsets = [0, -3,  2]
-        walks = []
-        for offset in offsets:
-            walk = []
+    def clean_walk(self, policy, goal, start=None):
+        walk = []
+        if start is None:
             curr = self.learner.env.start.copy()
-            curr[0] += offset
-            curr[1] += np.random.randint(-2, 2)
-            step_n = 0
+        else:
+            curr = start.copy()
 
-            # do each step
-            while curr != self.learner.env.goal and step_n < self.max_steps:
-                step_n += 1
-                walk.append(curr.copy())
+        step_n = 0
 
-                nxt = self.step(goal, curr)
+        # do each step
+        while curr != goal and step_n < self.max_steps:
+            step_n += 1
+            walk.append(curr.copy())
 
-                # Check that nxt is a legal move
-                if nxt[0] < 0 or nxt[1] < 0 or nxt[0] > self.learner.env.grid_size or nxt[1] > self.learner.env.grid_size:
-                    break
-                if nxt in self.learner.env.free_states:
-                    curr = nxt
-            walks.append(walk)
-        return walks
+            nxt = self.step(policy, curr)
+
+            # Check that nxt is a legal move
+            if nxt[0] < 0 or nxt[1] < 0 or nxt[0] > self.learner.env.grid_size or nxt[1] > self.learner.env.grid_size:
+                break
+            if nxt in self.learner.env.free_states:
+                curr = nxt
+        walk.append(curr)
+        
+        return walk
+
+
 
     def step(self, policy, current):
         nxt = current.copy()
         action_values = self.learner.Q[policy][current[0]][current[1]]
         action = np.argmax(action_values)
         action = self.learner.env.actions[action]
-
-        # policy: avoid walking down when escaping
-        # if action == "down":
-        #     print(action)
-        #     action = np.argsort(action_values)[1] # select next best
-        #     action = self.learner.env.actions[action]
-        #     print(action)
 
         if action == "down":
             nxt[1] -= 1
@@ -181,11 +176,10 @@ class Walker:
             axarr[i, 0].plot(start[0], start[1], 'o', color='g')
             axarr[i, 0].plot(goal[0], goal[1], 'o', color='b')
 
-            walks = self.clean_walk(Q_name)
-            for walk in walks:
-                x, y = [x for x, y in walk], [y for x, y in walk]
-                axarr[i, 0].scatter(x, y, c='r', alpha=0.5, s=10)
-                axarr[i, 0].plot(x[0], y[0], 'o', color='g')
+            walk = self.clean_walk(Q_name, self.learner.env.goal)
+            x, y = [x for x, y in walk], [y for x, y in walk]
+            axarr[i, 0].scatter(x, y, c='r', alpha=0.5, s=10)
+            axarr[i, 0].plot(x[0], y[0], 'o', color='g')
 
 
             axarr[i, 1].imshow(act, interpolation='none',  cmap="tab20")
@@ -214,4 +208,29 @@ class Walker:
         
         f.savefig("Processing/modelling/maze_path_rl/results/{}_walks.png".format(self.learner.env.name))
 
+
+    def subgoals_plot(self):
+        env = self.learner.env
+
+        f, ax = plt.subplots(figsize=(8, 12))
+
+        ax.imshow(self.maze, interpolation="none", cmap="gray")
+
+
+        for i, _ in enumerate(env.subgoals):
+            subgoal_policy = 'subgoal_{}'.format(i)
+            shelter_policy = 'shelter'
+
+            subgoal_walk = self.clean_walk(subgoal_policy, env.subgoals[i])
+            shelter_walk = self.clean_walk(shelter_policy, env.goal, start=subgoal_walk[-1])
+
+            ax.scatter([x for x,y in subgoal_walk], [y for x, y in subgoal_walk], c='r', alpha=.5)
+            ax.scatter([x for x,y in shelter_walk], [y for x, y in shelter_walk], c='r', alpha=.5)
+            ax.scatter(env.subgoals[i][0], env.subgoals[i][1], c='b', s=60)
+
+        ax.scatter(env.start[0], env.start[1], color='g', s=100)
+        ax.scatter(env.goal[0], env.goal[1], color='b', s=100)
+        f.savefig("Processing/modelling/maze_path_rl/results/{}_subgoals.png".format(self.learner.env.name))
+
+        # plt.show()
 
