@@ -23,10 +23,6 @@ def get_maze_from_image(size, maze_design):
 	ret, model = cv2.threshold(model, 50, 255, cv2.THRESH_BINARY)
 	model = np.rot90(model, 3)
 
-	cv2.imshow("m", model)
-	cv2.waitKey(1000)
-
-
 	# return list of free spaces
 	wh = np.where(model == 255)
 	return [[x, y] for x, y in zip(wh[0], wh[1])]
@@ -63,48 +59,59 @@ class Maze(object):
 	def state(self):
 		return self.curr_state
 
-	def draw(self, path = ""):
-		# draw the maze configuration
-		self.grid = np.zeros((self.grid_size, self.grid_size))
-		for i in self.free_states:
-			self.grid[i[1]][i[0]] = 0.5
-		self.grid[self.goal[1]][self.goal[0]] = 1
-		plt.figure(0)
-		plt.clf()
-		plt.imshow(self.grid, interpolation='none', cmap='gray')
-		plt.savefig(path + "maze.png")
-
 	def actions(self):
 		self.actions = {
 			-1:'still',
 			0: 'left',
 			1: 'right',
 			2: 'up',
-			3: 'down'
+			3: 'down',}
 
-		}
+		# 	4: "up-left",
+		# 	5: "up-right",
+		# 	6: "down-right",
+		# 	7: "down-left"
+		# }
 
 	def act(self, action, move_away_reward, goal):
-		# Move
-		if(self.actions[action] == "still"):
-			self.next_state = self.curr_state
-		elif(self.actions[action] == "left"):
-			self.next_state = [self.curr_state[0]-1,self.curr_state[1]]
-		elif(self.actions[action] == "right"):
-			self.next_state = [self.curr_state[0]+1,self.curr_state[1]]
-		elif(self.actions[action] == "up"):
-			self.next_state = [self.curr_state[0],self.curr_state[1]+1]
-		elif(self.actions[action] == "down"):
-			self.next_state = [self.curr_state[0],self.curr_state[1]-1]
+		def move(action, curr):
+			def change(current, x, y):
+				return [current[0] + x, current[1] + y]
 
+			if action == "still":
+				nxt_state = change(curr, 0, 0)
+			elif action == "left":
+				nxt_state = change(curr, -1, 0)
+			elif action == "right":
+				nxt_state = change(curr, 1, 0)
+			elif action == "up":
+				nxt_state = change(curr, 0, 1)
+			elif action == "down":
+				nxt_state = change(curr, 0, -1)
+			elif action == "up-left":
+				nxt_state = change(curr, -1, 1)
+			elif action == "up-right":
+				nxt_state = change(curr, 1, 1)
+			elif action == "down-right":
+				nxt_state = change(curr, 1, -1)
+			elif action == "down-left":
+				nxt_state = change(curr, -1, -1)
+			
+			return nxt_state
+
+		# Move
+		action_name = self.actions[action]
+		self.next_state = move(action_name, self.curr_state)
+
+		# Calc distances
 		if goal == "away":
 			curr_dist = dist(self.curr_state, self.start)
 			next_dist = dist(self.next_state, self.start)
-		elif goal == "shelter_close":
+		elif goal == "direct_vector":
 			curr_dist = dist(self.curr_state, self.goal)
 			next_dist = dist(self.next_state, self.goal)
 
-		# Consequences of movign
+		# Consequences of moving
 		if self.next_state in self.free_states:
 			self.curr_state = self.next_state
 
@@ -116,7 +123,7 @@ class Maze(object):
 				else:
 					self.reward = 0
 
-			elif goal == "shelter_close":
+			elif goal == "direct_vector":
 				if curr_dist > next_dist:  # moving towards goal
 					self.reward = move_away_reward
 				elif curr_dist < next_dist:  # moving away from goal
@@ -126,7 +133,7 @@ class Maze(object):
 
 			else:
 				self.reward = 0
-		else:
+		else: 
 			self.next_state = self.curr_state
 			self.reward = 0
 
@@ -135,6 +142,7 @@ class Maze(object):
 			self.reward = 1
 			self.game_over = True
 		else:
+			if "away" in goal: self.reward -= .1
 			self.game_over = False
 
 		return self.next_state, self.reward, self.game_over
