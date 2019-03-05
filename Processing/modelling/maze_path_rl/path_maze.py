@@ -81,9 +81,12 @@ class Maze(object):
 	def load_subgoals(self):
 		filename = os.path.join(self.subgoals_fld, self.name+'.json')
 		if os.path.isfile(filename):
-			self.subgoals = json.load(open(filename))
+			temp = json.load(open(filename))
+			self.subgoals = [x[::-1] for x in temp]  # switch x and y because of opencv
 		else:
 			self.subgoals = self.get_subgoals()
+			fixed = [x[::-1] for x in self.subgoals]
+			self.subgoals = fixed
 			with open(filename, "w") as f:
 				f.write(json.dumps(self.subgoals))
 
@@ -116,7 +119,7 @@ class Maze(object):
 		# 	7: "down-left"
 		# }
 
-	def act(self, action, move_away_reward, goal):
+	def act(self, action, move_away_reward, policy, goal):
 		def move(action, curr):
 			def change(current, x, y):
 				return [current[0] + x, current[1] + y]
@@ -147,18 +150,36 @@ class Maze(object):
 		self.next_state = move(action_name, self.curr_state)
 
 		# Calc distances
-		if goal == "away":
+		if policy == "away":
 			curr_dist = dist(self.curr_state, self.start)
 			next_dist = dist(self.next_state, self.start)
-		elif goal == "direct_vector":
-			curr_dist = dist(self.curr_state, self.goal)
-			next_dist = dist(self.next_state, self.goal)
+		elif policy == "direct_vector":
+			curr_dist = dist(self.curr_state, goal)
+			next_dist = dist(self.next_state, goal)
+		elif policy == "intermediate":
+			# get the distance to each subgoal
+			subgoals_d = [dist(self.next_state, sg) for sg in self.subgoals]
+			start_shelter_distance = dist(self.start, self.goal)
+			subgoals_check = [d/start_shelter_distance for d in subgoals_d if d <= 4]
+		elif policy == "combined":
+			if dist(self.curr_state, self.start) < dist(self.next_state, self.start):  # check if moving away from shetler
+				moved_away_check = True
+			else:
+				moved_away_check = False
+			
+			if dist(self.curr_state, goal) > dist(self.next_state, goal): # check if moving towards goal
+				moved_towards_check = True
+			else:
+				moved_towards_check = True
 
+		"""
+			EVALUATE THE CONSEQUENCES OF MOVING
+		"""
 		# Consequences of moving
 		if self.next_state in self.free_states:
 			self.curr_state = self.next_state
 
-			if goal == "away":
+			if policy == "away":
 				if curr_dist > next_dist: # moving back towards start, not good 
 					self.reward = - move_away_reward
 				elif curr_dist < next_dist: # moving away from start
@@ -166,13 +187,28 @@ class Maze(object):
 				else:
 					self.reward = 0
 
-			elif goal == "direct_vector":
+			elif policy == "direct_vector":
 				if curr_dist > next_dist:  # moving towards goal
 					self.reward = move_away_reward
 				elif curr_dist < next_dist:  # moving away from goal
 					self.reward = -move_away_reward
 				else:
 					self.reward = 0
+
+			elif policy == "intermediate":
+				if not subgoals_check:
+					self.reward = 0
+				else:
+					self.reward = subgoals_check[0]*.5
+					
+			elif policy == "combined":
+				self.reward = 0
+
+				if moved_away_check: self.reward += .05
+				else: self.reward -= .05
+
+				if moved_towards_check: self.reward += .1
+				else: self.reward -= .1
 
 			else:
 				self.reward = 0
@@ -181,12 +217,10 @@ class Maze(object):
 			self.reward = 0
 
 
-		if(self.next_state == self.goal):
-			self.reward = 1
+		if(self.next_state == goal):
+			self.reward += 1
 			self.game_over = True
 		else:
-			# if "away" in goal: 
-			# self.reward -= .1
 			self.game_over = False
 
 		return self.next_state, self.reward, self.game_over

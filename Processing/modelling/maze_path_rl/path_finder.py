@@ -19,7 +19,7 @@ FLAG_policy = False
 FLAG_showmaze = False
 
 randomise_start_during_training = True
-FLAG_load_trained = False
+FLAG_load_trained = True
 
 
 if __name__ == "__main__":

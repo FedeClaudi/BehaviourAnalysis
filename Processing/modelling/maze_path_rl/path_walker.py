@@ -65,7 +65,7 @@ class Walker:
                         policy = "away"
                     else:
                         p = 0
-                        policy = "shelter"
+                        policy = "direct_vector"
 
                     # calculate two alternative actions
                     shelter_next = self.step("direct_vector", curr)
@@ -87,12 +87,13 @@ class Walker:
             self.walks.append(start_walks)
 
     def clean_walk(self, goal):
-        offsets = [0, -4,  4]
+        offsets = [0, -3,  2]
         walks = []
         for offset in offsets:
             walk = []
             curr = self.learner.env.start.copy()
             curr[0] += offset
+            curr[1] += np.random.randint(-2, 2)
             step_n = 0
 
             # do each step
@@ -115,6 +116,13 @@ class Walker:
         action_values = self.learner.Q[policy][current[0]][current[1]]
         action = np.argmax(action_values)
         action = self.learner.env.actions[action]
+
+        # policy: avoid walking down when escaping
+        # if action == "down":
+        #     print(action)
+        #     action = np.argsort(action_values)[1] # select next best
+        #     action = self.learner.env.actions[action]
+        #     print(action)
 
         if action == "down":
             nxt[1] -= 1
@@ -146,13 +154,21 @@ class Walker:
         Q = model.Q
         start = model.env.start
         free = model.env.free_states
-        goal = model.env.goal
+
+        
         grid_size = model.env.grid_size
         name = model.env.name
 
-        f, axarr = plt.subplots(ncols=3, nrows=len(list(model.Q.keys())))
+        f, axarr = plt.subplots(ncols=3, nrows=len(list(model.Q.keys())), figsize=(16, 12))
 
         for i, (Q_name, Q) in enumerate(model.Q.items()):
+            if not "subgoal" in Q_name:
+                goal = model.env.goal
+            else:
+                n = int(Q_name.split("_")[-1])
+                goal = model.env.subgoals[n]
+
+
             grid_size = len(Q)
             pol = [[max(Q[i][j]) for i in range(grid_size)] for j in range(grid_size)]
             maze = [[1 if [i, j] in free else 0 for i in range(
@@ -169,6 +185,7 @@ class Walker:
             for walk in walks:
                 x, y = [x for x, y in walk], [y for x, y in walk]
                 axarr[i, 0].scatter(x, y, c='r', alpha=0.5, s=10)
+                axarr[i, 0].plot(x[0], y[0], 'o', color='g')
 
 
             axarr[i, 1].imshow(act, interpolation='none',  cmap="tab20")
@@ -176,12 +193,12 @@ class Walker:
 
             axarr[i, 0].set(title=list(model.Q.keys())[i])
             axarr[i, 1].set(title="actions")
-            axarr[1, 2].set(title="Policy")
+            axarr[i, 2].set(title="Policy")
 
         axarr = axarr.flatten()
         for ax in axarr:
             ax.set(xticks=[], yticks=[])
-
+        f.tight_layout()
         f.savefig("Processing/modelling/maze_path_rl/results/{}.png".format(name))
 
         self.maze = maze
@@ -194,6 +211,7 @@ class Walker:
                 x, y = [x for x,y in walk], [y for x,y in walk]
                 ax.scatter(x,y, alpha=.4)
 
+        
         f.savefig("Processing/modelling/maze_path_rl/results/{}_walks.png".format(self.learner.env.name))
 
 

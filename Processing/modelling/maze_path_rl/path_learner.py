@@ -26,11 +26,11 @@ class Model:
         self.move_away_incentive = .25  # reward for moving away from start in corresponding policy
         self.move_towards_incentive = .25  # reward for moving towards the shelter in the corresponding policy
         self.shelter_is_goal = [0, .5, 1]  # 0-1 probability of prefering the action that leads to the shelter
-
+        self.incentives()
 
     def policies(self):
         # Get basic policies
-        policies = ("shelter", "away", "direct_vector")
+        policies = ("away", "direct_vector", "intermediate", "combined")
         self.Q = {p:self.empty_policy() for p in policies}
 
         # Get subgoal policies
@@ -41,6 +41,12 @@ class Model:
         # Select which policies have the option to randomise starting position
         self.random_start = {k:True if k not in "away" else False for k in self.Q.keys()}
         
+    def incentives(self):
+        # define positive and negative rewards for specific policies
+        self.incentives = {k:0 for k in self.Q.keys()}
+        self.incentives['away'] = self.move_away_incentive
+        self.incentives['direct_vector'] =  self.move_towards_incentive
+
 
     def empty_policy(self):
         return [[list(np.zeros(self.n_actions)) for i in range(self.env.grid_size)] for j in range(self.env.grid_size)]
@@ -60,14 +66,21 @@ class Model:
                 else:
                     return
 
-                    
-        for (Q_name, Q), move_away_incentive in zip(self.Q.items(), [0, self.move_away_incentive, self.move_towards_incentive]):
+        for Q_name, Q in self.Q.items():
+            move_away_incentive = self.incentives[Q_name]
             
             print("Learning Q: ", Q_name)
             n_actions = self.n_actions
             env = self.env
             not_change_count = 0
             self.traces = []
+
+            # select to which point in the maze we should aim
+            if "subgoal" in Q_name:
+                n = int(Q_name.split("_")[-1])
+                goal = self.env.subgoals[n]
+            else:
+                goal = self.env.goal
 
             for iter_n in np.arange(self.max_iters):
                 if iter_n % 100 == 0: print(iter_n)
@@ -94,14 +107,13 @@ class Model:
                         action = np.argmax(Q[curr_state[0]][curr_state[1]])
                         # best action from Q table
 
-                    next_state, reward, game_over = env.act(action, move_away_incentive, Q_name,)
+                    # move in the environment
+                    next_state, reward, game_over = env.act(action, move_away_incentive, Q_name, goal)
 
                     # Q-learning update
-                    delta = self.gamma * \
-                        max(Q[next_state[0]][next_state[1]]) - \
-                        Q[curr_state[0]][curr_state[1]][action]
-                    Q[curr_state[0]][curr_state[1]][action] = Q[curr_state[0]][curr_state[1]][action] + \
-                        self.alpha*(reward + delta)
+                    delta = self.gamma * max(Q[next_state[0]][next_state[1]]) - Q[curr_state[0]][curr_state[1]][action]
+                    Q[curr_state[0]][curr_state[1]][action] = Q[curr_state[0]][curr_state[1]][action] + self.alpha*(reward + delta)
+            
             self.Q[Q_name] = Q
 
     def save(self):
