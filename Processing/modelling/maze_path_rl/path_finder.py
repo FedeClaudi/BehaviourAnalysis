@@ -3,6 +3,10 @@ sys.path.append('./')
 
 from copy import deepcopy
 import numpy as np
+import PyQt5
+
+import matplotlib
+matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -13,6 +17,8 @@ from Processing.modelling.maze_path_rl.path_learner import Model
 FLAG_policy = False
 FLAG_showmaze = False
 
+randomise_start_during_training = True
+
 def plot_policy(model):
 	Q = model.Q
 	start = model.env.start
@@ -21,33 +27,35 @@ def plot_policy(model):
 	grid_size = model.env.grid_size
 	name = model.env.name
 
+	f, axarr = plt.subplots(ncols=3, nrows=len(list(model.Q.keys())))
 
-	f, axarr = plt.subplots(ncols=2, nrows=2)
-	axarr= axarr.flatten()
+	for i, (Q_name, Q) in enumerate(model.Q.items()):
+		print(Q_name)
+		grid_size = len(Q)
+		pol =  [[max(Q[i][j]) for i in range(grid_size)] for j in range(grid_size)]
+		maze = [[1 if [i, j] in free else 0 for i in range(grid_size)] for j in range(grid_size)]
+		act =  [[np.argmax(Q[i][j]) if pol[j][i] > 0 else np.nan for i in range(grid_size)] for j in range(grid_size)]
 
-	grid_size = len(Q)
-	pol =  [[max(Q[i][j]) for i in range(grid_size)] for j in range(grid_size)]
-	maze = [[1 if [i, j] in free else 0 for i in range(grid_size)] for j in range(grid_size)]
-	act =  [[np.argmax(Q[j][i]) if pol[j][i] > 0 else np.nan for i in range(grid_size)] for j in range(grid_size)]
+		axarr[i, 0].imshow(maze, interpolation='none', cmap='gray')
+		axarr[i, 0].plot(start[0], start[1], 'o', color='g')
+		axarr[i, 0].plot(goal[0], goal[1], 'o', color='b')
 
-	axarr[0].imshow(maze, interpolation='none', cmap='gray')
-	axarr[0].plot(start[0], start[1], 'o', color='g')
-	axarr[0].plot(goal[0], goal[1], 'o', color='b')
-	axarr[1].imshow(pol, interpolation='none', cmap='gray')
+		if model.walked is not None:
+			vals = [0, .5, .1]
+			for val, walked in zip(vals, model.walked[Q_name]):
+				axarr[i, 0].scatter([x for (x, y) in walked],
+								[y for (x, y) in walked], s=5, alpha=.4)
+			# axarr[i, 0].legend()
 
-	axarr[2].imshow(act, cmap="tab20")
+		axarr[i, 1].imshow(act, interpolation='none',  cmap="tab20")
+		axarr[i, 2].imshow(pol, interpolation='none')
 
-	axarr[3].imshow(maze, interpolation='none', cmap='gray')
+		axarr[i, 0].set(title=list(model.Q.keys())[i])
+		axarr[i, 1].set(title="actions")
+		axarr[1, 2].set(title="Policy")
 
-	if model.walked is not None:
-		axarr[3].scatter([x for (x,y) in model.walked], [y for (x,y) in model.walked], c='r', s=5, alpha=.8)
 
-
-	axarr[0].set(title="maze")
-	axarr[1].set(title="policy")
-	axarr[2].set(title="actions")
-	axarr[3].set(title="walk")
-
+	axarr = axarr.flatten()
 	for ax in axarr:
 		ax.set(xticks=[], yticks=[])
 
@@ -58,10 +66,12 @@ if __name__ == "__main__":
 
 	print("Initializing")
 
-	grid_size = 40
+	grid_size = 60
 
-	maze_designs = ["PathInt.png", "PathInt2.png", "FourArms Maze.png"]
+	maze_designs = ["PathInt.png", "PathInt2.png", "FourArms Maze.png", "TwoAndahalf Maze.png",
+					"Square Maze.png", "TwoArmsLong Maze.png", "mazemodel.png", "ModelBased.png", "ModelBased_mod.png"]
 	for maze_design in maze_designs:
+		print(maze_design)
 
 		# Define cells of the 2D matrix in which agent can move
 		free_states = get_maze_from_image(grid_size, maze_design)
@@ -83,7 +93,7 @@ if __name__ == "__main__":
 
 		print("Creating Maze Environment")
 		env = Maze(maze_design, grid_size, free_states,
-		           goal, start_position, start_index)
+		           goal, start_position, start_index, randomise_start_during_training)
 		# creating an instance of maze class
 
 		print("Learning the policy")
