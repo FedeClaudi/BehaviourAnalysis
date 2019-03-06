@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 import os
+from Processing.tracking_stats.math_utils import calc_distance_between_points_in_a_vector_2d, calc_angle_between_points_of_vector
 
 
 
@@ -212,24 +213,47 @@ class Walker:
     def subgoals_plot(self):
         env = self.learner.env
 
-        f, ax = plt.subplots(figsize=(8, 12))
-
+        f, axarr = plt.subplots(nrows=3, figsize=(8, 12))
+        ax = axarr[0]
         ax.imshow(self.maze, interpolation="none", cmap="gray")
 
-
+        walks = []
         for i, _ in enumerate(env.subgoals):
             subgoal_policy = 'subgoal_{}'.format(i)
             shelter_policy = 'shelter'
 
-            subgoal_walk = self.clean_walk(subgoal_policy, env.subgoals[i])
-            shelter_walk = self.clean_walk(shelter_policy, env.goal, start=subgoal_walk[-1])
+            walk = []
+            walk.extend(self.clean_walk(subgoal_policy, env.subgoals[i]))
+            walk.extend(self.clean_walk(shelter_policy, env.goal, start=walk[-1]))
+            distance_travelled = np.sum(calc_distance_between_points_in_a_vector_2d(np.array(walk)))
+            orientation = np.abs(np.add(calc_angle_between_points_of_vector(np.array(walk)), -90))
+            tot_angle = np.nansum(orientation)
+            walks.append((walk, distance_travelled, tot_angle))
 
-            ax.scatter([x for x,y in subgoal_walk], [y for x, y in subgoal_walk], c='r', alpha=.5)
-            ax.scatter([x for x,y in shelter_walk], [y for x, y in shelter_walk], c='r', alpha=.5)
-            ax.scatter(env.subgoals[i][0], env.subgoals[i][1], c='b', s=60)
+            ax.scatter([x for x,y in walk], [y for x, y in walk], c='r', alpha=.5)
+            ax.scatter(env.subgoals[i][0], env.subgoals[i][1], s=60, label=str(i) + "__" + str(round(distance_travelled)) + "__"+str(tot_angle))
 
         ax.scatter(env.start[0], env.start[1], color='g', s=100)
         ax.scatter(env.goal[0], env.goal[1], color='b', s=100)
+        ax.legend()
+
+        walks_lengts = [l for w,l,a in walks]
+        min_l = min(walks_lengts)
+        normalised_lengths = [abs(1 - l/min_l) for l in walks_lengts]
+
+        walks_angles = [a for w,l,a in walks]
+        min_a = min(walks_angles)
+        normalised_angles = [abs(1  - a/min_a) for a in walks_angles]
+
+        x = np.arange(len(walks))
+
+        axarr[1].bar(x, normalised_lengths)
+        axarr[1].set(title="normalised paths lenghts", xticks=x, xticklabels=[str(xx) for xx in x])
+        axarr[2].bar(x, normalised_angles)
+        axarr[2].set(title="normalised paths angle", xticks=x, xticklabels=[str(xx) for xx in x])
+
+
+
         f.savefig("Processing/modelling/maze_path_rl/results/{}_subgoals.png".format(self.learner.env.name))
 
         # plt.show()
