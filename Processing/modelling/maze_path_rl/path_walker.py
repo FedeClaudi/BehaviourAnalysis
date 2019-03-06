@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 import os
-from Processing.tracking_stats.math_utils import calc_distance_between_points_in_a_vector_2d, calc_angle_between_points_of_vector
+from Processing.tracking_stats.math_utils import *
 
 
 
@@ -213,8 +213,7 @@ class Walker:
     def subgoals_plot(self):
         env = self.learner.env
 
-        f, axarr = plt.subplots(nrows=3, figsize=(8, 12))
-        ax = axarr[0]
+        f, ax = plt.subplots( figsize=(8, 12))
         ax.imshow(self.maze, interpolation="none", cmap="gray")
 
         walks = []
@@ -224,37 +223,90 @@ class Walker:
 
             walk = []
             walk.extend(self.clean_walk(subgoal_policy, env.subgoals[i]))
+            at_subgoal = len(walk)
             walk.extend(self.clean_walk(shelter_policy, env.goal, start=walk[-1]))
             distance_travelled = np.sum(calc_distance_between_points_in_a_vector_2d(np.array(walk)))
-            orientation = np.abs(np.add(calc_angle_between_points_of_vector(np.array(walk)), -90))
+            orientation = np.abs(np.add(calc_angle_between_points_of_vector(np.array(walk[:at_subgoal])), -90))   # total orientation off the direct path until it got to subgoal
             tot_angle = np.nansum(orientation)
-            walks.append((walk, distance_travelled, tot_angle))
+            walks.append((walk, distance_travelled, tot_angle, at_subgoal))
 
             ax.scatter([x for x,y in walk], [y for x, y in walk], c='r', alpha=.5)
-            ax.scatter(env.subgoals[i][0], env.subgoals[i][1], s=60, label=str(i) + "__" + str(round(distance_travelled)) + "__"+str(tot_angle))
+            ax.scatter(env.subgoals[i][0], env.subgoals[i][1], s=60, label=str(i))
 
         ax.scatter(env.start[0], env.start[1], color='g', s=100)
         ax.scatter(env.goal[0], env.goal[1], color='b', s=100)
         ax.legend()
 
-        walks_lengts = [l for w,l,a in walks]
-        min_l = min(walks_lengts)
-        normalised_lengths = [abs(1 - l/min_l) for l in walks_lengts]
-
-        walks_angles = [a for w,l,a in walks]
-        min_a = min(walks_angles)
-        normalised_angles = [abs(1  - a/min_a) for a in walks_angles]
-
-        x = np.arange(len(walks))
-
-        axarr[1].bar(x, normalised_lengths)
-        axarr[1].set(title="normalised paths lenghts", xticks=x, xticklabels=[str(xx) for xx in x])
-        axarr[2].bar(x, normalised_angles)
-        axarr[2].set(title="normalised paths angle", xticks=x, xticklabels=[str(xx) for xx in x])
-
-
-
         f.savefig("Processing/modelling/maze_path_rl/results/{}_subgoals.png".format(self.learner.env.name))
+
+        self.process_walks(walks)
 
         # plt.show()
 
+
+    def process_walks(self, walks):
+        def normalise_by_rightmedium(vector, rmidx):
+            return [x/vector[rmidx] for x in vector]
+
+        # ! walks.append((walk, distance_travelled, tot_angle, at_subgoal))
+
+
+        # Get the lengths of the direct path between start and goal
+        direct_vector_distance = calc_distance_between_points_2d(self.learner.env.start, self.learner.env.goal)
+
+        sort_idxs, labels = self.path_order_lookup(self.learner.env.name)
+        right_medium_idx = labels.index("Right_Medium")
+        walks = [walks[i] for i in sort_idxs]
+
+        # Get the normalised length of each path
+        walk_lengths = [w[1] for w in walks]
+        normalised_lengths = normalise_by_rightmedium(walk_lengths, right_medium_idx)
+
+        # Get distance at subgoal from direct path
+        position_at_subgoals = [np.array(w[0][w[3]]) for w in walks]
+        direct = [np.array(self.learner.env.start), np.array(self.learner.env.goal)]
+        distance_at_subgoals = [abs(calc_distane_between_point_and_line(direct, p)) for p in position_at_subgoals]
+        normalised_distance_at_sg = normalise_by_rightmedium(distance_at_subgoals, right_medium_idx)
+
+        # Get tot angle off direct path until subgoal
+        angles = [w[2] for w in walks]
+        normalised_angles = normalise_by_rightmedium(angles, right_medium_idx)
+
+        # Plot
+        f, axarr = plt.subplots(nrows=3, figsize=(12, 9))
+        xx = np.arange(len(walk_lengths))
+        colors = self.colors_lookup(labels)
+
+        axarr[0].bar(xx, normalised_lengths, color=colors)
+        axarr[0].axhline(1, linestyle="--", color="k")
+        axarr[0].set(title="normalised path length", ylabel="n steps.", xticks=xx, xticklabels=labels)
+
+        axarr[1].bar(xx, normalised_distance_at_sg, color=colors)
+        axarr[1].axhline(1, linestyle="--", color="k")
+        axarr[1].set(title="Normalised distance from direct path at subgoal", ylabel="px", xticks=xx, xticklabels=labels)
+
+        axarr[2].bar(xx, normalised_angles, color=colors)
+        axarr[2].axhline(1, linestyle="--", color="k")
+        axarr[2].set(title="normalised Angle off direct until subgoal", ylabel="comulative theta", xticks=xx, xticklabels=labels)
+
+
+        f.tight_layout()
+        f.savefig("Processing/modelling/maze_path_rl/results/{}_pathsvars.png".format(self.learner.env.name))
+
+        
+    @staticmethod
+    def path_order_lookup(exp):
+        if exp == "PathInt":
+            return [2, 1, 0], ["Left_Far", "Centre", "Right_Medium"]
+        elif exp == "PathInt2":
+            return [1, 0], ["Left_Far", "Right_Medium"]
+
+    @staticmethod
+    def colors_lookup(labels):
+        colors = dict(
+            Left_Far = [.2, .6, .2],
+            Left_Medium = [.2, .6, .2],
+            Centre = [.2, .2, .6],
+            Right_Medium = [.6, .2, .2]
+        )
+        return [colors[l] for l in labels]

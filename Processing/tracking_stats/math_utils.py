@@ -8,7 +8,17 @@ from math import factorial, atan2, degrees, acos, sqrt, pi
 import math
 import matplotlib.pyplot as plt
 from Utilities.file_io.files_load_save import load_yaml
+from scipy.signal import medfilt as median_filter
 
+
+def get_n_colors(n):
+    return [plt.get_cmap("tab20")(i) for i in np.arange(n)]
+
+def correct_speed(speed):
+    speed = speed.copy()
+    perc99 = np.percentile(speed, 99.5)
+    speed[speed>perc99] = perc99
+    return median_filter(speed, 31)
 
 def calc_IdPhi(phi):
     dPhi = abs(np.diff(phi))
@@ -94,6 +104,20 @@ def turning_points(array):
             begin = i
             ps = s
     return idx_min, idx_max
+
+def calc_distane_between_point_and_line(line_points, p3):
+    """[Calcs the perpendicular distance between a point and a line]
+    
+    Arguments:
+        line_points {[list]} -- [list of two 2-by-1 np arrays with the two points that define the line]
+        p3 {[np array]} -- [point to calculate the distance from]
+    """
+    p1, p2 = np.array(line_points[0]), np.array(line_points[1])
+    return np.cross(p2-p1,p3-p1)/np.linalg.norm(p2-p1)
+    
+
+
+
 
 
 def calc_distance_between_points_2d(p1, p2):

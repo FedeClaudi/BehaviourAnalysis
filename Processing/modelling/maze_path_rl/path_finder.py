@@ -28,8 +28,10 @@ if __name__ == "__main__":
 
 	grid_size = 60
 
-	maze_designs = ["PathInt.png", "PathInt2.png", "FourArms Maze.png", "TwoAndahalf Maze.png",
-					"Square Maze.png", "TwoArmsLong Maze.png", "mazemodel.png", "ModelBased.png", "ModelBased_mod.png"]
+	maze_designs = ["PathInt.png", "PathInt2.png",]
+	
+					#  "FourArms Maze.png", "TwoAndahalf Maze.png",
+					# "Square Maze.png", "TwoArmsLong Maze.png", "mazemodel.png", "ModelBased.png", "ModelBased_mod.png"]
 	
 	for maze_design in maze_designs:
 		print("\n\n\n", maze_design)

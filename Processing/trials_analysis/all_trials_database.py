@@ -9,7 +9,7 @@ from database.database_fetch import *
 
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame, get_arm_given_rois, convert_roi_id_to_tag
 from Processing.tracking_stats.math_utils import get_roi_enters_exits, line_smoother, calc_distance_between_points_2d, remove_tracking_errors
-
+from Processing.tracking_stats.velocity_analysis import get_expl_speeds
 class analyse_all_trals:
     """ 
         get all trips data from the database
@@ -21,14 +21,7 @@ class analyse_all_trals:
         if erase_table:
             self.erase_table()
 
-        # ! arbritary
-        self.duration_lims = dict(Left_Far=19,
-                                    Left_Medium=12,
-                                    Centre=8,
-                                    Right_Medium=12,
-                                    Right_Far=19,
-                                    Right2=22,
-                                    Left2=22)
+        self.define_duration_limits()
 
         self.naughty_experiments = ['Lambda Maze', ]
         self.good_experiments = ['PathInt', 'PathInt2', 'Square Maze', 'TwoAndahalf Maze', 'PathInt', 'FlipFlop Maze', 'FlipFlop2 Maze',
@@ -38,6 +31,27 @@ class analyse_all_trals:
         if fill_in_table:  # Get tracking data
             self.table = AllTrials()
             self.fill()
+
+    def define_duration_limits(self):
+        # # ?  speed threshold is 30 cm /s
+        # # path lengths in cm
+        # path_lengths = dict(Left_Far=156,
+        #                     Left_Medium=102,
+        #                     Centre=88,
+        #                     Right_Medium=102,
+        #                     Right_Far=156,
+        #                     Right2=193,
+        #                     Left2=190)
+
+        # # escape duration threshold is lenghts in cm divided by min escape speed rounded to the second decimal
+        # self.durations_lims = {k:round(v/30, 2) for k,v in path_lengths.items()}
+
+        """
+            Speed limits not duration limits. A trial is considered an escape if themean of the velocity during the trial
+            is bigger than the 95th percentile of the velocity during the exploration on an experiment by experiment basis
+        """
+        _, self.escape_speed_thresholds, _ = get_expl_speeds()
+
 
 
     def erase_table(self):
@@ -178,11 +192,18 @@ class analyse_all_trals:
 
                 # Check if the trial can be considered an escape
                 if escape_arm is not None:
+
                     trial_duration = trial_tracking['body'].shape[0]/fps
-                    if trial_duration <= self.duration_lims[escape_arm] and check_got_at_shelt:
-                        is_escape = 'true'
+                    # if trial_duration <= self.duration_lims[escape_arm] and check_got_at_shelt:
+                    #     is_escape = 'true'
+                    # else:
+                    #     is_escape = 'false'
+
+                    trial_speed = correct_speed(trial_tracking['body'][:, 2])
+                    if np.mean(trial_speed)>self.escape_speed_thresholds[exp]:
+                        is_escape = "true"
                     else:
-                        is_escape = 'false'
+                        is_escape = "false"
                 else:
                     is_escape = 'false'
                     trial_duration = -1
@@ -215,7 +236,8 @@ class analyse_all_trals:
                     fps = fps,
                     number_of_trials = number_of_stimuli,
                     trial_number = stim_n,
-                    threat_exits = threat_exits
+                    threat_exits = threat_exits,
+                    escape_duration = trial_duration,
                 )
 
                 session_trials.append(key)
@@ -259,6 +281,9 @@ def check_arm_assignment():
             ax.set(title=arm, xlim=[0, 1000], ylim=[0, 1000])
             
     plt.show()
+
+
+
 
 
 

@@ -38,6 +38,7 @@ class AllExplorationsPopulate:
         sessions_in_table = [int(s) for s in (AllExplorations).fetch("session_uid")]
 
         for n, (uid, sess_name, exp) in enumerate(sorted(zip(sessions, session_names, experiments))):
+            if n == 102: continue
             print(' Processing session {} of {} - {}'.format(n, len(sessions), sess_name))
 
             if uid in sessions_in_table: continue
@@ -55,6 +56,9 @@ class AllExplorationsPopulate:
                 start = first_stim['stim_start']
             else:
                 start = first_stim['overview_frame']
+            if start == -1: 
+                print('No stimuli found for session')
+                continue
 
             # Get the names of all the recordings in the session
             recordings = get_recordings_given_sessuid(uid)
@@ -65,10 +69,15 @@ class AllExplorationsPopulate:
             first_stim_rec = recs.index(first_stim['recording_uid'])
 
             # Get the tracking datas
-            tracking_data = {r:get_tracking_given_recuid(r, bp='body') for i, r in enumerate(recs) if i <= first_stim_rec}
+            tracking_data = {r:(get_tracking_given_recuid(r, bp='body')[0] if get_tracking_given_recuid(r, bp='body').shape[0] == 1 else get_tracking_given_recuid(r, bp='body'))
+                            for i, r in enumerate(recs) if i <= first_stim_rec}
 
             # Crop the last tracking data to the stimulus frame
-            tracking_data[first_stim['recording_uid']] = tracking_data[first_stim['recording_uid']][:start, :]
+            try:
+                tracking_data[first_stim['recording_uid']] = tracking_data[first_stim['recording_uid']][:start, :]
+            except: 
+                print("skipping")
+                continue
 
             # Get the tracking data as an array
             tracking_data_array = np.vstack(tracking_data.values())
@@ -79,22 +88,22 @@ class AllExplorationsPopulate:
             tracking_data_array =tracking_data_array[cutoff:, :]
 
             # Get more data from the tracking
-            median_velocity, time_in_shelt, time_on_t, distance_covered, duration = self.calculations_on_tracking_data(tracking_data_array)
+            median_velocity, time_in_shelt, time_on_t, distance_covered, duration = self.calculations_on_tracking_data(tracking_data_array, fps)
 
 
             # Get dict to insert in table
-            expl_id = pd.DataFrame(AllExplorations.fetch()).shape[0] = 1
+            expl_id = AllExplorations.fetch("exploration_id")[-1] + 1
 
             key = dict(
             exploration_id = expl_id,
-            session_uid= uid,
+            session_uid= int(uid),
             experiment_name= exp,
             tracking_data = tracking_data_array,
-            total_travel = distance_covered,
-            tot_time_in_shelter = time_in_shelt, 
-            tot_time_on_threat = time_on_t,
-            duration = duration, 
-            median_vel = median_velocity,            
+            total_travel = int(distance_covered),
+            tot_time_in_shelter = int(time_in_shelt), 
+            tot_time_on_threat = int(time_on_t),
+            duration = int(duration), 
+            median_vel = int(median_velocity),            
             session_number_trials = len(session_stims)  
             )
 

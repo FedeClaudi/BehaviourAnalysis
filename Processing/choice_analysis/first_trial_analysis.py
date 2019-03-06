@@ -38,72 +38,61 @@ from database.database_fetch import *
 
 class FirstTrialAnalysis:
     def __init__(self):
-        self.data, self.all_escapes = self.get_first_trials()
-        print(self.data)
+        self.trials, self.all_trials = self.get_first_trials()
+        self.experiments = sorted(set(self.trials['experiment']))
 
-        self.probArm_byexp, self.arms, self.experiments = self.plt_pR_byexp()
+        self.plot_pr_by_exp()
+
 
 
     def get_first_trials(self):
-        # Get all stim evoked escapes
-        recordings, escape, origin, duration, max_speed, experiment_name = (AllTrips & 'is_escape="true"' & 'is_trial="true"').fetch('recording_uid', 'escape_arm', 'origin_arm', 'duration', 'max_speed', 'experiment_name')
-        temp_d = dict(recording_uid=recordings,
-                        escape_arm = escape,
-                        origin_arm = origin, 
-                        duration = duration,
-                        max_speed = max_speed,
-                        experiment_name = experiment_name)
-        df = pd.DataFrame.from_dict(temp_d)
+        # Fetch all escape trials
+        to_fetch = ["origin_arm", "escape_arm", "session_uid", "recording_uid", "experiment_name", "trial_number"]
+        origins, escapes, uid, rec_uid, experiment, trial_n = (AllTrials).fetch(*to_fetch)
 
-        # Get the indexes of the first escape of each session
-        all_sessions = pd.DataFrame(Sessions.fetch())
-        sessions = [get_sessuid_given_recuid(r, all_sessions)['session_name'].values[0] for r in set(recordings)]
-        uids = {r:False for r in sessions}
-        good_idxs = []
-        for idx, row in df.iterrows():
-            sess = get_sessuid_given_recuid(row['recording_uid'], all_sessions)['session_name'].values[0]
-            if uids[sess]: continue # Make sure we keep it if it is only the first one for each session
-            else:  
-                uids[sess] = True
-                good_idxs.append(idx)
+        # Get  the index of the first trial of each session
+        first_idxs = [list(uid).index(sess) for sess in set(uid)]
 
-            
-        # return the filtered dataframe
-        return df.iloc[good_idxs], df
+        # turn lists to df
+        d = dict(
+            uid = uid,
+            rec_uid = rec_uid,
+            experiment = experiment, 
+            trial_n = trial_n, 
+            origins = origins,
+            escapes = escapes
+        )
 
-    def get_probs(data, arms):
-            n_escapes = data.shape[0]
-            return [round(list(data['escape_arm']).count(arm)/n_escapes,6) for arm in arms]
+        df = pd.DataFrame.from_dict(d)
 
-    def plt_pR_byexp(self):
-        experiments = set(self.data['experiment_name'].values)
-        arms = ['Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far']
-        y = np.arange(len(arms))
-        f, axarr = plt.subplots(3, 2)
-        axarr= axarr.flatten()
+        # Select only first trials
+        return df.iloc[first_idxs], df
 
-        probArm_by_exp = {}
-        for i, exp in enumerate(sorted(experiments)):
-            if 'FlipFlop' in exp: continue
-            exp_data = self.data.loc[self.data['experiment_name']==exp]
-            exp_data_all = self.all_escapes.loc[self.all_escapes['experiment_name']==exp]
+    @staticmethod
+    def calc_pr(escapes):
+        right_escapes = [e for e in escapes if "Right" in e]
+        return len(right_escapes) / len(escapes)
 
-            
+    def plot_pr_by_exp(self):
+        
+        pR, pRall = {}, {}
+        for exp in self.experiments:
+            if ("Four" in exp or "Flip" in exp or "Close" in exp): continue
+            escapes = self.trials.loc[self.trials['experiment'] == exp]['escapes'].values
+            all_escapes = self.all_trials.loc[self.all_trials['experiment'] == exp]['escapes'].values
+            pR[exp] = self.calc_pr(escapes)
+            pRall[exp] = self.calc_pr(all_escapes)
 
-            escapes_by_arm = self.get_probs(exp_data, arms)
-            probArm_by_exp[exp] = escapes_by_arm
-            overall_pR = get_probs(exp_data_all, ['Right_Medium'])[0]
-            
-            print(overall_pR)
-            axarr[i].bar(y, escapes_by_arm, color='k')
-            axarr[i].axhline(overall_pR, color='r', linewidth=2)
-            axarr[i].set(title=exp, xticks=y,  xticklabels=list(arms))
-
-        return probArm_byexp, arms, experiments
-
-    def pR_firststim_vs_overall_by_mouse_by_exp(self):
-        for i,exp in enumerate(sorted(self.experiments)):
-            exp_data = self.all_escapes.loc[self]
+        f, ax = plt.subplots()
+        xx = np.arange(len(pR))
+        yy = np.linspace(0, 1, 9)
+        colors = [plt.get_cmap("tab20")(i) for i in xx]
+        
+        ax.bar(xx, pR.values(), color=colors, alpha=.5)
+        ax.scatter(xx, pRall.values(), c=colors)
+        ax.set(title="p(Right Arm)", xticks=xx, xticklabels=pR.keys(), ylabel="p", yticks=yy, ylim=[0, 1])
+        ax.yaxis.grid(True)
+        plt.show()
 
 
 

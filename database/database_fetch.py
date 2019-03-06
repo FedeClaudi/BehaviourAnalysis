@@ -3,6 +3,7 @@ sys.path.append('./')
 from database.NewTablesDefinitions import *
 import cv2
 import os
+import warnings
 
 
 """Bunch of functions to facilitate retrieving filtered data from the database tables
@@ -51,10 +52,13 @@ def get_tracking_given_recuid(ruid, tracking=None, just_body=False, bp=None, jus
         if just_body:
             return (TrackingDataJustBody.BodyPartData & "recording_uid='{}'".format(ruid)).fetch()
         else:
+            recs_in_table = list(TrackingData.fetch("recording_uid"))
+            if not ruid in recs_in_table: warnings.warn("did not find any recording data, returning empty")
+
             if not just_trackin_data:
-                return (TrackingData.BodyPartData & "recording_uid='{}'".format(ruid) & "bpname='{}'".format(bp)).fetch()
+                return (TrackingData.BodyPartData & "recording_uid='{}'".format(ruid) & "camera_name='overview'" & "bpname='{}'".format(bp)).fetch()
             else:
-                return (TrackingData.BodyPartData & "recording_uid='{}'".format(ruid) & "bpname='{}'".format(bp)).fetch('tracking_data')
+                return (TrackingData.BodyPartData & "recording_uid='{}'".format(ruid) & "camera_name='overview'" & "bpname='{}'".format(bp)).fetch('tracking_data')
 
 def get_tracking_given_recuid_and_bp(recuid, bp):
     fetched = pd.DataFrame((TrackingData.BodyPartData & 'bpname = "{}"'.format(bp) & 'recording_uid = "{}"'.format(recuid)).fetch())

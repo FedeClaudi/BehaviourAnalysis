@@ -397,6 +397,7 @@ class AllTrials(dj.Manual):
         origin_arm:  enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'Right2', 'Left2', 'nan')         
         time_out_of_t: float
         fps: int
+        escape_duration: int        # duration in seconds
 
         threat_exits: longblob
     """
