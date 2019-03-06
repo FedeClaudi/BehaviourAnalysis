@@ -39,7 +39,7 @@ class Maze(object):
 		self.grid_size = grid_size
 		self.randomise_start = randomise_start
 
-		self.subgoals_fld = "Processing\modelling\maze_path_rl\subgoals"
+		self.subgoals_fld = "Processing/modelling/maze_path_rl/subgoals"
 
 		self.actions()
 		
@@ -51,6 +51,8 @@ class Maze(object):
 			self.maze[i[0]][i[1]] = 1
 
 		self.load_subgoals()
+
+		self.intermediate_reached_subgoal = False
 
 	def get_subgoals(self):
 		def register_click(event,x,y, flags, data):
@@ -155,11 +157,18 @@ class Maze(object):
 		elif policy == "direct_vector":
 			curr_dist = dist(self.curr_state, goal)
 			next_dist = dist(self.next_state, goal)
+
 		elif policy == "intermediate":
 			# get the distance to each subgoal
 			subgoals_d = [dist(self.next_state, sg) for sg in self.subgoals]
 			start_shelter_distance = dist(self.start, self.goal)
 			subgoals_check = [d/start_shelter_distance for d in subgoals_d if d <= 4]
+
+			at_subgoal = [sg for sg in self.subgoals if self.next_state == sg]
+			if at_subgoal: 
+				print("at sg")
+				self.intermediate_reached_subgoal = True
+
 		elif policy == "combined":
 			if dist(self.curr_state, self.start) < dist(self.next_state, self.start):  # check if moving away from shetler
 				moved_away_check = True
@@ -169,7 +178,7 @@ class Maze(object):
 			if dist(self.curr_state, goal) > dist(self.next_state, goal): # check if moving towards goal
 				moved_towards_check = True
 			else:
-				moved_towards_check = True
+				moved_towards_check = False
 
 		"""
 			EVALUATE THE CONSEQUENCES OF MOVING
@@ -195,16 +204,19 @@ class Maze(object):
 					self.reward = 0
 
 			elif policy == "intermediate":
-				if not subgoals_check:
-					self.reward = 0
+				if not self.intermediate_reached_subgoal:
+					if not subgoals_check:
+						self.reward = 0
+					else:
+						self.reward = subgoals_check[0]*.5
 				else:
-					self.reward = subgoals_check[0]*.5
+					self.reward=0
 					
 			elif policy == "combined":
 				self.reward = 0
 
-				if moved_away_check: self.reward += .05
-				else: self.reward -= .05
+				if moved_away_check: self.reward += .15
+				else: self.reward -= .15
 
 				if moved_towards_check: self.reward += .1
 				else: self.reward -= .1
