@@ -21,7 +21,7 @@ class analyse_all_trals:
         if erase_table:
             self.erase_table()
 
-        self.define_duration_limits()
+        
 
         self.naughty_experiments = ['Lambda Maze', ]
         self.good_experiments = ['PathInt', 'PathInt2', 'Square Maze', 'TwoAndahalf Maze', 'PathInt', 'FlipFlop Maze', 'FlipFlop2 Maze',
@@ -71,6 +71,9 @@ class analyse_all_trals:
                     - 30s elapsed
                     - recording finished
         """
+        # Define the min requirements on speed for trials to be escapes
+        self.define_duration_limits()
+
         sessions, session_names, experiments = (Sessions).fetch("uid","session_name", "experiment_name")
         sessions_in_table = [int(s) for s in (AllTrials).fetch("session_uid")]
 

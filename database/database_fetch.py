@@ -64,8 +64,8 @@ def get_tracking_given_recuid_and_bp(recuid, bp):
     fetched = pd.DataFrame((TrackingData.BodyPartData & 'bpname = "{}"'.format(bp) & 'recording_uid = "{}"'.format(recuid)).fetch())
     return fetched
 
-def get_videometadata_given_recuid(ruid, videometadata):
-    return videometadata.loc[videometadata['recording_uid'] == ruid]
+# def get_videometadata_given_recuid(ruid, videometadata):
+#     return videometadata.loc[videometadata['recording_uid'] == ruid]
 
 def get_videometadata_given_sessuid(uid, videometadata):
     return videometadata.loc[videometadata['uid'] == uid]

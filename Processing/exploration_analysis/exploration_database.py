@@ -38,7 +38,7 @@ class AllExplorationsPopulate:
         sessions_in_table = [int(s) for s in (AllExplorations).fetch("session_uid")]
 
         for n, (uid, sess_name, exp) in enumerate(sorted(zip(sessions, session_names, experiments))):
-            if n == 102: continue
+            if n in [102, 132]: continue   # ! these sessions cause problems for some reason
             print(' Processing session {} of {} - {}'.format(n, len(sessions), sess_name))
 
             if uid in sessions_in_table: continue
