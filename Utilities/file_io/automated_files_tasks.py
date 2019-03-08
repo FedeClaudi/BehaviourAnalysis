@@ -206,7 +206,7 @@ class FilesAutomationToolbox:
 if __name__ == "__main__":
     automation = FilesAutomationToolbox()
 
-    # a utomation.convert_tdms_to_mp4()
+    automation.convert_tdms_to_mp4()
 
     automation.get_list_uncoverted_tdms_videos()
     automation.get_list_not_tracked_videos()

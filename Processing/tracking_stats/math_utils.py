@@ -11,6 +11,19 @@ from Utilities.file_io.files_load_save import load_yaml
 from scipy.signal import medfilt as median_filter
 
 
+def calc_prob_item_in_list(ls, it):
+    """[Calculates the frequency of occurences of item in list]
+    
+    Arguments:
+        ls {[list]} -- [list of items]
+        it {[int, array, str]} -- [items]
+    """
+
+    n_items = len(ls)
+    n_occurrences = len([x for x in ls if x == it])
+    return n_occurrences/n_items
+
+
 def get_n_colors(n):
     return [plt.get_cmap("tab20")(i) for i in np.arange(n)]
 

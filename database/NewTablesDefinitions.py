@@ -403,6 +403,48 @@ class AllTrials(dj.Manual):
     """
 
 
+@schema
+class ArmsProbs(dj.Manual):
+    definition = """
+        -> Sessions
+        ---
+        experiment_name: varchar(128)
+        escape_arms: longblob           # integers IDs of the arm taken for each escape during the session
+        origin_arms: longblob            # same but for origin
+        n_escapes: int                  # number of escape trials
+        n_trials: int                   # tot number of trials
+    """
+
+    class Arm(dj.Part):
+        definition = """
+            -> ArmsProbs
+            arm_name:  varchar(128)
+            ---
+            escape_p: float             # probability of taking this arm when escaping
+            origin_p: float             # probability o taking this arm for origin
+            n_times_taken: int          # number of trials this arm was used for the escape
+        """
+
+    def arms_lookup_f(self):
+        """
+            Define a lookup where each arm is given an integer ID to store in main table
+        """
+
+        lookup = dict(
+            Left2 = 0,
+            Left_Far = 1,
+            Left_Medium = 2,
+            Centre = 3,
+            Right_Medium = 4,
+            Right_Far = 5, 
+            Right2 = 6,
+            nan = -1, 
+        )
+
+        self.arms_lookup = lookup
+        return lookup
+
+
 if __name__ == "__main__":
     import sys
     sys.path.append('./')

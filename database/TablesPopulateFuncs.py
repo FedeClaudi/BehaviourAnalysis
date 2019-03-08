@@ -961,3 +961,81 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
 
 
 
+
+
+
+#####################################################################################################################
+#####################################################################################################################
+
+def populate_ArmsProbs():
+    from database.NewTablesDefinitions import ArmsProbs, Sessions, AllTrials
+    to_fetch = ["origin_arm", "escape_arm", "experiment_name", "number_of_trials"]
+    table = ArmsProbs()
+    lookup = table.arms_lookup_f()
+
+    # Loop over each session but skip the ones that are already in the table
+    uids, session_names = Sessions.fetch("uid", "session_name")
+    sessions_in_table = table.fetch("uid")
+
+    for n, (uid, session_name) in enumerate(zip(uids, session_names)):
+        print("Processing {} of {} - {}".format(n, len(uids)-1, session_name))
+        if uid in sessions_in_table: 
+            print("     ... already in table")
+            continue
+
+        # Fetch the data for the session's trials
+        origins, escapes, experiment_names, number_of_trials = (AllTrials & "is_escape='true'" & "session_uid='{}'".format(uid)).fetch(*to_fetch)
+
+        # check if there is any trial from this session
+        if not np.any(experiment_names): continue
+
+        """
+            Insert into main table
+        """
+        # Convert escape and origin arms to integers array
+        escape_arms = np.array([lookup[a] for a in escapes])
+        origin_arms = np.array([lookup[a] for a in origins])
+
+        key = dict(
+            uid = uid, 
+            session_name = session_name, 
+            experiment_name = experiment_names[0],
+            escape_arms = escape_arms,
+            origin_arms =  origin_arms, 
+            n_escapes = len(escapes),
+            n_trials = number_of_trials[0]
+        )
+
+        table.insert1(key)
+
+        """
+            Insert into parts tables
+        """
+
+        # Get a set of all the arms
+        all_arms = []
+        all_arms.extend(origins)
+        all_arms.extend(escapes)
+        arms = set(all_arms)
+
+        # For each arm, look at the probability associated and populate part table
+        for arm in arms:
+            escape_p = calc_prob_item_in_list(escapes, arm)
+            origin_p = calc_prob_item_in_list(origins, arm)
+            n_times_escapes = len([x for x in escapes if x == arm])
+
+            part_key = dict(
+                uid = uid,
+                session_name = session_name,
+                arm_name = arm,
+                escape_p = escape_p,
+                origin_p = origin_p,
+                n_times_taken = n_times_escapes
+            )
+
+            # Insert into part table
+            table.Arm.insert1(part_key)
+
+
+
+

@@ -62,17 +62,18 @@ class PopulateDatabase:
         self.videofiles = VideoFiles()
         self.behaviourstimuli = BehaviourStimuli()
         self.mantisstimuli = MantisStimuli()
-        self.videosincomplete = VideosIncomplete()
         self.tracking_data = TrackingData()
         self.tracking_data_justbody = TrackingDataJustBody()
         self.commoncoordinatematrices = CommonCoordinateMatrices()
         self.dlcmodels = DLCmodels()
+        self.armsprobs = ArmsProbs()
+
         self.all_tables = dict(mice=self.mice, sessions= self.sessions, experiments=self.experiments,
                                 recordings=self.recordings, behaviourstimuli = self.behaviourstimuli,
                                 mantisstimuli = self.mantisstimuli, dlcmodels = self.dlcmodels,
                                 templates=self.templates, videofiles = self.videofiles, 
                                 commoncoordinatematrices=self.commoncoordinatematrices,
-                                tracking_data = self.tracking_data, videosincomplete = self.videosincomplete,
+                                tracking_data = self.tracking_data, armsprobs = self.armsprobs,
                                 tracking_data_justbody = self.tracking_data_justbody)
 
     def remove_table(self, tablename):
@@ -117,18 +118,6 @@ class PopulateDatabase:
             )
             self.insert_entry_in_table(data_to_input['experiment_name'], 'experiment_name', data_to_input, table)
 
-    # def remove_test_sessions(self):
-    #     # Some sessions on the datalog are test sessions which should not be analysed properly. 
-    #     test_sessions_ids = [87, 88]
-    #     for id in test_sessions_ids:
-    #         try:
-    #             print('Deleting...\n\n', ((self.tracking_data & 'uid={}'.format(id))))
-    #         except:
-    #             print('Could not delte sessions with id ', id)
-    #         else:
-    #             (self.tracking_data & 'uid={}'.format(id) ).delete()
-
-
     def populate_sessions_table(self):
         """  Populates the sessions table """
         table = self.sessions
@@ -163,8 +152,9 @@ class PopulateDatabase:
             )
             self.insert_entry_in_table(session_data['session_name'], 'session_name', session_data, table)
         
-        # Remove test sessions
-        # p.remove_test_sessions()
+    def populate_armsprobs(self):
+        populate_ArmsProbs()
+
 
     @staticmethod
     def insert_entry_in_table(dataname, checktag, data, table, overwrite=False):
@@ -256,6 +246,8 @@ if __name__ == '__main__':
 
     # p.tracking_data.populate()
     # p.tracking_data_justbody.populate()
+
+    p.populate_armsprobs()
 
 
     # p.remove_test_sessions()
