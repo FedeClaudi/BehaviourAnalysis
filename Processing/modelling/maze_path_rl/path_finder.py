@@ -18,7 +18,7 @@ FLAG_policy = False
 FLAG_showmaze = False
 
 randomise_start_during_training = True
-FLAG_load_trained = True
+FLAG_load_trained = False
 
 
 if __name__ == "__main__":
@@ -58,10 +58,16 @@ if __name__ == "__main__":
 		env = Maze(maze_design, grid_size, free_states,
 					goal, start_position, start_index, randomise_start_during_training)
 		
-
+		# Train the Q-learning agent
 		print("Learning the policy")
 		model = Model(env, FLAG_load_trained)
 		model.train()
+
+		# Get the shortest path to the shelter
+		model.shortest_walk_f()
+
+		# make random walks
+		# model.random_walks_f()
 
 		# Make policy plot
 		print("Plotting")

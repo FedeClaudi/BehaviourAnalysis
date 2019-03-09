@@ -6,6 +6,7 @@ from Processing.tracking_stats.math_utils import calc_distance_between_points_2d
 from math import exp  
 import json
 import os
+from random import choice
 
 class Model:
     def __init__(self, env, load_trained=False):
@@ -16,7 +17,6 @@ class Model:
         
         self.max_iters = 201
         self.max_steps = round(self.env.grid_size**2 / 2)
-        self.walked = None
 
         # Parameters
         self.epsilon = .95  # the higher the less greedy
@@ -24,6 +24,13 @@ class Model:
         self.gamma = .9     # discount on future rewards, the higher the less discount
 
         self.shelter_is_goal = [0, .5, 1]  # 0-1 probability of prefering the action that leads to the shelter
+
+
+        self.shortest_walk = None
+
+        self.n_random_walks = 10
+        self.random_walks = []
+
 
     """
     -----------------------------------------------------------------------------------------------------------------
@@ -37,7 +44,7 @@ class Model:
         self.Q = {p:self.empty_policy() for p in policies}
 
     def empty_policy(self):
-        return [[list(np.zeros(self.n_actions)) for i in range(self.env.grid_size)] for j in range(self.env.grid_size)]
+        return [[list(np.zeros(len(self.actions.keys()))) for i in range(self.env.grid_size)] for j in range(self.env.grid_size)]
 
     def actions(self):
         self.actions = self.env.actions
@@ -125,45 +132,55 @@ class Model:
     -----------------------------------------------------------------------------------------------------------------
     """
 
-    def step(self, policy, current):
+    def step(self, policy, current, random_action = False):
         """[steps the agent while walking the maze. Given a certain policy and state (current position), selects the best 
         actions and moves the agent accordingly]
         
         Arguments:
             policy {[str]} -- [name of the self.Q entry - i.e. policy to sue while evaluating which action to take]
-            current {[type]} -- [description]
+            current {[list]} -- [x,y coordinates of current position]
+            random_action {[bool]} [if we should take a random action instead of using the policies to select an acyion]
         
         Returns:
             [type] -- [description]
         """
 
         # Select which action to perform
-        nxt = current.copy()
-        action_values = self.Q[policy][current[0]][current[1]]
-        action = np.argmax(action_values)
-        action = self.env.actions[action]
+        if not random_action:
+            action_values = self.Q[policy][current[0]][current[1]]
+            action = np.argmax(action_values)
+            action = self.env.actions[action]
+        else:
+            legal_actions = self.env.get_available_moves(current)
+            action = "down"  # initialise action as down
+            while "down" in action or "still" in action:  # dont move down silly agent [and dont stay still either!]
+                action = choice(legal_actions)
 
         # Move the agent accordingly
+        nxt = current.copy()
+        up, down = -1, 1
+        left, right = -1, 1
         if action == "down":
-            nxt[1] -= 1
+            nxt[1] += down
         elif action == "right":
-            nxt[0] += 1
+            nxt[0] += right
         elif action == "left":
-            nxt[0] -= 1
+            nxt[0] += left
         elif action == "up":
-            nxt[1] += 1
+            nxt[1] += up
         elif action == "up-right":
-            nxt[0] += 1
-            nxt[1] += 1
+            nxt[0] += right
+            nxt[1] += up
         elif action == "up-left":
-            nxt[0] -= 1
-            nxt[1] += 1
+            nxt[0] += left
+            nxt[1] += up
         elif action == "down-right":
-            nxt[0] += 1
-            nxt[1] -= 1
+            nxt[0] += right
+            nxt[1] += down
         elif action == "down-left":
-            nxt[0] -= 1
-            nxt[1] -= 1
+            nxt[0] += left
+            nxt[1] += down
+
         return nxt
 
     def shortest_walk_f(self,  start=None):
@@ -201,14 +218,87 @@ class Model:
         self.shortest_walk = walk
         return walk
 
+    def random_walk(self, n_steps):
+        walk = []
+        step_n = 0
+        curr = self.env.start.copy()
+
+        while step_n <= n_steps and curr != self.env.goal:
+            step_n += 1
+            walk.append(curr.copy())
+            nxt = self.step("shelter", curr, random_action=True)
+            # Check that nxt is a legal move
+            # if nxt[0] < 0 or nxt[1] < 0 or nxt[0] > self.env.grid_size or nxt[1] > self.env.grid_size:
+            #     break
+            # if nxt in self.env.free_states:
+            #     curr = nxt
+            curr = nxt
+        walk.append(curr)
+        return walk
 
 
+    def random_walks_f(self):
+        """
+            This function does N random walks from start to goal without using any policy.
+            Each walk can be max M steps long where M = 3 * length of the shortest goal.
+            After X steps the walk is not random anymore and the shelter policy is used to reach the shelter.
+            X = .5 * length of the shortest path to the goal
+            Only walks that reach the shelter are kept
+        """
+        print("Random walks time")
+
+        if self.shortest_walk == None: self.shortest_walk_f()
+
+        # Define params
+        max_n_steps = 3* len(self.shortest_walk)
+        n_random_steps = round(len(self.shortest_walk) * .75 )
+
+        # Keep looping until we have enough walks
+        counter = 0
+        while len(self.random_walks) < self.n_random_walks:
+            counter += 1
+            # do the random part of the walk
+            walk = self.random_walk(n_random_steps)
+            stopped_at = walk[-1]
+
+            # Continue the walk using the policy
+            walk.extend(self.shortest_walk_f(start=stopped_at))
+
+            # If the walk isn't too long, append it to the list
+            if len(walk) <= max_n_steps:
+                self.random_walks.append(walk)
+
+        print("{} out of {} walks were short enough".format(self.n_random_walks, counter))
+
+        # Plot the walks
+        f, ax = plt.subplots()
+        self.get_maze_image()
+        ax.imshow(self.maze, interpolation='none', cmap='gray')
+        for w in self.random_walks:
+            ax.scatter([x for x,y in w], [y for x,y in w], alpha=.5)
+            
+
+        plt.show()
+        a = 1
 
     """
     -----------------------------------------------------------------------------------------------------------------
                         Plotting functions
     -----------------------------------------------------------------------------------------------------------------
     """
+
+    def plot_single_walk(self, w):
+        f, ax = plt.subplots()
+        self.get_maze_image()
+        ax.imshow(self.maze, interpolation='none', cmap='gray')
+        ax.scatter([x for x,y in w], [y for x,y in w], alpha=.5)
+
+    def get_maze_image(self):
+        Q = self.Q['shelter']
+        free = self.env.free_states
+        grid_size = self.env.grid_size
+        pol = [[max(Q[i][j]) for i in range(grid_size)] for j in range(grid_size)]
+        self.maze =  [[1 if [i, j] in free else 0 for i in range(grid_size)] for j in range(grid_size)]
 
     def policy_plot(self):
 
@@ -238,13 +328,12 @@ class Model:
 
 
             axarr[i, 0].imshow(maze, interpolation='none', cmap='gray')
-            axarr[i, 0].plot(start[0], start[1], 'o', color='g')
-            axarr[i, 0].plot(goal[0], goal[1], 'o', color='b')
+            axarr[i, 0].scatter(start[0], start[1], c='g', s = 50)
+            axarr[i, 0].scatter(goal[0], goal[1], c='b', s=50)
 
             walk = self.shortest_walk_f()
             x, y = [x for x, y in walk], [y for x, y in walk]
-            axarr[i, 0].scatter(x, y, c='r', alpha=0.5, s=10)
-            axarr[i, 0].plot(x[0], y[0], 'o', color='g')
+            axarr[i, 0].scatter(x, y, c='r', alpha=0.5, s=30)
 
             axarr[i, 1].imshow(act, interpolation='none',  cmap="tab20")
             axarr[i, 2].imshow(pol, interpolation='none')
@@ -258,8 +347,6 @@ class Model:
             ax.set(xticks=[], yticks=[])
         f.tight_layout()
         f.savefig("Processing/modelling/maze_path_rl/results/{}.png".format(name))
-        self.maze = maze
-
 
 
 

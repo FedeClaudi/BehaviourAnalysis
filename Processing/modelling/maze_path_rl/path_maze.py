@@ -119,6 +119,21 @@ class Maze(object):
 			7: "down-left"
 		}
 
+	def get_available_moves(self, curr):
+		"""[Get legal moves given the current position, i.e. moves that lead to a free cell]
+		
+		Arguments:
+			curr {[list]} -- [x,y coordinates of the agent]
+		"""
+		legals = []
+		for action in self.actions.values():
+			action_next = self.move(action, curr)
+			if action_next in self.free_states:
+				legals.append(action)
+
+		return legals
+
+
 	@staticmethod
 	def move(action, curr):
 		"""
@@ -132,24 +147,26 @@ class Maze(object):
 			return [current[0] + x, current[1] + y]
 
 		# depending on the action taken, move the agent by x,y offsets
+		up, down = -1, 1
+		left, right = -1, 1
 		if action == "still":
 			nxt_state = change(curr, 0, 0)
 		elif action == "left":
-			nxt_state = change(curr, -1, 0)
+			nxt_state = change(curr, left, 0)
 		elif action == "right":
-			nxt_state = change(curr, 1, 0)
+			nxt_state = change(curr, right, 0)
 		elif action == "up":
-			nxt_state = change(curr, 0, 1)
+			nxt_state = change(curr, 0, up)
 		elif action == "down":
-			nxt_state = change(curr, 0, -1)
+			nxt_state = change(curr, 0, down)
 		elif action == "up-left":
-			nxt_state = change(curr, -1, 1)
+			nxt_state = change(curr, left, up)
 		elif action == "up-right":
-			nxt_state = change(curr, 1, 1)
+			nxt_state = change(curr, right, up)
 		elif action == "down-right":
-			nxt_state = change(curr, 1, -1)
+			nxt_state = change(curr, right, down)
 		elif action == "down-left":
-			nxt_state = change(curr, -1, -1)
+			nxt_state = change(curr, left, down)
 		return nxt_state
 
 	def act(self, action):
