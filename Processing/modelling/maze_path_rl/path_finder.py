@@ -18,7 +18,7 @@ FLAG_policy = False
 FLAG_showmaze = False
 
 randomise_start_during_training = True
-FLAG_load_trained = False
+FLAG_load_trained = True
 
 
 if __name__ == "__main__":
@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
 	grid_size = 60
 
-	maze_designs = ["PathInt.png", "PathInt2.png",]
+	maze_designs = ["PathInt.png", "PathInt2.png", "Square Maze.png",]
 	
 					#  "FourArms Maze.png", "TwoAndahalf Maze.png",
 					# "Square Maze.png", "TwoArmsLong Maze.png", "mazemodel.png", "ModelBased.png", "ModelBased_mod.png"]
@@ -62,15 +62,19 @@ if __name__ == "__main__":
 		print("Learning the policy")
 		model = Model(env, FLAG_load_trained)
 		model.train()
+		model.save()
 
 		# Get the shortest path to the shelter
 		model.shortest_walk_f()
 
 		# make random walks
-		# model.random_walks_f()
+		model.random_walks_f()
+
+		# Find the alternative otpions
+		model.find_options()
 
 		# Make policy plot
 		print("Plotting")
-		model.policy_plot()
+		# model.policy_plot()
 
 	# plt.show()

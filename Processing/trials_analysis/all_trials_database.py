@@ -50,7 +50,7 @@ class analyse_all_trals:
             Speed limits not duration limits. A trial is considered an escape if themean of the velocity during the trial
             is bigger than the 95th percentile of the velocity during the exploration on an experiment by experiment basis
         """
-        _, self.escape_speed_thresholds, _ = get_expl_speeds()
+        _, self.escape_speed_thresholds, _, _ = get_expl_speeds()
 
 
 

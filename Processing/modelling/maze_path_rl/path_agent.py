@@ -2,11 +2,16 @@ import sys
 sys.path.append('./')
 import matplotlib.pyplot as plt
 import numpy as np
-from Processing.tracking_stats.math_utils import calc_distance_between_points_2d as dist
+from Processing.tracking_stats.math_utils import calc_distance_between_points_in_a_vector_2d as dist
+from Processing.tracking_stats.math_utils import get_n_colors
 from math import exp  
 import json
 import os
 from random import choice
+import pandas as pd
+from sklearn.cluster import KMeans
+
+
 
 class Model:
     def __init__(self, env, load_trained=False):
@@ -28,7 +33,7 @@ class Model:
 
         self.shortest_walk = None
 
-        self.n_random_walks = 10
+        self.n_random_walks = 8000
         self.random_walks = []
 
 
@@ -237,7 +242,7 @@ class Model:
         return walk
 
 
-    def random_walks_f(self):
+    def random_walks_f(self, debug_mode=False):
         """
             This function does N random walks from start to goal without using any policy.
             Each walk can be max M steps long where M = 3 * length of the shortest goal.
@@ -247,39 +252,178 @@ class Model:
         """
         print("Random walks time")
 
-        if self.shortest_walk == None: self.shortest_walk_f()
 
-        # Define params
-        max_n_steps = 3* len(self.shortest_walk)
-        n_random_steps = round(len(self.shortest_walk) * .75 )
-
-        # Keep looping until we have enough walks
-        counter = 0
-        while len(self.random_walks) < self.n_random_walks:
-            counter += 1
-            # do the random part of the walk
-            walk = self.random_walk(n_random_steps)
-            stopped_at = walk[-1]
-
-            # Continue the walk using the policy
-            walk.extend(self.shortest_walk_f(start=stopped_at))
-
-            # If the walk isn't too long, append it to the list
-            if len(walk) <= max_n_steps:
-                self.random_walks.append(walk)
-
-        print("{} out of {} walks were short enough".format(self.n_random_walks, counter))
-
-        # Plot the walks
-        f, ax = plt.subplots()
-        self.get_maze_image()
-        ax.imshow(self.maze, interpolation='none', cmap='gray')
-        for w in self.random_walks:
-            ax.scatter([x for x,y in w], [y for x,y in w], alpha=.5)
+        # Check if a file already exists:
+        save_fld = "Processing/modelling/maze_path_rl/random_walks"
             
+        name = "{}_rw.pkl".format(self.env.name)
+        savename = os.path.join(save_fld, name)
+        if not os.path.isfile(savename):
 
-        plt.show()
-        a = 1
+            if self.shortest_walk == None: self.shortest_walk_f()
+
+            # Define params
+            max_n_steps = 3* len(self.shortest_walk)
+            n_random_steps = round(len(self.shortest_walk) * .75 )
+
+            # Keep looping until we have enough walks
+            counter = 0
+            while len(self.random_walks) < self.n_random_walks:
+                counter += 1
+                # do the random part of the walk
+                walk = self.random_walk(n_random_steps)
+                stopped_at = walk[-1]
+
+                # Continue the walk using the policy
+                walk.extend(self.shortest_walk_f(start=stopped_at))
+
+                # If the walk is going down (i.e. has neg Y velocity): discard it
+                y_vel = -np.diff([y for x,y in walk])
+                if np.any(np.where(y_vel < 0)): 
+                    continue
+
+                # If the walk isn't too long, append it to the list
+                if len(walk) <= max_n_steps:
+                    self.random_walks.append(walk)
+
+            print("     {} out of {} walks were good".format(self.n_random_walks, counter))
+
+            if debug_mode:
+                # Plot the walks
+                f, ax = plt.subplots()
+                self.get_maze_image()
+                ax.imshow(self.maze, interpolation='none', cmap='gray')
+                for w in self.random_walks:
+                    ax.scatter([x for x,y in w], [y for x,y in w], alpha=.5)
+                
+
+            # Plot each walk's X,Y, length...
+            f, axarr = plt.subplots(ncols=3, nrows=2, figsize=(20, 16))
+            axarr = axarr.flatten()
+
+            # traces
+            self.get_maze_image()
+            axarr[0].imshow(self.maze, interpolation='none', cmap='gray')
+            for w in self.random_walks:
+                axarr[0].scatter([x for x,y in w], [y for x,y in w], alpha=.5)
+
+            # x,y
+            for w in self.random_walks:
+                axarr[1].plot([x for x,y in w], linewidth=.75, alpha=.5)
+
+            # Durations | number of frames per walk 
+            durs = [len(w) for w in self.random_walks]
+            axarr[3].hist(durs, bins=50)
+
+            # Distance | euclidean distance between each two subsequent points along the walk
+            dists = [np.sum(dist(np.vstack(w))) for w in self.random_walks]
+            axarr[4].hist(dists, bins=50)
+
+            # Get the distance from the direct path | X offset
+            x_offsets = []
+            for w in self.random_walks:
+                x = [x for x,y in w]
+                right, left = np.max(x), np.min(x)
+                if abs(right) > abs(left):
+                    x_offsets.append(right)
+                else:
+                    x_offsets.append(left)
+            axarr[5].hist(x_offsets, bins=50)
+
+            #  distance covered by X offset
+            axarr[2].scatter(dists, x_offsets, s=20, alpha=.75)
+
+
+            axarr[1].set(title="X position", xlabel="frames", ylabel="x")
+            axarr[2].set(title="Paths clusters", xlabel="distance covered", ylabel="x offset")
+            axarr[3].set(title="Duration (n frames)", xlabel="count", ylabel="# frames")
+            axarr[4].set(title="Distance covered", xlabel="count", ylabel="tot distance")
+            axarr[5].set(title="Max X offset", xlabel="count", ylabel="x offset")
+
+            f.savefig("Processing/modelling/maze_path_rl/results/random_walks{}.png".format(self.env.name))
+
+            # Save the random walks as a pandas dataframe
+            d = dict(
+                walks = self.random_walks,
+                duration = durs,
+                distance = dists,
+                x_offset = x_offsets,
+            )
+            self.random_walks = pd.DataFrame.from_dict(d)
+
+            self.random_walks.to_pickle(savename)
+
+
+        else:
+            self.random_walks = pd.read_pickle(savename)
+
+    """
+    -----------------------------------------------------------------------------------------------------------------
+                        Finding options
+    -----------------------------------------------------------------------------------------------------------------
+    """
+
+    def find_options(self):
+        # Load the walks
+        if not isinstance(self.random_walks, pd.DataFrame):
+            save_fld = "Processing/modelling/maze_path_rl/random_walks"
+            name = "{}_rw.pkl".format(self.env.name)
+            savename = os.path.join(save_fld, name)
+            self.random_walks = pd.read_pickle(savename)
+
+        # User defined number of clusters
+        n_clusters_lookup = {"PathInt":3, "PathInt2":2, "Square Maze":2}
+
+        # colors 
+        colors = get_n_colors(3)
+
+        # Get the two metrics we are interested in 
+        X = np.array([self.random_walks['distance'].values, self.random_walks['x_offset'].values]).T
+
+        # K-means clustering - fit
+        kmeans = KMeans(n_clusters=n_clusters_lookup[self.env.name])
+        kmeans.fit(X)
+
+        # predict
+        predictions = kmeans.predict(X)
+        centers = kmeans.cluster_centers_
+
+        # plot
+        f, axarr = plt.subplots(ncols=2)
+        axarr[0].scatter(X[:, 0], X[:, 1], c=[colors[p] for p in predictions], s=100)
+        axarr[0].set(title="{} clusters".format(self.env.name), xlabel="distance travelled", ylabel="X offset")
+        axarr[0].scatter(centers[:, 0], centers[:, 1], c='black', s=200, alpha=0.5)
+
+        # Add predictions to dataframe
+        self.random_walks['cluster'] = predictions
+
+        # Plot each route for each cluster
+        self.get_maze_image()
+        axarr[1].imshow(self.maze, interpolation='none', cmap='gray')
+        for i, row in self.random_walks.iterrows():
+            axarr[1].scatter([x for x,y in row['walks']], [y for x,y in row['walks']],
+                            s=10, alpha=.3, c=colors[row['cluster']])
+
+        # Get the best path from each cluster (i.e. the shortest)
+        kluster_walks = []
+        for knum in set(predictions):
+            distances = self.random_walks.loc[self.random_walks['cluster'] == knum]['distance'].values
+            # x_offset = self.random_walks.loc[self.random_walks['cluster'] == knum]['x_offset'].values
+            shortest = np.argmin(distances)
+            k_walk = self.random_walks.loc[self.random_walks['cluster'] == knum]['walks'].values[shortest]
+            axarr[1].scatter([x for x,y in k_walk], [y for x,y in k_walk],
+                            s=30, alpha=.8, c='r')
+            kluster_walks.append(k_walk)
+
+
+        f.savefig("Processing/modelling/maze_path_rl/results/{}__options.png".format(self.env.name))
+
+
+
+
+
+
+
 
     """
     -----------------------------------------------------------------------------------------------------------------
