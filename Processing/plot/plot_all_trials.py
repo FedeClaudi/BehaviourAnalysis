@@ -19,7 +19,7 @@ from Utilities.video_and_plotting.video_editing import Editor
 class PlotAllTrials:
     def __init__(self, select_escapes=True):
         self.trials = AllTrials()
-        self.save_fld = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\\plots\\all_trials'
+        self.save_fld = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\plots\\all_trials_both_escs_and_nescs'
 
         if select_escapes:
             self.escapes = 'true'
@@ -27,7 +27,7 @@ class PlotAllTrials:
             self.escapes = 'false'
 
         self.to_fetch = ['experiment_name', 'tracking_data', 'fps', 'number_of_trials', 'trial_number', 
-                        'recording_uid', 'stim_frame', 'escape_arm', 'origin_arm']
+                        'recording_uid', 'stim_frame', 'escape_arm', 'origin_arm', 'is_escape']
 
 
     """
@@ -53,15 +53,14 @@ class PlotAllTrials:
         sessions = set(AllTrials.fetch('session_uid'))
 
         for uid in sessions:
-            experiments, trials, fps, number_of_trials, trial_number, rec_uid, stim_frames, escapes, origins = \
-                (AllTrials & "session_uid='{}'".format(uid) & "is_escape='{}'".format(self.escapes))\
-                            .fetch(*self.to_fetch)
+            experiments, trials, fps, number_of_trials, trial_number, rec_uid, stim_frames, escapes, origins, is_escape = \
+                (AllTrials & "session_uid='{}'".format(uid)).fetch(*self.to_fetch)
 
             if not np.any(experiments): continue
 
 
             self.plot_as_video(trials, experiments[0], fps[0], rec_uid, stim_frames, escapes, origins, \
-                                uid, number_of_trials[0], trial_number,)
+                                uid, number_of_trials[0], trial_number, is_escape=is_escape)
 
     def plot_by_feature(self, feature):
         # Get notes and sort them
@@ -157,7 +156,7 @@ class PlotAllTrials:
 
 
     def plot_as_video(self, trials, exp,  fps, rec_uids, stim_frames, escapes, origins, \
-                        label0=None, number_of_trials = None, trial_number=None, savename=None):
+                        label0=None, number_of_trials = None, trial_number=None, savename=None, is_escape=None):
         def draw_contours(fr, cont, c1, c2):
             if c2 is not None:
                 cv2.drawContours(fr, cont, -1, c2, 4)
@@ -192,7 +191,7 @@ class PlotAllTrials:
 
         # loop over each trial
         stored_contours = []
-        for n, (tr, trn, rec_uid, stim_frame, escs, ors) in enumerate(zip(trials, trial_number, rec_uids, stim_frames, escapes, origins)):
+        for n, (tr, trn, rec_uid, stim_frame, escs, ors, is_esc) in enumerate(zip(trials, trial_number, rec_uids, stim_frames, escapes, origins, is_escape)):
             # shift all tracking Y up by 10px to align better
             trc = tr.copy()
             trc[:, 1, :] = np.add(trc[:, 1, :], 10)
@@ -305,6 +304,11 @@ class PlotAllTrials:
                             cv2.FONT_HERSHEY_SIMPLEX, 1, 
                             (255, 255, 255), 2,cv2.LINE_AA)
 
+                cv2.putText(background, 'is escape: '+ is_esc,
+                            (int(maze_model.shape[0]*.6), int(maze_model.shape[1]*.15)), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, 
+                            (255, 255, 255), 2,cv2.LINE_AA)
+
 
                 # IdPhi
                 # cv2.putText(background, 'IdPhi: '+ str(round(IdPhi, 2)),
@@ -351,7 +355,6 @@ class PlotAllTrials:
                 trial_stored_contours.append(coords)
 
             stored_contours.append(trial_stored_contours)
-        
         writer.release()
 
 
@@ -462,11 +465,11 @@ class PlotAllTrials:
 if __name__ == "__main__":
     plotter = PlotAllTrials(select_escapes=True)
     # plotter.plot_by_exp()
-    # plotter.plot_by_session(as_video=True)
+    plotter.plot_by_session(as_video=True)
 
-    features_keys = load_yaml('Processing\\trials_analysis\\trials_observations.yml').keys()
-    for feature in features_keys:
-        plotter.plot_by_feature(feature)
+    # features_keys = load_yaml('Processing\\trials_analysis\\trials_observations.yml').keys()
+    # for feature in features_keys:
+    #     plotter.plot_by_feature(feature)
 
     # plotter.visualise_plots()
 

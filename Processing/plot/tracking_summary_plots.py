@@ -82,7 +82,7 @@ def plot_all_trials():
                 y = stim_tracking[0]['tracking_data'][stim['stim_start'] -
                                                         60:stim['stim_start']+timewindow, 1]
                 v = stim_tracking[0]['tracking_data'][stim['stim_start'] -
-                                                      60:stim['stim_start']+timewindow, 2]                
+                                                        60:stim['stim_start']+timewindow, 2]                
                 
                 plotter(axarr[i], axall, v, x, y)
 

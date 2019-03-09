@@ -128,9 +128,6 @@ class ClipWriter:
                 self.writer.write(frame)
 
 
-
-
-
 def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False):
     def write_clip(video, savename, stim_frame, stim_duration, prestim, poststim, clean_vids, posedata):
         # parameters to draw on frame
@@ -286,12 +283,9 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
 
         if videoname is not None:
             ClipWriter(videoname, stimuli_dict, clean_vids)
-                
-                
-
 
 def make_video_with_all_escapes(select_escapes=True, select_stim_evoked=True, select_exp = None, align_to_stim=True):
-    savename = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\asym_maze_tostim.mp4'
+    savename = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\\plots\\videos\\{}.mp4'.format(select_exp)
     # Get background
     maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')
     maze_model = cv2.resize(maze_model, (1000, 1000))
