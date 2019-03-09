@@ -13,28 +13,7 @@ class Walker:
         self.learner = learner
         self.initial_position()
 
-        # params
-        self.direct_vector_steps = 3  # steps in which shelter distance policy dominates
-        self.distance_steps = 10      # steps in which start distance policy dominates
-        self.direct_vector_p = .8     # weight to give to policy while it dominates
-        self.distance_p = .3  
-    
-        # other params
-        self.n_walks_per_start = 3
         self.max_steps = 100
-
-
-    def initial_position(self):
-        start = self.learner.env.start
-        offsets = [-3, -2, -1, 0, 1, 2, 3]
-
-        starts = []
-        for offset in offsets:
-            s = start.copy()
-            s[0] +=  offset
-            starts.append(s)
-
-        self.starts = starts
 
 
     def walk(self):
@@ -57,27 +36,9 @@ class Walker:
                     dv_steps = np.random.normal(self.direct_vector_p, self.direct_vector_p/2, 1)
                     aw_steps = np.random.normal(self.distance_steps, self.distance_steps/3, 1)
 
-                    # select policy
-                    if step_n <= dv_steps:
-                        p = self.direct_vector_p
-                        policy = "direct_vector"
-                    elif step_n <= aw_steps:
-                        p = self.distance_steps
-                        policy = "away"
-                    else:
-                        p = 0
-                        policy = "direct_vector"
+                    # step
+                    nxt = self.step("shelter", curr)
 
-                    # calculate two alternative actions
-                    shelter_next = self.step("direct_vector", curr)
-                    policy_next = self.step(policy, curr)
-
-                    # select one
-                    select = np.random.uniform(0, 1, 1)
-                    if policy != "shelter" and select <= p:
-                        nxt = policy_next
-                    else:
-                        nxt = shelter_next
 
                     # Check that nxt is a legal move
                     if nxt[0] < 0 or nxt[1]< 0 or nxt[0] > self.learner.env.grid_size or nxt[1]>self.learner.env.grid_size: break
@@ -156,6 +117,7 @@ class Walker:
         name = model.env.name
 
         f, axarr = plt.subplots(ncols=3, nrows=len(list(model.Q.keys())), figsize=(16, 12))
+        axarr = axarr.reshape(1, 3)
 
         for i, (Q_name, Q) in enumerate(model.Q.items()):
             if not "subgoal" in Q_name:
@@ -198,50 +160,6 @@ class Walker:
 
         self.maze = maze
 
-    def walks_plot(self):
-        f, ax = plt.subplots()
-        ax.imshow(self.maze, interpolation="none", cmap="gray")
-        for walks in self.walks:
-            for walk in walks:
-                x, y = [x for x,y in walk], [y for x,y in walk]
-                ax.scatter(x,y, alpha=.4)
-
-        
-        f.savefig("Processing/modelling/maze_path_rl/results/{}_walks.png".format(self.learner.env.name))
-
-
-    def subgoals_plot(self):
-        env = self.learner.env
-
-        f, ax = plt.subplots( figsize=(8, 12))
-        ax.imshow(self.maze, interpolation="none", cmap="gray")
-
-        walks = []
-        for i, _ in enumerate(env.subgoals):
-            subgoal_policy = 'subgoal_{}'.format(i)
-            shelter_policy = 'shelter'
-
-            walk = []
-            walk.extend(self.clean_walk(subgoal_policy, env.subgoals[i]))
-            at_subgoal = len(walk)
-            walk.extend(self.clean_walk(shelter_policy, env.goal, start=walk[-1]))
-            distance_travelled = np.sum(calc_distance_between_points_in_a_vector_2d(np.array(walk)))
-            orientation = np.abs(np.add(calc_angle_between_points_of_vector(np.array(walk[:at_subgoal])), -90))   # total orientation off the direct path until it got to subgoal
-            tot_angle = np.nansum(orientation)
-            walks.append((walk, distance_travelled, tot_angle, at_subgoal))
-
-            ax.scatter([x for x,y in walk], [y for x, y in walk], c='r', alpha=.5)
-            ax.scatter(env.subgoals[i][0], env.subgoals[i][1], s=60, label=str(i))
-
-        ax.scatter(env.start[0], env.start[1], color='g', s=100)
-        ax.scatter(env.goal[0], env.goal[1], color='b', s=100)
-        ax.legend()
-
-        f.savefig("Processing/modelling/maze_path_rl/results/{}_subgoals.png".format(self.learner.env.name))
-
-        self.process_walks(walks)
-
-        # plt.show()
 
 
     def process_walks(self, walks):

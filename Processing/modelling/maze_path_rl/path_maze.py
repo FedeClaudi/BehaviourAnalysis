@@ -95,11 +95,10 @@ class Maze(object):
 
 
 
-	def reset(self, random_start):
+	def reset(self,):
 		# reset the environment
-
-		if not self.randomise_start and random_start:
-			self.start_index = self._start_index
+		if not self.randomise_start:
+			self.start_index = self._start_index  #  always start at the same position
 		else:
 			self.start_index = np.random.randint(0,len(self.free_states))
 		self.curr_state = self.free_states[self.start_index]
@@ -120,116 +119,57 @@ class Maze(object):
 			7: "down-left"
 		}
 
-	def act(self, action, move_away_reward, policy, goal):
-		def move(action, curr):
-			def change(current, x, y):
-				return [current[0] + x, current[1] + y]
+	@staticmethod
+	def move(action, curr):
+		"""
+		    moves from current position to next position deoending on the action taken
+		"""
 
-			if action == "still":
-				nxt_state = change(curr, 0, 0)
-			elif action == "left":
-				nxt_state = change(curr, -1, 0)
-			elif action == "right":
-				nxt_state = change(curr, 1, 0)
-			elif action == "up":
-				nxt_state = change(curr, 0, 1)
-			elif action == "down":
-				nxt_state = change(curr, 0, -1)
-			elif action == "up-left":
-				nxt_state = change(curr, -1, 1)
-			elif action == "up-right":
-				nxt_state = change(curr, 1, 1)
-			elif action == "down-right":
-				nxt_state = change(curr, 1, -1)
-			elif action == "down-left":
-				nxt_state = change(curr, -1, -1)
-			
-			return nxt_state
+		def change(current, x, y):
+			"""
+				change the position by x,y offsets
+			"""
+			return [current[0] + x, current[1] + y]
 
+		# depending on the action taken, move the agent by x,y offsets
+		if action == "still":
+			nxt_state = change(curr, 0, 0)
+		elif action == "left":
+			nxt_state = change(curr, -1, 0)
+		elif action == "right":
+			nxt_state = change(curr, 1, 0)
+		elif action == "up":
+			nxt_state = change(curr, 0, 1)
+		elif action == "down":
+			nxt_state = change(curr, 0, -1)
+		elif action == "up-left":
+			nxt_state = change(curr, -1, 1)
+		elif action == "up-right":
+			nxt_state = change(curr, 1, 1)
+		elif action == "down-right":
+			nxt_state = change(curr, 1, -1)
+		elif action == "down-left":
+			nxt_state = change(curr, -1, -1)
+		return nxt_state
+
+	def act(self, action):
 		# Move
 		action_name = self.actions[action]
-		self.next_state = move(action_name, self.curr_state)
-
-		# Calc distances
-		if policy == "away":
-			curr_dist = dist(self.curr_state, self.start)
-			next_dist = dist(self.next_state, self.start)
-		elif policy == "direct_vector":
-			curr_dist = dist(self.curr_state, goal)
-			next_dist = dist(self.next_state, goal)
-
-		elif policy == "intermediate":
-			# get the distance to each subgoal
-			subgoals_d = [dist(self.next_state, sg) for sg in self.subgoals]
-			start_shelter_distance = dist(self.start, self.goal)
-			subgoals_check = [d/start_shelter_distance for d in subgoals_d if d <= 4]
-
-			at_subgoal = [sg for sg in self.subgoals if self.next_state == sg]
-			if at_subgoal: 
-				print("at sg")
-				self.intermediate_reached_subgoal = True
-
-		elif policy == "combined":
-			if dist(self.curr_state, self.start) < dist(self.next_state, self.start):  # check if moving away from shetler
-				moved_away_check = True
-			else:
-				moved_away_check = False
-			
-			if dist(self.curr_state, goal) > dist(self.next_state, goal): # check if moving towards goal
-				moved_towards_check = True
-			else:
-				moved_towards_check = False
+		self.next_state = self.move(action_name, self.curr_state)
 
 		"""
 			EVALUATE THE CONSEQUENCES OF MOVING
 		"""
-		# Consequences of moving
 		if self.next_state in self.free_states:
 			self.curr_state = self.next_state
-
-			if policy == "away":
-				if curr_dist > next_dist: # moving back towards start, not good 
-					self.reward = - move_away_reward
-				elif curr_dist < next_dist: # moving away from start
-					self.reward = move_away_reward
-				else:
-					self.reward = 0
-
-			elif policy == "direct_vector":
-				if curr_dist > next_dist:  # moving towards goal
-					self.reward = move_away_reward
-				elif curr_dist < next_dist:  # moving away from goal
-					self.reward = -move_away_reward
-				else:
-					self.reward = 0
-
-			elif policy == "intermediate":
-				if not self.intermediate_reached_subgoal:
-					if not subgoals_check:
-						self.reward = 0
-					else:
-						self.reward = subgoals_check[0]*.5
-				else:
-					self.reward=0
-					
-			elif policy == "combined":
-				self.reward = 0
-
-				if moved_away_check: self.reward += .15
-				else: self.reward -= .15
-
-				if moved_towards_check: self.reward += .1
-				else: self.reward -= .1
-
-			else:
-				self.reward = 0
+			self.reward = 0
 		else: 
 			self.next_state = self.curr_state
 			self.reward = 0
 
 
-		if(self.next_state == goal):
-			self.reward += 1
+		if(self.next_state == self.goal):
+			self.reward = 1
 			self.game_over = True
 		else:
 			self.game_over = False

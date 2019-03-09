@@ -11,8 +11,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from Processing.modelling.maze_path_rl.path_maze import Maze, get_maze_from_image
-from Processing.modelling.maze_path_rl.path_learner import Model
-from Processing.modelling.maze_path_rl.path_walker import Walker
+from Processing.modelling.maze_path_rl.path_agent import Model
 
 
 FLAG_policy = False  
@@ -64,16 +63,8 @@ if __name__ == "__main__":
 		model = Model(env, FLAG_load_trained)
 		model.train()
 
-		# walk
-		walker = Walker(model)
-		walker.walk()
-
-		# plot
-		walker.policy_plot()
-		walker.walks_plot()
-		walker.subgoals_plot()
-
-		# Save policies
-		model.save()
+		# Make policy plot
+		print("Plotting")
+		model.policy_plot()
 
 	# plt.show()
