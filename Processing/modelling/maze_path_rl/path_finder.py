@@ -77,4 +77,7 @@ if __name__ == "__main__":
 		print("Plotting")
 		model.policy_plot()
 
+		# save model
+		model.save_model()
+
 	# plt.show()

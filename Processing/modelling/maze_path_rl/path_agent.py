@@ -3,7 +3,7 @@ sys.path.append('./')
 import matplotlib.pyplot as plt
 import numpy as np
 from Processing.tracking_stats.math_utils import calc_distance_between_points_in_a_vector_2d as dist
-from Processing.tracking_stats.math_utils import get_n_colors, calc_angle_between_points_of_vector, calc_ang_velocity
+from Processing.tracking_stats.math_utils import get_n_colors, calc_angle_between_points_of_vector, calc_ang_velocity, line_smoother
 from math import exp  
 import json
 import os
@@ -12,6 +12,8 @@ import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.cluster import AgglomerativeClustering
 from scipy.signal import resample
+import random
+import pickle
 
 
 
@@ -159,9 +161,16 @@ class Model:
             action = np.argmax(action_values)
             action = self.env.actions[action]
         else:
-            legal_actions = self.env.get_available_moves(current)
-            action = "down"  # initialise action as down
-            while "down" in action or "still" in action:  # dont move down silly agent [and dont stay still either!]
+            # Select an action based on each action's probability
+            action_values = self.Q[policy][current[0]][current[1]]
+            action_values = action_values / np.sum(action_values)   # normalise
+            selected_action = np.random.choice(action_values, 1, p=action_values)
+            action_id = random.choice(np.where(action_values == selected_action)[0])
+            action = self.env.actions[action_id]
+
+            # if its not a legal action, selected another random on
+            legal_actions = [a for a in self.env.get_available_moves(current) if a != "still" and "down" not in a]
+            if action not in legal_actions:
                 action = choice(legal_actions)
 
         # Move the agent accordingly
@@ -245,7 +254,7 @@ class Model:
         return walk
 
 
-    def random_walks_f(self, load=False):
+    def random_walks_f(self, load=True):
         """
             This function does N random walks from start to goal without using any policy.
             Each walk can be max M steps long where M = 3 * length of the shortest goal.
@@ -360,7 +369,7 @@ class Model:
                         Finding options
     -----------------------------------------------------------------------------------------------------------------
     """
-
+    
     def find_options(self):
         # Load the walks
         if not isinstance(self.random_walks, pd.DataFrame):
@@ -393,11 +402,11 @@ class Model:
         trajectories = [np.vstack(w) for w in walks]
         max_l = np.max([t.shape[0] for t in trajectories])
         resampled = [np.array([resample(t[:, 0], max_l), resample(t[:, 1], max_l)]) for t in trajectories]
-        X = np.array(resampled)[:, 0, :]
+        X = np.array(resampled)[:, 0, :]*np.array(resampled)[:, 1, :]
         cluster = AgglomerativeClustering(n_clusters=n_clusters_lookup[self.env.name], affinity='euclidean', linkage='ward')  
         predictions = cluster.fit_predict(X)
 
-        # plot
+            # plot
         f, axarr = plt.subplots()
         # axarr[0].scatter(X[:, 0], X[:, 1], c=[colors[p] for p in predictions], s=100)
         # axarr[0].set(title="{} clusters".format(self.env.name), xlabel="distance travelled", ylabel="X offset")
@@ -420,17 +429,14 @@ class Model:
             # x_offset = self.random_walks.loc[self.random_walks['cluster'] == knum]['x_offset'].values
             shortest = np.argmin(distances)
             k_walk = self.random_walks.loc[self.random_walks['cluster'] == knum]['walks'].values[shortest]
-            axarr.scatter([x for x,y in k_walk], [y for x,y in k_walk],
+            axarr.scatter(line_smoother([x for x,y in k_walk]), line_smoother([y for x,y in k_walk]),
                             s=30, alpha=.8, c='r')
             kluster_walks.append(k_walk)
 
+        self.cluster_walks = {i:w for i,w in enumerate(kluster_walks)}
+
 
         f.savefig("Processing/modelling/maze_path_rl/results/{}__options.png".format(self.env.name))
-
-
-
-
-
 
 
 
@@ -501,3 +507,16 @@ class Model:
         f.tight_layout()
         f.savefig("Processing/modelling/maze_path_rl/results/{}.png".format(name))
 
+
+    """
+    -----------------------------------------------------------------------------------------------------------------
+                        Model saving
+    -----------------------------------------------------------------------------------------------------------------
+    """
+
+    def save_model(self):
+        save_fld = "Processing/modelling/maze_path_rl/models"
+        savename = os.path.join(save_fld, self.env.name + ".pkl")
+
+        with open(savename, 'wb') as output:
+            pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)

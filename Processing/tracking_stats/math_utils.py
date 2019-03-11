@@ -451,7 +451,7 @@ def line_smoother(y, window_size=31, order=5, deriv=0, rate=1):
         y = np.concatenate((firstvals, y, lastvals))
         return np.convolve(m[::-1], y, mode='valid')
     except:
-        print('ops smoothing')
+        # print('ops smoothing')
         y = np.array(y)
         firstvals = y[0] - np.abs(y[1:half_window + 1][::-1] - y[0])
         lastvals = y[-1] + np.abs(y[-half_window - 1:-1][::-1] - y[-1])
