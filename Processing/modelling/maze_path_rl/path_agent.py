@@ -372,7 +372,7 @@ class Model:
             self.random_walks = pd.read_pickle(savename)
 
         # User defined number of clusters
-        n_clusters_lookup = {"PathInt":3, "PathInt2":2, "Square Maze":2, "Model Based":3}
+        n_clusters_lookup = {"PathInt":3, "PathInt2":2, "Square Maze":2, "ModelBased":3}
 
         # colors 
         colors = get_n_colors(3)
