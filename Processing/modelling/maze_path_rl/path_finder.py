@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
 	grid_size = 60
 
-	maze_designs = ["PathInt.png", "PathInt2.png", "Square Maze.png", "ModelBased.png"]
+	maze_designs = [ "ModelBased.png", "PathInt.png", "PathInt2.png", "Square Maze.png"]
 	
 					#  "FourArms Maze.png", "TwoAndahalf Maze.png",
 					# "Square Maze.png", "TwoArmsLong Maze.png", "mazemodel.png", "ModelBased.png", "ModelBased_mod.png"]
@@ -75,6 +75,6 @@ if __name__ == "__main__":
 
 		# Make policy plot
 		print("Plotting")
-		# model.policy_plot()
+		model.policy_plot()
 
 	# plt.show()

@@ -3,13 +3,16 @@ sys.path.append('./')
 import matplotlib.pyplot as plt
 import numpy as np
 from Processing.tracking_stats.math_utils import calc_distance_between_points_in_a_vector_2d as dist
-from Processing.tracking_stats.math_utils import get_n_colors
+from Processing.tracking_stats.math_utils import get_n_colors, calc_angle_between_points_of_vector, calc_ang_velocity
 from math import exp  
 import json
 import os
 from random import choice
 import pandas as pd
 from sklearn.cluster import KMeans
+from sklearn.cluster import AgglomerativeClustering
+from scipy.signal import resample
+
 
 
 
@@ -33,7 +36,7 @@ class Model:
 
         self.shortest_walk = None
 
-        self.n_random_walks = 8000
+        self.n_random_walks = 1500
         self.random_walks = []
 
 
@@ -242,7 +245,7 @@ class Model:
         return walk
 
 
-    def random_walks_f(self, debug_mode=False):
+    def random_walks_f(self, load=False):
         """
             This function does N random walks from start to goal without using any policy.
             Each walk can be max M steps long where M = 3 * length of the shortest goal.
@@ -258,7 +261,7 @@ class Model:
             
         name = "{}_rw.pkl".format(self.env.name)
         savename = os.path.join(save_fld, name)
-        if not os.path.isfile(savename):
+        if not os.path.isfile(savename) or not load:
 
             if self.shortest_walk == None: self.shortest_walk_f()
 
@@ -286,16 +289,7 @@ class Model:
                 if len(walk) <= max_n_steps:
                     self.random_walks.append(walk)
 
-            print("     {} out of {} walks were good".format(self.n_random_walks, counter))
-
-            if debug_mode:
-                # Plot the walks
-                f, ax = plt.subplots()
-                self.get_maze_image()
-                ax.imshow(self.maze, interpolation='none', cmap='gray')
-                for w in self.random_walks:
-                    ax.scatter([x for x,y in w], [y for x,y in w], alpha=.5)
-                
+            print("     {} out of {} walks were good".format(self.n_random_walks, counter))           
 
             # Plot each walk's X,Y, length...
             f, axarr = plt.subplots(ncols=3, nrows=2, figsize=(20, 16))
@@ -314,6 +308,10 @@ class Model:
             # Durations | number of frames per walk 
             durs = [len(w) for w in self.random_walks]
             axarr[3].hist(durs, bins=50)
+            # xs, ys = [np.vstack(w)[:, 0] for w in self.random_walks], [np.vstack(w)[:, 1] for w in self.random_walks]
+
+            # thetas = [calc_angle_between_points_of_vector((np.vstack(w)))-90 for w in self.random_walks]
+            # [axarr[3].plot(t) for t in thetas]
 
             # Distance | euclidean distance between each two subsequent points along the walk
             dists = [np.sum(dist(np.vstack(w))) for w in self.random_walks]
@@ -380,28 +378,39 @@ class Model:
         # Get the two metrics we are interested in 
         X = np.array([self.random_walks['distance'].values, self.random_walks['x_offset'].values]).T
 
-        # K-means clustering - fit
-        kmeans = KMeans(n_clusters=n_clusters_lookup[self.env.name])
-        kmeans.fit(X)
 
-        # predict
-        predictions = kmeans.predict(X)
-        centers = kmeans.cluster_centers_
+        # ! Kmeans clustering
+        # # K-means clustering - fit
+        # kmeans = KMeans(n_clusters=n_clusters_lookup[self.env.name])
+        # kmeans.fit(X)
+
+        # # predict
+        # predictions = kmeans.predict(X)
+        # centers = kmeans.cluster_centers_
+
+        # ! other clustering
+        walks = self.random_walks['walks'].values
+        trajectories = [np.vstack(w) for w in walks]
+        max_l = np.max([t.shape[0] for t in trajectories])
+        resampled = [np.array([resample(t[:, 0], max_l), resample(t[:, 1], max_l)]) for t in trajectories]
+        X = np.array(resampled)[:, 0, :]
+        cluster = AgglomerativeClustering(n_clusters=n_clusters_lookup[self.env.name], affinity='euclidean', linkage='ward')  
+        predictions = cluster.fit_predict(X)
 
         # plot
-        f, axarr = plt.subplots(ncols=2)
-        axarr[0].scatter(X[:, 0], X[:, 1], c=[colors[p] for p in predictions], s=100)
-        axarr[0].set(title="{} clusters".format(self.env.name), xlabel="distance travelled", ylabel="X offset")
-        axarr[0].scatter(centers[:, 0], centers[:, 1], c='black', s=200, alpha=0.5)
+        f, axarr = plt.subplots()
+        # axarr[0].scatter(X[:, 0], X[:, 1], c=[colors[p] for p in predictions], s=100)
+        # axarr[0].set(title="{} clusters".format(self.env.name), xlabel="distance travelled", ylabel="X offset")
+        # axarr[0].scatter(centers[:, 0], centers[:, 1], c='black', s=200, alpha=0.5)
 
         # Add predictions to dataframe
         self.random_walks['cluster'] = predictions
 
         # Plot each route for each cluster
         self.get_maze_image()
-        axarr[1].imshow(self.maze, interpolation='none', cmap='gray')
+        axarr.imshow(self.maze, interpolation='none', cmap='gray')
         for i, row in self.random_walks.iterrows():
-            axarr[1].scatter([x for x,y in row['walks']], [y for x,y in row['walks']],
+            axarr.scatter([x for x,y in row['walks']], [y for x,y in row['walks']],
                             s=10, alpha=.3, c=colors[row['cluster']])
 
         # Get the best path from each cluster (i.e. the shortest)
@@ -411,7 +420,7 @@ class Model:
             # x_offset = self.random_walks.loc[self.random_walks['cluster'] == knum]['x_offset'].values
             shortest = np.argmin(distances)
             k_walk = self.random_walks.loc[self.random_walks['cluster'] == knum]['walks'].values[shortest]
-            axarr[1].scatter([x for x,y in k_walk], [y for x,y in k_walk],
+            axarr.scatter([x for x,y in k_walk], [y for x,y in k_walk],
                             s=30, alpha=.8, c='r')
             kluster_walks.append(k_walk)
 
@@ -492,83 +501,3 @@ class Model:
         f.tight_layout()
         f.savefig("Processing/modelling/maze_path_rl/results/{}.png".format(name))
 
-
-
-"""
------------------------------------------------------------------------------------------------------------------
-                    Obsolete functions
------------------------------------------------------------------------------------------------------------------
-"""
-
-"""
-    process_walks given a list of walks measures stuff like walk length, total offest from direct vector...
-
-"""
-
-
-# def process_walks(self, walks):
-#     def normalise_by_rightmedium(vector, rmidx):
-#         return [x/vector[rmidx] for x in vector]
-
-#     # ! walks.append((walk, distance_travelled, tot_angle, at_subgoal))
-
-
-#     # Get the lengths of the direct path between start and goal
-#     direct_vector_distance = calc_distance_between_points_2d(self.learner.env.start, self.learner.env.goal)
-
-#     sort_idxs, labels = self.path_order_lookup(self.learner.env.name)
-#     right_medium_idx = labels.index("Right_Medium")
-#     walks = [walks[i] for i in sort_idxs]
-
-#     # Get the normalised length of each path
-#     walk_lengths = [w[1] for w in walks]
-#     normalised_lengths = normalise_by_rightmedium(walk_lengths, right_medium_idx)
-
-#     # Get distance at subgoal from direct path
-#     position_at_subgoals = [np.array(w[0][w[3]]) for w in walks]
-#     direct = [np.array(self.learner.env.start), np.array(self.learner.env.goal)]
-#     distance_at_subgoals = [abs(calc_distane_between_point_and_line(direct, p)) for p in position_at_subgoals]
-#     normalised_distance_at_sg = normalise_by_rightmedium(distance_at_subgoals, right_medium_idx)
-
-#     # Get tot angle off direct path until subgoal
-#     angles = [w[2] for w in walks]
-#     normalised_angles = normalise_by_rightmedium(angles, right_medium_idx)
-
-#     # Plot
-#     f, axarr = plt.subplots(nrows=3, figsize=(12, 9))
-#     xx = np.arange(len(walk_lengths))
-#     colors = self.colors_lookup(labels)
-
-#     axarr[0].bar(xx, normalised_lengths, color=colors)
-#     axarr[0].axhline(1, linestyle="--", color="k")
-#     axarr[0].set(title="normalised path length", ylabel="n steps.", xticks=xx, xticklabels=labels)
-
-#     axarr[1].bar(xx, normalised_distance_at_sg, color=colors)
-#     axarr[1].axhline(1, linestyle="--", color="k")
-#     axarr[1].set(title="Normalised distance from direct path at subgoal", ylabel="px", xticks=xx, xticklabels=labels)
-
-#     axarr[2].bar(xx, normalised_angles, color=colors)
-#     axarr[2].axhline(1, linestyle="--", color="k")
-#     axarr[2].set(title="normalised Angle off direct until subgoal", ylabel="comulative theta", xticks=xx, xticklabels=labels)
-
-
-#     f.tight_layout()
-#     f.savefig("Processing/modelling/maze_path_rl/results/{}_pathsvars.png".format(self.learner.env.name))
-
-    
-# @staticmethod
-# def path_order_lookup(exp):
-#     if exp == "PathInt":
-#         return [2, 1, 0], ["Left_Far", "Centre", "Right_Medium"]
-#     elif exp == "PathInt2":
-#         return [1, 0], ["Left_Far", "Right_Medium"]
-
-# @staticmethod
-# def colors_lookup(labels):
-#     colors = dict(
-#         Left_Far = [.2, .6, .2],
-#         Left_Medium = [.2, .6, .2],
-#         Centre = [.2, .2, .6],
-#         Right_Medium = [.6, .2, .2]
-#     )
-#     return [colors[l] for l in labels]

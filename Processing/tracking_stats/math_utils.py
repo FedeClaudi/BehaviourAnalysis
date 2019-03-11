@@ -333,7 +333,7 @@ def calc_angle_between_points_of_vector(v):
             thetas[i] = 0
         else:
             d = calc_distance_between_points_2d(p0, p1)
-            if d > 1:
+            if d >= 1:
                 try:
                     thetas[i] = angle_between_points_2d_clockwise(p0, p1)
                 except:
