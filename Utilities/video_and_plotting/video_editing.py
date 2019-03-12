@@ -109,7 +109,7 @@ class VideoConverter:
             Returns:
                 frame width, height and number of frames in the video to be converted
             """
-            print('Extranging metadata...', videotdms)
+            print('Extracting metadata...', videotdms)
             # Find the tdms video
             paths = load_yaml('paths.yml')
             
@@ -164,26 +164,12 @@ class VideoConverter:
         ###################################################################################################################################
 
         start = time.time()
+        
+        print("Ready to convert: ", self.filep)
 
-        if not self.extract_framesize:
-            warn.warn('\nCurrently TDMS conversion depends on hardcoded variables !!')
-            paddig = 0
-            # ! HARDCODED variables about the video recorded
-            skip_data_points = 4094
-            real_width = 1936
-            paddig = 48
-            width = real_width + padding
-            height = 1216
-            frame_size = width * height
-            real_frame_size = real_width * height
-            f_size = os.path.getsize(self.filep)  # size in bytes
-            tot_frames = int((f_size - skip_data_points) / frame_size)  # num frames
-            fps = 100
-            raise ValueError('This code is outdated, it WILL give errors, needs to be checked first')
-        else:
-            props, tot_frames = self.extract_framesize_from_metadata(self.filep)
+        props, tot_frames = self.extract_framesize_from_metadata(self.filep)
 
-
+        print("Got metadata\n")
         # ? set up options
         # Number of parallel processes for faster writing to video
         num_processes = self.tdms_converter_parallel_processes
@@ -198,17 +184,20 @@ class VideoConverter:
         # ? alternatively just create a temp folder where to store the memmapped tdms
         # Open video TDMS 
         try:    # Make a temporary directory where to store memmapped tdms
-            os.mkdir(os.path.join("M:\\", 'Temp'))
+            os.mkdir(os.path.join("D:\\", 'Temp'))
         except:
             pass
-        tempdir = os.path.join("M:\\", 'Temp')
+        tempdir = os.path.join("D:\\", 'Temp')
 
         print('Opening TDMS: ', self.filename + self.extention)
+        print("Opening binary at: ", self.filep)
         bfile = open(self.filep, 'rb')
+
         print('  ...binary opened, opening mmemmapped')
         openstart = time.time()
         tdms = TdmsFile(bfile, memmap_dir=tempdir)  # open tdms binary file as a memmapped object
         openingend = time.time()
+
         print('     ... memmap opening took: ', np.round(openingend-openstart, 2))
         print('Extracting data')
         tdms = tdms.__dict__['objects']["/'cam0'/'data'"].data.reshape((tot_frames, props['height'], props['width']), order='C')
