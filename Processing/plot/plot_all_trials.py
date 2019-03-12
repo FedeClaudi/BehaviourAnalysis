@@ -19,7 +19,7 @@ from Utilities.video_and_plotting.video_editing import Editor
 class PlotAllTrials:
     def __init__(self, select_escapes=True):
         self.trials = AllTrials()
-        self.save_fld = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\plots\\all_trials_both_escs_and_nescs'
+        self.save_fld = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\plots\\all_trials'
 
         if select_escapes:
             self.escapes = 'true'
@@ -54,7 +54,7 @@ class PlotAllTrials:
 
         for uid in sessions:
             experiments, trials, fps, number_of_trials, trial_number, rec_uid, stim_frames, escapes, origins, is_escape = \
-                (AllTrials & "session_uid='{}'".format(uid)).fetch(*self.to_fetch)
+                (AllTrials & "session_uid='{}'".format(uid) & "is_escape='{}'".format(self.escapes)).fetch(*self.to_fetch)
 
             if not np.any(experiments): continue
 
