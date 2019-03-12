@@ -12,6 +12,7 @@ import seaborn as sns
 
 from Processing.modelling.maze_path_rl.path_maze import Maze, get_maze_from_image
 from Processing.modelling.maze_path_rl.path_agent import Model
+from Processing.modelling.maze_path_rl.actor_critic import AA
 
 
 FLAG_policy = False  
@@ -43,23 +44,15 @@ if __name__ == "__main__":
 		start_position = [round(grid_size/2), round(grid_size*.68)]	
 		start_index = [i for i,e in enumerate(free_states) if e == start_position][0]
 		
-		# Show the  maze as an image
-		if FLAG_showmaze:
-			maze_to_print = np.zeros((grid_size, grid_size)).astype(np.int16)
-			for state in free_states: maze_to_print[state[0], state[1]] = 5
-			maze_to_print[goal[0], goal[1]] = 9
-			maze_to_print[start_position[0], start_position[1]] = 25
-			
-			plt.imshow(maze_to_print)
-			plt.show()
+
 
 		# creating an instance of maze class
-		print("Creating Maze Environment")
+		# print("Creating Maze Environment")
 		env = Maze(maze_design, grid_size, free_states,
 					goal, start_position, start_index, randomise_start_during_training)
 		
 		# Train the Q-learning agent
-		print("Learning the policy")
+		# print("Learning the policy")
 		model = Model(env, FLAG_load_trained)
 		model.train()
 		model.save()
@@ -78,6 +71,10 @@ if __name__ == "__main__":
 		model.policy_plot()
 
 		# save model
-		model.save_model()
+		# model.save_model()
 
-	# plt.show()
+		# ? Actor critic part
+		actor = AA(env.name)
+		actor.train()
+
+	plt.show()

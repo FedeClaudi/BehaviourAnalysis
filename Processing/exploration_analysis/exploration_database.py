@@ -84,6 +84,7 @@ class AllExplorationsPopulate:
 
             # Remove the first n seconds
             fps = get_videometadata_given_recuid(first_stim['recording_uid'])[0]
+            if fps == 0: fps = 40
             cutoff = self.cutoff * fps
             tracking_data_array =tracking_data_array[cutoff:, :]
 

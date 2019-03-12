@@ -38,7 +38,7 @@ class Model:
 
         self.shortest_walk = None
 
-        self.n_random_walks = 1500
+        self.n_random_walks = 1000
         self.random_walks = []
 
 

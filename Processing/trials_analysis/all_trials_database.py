@@ -114,6 +114,7 @@ class analyse_all_trals:
 
                 # Get video FPS
                 fps = get_videometadata_given_recuid(stim['recording_uid'])[0]
+                if fps == 0: fps = 40  # ? dabsigebrlgb`kj
 
                 # Get frame at which stim start
                 if 'stim_start' in stim.keys():
@@ -173,7 +174,9 @@ class analyse_all_trals:
  
                 escape_rois = convert_roi_id_to_tag(trial_tracking['body'][t:, -1]) # ? only look at arm taken since last departure from T
 
-                if not  escape_rois: raise ValueError
+                if not  escape_rois: 
+                    raise ValueError
+                
                 escape_arm = get_arm_given_rois(escape_rois, 'in')
 
                 if np.any(threat_exits):
