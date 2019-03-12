@@ -19,7 +19,7 @@ FLAG_policy = False
 FLAG_showmaze = False
 
 randomise_start_during_training = True
-FLAG_load_trained = True
+FLAG_load_trained = False
 
 
 if __name__ == "__main__":
@@ -38,6 +38,7 @@ if __name__ == "__main__":
 
 		# Define cells of the 2D matrix in which agent can move
 		free_states = get_maze_from_image(grid_size, maze_design)
+		print("   # free states:", len(free_states))
 		
 		# Define goal and start position
 		goal = [round(grid_size/2), round(grid_size/4)]
@@ -71,7 +72,7 @@ if __name__ == "__main__":
 		model.policy_plot()
 
 		# save model
-		# model.save_model()
+		model.save_model()
 
 		# ? Actor critic part
 		actor = AA(env.name)
