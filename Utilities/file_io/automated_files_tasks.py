@@ -3,7 +3,7 @@ import os
 import yaml
 import sys
 sys.path.append('./') 
-
+os.chdir("C:\\GITHUB\\BehaviourAnalysis")
 try:
     from database.Populate_database import PopulateDatabase
     from database.NewTablesDefinitions import *
@@ -26,7 +26,10 @@ class FilesAutomationToolbox:
         # self.database = PopulateDatabase()
         self.videos_fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video'
         self.pose_fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\pose'
-        self.video_metadata = VideoTdmsMetadata
+        try:
+            self.video_metadata = VideoTdmsMetadata
+        except:
+            self.video_metadata = None
 
     def macro(self):
         # Fill in metadata dj table
