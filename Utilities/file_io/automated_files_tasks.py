@@ -1,12 +1,15 @@
 import pandas as pd
 import os
-
+import yaml
 import sys
 sys.path.append('./') 
 
-from database.Populate_database import PopulateDatabase
-from database.NewTablesDefinitions import *
-from database.auxillary_tables import VideoTdmsMetadata
+try:
+    from database.Populate_database import PopulateDatabase
+    from database.NewTablesDefinitions import *
+    from database.auxillary_tables import VideoTdmsMetadata
+except:
+    pass
 
 import time
 
@@ -122,6 +125,12 @@ class FilesAutomationToolbox:
             conv, join = self.check_if_file_converted(name, self.videos_fld)
             if not conv: unconverted.append(t)
             
+        # store names to file
+        store = "Utilities/file_io/files_to_convert.yml"
+        with open(store, 'w') as out:
+            yaml.dump(unconverted, out)
+
+
         print('To convert: ', unconverted)
         print(len(unconverted), ' files yet to convert')
         return unconverted
@@ -209,11 +218,11 @@ if __name__ == "__main__":
     automation.convert_tdms_to_mp4()
 
     automation.get_list_uncoverted_tdms_videos()
-    automation.get_list_not_tracked_videos()
+    # automation.get_list_not_tracked_videos()
 
     # automation.extract_videotdms_metadata()
     # automation.check_video_conversion_correct()
 
     # automation.macro()
 
-    automation.remove_stupid_videofiles()
+    # automation.remove_stupid_videofiles()
