@@ -204,7 +204,7 @@ class VideoConverter:
         tdms = tdms[:, :, :(props['width']+props['padding'])]  # reshape
 
         # Write to Video
-        print('Writing to Video - {} parallel processes'.format(num_processes))
+        print('Writing to Video {} - {} parallel processes'.format(self.filename, num_processes))
         params = (self.filename, props['width'], props['height'], props['fps'], tdms)  # To create a partial of the writer func
 
         if num_processes == 1:
