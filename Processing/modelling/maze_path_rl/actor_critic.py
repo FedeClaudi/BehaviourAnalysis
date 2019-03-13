@@ -14,8 +14,6 @@ from sklearn.cluster import AgglomerativeClustering
 from scipy.signal import resample
 import random
 import pickle
-import pymc3 as pm
-import theano.tensor as tt
 from collections import namedtuple
 
 

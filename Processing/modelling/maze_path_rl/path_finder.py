@@ -8,7 +8,6 @@ import PyQt5
 import matplotlib
 matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 from Processing.modelling.maze_path_rl.path_maze import Maze, get_maze_from_image
 from Processing.modelling.maze_path_rl.path_agent import Model
@@ -19,14 +18,14 @@ FLAG_policy = False
 FLAG_showmaze = False
 
 randomise_start_during_training = True
-FLAG_load_trained = False
+FLAG_load_trained = True
 
 
 if __name__ == "__main__":
 
 	print("Initializing")
 
-	grid_size = 60
+	grid_size = 120
 
 	maze_designs = [ "ModelBased.png", "PathInt.png", "PathInt2.png", "Square Maze.png"]
 	
@@ -52,30 +51,36 @@ if __name__ == "__main__":
 		env = Maze(maze_design, grid_size, free_states,
 					goal, start_position, start_index, randomise_start_during_training)
 		
+		env.get_geodesic_representation()
+
 		# Train the Q-learning agent
-		# print("Learning the policy")
+		print("Learning the policy")
 		model = Model(env, FLAG_load_trained)
 		model.train()
 		model.save()
 
-		# Get the shortest path to the shelter
-		model.shortest_walk_f()
+		# Get the shortest path using geodesic distances
+		model.geodesic_walk()
 
-		# make random walks
-		model.random_walks_f()
+		# # Get the shortest path to the shelter
+		# print("finding options")
+		# model.shortest_walk_f()
 
-		# Find the alternative otpions
-		model.find_options()
+		# # make random walks
+		# model.random_walks_f()
+
+		# # Find the alternative otpions
+		# model.find_options()
 
 		# Make policy plot
 		print("Plotting")
 		model.policy_plot()
 
-		# save model
-		model.save_model()
+		# # save model
+		# model.save_model()
 
-		# ? Actor critic part
-		actor = AA(env.name)
-		actor.train()
+		# # ? Actor critic part
+		# actor = AA(env.name)
+		# actor.train()
 
 	plt.show()

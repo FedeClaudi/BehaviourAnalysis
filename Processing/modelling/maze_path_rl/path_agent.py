@@ -25,7 +25,7 @@ class Model:
 		self.actions()
 		self.policies()
 		
-		self.max_iters = 201
+		self.max_iters = 801
 		self.max_steps = round(self.env.grid_size**2 / 2)
 
 		# Parameters
@@ -38,7 +38,7 @@ class Model:
 
 		self.shortest_walk = None
 
-		self.n_random_walks = 1000
+		self.n_random_walks = 500
 		self.random_walks = []
 
 
@@ -166,7 +166,7 @@ class Model:
 			# action_values = action_values / np.sum(action_values)   # normalise
 			selected_action = np.random.choice(action_values, 1, p=action_values)
 			action_id = random.choice(np.where(action_values == selected_action)[0])
-			action = self.env.actions[action_id]
+			action = self.env.actions[action_id-1]
 
 			# if its not a legal action, selected another random on
 			legal_actions = [a for a in self.env.get_available_moves(current) if a != "still" and "down" not in a]
@@ -277,6 +277,9 @@ class Model:
 			counter = 0
 			while len(self.random_walks) < self.n_random_walks:
 				counter += 1
+
+				if len(self.random_walks) % 1 == 0: print("Found {} randoms".format(len(self.random_walks)))
+
 				# do the random part of the walk
 				walk = self.random_walk(n_random_steps)
 				stopped_at = walk[-1]
@@ -290,8 +293,8 @@ class Model:
 					continue
 
 				# If the walk isn't too long, append it to the list
-				if len(walk) <= max_n_steps:
-					self.random_walks.append(walk)
+				# if len(walk) <= max_n_steps:
+				self.random_walks.append(walk)
 
 			print("     {} out of {} walks were good".format(self.n_random_walks, counter))           
 
@@ -361,6 +364,52 @@ class Model:
 
 		else:
 			self.random_walks = pd.read_pickle(savename)
+
+
+	def shifts_mtrx(self):
+		self.shifts = np.array(
+			[[[1, -1], [0, -1], [-1, -1]],
+			[[1, 0], [0, 0], [-1, 0]],
+			[[1, 1], [0, 1], [-1, 1]]]
+		)
+
+		self.shifts = np.rot90(self.shifts, 3)
+
+	def geodesic_walk(self):
+		self.shifts_mtrx()
+		walk = []
+		curr = self.env.start.copy()
+		step_n = 0
+
+		# turn the goedesic distances into a matrix
+		geo_distances = np.full((self.env.grid_size, self.env.grid_size), 10000)
+		for point, value in zip(self.env.free_states, self.env.geodesic_distance_states):
+			geo_distances[tuple(point)] = value
+
+		geo_distances = np.rot90(geo_distances[::-1, :], 3)
+
+		kernel_size = 1
+		while curr != self.env.goal and step_n < self.env.grid_size*2:
+			step_n += 1
+
+			# get the tiles surrounding the current position
+			surroundings = geo_distances[curr[0]-kernel_size:curr[0]+kernel_size+1, curr[1]-kernel_size:curr[1]+kernel_size+1]
+			surroundings = np.resize(surroundings, (3, 3))[:, ::-1]
+			shift_idx = np.argwhere(surroundings == np.nanmin(surroundings))[0]
+			shift = self.shifts[tuple(shift_idx)]
+			curr = list(np.add(curr, shift))
+			walk.append(curr)
+
+			a = 1
+
+
+		f, ax = plt.subplots()
+		ax.imshow(geo_distances)
+		ax.scatter([x for x,y in walk], [y for x,y in walk], c='r')
+		plt.show()
+
+		a = 1
+
 
 	"""
 	-----------------------------------------------------------------------------------------------------------------

@@ -50,6 +50,8 @@ class Maze(object):
 		for i in self.free_states:
 			self.maze[i[0]][i[1]] = 1
 
+		self.maze_image = np.rot90(self.maze[::-1, :], 3)
+
 		self.load_subgoals()
 
 		self.intermediate_reached_subgoal = False
@@ -137,7 +139,7 @@ class Maze(object):
 	@staticmethod
 	def move(action, curr):
 		"""
-		    moves from current position to next position deoending on the action taken
+			moves from current position to next position deoending on the action taken
 		"""
 
 		def change(current, x, y):
@@ -192,3 +194,37 @@ class Maze(object):
 			self.game_over = False
 
 		return self.next_state, self.reward, self.game_over
+
+
+
+	def get_geodesic_representation(self):
+		from sklearn import manifold
+
+		# X is a 2d array with shape: number-of-points by 2 [XY coordinates for each pixel on the maze]
+		X = np.vstack(self.free_states)  # self.freestates is a list of points which are the pixels on the maze
+		start_idx = self.free_states.index(self.start)
+		goal_idx = self.free_states.index(self.goal)
+
+		iso = manifold.Isomap(n_neighbors=6, n_components=2)  # fit the isomap
+		iso.fit(X)
+
+		# Make an image where each maze-pixel is colored accordingly to the distance from either the goal or the start
+		idxs = [start_idx, goal_idx]
+		titles = ['Geodesic distance from start', 'Geodesic distance from Shelter']
+		
+		self.geodesic_distance_states = []
+		f, axarr = plt.subplots(ncols=2)
+		for ax, target, title in zip(axarr, idxs, titles):
+			m = np.full(self.maze_image.shape, np.nan)
+			for n, coord in enumerate(self.free_states):
+				d = iso.dist_matrix_[n, target]
+				m[coord[1], coord[0]] = d
+
+				if target == goal_idx:
+					self.geodesic_distance_states.append(d)
+
+			ax.imshow(m)
+			ax.set(title=title)
+
+		f.savefig("Processing/modelling/maze_path_rl/results/{}_geodesic.png".format(self.name))
+

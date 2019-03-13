@@ -226,7 +226,7 @@ if __name__ == "__main__":
     # automation.convert_tdms_to_mp4()
 
     automation.get_list_uncoverted_tdms_videos()
-    # automation.get_list_not_tracked_videos()
+    automation.get_list_not_tracked_videos()
 
     # automation.extract_videotdms_metadata()
     # automation.check_video_conversion_correct()
