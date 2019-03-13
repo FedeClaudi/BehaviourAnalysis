@@ -6,8 +6,9 @@ sys.path.append('./')
 
 try:
     os.chdir("C:\\GITHUB\\BehaviourAnalysis")
+    videofolder = "W:\\branco\\Federico\\raw_behaviour\\maze\\video"
 except:
-    pass
+    videofolder = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video'
 
 try:
     from database.Populate_database import PopulateDatabase
@@ -29,7 +30,7 @@ from Utilities.file_io.sort_behaviour_files import sort_mantis_files
 class FilesAutomationToolbox:
     def __init__(self):
         # self.database = PopulateDatabase()
-        self.videos_fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video'
+        self.videos_fld = videofolder
         self.pose_fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\pose'
         try:
             self.video_metadata = VideoTdmsMetadata
@@ -84,31 +85,32 @@ class FilesAutomationToolbox:
         except:
             pass
 
-        toconvert = self.get_list_uncoverted_tdms_videos()
-        while True:
-            if n_processes> 1:
-                in_process = None
-                try:
-                    for f in toconvert:
-                        in_process = f
-                        VideoConverter(os.path.join(self.videos_fld, f), extract_framesize=True)
-                    print('All files converted, yay!')
-
-                    editor = Editor()
-                    editor.concated_tdms_to_mp4_clips(fld)
-                    print('All clips joined, yay!')
-
-                    break
-                except: # ignore exception and try again
-                    if in_process is not None:
-                        pass # ! clear unfinished business 
-                    print('Failed again, trying again..\n\n')
-            else:
+        tcvt = self.get_list_uncoverted_tdms_videos()
+        toconvert = [os.path.join(self.videos_fld, t) for t in tcvt]
+        # while True:
+        if n_processes> 1:
+            in_process = None
+            try:
                 for f in toconvert:
-                    try:
-                        VideoConverter(os.path.join(self.videos_fld, f), extract_framesize=True)
-                    except:
-                        continue
+                    in_process = f
+                    VideoConverter(os.path.join(self.videos_fld, f), extract_framesize=True)
+                print('All files converted, yay!')
+
+                editor = Editor()
+                editor.concated_tdms_to_mp4_clips(fld)
+                print('All clips joined, yay!')
+
+                # break
+            except: # ignore exception and try again
+                if in_process is not None:
+                    pass # ! clear unfinished business 
+                print('Failed again, trying again..\n\n')
+        else:
+            for f in toconvert:
+                try:
+                    VideoConverter(os.path.join(self.videos_fld, f), extract_framesize=True)
+                except:
+                    continue
 
     @staticmethod
     def check_if_file_converted(name, folder):
@@ -223,10 +225,15 @@ class FilesAutomationToolbox:
 if __name__ == "__main__":
     automation = FilesAutomationToolbox()
 
-    # automation.convert_tdms_to_mp4()
+    automation.convert_tdms_to_mp4()
 
+<<<<<<< HEAD
     automation.get_list_uncoverted_tdms_videos()
     automation.get_list_not_tracked_videos()
+=======
+    # automation.get_list_uncoverted_tdms_videos()
+    # automation.get_list_not_tracked_videos()
+>>>>>>> ef4bd4756356e549de55bea95d0c5ced2198fcac
 
     # automation.extract_videotdms_metadata()
     # automation.check_video_conversion_correct()
