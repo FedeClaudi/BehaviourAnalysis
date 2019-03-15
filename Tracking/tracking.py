@@ -4,6 +4,7 @@ import shutil
 import os
 print('Importing dlc takes a while')
 from deeplabcut import analyze_videos
+import yaml
 
 from Utilities.file_io.files_load_save import load_yaml
 
@@ -34,9 +35,11 @@ class SetUpTracking:
 
     def get_videos_to_process(self):
         # Get all the pose files and then returns a list of video files that don't have a corresponding pose file
-        pose_files = [f.split('.')[0][:-5] for f in os.listdir(self.pose_folder) if '.h5' in f]
-        return [f for f in os.listdir(self.video_folder) if 'tdms' not in f and f.split('.')[0] not in pose_files
-                and os.path.getsize(os.path.join(self.video_folder, f)) > 2000]
+        # pose_files = [f.split('.')[0][:-5] for f in os.listdir(self.pose_folder) if '.h5' in f]
+        # return [f for f in os.listdir(self.video_folder) if 'tdms' not in f and f.split('.')[0] not in pose_files
+        #         and os.path.getsize(os.path.join(self.video_folder, f)) > 2000]
+        return load_yaml("Utilities/file_io/files_to_track.yml")
+        # return [os.path.join(self.video_folder, tt) for tt in to_track]
 
 
     def process(self):

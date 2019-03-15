@@ -118,12 +118,16 @@ def get_trials_by_exp(experiment, escape, args):
         args is a list of attributes to be fetched
     """
 
-    return (AllTrials & "experiment_name='{}'".format(experiment) & "is_escape='{}'".format(escape))\
+    return (AllTrials & "experiment_name='{}'".format(experiment) & "is_escape='{}'".format(escape) & "stim_frame!=-1")\
                             .fetch(*args)
 
 def get_trials_by_exp_and_session(experiment, uid, escape, args):
     return (AllTrials & "experiment_name='{}'".format(experiment) & "is_escape='{}'".format(escape)\
             & "session_uid={}".format(uid)).fetch(*args)
+
+
+def get_sessuids_given_experiment(experiment):
+    return (Sessions & "experiment_name='{}'".format(experiment)).fetch("uid")
 
 
 def get_maze_template(exp=None):

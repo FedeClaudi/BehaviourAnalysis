@@ -7,7 +7,7 @@ maze_templates_per_experiment: D:\Dropbox (UCL - SWC)\Rotation_vte\Maze_template
 maze_templates: D:\Dropbox (UCL - SWC)\Rotation_vte\Maze_templates
 templates_matched: D:\Dropbox (UCL - SWC)\Rotation_vte\Maze_templates\ignored\Matched
 
-raw_data_folder: W:\branco\Federico\raw_behaviour\maze
+raw_data_folder: Z:\branco\Federico\raw_behaviour\maze
 raw_metadata_folder: 'metadata'   # appended to raw data folder
 raw_video_folder: 'video'   # appended to raw data folder
 raw_to_sort: 'to_sort'   # appended to raw data folder

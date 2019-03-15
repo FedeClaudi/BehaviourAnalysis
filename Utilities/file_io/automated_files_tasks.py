@@ -152,6 +152,11 @@ class FilesAutomationToolbox:
         not_tracked = [f for f in videos if f.split('_') not in poses and 'overview'  in f.lower()]
         print('To track: ', not_tracked)
         print(len(not_tracked), ' files yet to track')
+
+        store = "Utilities/file_io/files_to_track.yml"
+        with open(store, 'w') as out:
+            yaml.dump([os.path.split(u)[-1]+".mp4" for u in not_tracked], out)
+
         return not_tracked
 
     def check_video_conversion_correct(self):
@@ -225,15 +230,10 @@ class FilesAutomationToolbox:
 if __name__ == "__main__":
     automation = FilesAutomationToolbox()
 
-    automation.convert_tdms_to_mp4()
+    # automation.convert_tdms_to_mp4()
 
-<<<<<<< HEAD
     automation.get_list_uncoverted_tdms_videos()
     automation.get_list_not_tracked_videos()
-=======
-    # automation.get_list_uncoverted_tdms_videos()
-    # automation.get_list_not_tracked_videos()
->>>>>>> ef4bd4756356e549de55bea95d0c5ced2198fcac
 
     # automation.extract_videotdms_metadata()
     # automation.check_video_conversion_correct()
