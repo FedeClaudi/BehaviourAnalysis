@@ -378,49 +378,72 @@ class Model:
 
 	def geodesic_walk(self):
 		self.shifts_mtrx()
-		walk = []
-		curr = self.env.start.copy()
-		step_n = 0
+		colors = ['r', 'g']
 
-		# turn the goedesic distances into a matrix
-		x, y, z = [], [], []
-		geo_distances = np.full((self.env.grid_size, self.env.grid_size), np.inf)
-		for point, value in zip(self.env.free_states, self.env.geodesic_distance_states):
-			geo_distances[tuple(point)] = value
-			x.append(point[0])
-			y.append(point[1])
-			z.append(value)
-
-		fig = plt.figure()
-		ax = Axes3D(fig)
-		ax.scatter(x, y, z)
-		ax.scatter(curr[0], curr[1], geo_distances[tuple(curr)], c='r', s=200)
-
+		
 		# geo_distances = np.rot90(geo_distances[::-1, :], 3)
+		geo_distances = None
+		number_of_walks = 2
+		for walk_n in np.arange(number_of_walks):
+			walk = []
+			curr = self.env.start.copy()
+			step_n = 0
 
+			# turn the goedesic distances into a matrix
+			x, y, z = [], [], []
+			if geo_distances is None:
+				geo_distances = np.full((self.env.grid_size, self.env.grid_size), np.inf)
+				for point, value in zip(self.env.free_states, self.env.geodesic_distance_states):
+					geo_distances[tuple(point)] = value
+			
 
-		kernel_size = 1
-		while curr != self.env.goal and step_n < self.env.grid_size*2:
-			step_n += 1
+			# normalise geodistances
+			# geo_distances = (geo_distances - np.min(geo_distances))/np.nanmax(geo_distances)
+			for point in self.env.free_states:
+				x.append(point[0])
+				y.append(point[1])
+				z.append(geo_distances[tuple(point)])
 
-			# get the tiles surrounding the current position
-			x,y = curr[0], curr[1]
-			surroundings = np.rot90(geo_distances[x-1:x+2, y-1:y+2], 0)
+			fig = plt.figure()
+			ax = Axes3D(fig)
+			ax.scatter(x, y, z, alpha=.3)
+			ax.scatter(curr[0], curr[1], geo_distances[tuple(curr)], c='r', s=200)
+			# plt.show()
 
-			shift_idx = random.choice(np.argwhere(surroundings == np.nanmin(surroundings)))
-			shift = self.shifts[tuple(shift_idx)]
-			new_curr = list(np.add(curr, shift))
-			if new_curr not in self.env.free_states: break
-			else: curr = new_curr
-			ax.scatter(curr[0], curr[1], geo_distances[tuple(curr)] + 5, c='g', s=100, alpha=.75)
-			walk.append(curr)
+			# Find the shortest path with gradient descent
+			kernel =  1
+			while curr != self.env.goal and step_n < self.env.grid_size*2:
+				step_n += 1
 
-			if abs(calc_distance_between_points_2d(curr, self.env.goal)) < 2: break
+				# get the tiles surrounding the current position
+				x,y = curr[0], curr[1]
+				surroundings = np.rot90(geo_distances[x-kernel:x+kernel+1, y-kernel:y+kernel+1], 0)
+				surroundings = np.resize(surroundings, (3, 3))
 
+				shift_idx = random.choice(np.argwhere(surroundings == np.nanmin(surroundings)))
+				shift = self.shifts[tuple(shift_idx)]
+				new_curr = list(np.add(curr, shift))
+				if new_curr not in self.env.free_states: break
+				else: curr = new_curr
+				ax.scatter(curr[0], curr[1], geo_distances[tuple(curr)] + 1, c='r', s=100, alpha=.75)
+				walk.append(curr)
 
-		f, ax = plt.subplots()
-		ax.imshow(self.env.maze_image)
-		ax.scatter([x for x,y in walk], [y for x,y in walk], c='r')
+				if abs(calc_distance_between_points_2d(curr, self.env.goal)) < 2: break
+
+			# modify the geodesic landscape for the next walk
+			old_geodesic = geo_distances.copy()
+			kernel = 3
+			for i, step in enumerate(walk):
+				if i > len(walk)/3: continue
+				x, y = step[0], step[1]
+				surroundings = geo_distances[x-kernel:x+kernel+1+i, y-kernel:y+kernel+1+i]
+				geo_distances[x-kernel:x+kernel+1+i, y-kernel:y+kernel+1+i] = surroundings + i * 3
+
+			f, axarr = plt.subplots(ncols=2)
+			axarr[0].imshow(old_geodesic)
+			axarr[1].imshow(geo_distances)
+			axarr[0].set(title="walk_n "+str(walk_n))
+
 		plt.show()
 
 
