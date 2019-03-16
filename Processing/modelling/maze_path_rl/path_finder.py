@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
 	grid_size = 120
 
-	maze_designs = [ "ModelBased.png", "PathInt.png", "PathInt2.png", "Square Maze.png"]
+	maze_designs = ["PathInt2_Closed.png", "Square Maze.png",  "ModelBased.png", "PathInt.png"]
 	
 					#  "FourArms Maze.png", "TwoAndahalf Maze.png",
 					# "Square Maze.png", "TwoArmsLong Maze.png", "mazemodel.png", "ModelBased.png", "ModelBased_mod.png"]

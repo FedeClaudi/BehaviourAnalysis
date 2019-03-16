@@ -3,7 +3,7 @@ sys.path.append('./')
 import matplotlib.pyplot as plt
 import numpy as np
 from Processing.tracking_stats.math_utils import calc_distance_between_points_in_a_vector_2d as dist
-from Processing.tracking_stats.math_utils import get_n_colors, calc_angle_between_points_of_vector, calc_ang_velocity, line_smoother
+from Processing.tracking_stats.math_utils import calc_distance_between_points_2d,  get_n_colors, calc_angle_between_points_of_vector, calc_ang_velocity, line_smoother
 from math import exp  
 import json
 import os
@@ -15,6 +15,7 @@ from scipy.signal import resample
 import random
 import pickle
 from scipy.special import softmax
+from mpl_toolkits.mplot3d import Axes3D
 
 
 
@@ -368,9 +369,9 @@ class Model:
 
 	def shifts_mtrx(self):
 		self.shifts = np.array(
-			[[[1, -1], [0, -1], [-1, -1]],
-			[[1, 0], [0, 0], [-1, 0]],
-			[[1, 1], [0, 1], [-1, 1]]]
+			[[[-1, 1], [0, 1], [1, 1]],
+			[[-1, 0], [0, 0], [1, 0]],
+			[[-1, -1], [0, -1], [1, -1]]]
 		)
 
 		self.shifts = np.rot90(self.shifts, 3)
@@ -382,33 +383,48 @@ class Model:
 		step_n = 0
 
 		# turn the goedesic distances into a matrix
-		geo_distances = np.full((self.env.grid_size, self.env.grid_size), 10000)
+		x, y, z = [], [], []
+		geo_distances = np.full((self.env.grid_size, self.env.grid_size), np.inf)
 		for point, value in zip(self.env.free_states, self.env.geodesic_distance_states):
 			geo_distances[tuple(point)] = value
+			x.append(point[0])
+			y.append(point[1])
+			z.append(value)
 
-		geo_distances = np.rot90(geo_distances[::-1, :], 3)
+		fig = plt.figure()
+		ax = Axes3D(fig)
+		ax.scatter(x, y, z)
+		ax.scatter(curr[0], curr[1], geo_distances[tuple(curr)], c='r', s=200)
+
+		# geo_distances = np.rot90(geo_distances[::-1, :], 3)
+
 
 		kernel_size = 1
 		while curr != self.env.goal and step_n < self.env.grid_size*2:
 			step_n += 1
 
 			# get the tiles surrounding the current position
-			surroundings = geo_distances[curr[0]-kernel_size:curr[0]+kernel_size+1, curr[1]-kernel_size:curr[1]+kernel_size+1]
-			surroundings = np.resize(surroundings, (3, 3))[:, ::-1]
-			shift_idx = np.argwhere(surroundings == np.nanmin(surroundings))[0]
+			x,y = curr[0], curr[1]
+			surroundings = np.rot90(geo_distances[x-1:x+2, y-1:y+2], 0)
+
+			shift_idx = random.choice(np.argwhere(surroundings == np.nanmin(surroundings)))
 			shift = self.shifts[tuple(shift_idx)]
-			curr = list(np.add(curr, shift))
+			new_curr = list(np.add(curr, shift))
+			if new_curr not in self.env.free_states: break
+			else: curr = new_curr
+			ax.scatter(curr[0], curr[1], geo_distances[tuple(curr)] + 5, c='g', s=100, alpha=.75)
 			walk.append(curr)
 
-			a = 1
+			if abs(calc_distance_between_points_2d(curr, self.env.goal)) < 2: break
 
 
 		f, ax = plt.subplots()
-		ax.imshow(geo_distances)
+		ax.imshow(self.env.maze_image)
 		ax.scatter([x for x,y in walk], [y for x,y in walk], c='r')
 		plt.show()
 
-		a = 1
+
+
 
 
 	"""
