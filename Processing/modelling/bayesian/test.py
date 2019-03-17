@@ -155,7 +155,9 @@ class Modeller:
 
             sym_hyper = pm.Uniform("sym_hyper", 0, 1)
             sym_hyper2 = pm.Uniform("sym_hyper2", 0, 1)
-            sym_prior = pm.Uniform("sym_prior",  sym_hyper, sym_hyper2, shape=len(sym_trials))
+            # sym_prior = pm.Uniform("sym_prior",  sym_hyper, sym_hyper2, shape=len(sym_trials))
+            sym_prior = pm.Normal("sym_prior",  sym_hyper, 1, shape=len(sym_trials))
+
             obs_sym = pm.Binomial('obs_sym', n=sym_trials, p=sym_prior, observed=sym_hits)
 
             # asym_hyper = pm.Uniform("asym_hyper", 0, 1)
@@ -164,7 +166,7 @@ class Modeller:
             # obs_asym = pm.Binomial('obs_asym', n=asym_trials, p=asym_prior, observed=asym_hits)
 
 
-            burned_trace = pm.sample(1000, tune=2000, nuts_kwargs={'target_accept': 0.95})
+            burned_trace = pm.sample(4000, tune=2000, nuts_kwargs={'target_accept': 0.95}, cores=1, chains=4)
 
         pm.traceplot(burned_trace,)
         # pm.posteriorplot.plot_posterior(burned_trace)
