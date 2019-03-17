@@ -138,35 +138,40 @@ class Modeller:
     def model_individuals_hierarchical(self):
 
         asym_escapes, sym_escapes = self.get_individuals_data()
-        # print(np.array(asym_escapes))
-        # asym_escapes, sym_escapes = self.get_grouped_data()
-
+        
         asym_hits = [np.sum(np.array(trials)) for trials in asym_escapes]
         asym_trials = [len(trials) for trials in asym_escapes]
-        N = len(asym_hits)
-
-
         sym_hits = [np.sum(np.array(trials)) for trials in sym_escapes]
         sym_trials = [len(trials) for trials in sym_escapes]
 
+        asym_escapes_grouped, sym_escapes_grouped = self.get_grouped_data()
+        asym_hits_grouped, asym_trials_grouped = np.sum(asym_escapes_grouped), len(asym_escapes_grouped)
+        sym_hits_grouped, sym_trials_grouped = np.sum(sym_escapes_grouped), len(sym_escapes_grouped)
+
+
         print("Setting up model")
         with pm.Model() as model:
-            # p_sym = pm.Uniform("p_sym", 0, 1)
+            # Model individuals
+            alpha = pm.Uniform('alpha', 1, 10, shape=2)
+            beta = pm.Uniform('beta', 1, 10, shape=2)
 
-            sym_hyper = pm.Uniform("sym_hyper", 0, 1)
-            sym_hyper2 = pm.Uniform("sym_hyper2", 0, 1)
-            # sym_prior = pm.Uniform("sym_prior",  sym_hyper, sym_hyper2, shape=len(sym_trials))
-            sym_prior = pm.Normal("sym_prior",  sym_hyper, 1, shape=len(sym_trials))
+            asym = pm.Beta('asym', alpha=alpha[0], beta=beta[0], shape=len(asym_trials))
+            obs_asym = pm.Binomial('obs_asym', n=asym_trials, p=asym, observed=asym_hits)
+            
 
-            obs_sym = pm.Binomial('obs_sym', n=sym_trials, p=sym_prior, observed=sym_hits)
+            sym = pm.Beta('sym', alpha=alpha[1], beta=beta[1], shape=len(sym_trials))
+            obs_sym = pm.Binomial('obs_sym', n=sym_trials, p=sym, observed=sym_hits)
 
-            # asym_hyper = pm.Uniform("asym_hyper", 0, 1)
-            # asym_hyper2 = pm.Uniform("asym_hyper2", 0, 1)
-            # asym_prior = pm.Uniform("asym_prior", asym_hyper, asym_hyper2, shape=len(asym_trials))
-            # obs_asym = pm.Binomial('obs_asym', n=asym_trials, p=asym_prior, observed=asym_hits)
+            # Model grouped
+            p_asym = pm.Uniform("p_asym_grouped", 0, 1)
+            obs_asym = pm.Binomial('obs_asym_grouped', n=asym_trials_grouped, p=p_asym, observed=asym_hits_grouped)
+
+            p_sym = pm.Uniform("p_sym_grouped", 0, 1)
+            obs_sym = pm.Binomial('obs_sym_grouped', n=sym_trials_grouped, p=p_sym, observed=sym_hits_grouped)
 
 
-            burned_trace = pm.sample(4000, tune=2000, nuts_kwargs={'target_accept': 0.95}, cores=1, chains=4)
+
+            burned_trace = pm.sample(1000, tune=2000, nuts_kwargs={'target_accept': 0.95}) # , cores=1, chains=4)
 
         pm.traceplot(burned_trace,)
         # pm.posteriorplot.plot_posterior(burned_trace)
