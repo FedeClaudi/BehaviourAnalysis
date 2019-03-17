@@ -27,18 +27,22 @@ class Modeller:
         self.platform = sys.platform
 
     def get_grouped_data(self):
-        # Get data [L-R escapes]
-        asym_exps = ["PathInt2", "PathInt2-L"]
-        sym_exps = ["Square Maze", "TwoAndahalf Maze"]
+        if self.platform != "darwin":
+            # Get data [L-R escapes]
+            asym_exps = ["PathInt2", "PathInt2-L"]
+            sym_exps = ["Square Maze", "TwoAndahalf Maze"]
 
-        asym = [arm for arms in [get_trials_by_exp(e, 'true', ['escape_arm']) for e in asym_exps] for arm in arms]
-        sym = [arm for arms in [get_trials_by_exp(e, 'true', ['escape_arm']) for e in sym_exps] for arm in arms]
+            asym = [arm for arms in [get_trials_by_exp(e, 'true', ['escape_arm']) for e in asym_exps] for arm in arms]
+            sym = [arm for arms in [get_trials_by_exp(e, 'true', ['escape_arm']) for e in sym_exps] for arm in arms]
 
-        asym_escapes = np.array([1 if 'Right' in e else 0 for e in asym])
-        sym_escapes = np.array([1 if 'Right' in e else 0 for e in sym])
+            asym_escapes = np.array([1 if 'Right' in e else 0 for e in asym])
+            sym_escapes = np.array([1 if 'Right' in e else 0 for e in sym])
 
-        np.save('Processing/modelling/bayesian/asym.npy', asym_escapes)
-        np.save('Processing/modelling/bayesian/sym.npy', sym_escapes)
+            np.save('Processing/modelling/bayesian/asym.npy', asym_escapes)
+            np.save('Processing/modelling/bayesian/sym.npy', sym_escapes)
+        else:
+            asym_escapes = np.load('Processing/modelling/bayesian/asym.npy')
+            sym_escapes = np.load('Processing/modelling/bayesian/sym.npy')
 
         return asym_escapes, sym_escapes
 
@@ -67,9 +71,12 @@ class Modeller:
                 yaml.dump(sym_escapes, out)
         else:
             with open("Processing/modelling/bayesian/asym_individuals.yml", 'r') as inp:
-                asym = yaml.load(inp)
+                asym_escapes = yaml.load(inp)
 
-            print(asym)
+            with open("Processing/modelling/bayesian/sym_individuals.yml", 'r') as inp:
+                sym_escapes = yaml.load(inp)
+
+        return asym_escapes, sym_escapes
 
     def model_grouped(self):
         if self.platform == 'darwin':
@@ -78,13 +85,19 @@ class Modeller:
         else:
             asym_escapes, sym_escapes = self.get_grouped_data()
 
+        asym_hits, asym_trials = np.sum(asym_escapes), len(asym_escapes)
+        sym_hits, sym_trials = np.sum(sym_escapes), len(sym_escapes)
+
         print("Building model")
         with pm.Model() as model:
             p_asym = pm.Uniform("p_asym", 0, 1)
             p_sym = pm.Uniform("p_sym", 0, 1)
 
-            obs_asym = pm.Bernoulli("obs_asym", p_asym, observed=asym_escapes)
-            obs_sym = pm.Bernoulli("obs_sym", p_sym, observed=sym_escapes)
+            # obs_asym = pm.Bernoulli("obs_asym", p_asym, observed=asym_escapes)
+            # obs_sym = pm.Bernoulli("obs_sym", p_sym, observed=sym_escapes)
+
+            obs_asym = pm.Binomial('obs_asym', n=asym_trials, p=p_asym, observed=asym_hits)
+            obs_sym = pm.Binomial('obs_sym', n=sym_trials, p=p_sym, observed=sym_hits)
 
             # step = pm.Metropolis()
             trace = pm.sample(6000) # , step=step)
@@ -95,7 +108,68 @@ class Modeller:
         plt.show()
 
 
+    def model_individuals(self):
+
+        asym_escapes, sym_escapes = self.get_individuals_data()
+        # print(np.array(asym_escapes))
+        # asym_escapes, sym_escapes = self.get_grouped_data()
+
+        asym_hits = [np.sum(np.array(trials)) for trials in asym_escapes]
+        asym_trials = [len(trials) for trials in asym_escapes]
+        sym_hits = [np.sum(np.array(trials)) for trials in sym_escapes]
+        sym_trials = [len(trials) for trials in sym_escapes]
+
+
+        print("Setting up model")
+        with pm.Model() as model:
+            p_asym = pm.Uniform("p_asym", 0, 1, shape=len(asym_trials))
+            obs_asym = pm.Binomial('obs_asym', n=asym_trials, p=p_asym, observed=asym_hits)
+
+            p_sym = pm.Uniform("p_sym", 0, 1, shape=len(sym_trials))
+            obs_sym = pm.Binomial('obs_sym', n=sym_trials, p=p_sym, observed=sym_hits)
+
+            burned_trace = pm.sample(3000, tune=1000, nuts_kwargs={'target_accept': 0.95})
+
+        pm.traceplot(burned_trace)
+        # pm.posteriorplot.plot_posterior(burned_trace)
+
+        plt.show()
+
+    def model_individuals_hierarchical(self):
+
+        asym_escapes, sym_escapes = self.get_individuals_data()
+        # print(np.array(asym_escapes))
+        # asym_escapes, sym_escapes = self.get_grouped_data()
+
+        asym_hits = [np.sum(np.array(trials)) for trials in asym_escapes]
+        asym_trials = [len(trials) for trials in asym_escapes]
+        N = len(asym_hits)
+
+
+        sym_hits = [np.sum(np.array(trials)) for trials in sym_escapes]
+        sym_trials = [len(trials) for trials in sym_escapes]
+
+        print("Setting up model")
+        with pm.Model() as model:
+            # p_sym = pm.Uniform("p_sym", 0, 1)
+
+            # sym_hyper = pm.Uniform("sym_hyper", 0, 1)
+            sym_prior = pm.Uniform("sym_prior", 0, 1, shape=len(sym_trials))
+            obs_sym = pm.Binomial('obs_sym', n=sym_trials, p=sym_prior, observed=sym_hits)
+
+            # asym_hyper = pm.Uniform("asym_hyper", 0, 1)
+            asym_prior = pm.Uniform("asym_prior", 0, 1, shape=len(asym_trials))
+            obs_asym = pm.Binomial('obs_asym', n=asym_trials, p=asym_prior, observed=asym_hits)
+
+
+            burned_trace = pm.sample(1000, tune=2000, nuts_kwargs={'target_accept': 0.95})
+
+        pm.traceplot(burned_trace,)
+        # pm.posteriorplot.plot_posterior(burned_trace)
+
+        plt.show()
+
 
 if __name__ == "__main__":
     mod = Modeller()
-    mod.get_individuals_data()
+    mod.model_individuals_hierarchical()
