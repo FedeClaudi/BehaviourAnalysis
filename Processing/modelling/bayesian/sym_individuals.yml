@@ -1,0 +1,308 @@
+- !!python/object/apply:numpy.core.multiarray._reconstruct
+  args:
+  - &id001 !!python/name:numpy.ndarray ''
+  - !!python/tuple
+    - 0
+  - !!binary |
+    Yg==
+  state: !!python/tuple
+  - 1
+  - !!python/tuple
+    - 1
+  - &id002 !!python/object/apply:numpy.dtype
+    args:
+    - O8
+    - 0
+    - 1
+    state: !!python/tuple
+    - 3
+    - '|'
+    - null
+    - null
+    - null
+    - -1
+    - -1
+    - 63
+  - false
+  - - Right_Medium
+- !!python/object/apply:numpy.core.multiarray._reconstruct
+  args:
+  - *id001
+  - !!python/tuple
+    - 0
+  - !!binary |
+    Yg==
+  state: !!python/tuple
+  - 1
+  - !!python/tuple
+    - 6
+  - *id002
+  - false
+  - - Right_Medium
+    - Right_Medium
+    - Left_Medium
+    - Left_Medium
+    - Right_Medium
+    - Right_Medium
+- !!python/object/apply:numpy.core.multiarray._reconstruct
+  args:
+  - *id001
+  - !!python/tuple
+    - 0
+  - !!binary |
+    Yg==
+  state: !!python/tuple
+  - 1
+  - !!python/tuple
+    - 1
+  - *id002
+  - false
+  - - Right_Medium
+- !!python/object/apply:numpy.core.multiarray._reconstruct
+  args:
+  - *id001
+  - !!python/tuple
+    - 0
+  - !!binary |
+    Yg==
+  state: !!python/tuple
+  - 1
+  - !!python/tuple
+    - 6
+  - *id002
+  - false
+  - - Right_Medium
+    - Right_Medium
+    - Left_Medium
+    - Right_Medium
+    - Left_Medium
+    - Right_Medium
+- !!python/object/apply:numpy.core.multiarray._reconstruct
+  args:
+  - *id001
+  - !!python/tuple
+    - 0
+  - !!binary |
+    Yg==
+  state: !!python/tuple
+  - 1
+  - !!python/tuple
+    - 7
+  - *id002
+  - false
+  - - Left_Medium
+    - Left_Medium
+    - Right_Medium
+    - Right_Medium
+    - Left_Medium
+    - Right_Medium
+    - Left_Medium
+- !!python/object/apply:numpy.core.multiarray._reconstruct
+  args:
+  - *id001
+  - !!python/tuple
+    - 0
+  - !!binary |
+    Yg==
+  state: !!python/tuple
+  - 1
+  - !!python/tuple
+    - 12
+  - *id002
+  - false
+  - - Left_Medium
+    - Left_Medium
+    - Left_Medium
+    - Left_Medium
+    - Left_Medium
+    - Right_Medium
+    - Left_Medium
+    - Left_Medium
+    - Right_Medium
+    - Right_Medium
+    - Right_Medium
+    - Left_Medium
+- !!python/object/apply:numpy.core.multiarray._reconstruct
+  args:
+  - *id001
+  - !!python/tuple
+    - 0
+  - !!binary |
+    Yg==
+  state: !!python/tuple
+  - 1
+  - !!python/tuple
+    - 5
+  - *id002
+  - false
+  - - Right_Medium
+    - Right_Medium
+    - Right_Medium
+    - Right_Medium
+    - Right_Medium
+- !!python/object/apply:numpy.core.multiarray._reconstruct
+  args:
+  - *id001
+  - !!python/tuple
+    - 0
+  - !!binary |
+    Yg==
+  state: !!python/tuple
+  - 1
+  - !!python/tuple
+    - 4
+  - *id002
+  - false
+  - - Left_Medium
+    - Left_Medium
+    - Left_Medium
+    - Left_Medium
+- !!python/object/apply:numpy.core.multiarray._reconstruct
+  args:
+  - *id001
+  - !!python/tuple
+    - 0
+  - !!binary |
+    Yg==
+  state: !!python/tuple
+  - 1
+  - !!python/tuple
+    - 4
+  - *id002
+  - false
+  - - Left_Medium
+    - Left_Medium
+    - Right_Medium
+    - Right_Medium
+- !!python/object/apply:numpy.core.multiarray._reconstruct
+  args:
+  - *id001
+  - !!python/tuple
+    - 0
+  - !!binary |
+    Yg==
+  state: !!python/tuple
+  - 1
+  - !!python/tuple
+    - 1
+  - *id002
+  - false
+  - - Right_Medium
+- !!python/object/apply:numpy.core.multiarray._reconstruct
+  args:
+  - *id001
+  - !!python/tuple
+    - 0
+  - !!binary |
+    Yg==
+  state: !!python/tuple
+  - 1
+  - !!python/tuple
+    - 6
+  - *id002
+  - false
+  - - Left_Medium
+    - Left_Medium
+    - Right_Medium
+    - Right_Medium
+    - Right_Medium
+    - Left_Medium
+- !!python/object/apply:numpy.core.multiarray._reconstruct
+  args:
+  - *id001
+  - !!python/tuple
+    - 0
+  - !!binary |
+    Yg==
+  state: !!python/tuple
+  - 1
+  - !!python/tuple
+    - 2
+  - *id002
+  - false
+  - - Left_Medium
+    - Right_Medium
+- !!python/object/apply:numpy.core.multiarray._reconstruct
+  args:
+  - *id001
+  - !!python/tuple
+    - 0
+  - !!binary |
+    Yg==
+  state: !!python/tuple
+  - 1
+  - !!python/tuple
+    - 1
+  - *id002
+  - false
+  - - Right_Medium
+- !!python/object/apply:numpy.core.multiarray._reconstruct
+  args:
+  - *id001
+  - !!python/tuple
+    - 0
+  - !!binary |
+    Yg==
+  state: !!python/tuple
+  - 1
+  - !!python/tuple
+    - 4
+  - *id002
+  - false
+  - - Right_Medium
+    - Right_Medium
+    - Left_Medium
+    - Left_Medium
+- !!python/object/apply:numpy.core.multiarray._reconstruct
+  args:
+  - *id001
+  - !!python/tuple
+    - 0
+  - !!binary |
+    Yg==
+  state: !!python/tuple
+  - 1
+  - !!python/tuple
+    - 7
+  - *id002
+  - false
+  - - Left_Medium
+    - Right_Medium
+    - Right_Medium
+    - Right_Medium
+    - Right_Medium
+    - Right_Medium
+    - Left_Medium
+- !!python/object/apply:numpy.core.multiarray._reconstruct
+  args:
+  - *id001
+  - !!python/tuple
+    - 0
+  - !!binary |
+    Yg==
+  state: !!python/tuple
+  - 1
+  - !!python/tuple
+    - 4
+  - *id002
+  - false
+  - - Left_Medium
+    - Right_Medium
+    - Left_Medium
+    - Right_Medium
+- !!python/object/apply:numpy.core.multiarray._reconstruct
+  args:
+  - *id001
+  - !!python/tuple
+    - 0
+  - !!binary |
+    Yg==
+  state: !!python/tuple
+  - 1
+  - !!python/tuple
+    - 3
+  - *id002
+  - false
+  - - Left_Medium
+    - Left_Medium
+    - Left_Medium

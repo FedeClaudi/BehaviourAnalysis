@@ -59,9 +59,9 @@ class Modeller:
                 sym_escapes.append(get_trials_by_exp_and_session(exp, uid, 'true', ['escape_arm']))
 
         with open('Processing/modelling/bayesian/asym_individuals.yml', 'w') as out:
-            yaml.dump(out, asym_escapes)
-        with open('Processing/modelling/bayesian/asym_individuals.yml', 'w') as out:
-            yaml.dump(out, sym_escapes)
+            yaml.dump(asym_escapes, out)
+        with open('Processing/modelling/bayesian/sym_individuals.yml', 'w') as out:
+            yaml.dump(sym_escapes, out)
 
     def model_grouped(self):
         if self.platform == 'darwin':
