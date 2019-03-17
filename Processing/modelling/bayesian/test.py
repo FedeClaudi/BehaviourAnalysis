@@ -27,8 +27,8 @@ asym_escapes = np.array([1 if 'Right' in e else 0 for e in asym])
 sym_escapes = np.array([1 if 'Right' in e else 0 for e in sym])
 
 
-np.save('Processing/modelling/bayesian/asym.npy', np.array)
-np.save('Processing/modelling/bayesian/sym.npy', np.array)
+np.save('Processing/modelling/bayesian/asym.npy', asym_escapes)
+np.save('Processing/modelling/bayesian/sym.npy', sym_escapes)
 
 
 
