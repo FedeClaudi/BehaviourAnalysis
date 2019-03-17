@@ -7,102 +7,27 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 import theano.tensor as tt
 
-def run():
-    def distribution_visualiser(dist):
-        try:
-            samples = dist.random(size=200000)
-            plt.figure()
-            plt.hist(samples, bins=100)
-            plt.plot(np.sort(samples))
-        except: pass
+from database.NewTablesDefinitions import *
+from database.database_fetch import *
+
+from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame, get_arm_given_rois, convert_roi_id_to_tag
+from Processing.tracking_stats.math_utils import get_roi_enters_exits, line_smoother, calc_distance_between_points_2d, remove_tracking_errors
 
 
-    # Generate fake data
-    """ 
-        The data is an m-by-n array containing the outcomes of n trials for m individuals
-        The array is generated from a bernoulli distribution, each m individual has a unique p value for the probability distribution
-        p values are chosen randomly between 0 and 1
-    """
-    m = 20
-    n = 10
-    p_min, p_max = 0.9, 1
+# Get data [L-R escapes]
+asym_exps = ["PathInt2", "PathInt2-L"]
+sym_exps = ["Square Maze", "TwoAndahalf Maze"]
 
-    p = np.random.uniform(p_min, p_max, size=m)
-    trials = stats.bernoulli.rvs(p=p, size=(n, m))
-    # trials = trials.T  # shape = m, n
-    index = np.arange(m)
-    hits = np.sum(trials,0)
+asym = [arm for arms in [get_trials_by_exp(e, 'true', ['escape_arm']) for e in asym_exps] for arm in arms]
+sym = [arm for arms in [get_trials_by_exp(e, 'true', ['escape_arm']) for e in sym_exps] for arm in arms]
+
+asym_escapes = np.array([1 if 'Right' in e else 0 for e in asym])
+sym_escapes = np.array([1 if 'Right' in e else 0 for e in sym])
 
 
-
-    with pm.Model() as model:
-        phi = pm.Uniform('phi', lower=0.0, upper=1.0)
-
-        kappa_log = pm.Exponential('kappa_log', lam=1.5)
-        kappa = pm.Deterministic('kappa', tt.exp(kappa_log))
-
-        # BoundedNormal = pm.Bound(pm.Normal, lower=-1.0, upper=1.0)
-        offset = pm.Normal('offset', mu=0, sd=0.1, shape = m)
-
-        # thetas = pm.Normal('thetas', mu=phi, sd=100, shape=m)
-        thetas = pm.Beta('thetas', alpha=phi*kappa, beta=(1.0-phi)*kappa, shape=m)
-
-        offset_thetas = pm.Deterministic("offset_thetas", thetas + offset*kappa)
-        # y = pm.Binomial('y', n=n, p=thetas, observed=hits)
-        y= pm.Normal('y', mu=thetas, sd=1, observed=hits)
-
-
-        # step = pm.Metropolis()
-        partial_pooling_trace = pm.sample(2000, tune=100, nuts_kwargs={'target_accept': 0.95}) 
-
-
-
-    pm.traceplot(partial_pooling_trace)
-    plt.show()
-
-def run2():
-    # Data of the Eight Schools Model
-    J = 8
-    y = np.array([28.,  8., -3.,  7., -1.,  1., 18., 12.])
-    sigma = np.array([15., 10., 16., 11.,  9., 11., 10., 18.])
-    # tau = 25.
-
-    """
-        with pm.Model() as Centered_eight:
-            mu = pm.Normal('mu', mu=0, sd=5)
-            tau = pm.HalfCauchy('tau', beta=5)
-            theta = pm.Normal('theta', mu=mu, sd=tau, shape=J)
-            obs = pm.Normal('obs', mu=theta, sd=sigma, observed=y)
-
-    """
-
-
-
-    with pm.Model() as NonCentered_eight:
-        SEED = [20100420, 20100234]
-
-        mu = pm.Normal('mu', mu=0, sd=5)
-        tau = pm.HalfCauchy('tau', beta=5)
-        theta_tilde = pm.Normal('theta_t', mu=0, sd=1, shape=J)
-        theta = pm.Deterministic('theta', mu + tau * theta_tilde)
-        obs = pm.Normal('obs', mu=theta, sd=sigma, observed=y)
-
-        with NonCentered_eight:
-            fit_ncp90 = pm.sample(5000, chains=2, tune=1000, random_seed=SEED,
-                                nuts_kwargs=dict(target_accept=.90))
-
-    pm.traceplot(fit_ncp90)
-
-    # display the total number and percentage of divergent
-    divergent = fit_ncp90['diverging']
-    print('Number of Divergent %d' % divergent.nonzero()[0].size)
-
-print('Runing on PyMC3 v{}'.format(pm.__version__))
+np.save('Processing/modelling/bayesian/asym.npy', np.array)
+np.save('Processing/modelling/bayesian/asym.npy', np.array)
 
 
 
 
-if __name__ == "__main__":
-    run()
-
-    plt.show()
