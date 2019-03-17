@@ -383,7 +383,8 @@ class Model:
 		
 		# geo_distances = np.rot90(geo_distances[::-1, :], 3)
 		geo_distances = None
-		number_of_walks = 2
+		number_of_walks = 20
+		all_walked = []
 		for walk_n in np.arange(number_of_walks):
 			walk = []
 			curr = self.env.start.copy()
@@ -391,10 +392,12 @@ class Model:
 
 			# turn the goedesic distances into a matrix
 			x, y, z = [], [], []
-			if geo_distances is None:
-				geo_distances = np.full((self.env.grid_size, self.env.grid_size), np.inf)
-				for point, value in zip(self.env.free_states, self.env.geodesic_distance_states):
-					geo_distances[tuple(point)] = value
+			
+			self.env.get_geodesic_representation(remove_free_states=all_walked)
+			# if geo_distances is None:
+			geo_distances = np.full((self.env.grid_size, self.env.grid_size), np.inf)
+			for point, value in zip(self.env.free_states, self.env.geodesic_distance_states):
+				geo_distances[tuple(point)] = value
 			
 
 			# normalise geodistances
@@ -428,17 +431,21 @@ class Model:
 				ax.scatter(curr[0], curr[1], geo_distances[tuple(curr)] + 1, c='r', s=100, alpha=.75)
 				walk.append(curr)
 
-				if abs(calc_distance_between_points_2d(curr, self.env.goal)) < 2: break
+				if abs(calc_distance_between_points_2d(curr, self.env.goal)) < 2: 
+					break
 
+			all_walked.extend([w for w in walk if w != self.env.start and w!= self.env.goal])
+		
 			# modify the geodesic landscape for the next walk
 			old_geodesic = geo_distances.copy()
-			kernel = 9
+			kernel = 3
 			for i, step in enumerate(walk):
 				if i < kernel: continue
 				if i > len(walk)/3: continue
+				# geo_distances[step[0], step[1]] = np.inf
 				x, y = step[0], step[1]
-				surroundings = geo_distances[x-kernel:x+kernel+1, y-kernel:y+kernel+1]
-				geo_distances[x-kernel:x+kernel+1, y-kernel:y+kernel+1] = surroundings + 10
+				# surroundings = geo_distances[x-kernel:x+kernel+1, y-kernel:y+kernel+1]
+				geo_distances[x-kernel:x+kernel+1, y-kernel:y+kernel+1] = np.inf
 
 			# convolve gaussian over geoesic distance representation
 			kernel = np.ones((5,5),np.float32)/25

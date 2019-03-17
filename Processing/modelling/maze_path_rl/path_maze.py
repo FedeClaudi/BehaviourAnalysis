@@ -197,13 +197,20 @@ class Maze(object):
 
 
 
-	def get_geodesic_representation(self):
+	def get_geodesic_representation(self, remove_free_states = None):
 		from sklearn import manifold
 
+		# get a reduced list of freestates
+		if remove_free_states is not None:
+	
+			free = [fs for fs in self.free_states if fs not in remove_free_states]
+		else:
+			free = self.free_states
+
 		# X is a 2d array with shape: number-of-points by 2 [XY coordinates for each pixel on the maze]
-		X = np.vstack(self.free_states)  # self.freestates is a list of points which are the pixels on the maze
-		start_idx = self.free_states.index(self.start)
-		goal_idx = self.free_states.index(self.goal)
+		X = np.vstack(free)  # self.freestates is a list of points which are the pixels on the maze
+		start_idx = free.index(self.start)
+		goal_idx = free.index(self.goal)
 
 		iso = manifold.Isomap(n_neighbors=6, n_components=2)  # fit the isomap
 		iso.fit(X)
@@ -216,7 +223,7 @@ class Maze(object):
 		f, axarr = plt.subplots(ncols=2)
 		for ax, target, title in zip(axarr, idxs, titles):
 			m = np.full(self.maze_image.shape, np.nan)
-			for n, coord in enumerate(self.free_states):
+			for n, coord in enumerate(free):
 				d = iso.dist_matrix_[n, target]
 				m[coord[1], coord[0]] = d
 
