@@ -54,7 +54,7 @@ if __name__ == "__main__":
 		env.get_geodesic_representation()
 
 		# Train the Q-learning agent
-		print("Learning the policy")
+		print("Setting up modellingpautoma")
 		model = Model(env, FLAG_load_trained)
 		model.train()
 		model.save()

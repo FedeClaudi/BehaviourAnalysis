@@ -16,7 +16,7 @@ import random
 import pickle
 from scipy.special import softmax
 from mpl_toolkits.mplot3d import Axes3D
-
+from scipy.ndimage.filters import gaussian_filter
 
 
 class Model:
@@ -432,12 +432,17 @@ class Model:
 
 			# modify the geodesic landscape for the next walk
 			old_geodesic = geo_distances.copy()
-			kernel = 3
+			kernel = 9
 			for i, step in enumerate(walk):
+				if i < kernel: continue
 				if i > len(walk)/3: continue
 				x, y = step[0], step[1]
-				surroundings = geo_distances[x-kernel:x+kernel+1+i, y-kernel:y+kernel+1+i]
-				geo_distances[x-kernel:x+kernel+1+i, y-kernel:y+kernel+1+i] = surroundings + i * 3
+				surroundings = geo_distances[x-kernel:x+kernel+1, y-kernel:y+kernel+1]
+				geo_distances[x-kernel:x+kernel+1, y-kernel:y+kernel+1] = surroundings + 10
+
+			# convolve gaussian over geoesic distance representation
+			kernel = np.ones((5,5),np.float32)/25
+			dst = gaussian_filter(geo_distances, 3)
 
 			f, axarr = plt.subplots(ncols=2)
 			axarr[0].imshow(old_geodesic)
@@ -445,6 +450,9 @@ class Model:
 			axarr[0].set(title="walk_n "+str(walk_n))
 
 		plt.show()
+
+
+
 
 
 
