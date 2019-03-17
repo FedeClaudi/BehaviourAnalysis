@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 import theano.tensor as tt
 
+import sys
+sys.path.append('./')
 from database.NewTablesDefinitions import *
 from database.database_fetch import *
 
@@ -26,7 +28,7 @@ sym_escapes = np.array([1 if 'Right' in e else 0 for e in sym])
 
 
 np.save('Processing/modelling/bayesian/asym.npy', np.array)
-np.save('Processing/modelling/bayesian/asym.npy', np.array)
+np.save('Processing/modelling/bayesian/sym.npy', np.array)
 
 
 
