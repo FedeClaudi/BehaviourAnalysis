@@ -43,25 +43,33 @@ class Modeller:
         return asym_escapes, sym_escapes
 
     def get_individuals_data(self):
-        asym_exps = ["PathInt2", "PathInt2-L"]
-        sym_exps = ["Square Maze", "TwoAndahalf Maze"]
+        if self.platform != "darwin":
+            asym_exps = ["PathInt2", "PathInt2-L"]
+            sym_exps = ["Square Maze", "TwoAndahalf Maze"]
 
-        asym_escapes = []
-        for exp in asym_exps:
-            sessions = get_trials_by_exp(exp, 'true', ['session_uid'])
-            for uid in set(sessions):
-                asym_escapes.append(get_trials_by_exp_and_session(exp, uid, 'true', ['escape_arm']))
+            asym_escapes = []
+            for exp in asym_exps:
+                sessions = get_trials_by_exp(exp, 'true', ['session_uid'])
+                for uid in set(sessions):
+                    arms = get_trials_by_exp_and_session(exp, uid, 'true', ['escape_arm'])
+                    asym_escapes.append([1 if 'Right' in a else 0 for a in arms])
 
-        sym_escapes = []
-        for exp in sym_exps:
-            sessions = get_trials_by_exp(exp, 'true', ['session_uid'])
-            for uid in set(sessions):
-                sym_escapes.append(get_trials_by_exp_and_session(exp, uid, 'true', ['escape_arm']))
+            sym_escapes = []
+            for exp in sym_exps:
+                sessions = get_trials_by_exp(exp, 'true', ['session_uid'])
+                for uid in set(sessions):
+                    arms = get_trials_by_exp_and_session(exp, uid, 'true', ['escape_arm'])
+                    sym_escapes.append([1 if 'Right' in a else 0 for a in arms])
 
-        with open('Processing/modelling/bayesian/asym_individuals.yml', 'w') as out:
-            yaml.dump(asym_escapes, out)
-        with open('Processing/modelling/bayesian/sym_individuals.yml', 'w') as out:
-            yaml.dump(sym_escapes, out)
+            with open('Processing/modelling/bayesian/asym_individuals.yml', 'w') as out:
+                yaml.dump(asym_escapes, out)
+            with open('Processing/modelling/bayesian/sym_individuals.yml', 'w') as out:
+                yaml.dump(sym_escapes, out)
+        else:
+            with open("Processing/modelling/bayesian/asym_individuals.yml", 'r') as inp:
+                asym = yaml.load(inp)
+
+            print(asym)
 
     def model_grouped(self):
         if self.platform == 'darwin':
