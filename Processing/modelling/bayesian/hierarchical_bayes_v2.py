@@ -197,51 +197,52 @@ class Modeller:
             trace = pickle.load(dataload)
 
         colors = get_n_colors(6)
-        cumulative = [True, False]
-        for cum in cumulative:
-            f, axarr = plt.subplots(ncols=2, nrows=3, figsize=(16, 10))
-            axarr = axarr.flatten()
+        f, axarr = plt.subplots(ncols=2, nrows=3, figsize=(16, 10))
+        axarr = axarr.flatten()
+        cum = False
+        f2, ax2 = plt.subplots()
+        # Plot grouped
+        sns.kdeplot(trace['p_asym_grouped'].values, ax=axarr[0], shade=True, color=colors[2],  linewidth=2, alpha=.8, cumulative =cum ,clip=[0, 1])
+        sns.kdeplot(trace['p_sym_grouped'].values,  ax=axarr[1], shade=True, color=colors[-1], linewidth=2, alpha=.8, cumulative =cum ,clip=[0, 1])
 
-            # Plot grouped
-            sns.kdeplot(trace['p_asym_grouped'].values, ax=axarr[0], shade=True, color=colors[2],  linewidth=2, alpha=.8, cumulative =cum)
-            sns.kdeplot(trace['p_sym_grouped'].values,  ax=axarr[1], shade=True, color=colors[-1], linewidth=2, alpha=.8, cumulative =cum)
+        # plot individuals shades
+        for col in trace.columns:
+            if 'individuals_asym' in col:
+                sns.kdeplot(trace[col].values, ax=axarr[2], shade=True, color=colors[2], linewidth=2, alpha=.05, cumulative =cum ,clip=[0, 1])
+            elif 'individuals_sym' in col:
+                sns.kdeplot(trace[col].values, ax=axarr[3], shade=True, color=colors[-1], linewidth=2, alpha=.05, cumulative =cum ,clip=[0, 1])
+            elif 'asym_hierarchical' in col:
+                sns.kdeplot(trace[col].values, ax=axarr[4], shade=True, color=colors[2], linewidth=2, alpha=.05, cumulative =cum ,clip=[0, 1])
+            elif 'sym_hierarchicalsym' in col:
+                sns.kdeplot(trace[col].values, ax=axarr[5], shade=True, color=colors[-1], linewidth=2, alpha=.05, cumulative =cum ,clip=[0, 1])
 
-            # plot individuals shades
-            for col in trace.columns:
-                if 'individuals_asym' in col:
-                    sns.kdeplot(trace[col].values, ax=axarr[2], shade=True, color=colors[2], linewidth=2, alpha=.05, cumulative =cum)
-                elif 'individuals_sym' in col:
-                    sns.kdeplot(trace[col].values, ax=axarr[3], shade=True, color=colors[-1], linewidth=2, alpha=.05, cumulative =cum)
-                elif 'asym_hierarchical' in col:
-                    sns.kdeplot(trace[col].values, ax=axarr[4], shade=True, color=colors[2], linewidth=2, alpha=.05, cumulative =cum)
-                elif 'sym_hierarchicalsym' in col:
-                    sns.kdeplot(trace[col].values, ax=axarr[5], shade=True, color=colors[-1], linewidth=2, alpha=.05, cumulative =cum)
-
-            # plot individuals lines
-            for col in trace.columns:
-                if 'individuals_asym' in col:
-                    sns.kdeplot(trace[col].values, ax=axarr[2], shade=False, color=colors[2], linewidth=2, alpha=1, cumulative =cum)
-                elif 'individuals_sym' in col:
-                    sns.kdeplot(trace[col].values, ax=axarr[3], shade=False, color=colors[-1], linewidth=2, alpha=1, cumulative =cum)
-                elif 'asym_hierarchical' in col:
-                    sns.kdeplot(trace[col].values, ax=axarr[4], shade=False, color=colors[2], linewidth=2, alpha=1, cumulative =cum)
-                elif 'sym_hierarchicalsym' in col:
-                    sns.kdeplot(trace[col].values, ax=axarr[5], shade=False, color=colors[-1], linewidth=2, alpha=1, cumulative =cum)
+        # plot individuals lines
+        for col in trace.columns:
+            if 'individuals_asym' in col:
+                sns.kdeplot(trace[col].values, ax=axarr[2], shade=False, color=colors[2], linewidth=2, alpha=1, cumulative =cum ,clip=[0, 1])
+            elif 'individuals_sym' in col:
+                sns.kdeplot(trace[col].values, ax=axarr[3], shade=False, color=colors[-1], linewidth=2, alpha=1, cumulative =cum ,clip=[0, 1])
+            elif 'asym_hierarchical' in col:
+                sns.kdeplot(trace[col].values, ax=axarr[4], shade=False, color=colors[2], linewidth=2, alpha=1, cumulative =cum ,clip=[0, 1])
+                sns.kdeplot(trace[col].values, ax=ax2, shade=False, color=colors[2], linewidth=2, alpha=1, cumulative =cum ,clip=[0, 1])
+            elif 'sym_hierarchicalsym' in col:
+                sns.kdeplot(trace[col].values, ax=axarr[5], shade=False, color=colors[-1], linewidth=2, alpha=1, cumulative =cum)
+                sns.kdeplot(trace[col].values, ax=ax2, shade=False, color=colors[-1], linewidth=2, alpha=1, cumulative =cum ,clip=[0, 1])
 
 
-            titles = [
-                'Asymmetric - grouped',
-                'Symmetric - grouped',
-                'Asymmetric - individuals',
-                'Symmetric - individuals',
-                'Asymmetric - hierarchical',
-                'Symmetric - hierarchical'
-            ]
+        titles = [
+            'Asymmetric - grouped',
+            'Symmetric - grouped',
+            'Asymmetric - individuals',
+            'Symmetric - individuals',
+            'Asymmetric - hierarchical',
+            'Symmetric - hierarchical'
+        ]
 
-            for ttl, ax in zip(titles, axarr):
-                ax.set(title=ttl, xlim=[0, 1], xlabel='p(R)', ylabel='frequency')
+        for ttl, ax in zip(titles, axarr):
+            ax.set(title=ttl, xlim=[0, 1], xlabel='p(R)', ylabel='frequency')
 
-            f.savefig("Processing/modelling/bayesian/summary_{}.png".format(cum))
+        f.savefig("Processing/modelling/bayesian/summary_{}.png".format(cum))
 
 
 
