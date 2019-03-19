@@ -23,7 +23,7 @@ if sys.platform != 'darwin':
     from database.database_fetch import *
 
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame, get_arm_given_rois, convert_roi_id_to_tag
-from Processing.tracking_stats.math_utils import get_roi_enters_exits, line_smoother, calc_distance_between_points_2d, remove_tracking_errors
+from Processing.tracking_stats.math_utils import get_n_colors, get_roi_enters_exits, line_smoother, calc_distance_between_points_2d, remove_tracking_errors
 
 
 class Modeller:
@@ -183,8 +183,8 @@ class Modeller:
             indi_obs_sym = pm.Binomial('indi_obs_sym', n=sym_trials, p=individuals_sym, observed=sym_hits)
 
             # Model individuals - hierarchical
-            hyperpriors_alfa = pm.Uniform('hyperpriors_alfa', 1, 10, shape=2)
-            hyperpriors_beta = pm.Uniform('hyperpriors_beta', 1, 10, shape=2)
+            hyperpriors_alfa = pm.Uniform('hyperpriors_alfa', .1, 10, shape=2)
+            hyperpriors_beta = pm.Uniform('hyperpriors_beta', .1, 10, shape=2)
 
             asym_hierarchical = pm.Beta('asym_hierarchical', alpha=hyperpriors_alfa[0], beta=hyperpriors_beta[0], shape=len(asym_trials))
             obs_asym = pm.Binomial('obs_asym', n=asym_trials, p=asym_hierarchical, observed=asym_hits)
@@ -202,9 +202,13 @@ class Modeller:
 
 
 
-            burned_trace = pm.sample(2000, tune=2000, nuts_kwargs={'target_accept': 0.95}) # , cores=1, chains=4)
+            burned_trace = pm.sample(1000, tune=2000, nuts_kwargs={'target_accept': 0.95}) # , cores=1, chains=4)
 
         pm.traceplot(burned_trace,)
+
+        a = pm.model_to_graphviz(model)
+        a.render('Processing/modelling/bayesian/test', view=True)
+        a.view()
 
         savename = 'Processing/modelling/bayesian/hb_trace.pkl'
         with open(savename, 'wb') as output:
