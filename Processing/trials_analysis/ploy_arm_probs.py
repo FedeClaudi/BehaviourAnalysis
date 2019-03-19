@@ -3,6 +3,7 @@ sys.path.append('./')
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import seaborn as sns
 
 from database.NewTablesDefinitions import *
 from database.database_fetch import *
@@ -10,7 +11,7 @@ from database.database_fetch import *
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame, get_arm_given_rois, convert_roi_id_to_tag
 from Processing.tracking_stats.math_utils import get_roi_enters_exits, line_smoother, calc_distance_between_points_2d, remove_tracking_errors
 
-
+from Processing.modelling.bayesian.hierarchical_bayes_v2 import Modeller as Bayesian
 
 
 class Plotter:
@@ -95,6 +96,20 @@ class Plotter:
 
 
     def pr_sym_vs_asmy(self):
+        def plot_two_dists_kde(d1, d2, title, l1=None, l2=None):
+            colors = get_n_colors(6)
+            f, ax = plt.subplots()
+
+            c1, c2 = colors[2], colors[3]
+
+            sns.kdeplot(d1, ax=ax, shade=True, color=c1, linewidth=2, alpha=.8, clip=[0, 1], label=l1)
+            sns.kdeplot(d2, ax=ax, shade=True, color=c2, linewidth=2, alpha=.8, clip=[0, 1], label=l2)
+            ax.set(title=title, xlim=[0, 1])
+            ax.legend()
+            f.savefig("D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Presentations\\ThesisCommitte\\plots\\{}.svg".format(title.strip().split('-')[0]), format="svg")
+
+        bayes = Bayesian()
+
 
         # Get data
         asym_exps = ["PathInt2", "PathInt2-L"]
@@ -113,13 +128,29 @@ class Plotter:
         p_asym = self.calc_arm_p(asym, "Right_Medium")
         p_sym = self.calc_arm_p(sym, "Right_Medium")
 
-        # Get p(L) for trials with origin on the left
+        """
+            LOOK AT EFFECT OF ARM OF ORIGIN
+        """
         asym_r_ori = [e for o,e in zip(asym_origins, asym) if 'Right' in o]
         sym_r_ori = [e for o,e in zip(sym_origins, sym) if 'Right' in o]
 
         asym_l_ori = [e for o,e in zip(asym_origins, asym) if 'Left' in o]
         sym_l_ori = [e for o,e in zip(sym_origins, sym) if 'Left' in o]
 
+        # DO SOME MODELLING
+        if 1 == 1:
+            asym_r_ori_int = [1 if 'Right' in e else 0 for e in asym_r_ori]
+            asym_l_ori_int = [1 if 'Right' in e else 0 for e in asym_l_ori]
+            trace, D, pVal = bayes.model_two_distributions(asym_r_ori_int, asym_l_ori_int)
+            plot_two_dists_kde(trace['p_d1'].values, trace['p_d2'].values, 'ASYM $p(R)$ given origin - D:{},p{}'.format(D, pVal), 'R origin', 'L origin')
+            
+
+            sym_r_ori_int = [1 if 'Right' in e else 0 for e in sym_r_ori]
+            sym_l_ori_int = [1 if 'Right' in e else 0 for e in sym_l_ori]
+            trace, D, pVal = bayes.model_two_distributions(sym_r_ori_int, sym_l_ori_int)
+            plot_two_dists_kde(trace['p_d1'].values, trace['p_d2'].values, 'SYM $p(R)$ given origin - D:{},p{}'.format(D, pVal), 'R origin', 'L origin')
+
+        """
         p_asym_r_lori = self.calc_arm_p(asym_l_ori, "Right_Medium")
         p_sym_r_lori = self.calc_arm_p(sym_l_ori, "Right_Medium")
         p_asym_r_rori = self.calc_arm_p(asym_r_ori, "Right_Medium")
@@ -150,8 +181,11 @@ class Plotter:
         ax.set(title="p(R) given R origin and given L origin", xticks=xx, xticklabels=labels, yticks=yy, ylabel="p(R)", ylim=[0, 1])
 
         f.savefig("D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Presentations\\ThesisCommitte\\plots\\pR_asym_sym_given_lori.svg", format="svg")
+        """
 
-
+        """
+            LOOK AT THE EFFECT OF X POSITION
+        """
 
         # Plot the probs of escaping left and right based on the position at stim onset
         asym_tracking = [arm for arms in [get_trials_by_exp(e, 'true', ['tracking_data']) for e in asym_exps] for arm in arms]
@@ -165,28 +199,52 @@ class Plotter:
 
         asym_l_pos, asym_r_pos = [e for i,e in enumerate(asym) if asym_position_onset[i]==1], [e for i,e in enumerate(asym) if asym_position_onset[i]==2]
         sym_l_pos, sym_r_pos = [e for i,e in enumerate(sym) if sym_position_onset[i]==1], [e for i,e in enumerate(sym) if sym_position_onset[i]==2]
-        asym_escape_all_position = [e for i,e in enumerate(asym) if asym_position_onset[i]!=0]
-        sym_escape_all_position = [e for i,e in enumerate(sym) if sym_position_onset[i]!=0]
 
-        asym_p_r_lpos, asym_p_r_rpos = self.calc_arm_p(asym_l_pos, 'Right_Medium'), self.calc_arm_p(asym_r_pos, 'Right_Medium')
-        sym_p_r_lpos, sym_p_r_rpos = self.calc_arm_p(sym_l_pos, 'Right_Medium'), self.calc_arm_p(sym_r_pos, 'Right_Medium')
+        # asym_escape_all_position = [e for i,e in enumerate(asym) if asym_position_onset[i]!=0]
+        # sym_escape_all_position = [e for i,e in enumerate(sym) if sym_position_onset[i]!=0]
 
+        # asym_p_r_lpos, asym_p_r_rpos = self.calc_arm_p(asym_l_pos, 'Right_Medium'), self.calc_arm_p(asym_r_pos, 'Right_Medium')
+        # sym_p_r_lpos, sym_p_r_rpos = self.calc_arm_p(sym_l_pos, 'Right_Medium'), self.calc_arm_p(sym_r_pos, 'Right_Medium')
 
+        # do some MODELLING
+        if 1 == 1:
+            asym_l_pos_int, asym_r_pos_int = [1 if 'Right' in e else 0 for e in asym_l_pos], [1 if 'Right' in e else 0 for e in asym_r_pos]
+            sym_l_pos_int, sym_r_pos_int = [1 if 'Right' in e else 0 for e in sym_l_pos], [1 if 'Right' in e else 0 for e in sym_r_pos]
+
+            trace, D, pVal = bayes.model_two_distributions(asym_r_pos_int, asym_l_pos_int)
+            plot_two_dists_kde(trace['p_d1'].values, trace['p_d2'].values, 'ASYM $p(R)$ given X position - D:{},p{}'.format(D, pVal), 'R pos', 'L pos')
+            trace, D, pVal = bayes.model_two_distributions(sym_r_pos_int, sym_l_pos_int)
+            plot_two_dists_kde(trace['p_d1'].values, trace['p_d2'].values, 'SYM $p(R)$ given X position - D:{},p{}'.format(D, pVal), 'R pos', 'L pos')
+
+        """
+            LOOK AT THE EFFECT OF ORIENTATION
+        """
+
+        asym_body_pos, asym_tail_pos = np.vstack([tr[0, :2, 0] for tr in asym_tracking ]), np.vstack([tr[0, :2, -1] for tr in asym_tracking ])
+        sym_body_pos, sym_tail_pos = np.vstack([tr[0, :2, 0] for tr in sym_tracking ]), np.vstack([tr[0, :2, -1] for tr in sym_tracking ])
+
+        asym_orient = calc_angle_between_vectors_of_points_2d(asym_body_pos.T, asym_tail_pos.T)
+        sym_orient = calc_angle_between_vectors_of_points_2d(sym_body_pos.T, sym_tail_pos.T)
+
+        asym_rorient, asym_lorient = [e for i,e in enumerate(asym) if asym_orient[i] <= 90-22.5], [e for i,e in enumerate(asym) if 180 >= asym_orient[i] >= 90+22.5]
+        sym_rorient, sym_lorient = [e for i,e in enumerate(sym) if sym_orient[i] <= 90-22.5], [e for i,e in enumerate(sym) if 180 >= sym_orient[i] >= 90+22.5]
+        
+        asym_rorient_int, asym_lorient_int= [1 if 'Right' in e else 0 for e in asym_rorient], [1 if 'Right' in e else 0 for e in asym_lorient]
+        sym_rorient_int, sym_lorient_int= [1 if 'Right' in e else 0 for e in sym_rorient], [1 if 'Right' in e else 0 for e in sym_lorient]
+
+        trace, D, pVal = bayes.model_two_distributions(asym_rorient_int, asym_lorient_int)
+        plot_two_dists_kde(trace['p_d1'].values, trace['p_d2'].values, 'ASYM $p(R)$ given Orientation - D:{},p{}'.format(D, pVal), 'R oriented', 'L oriented')
+        trace, D, pVal = bayes.model_two_distributions(sym_rorient_int, sym_lorient_int)
+        plot_two_dists_kde(trace['p_d1'].values, trace['p_d2'].values, 'SYM $p(R)$ given Orientation - D:{},p{}'.format(D, pVal), 'R oriented', 'L oriented')
+
+        plt.show()
+
+        """
         f, ax = plt.subplots(figsize=(8, 12))
         ax.bar(xx2, [asym_p_r_lpos, asym_p_r_rpos, sym_p_r_lpos, sym_p_r_rpos], color=colors)
         ax.set(title="P(R) given position on the left vs given position on the right", xticks=xx, xticklabels=labels, yticks=yy, ylabel="p(R)", ylim=[0, 1])
         f.savefig("D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Presentations\\ThesisCommitte\\plots\\pR_asym_sym_given_pos.svg", format="svg")
 
-        # f, axarr = plt.subplots(ncols=2)
-        # asym_col_by_pos = [colors[0] if e=='Right_Medium' else colors[1] for e in asym_escape_all_position]
-        # sym_col_by_pos = [colors[0] if e=='Right_Medium' else colors[1] for e in sym_escape_all_position]
-
-        # axarr[0].scatter([x[0] for x in asym_position_onset_pos], [x[1] for x in asym_position_onset_pos], 
-        #                         c=asym_col_by_pos)
-        # axarr[1].scatter([x[0] for x in sym_position_onset_pos], [x[1] for x in sym_position_onset_pos], 
-        #                         c=sym_col_by_pos)
-        # ax.set(title="Position at stim onset colored by escape arm")
-        
 
 
 
@@ -203,25 +261,12 @@ class Plotter:
         asym_pr_orientation = [self.calc_arm_p(asym_lorient, 'Right_Medium'), self.calc_arm_p(asym_rorient, 'Right_Medium')]
         sym_pr_orientation = [self.calc_arm_p(sym_lorient, 'Right_Medium'), self.calc_arm_p(sym_rorient, 'Right_Medium')]
 
-        # f, axarr = plt.subplots(ncols=2, nrows=2)
-        # axarr[0, 0].scatter([x[0] for x in asym_body_pos], [x[1] for x in asym_body_pos], c=asym_orient)
-        # axarr[0, 1].scatter([x[0] for x in sym_body_pos], [x[1] for x in sym_body_pos], c=sym_orient)
-
-        # axarr[1, 0].hist(asym_orient, bins=36)
-        # axarr[1, 0].axvline(np.mean(asym_orient), color='r')
-        # axarr[1, 1].hist(sym_orient, bins=36)
-        # axarr[1, 1].axvline(np.mean(sym_orient), color='r')
-
-        # axarr[0,0].set(title="orientation at stim onset")
-
         f, ax = plt.subplots(figsize=(8, 12))
         ax.bar(xx2, [asym_pr_orientation[0], asym_pr_orientation[1], sym_pr_orientation[0], sym_pr_orientation[1]], color=colors)
 
         ax.set(title = "P(R) given orientation", xticks=xx, xticklabels=labels, yticks=yy, ylabel="p(R)", ylim=[0, 1])
         f.savefig("D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Presentations\\ThesisCommitte\\plots\\pR_asym_sym_given_orientation.svg", format="svg")
-
-
-        a = 1
+        """
 
 
 if __name__ == "__main__":

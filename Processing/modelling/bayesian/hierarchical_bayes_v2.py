@@ -14,6 +14,8 @@ import yaml
 import pickle 
 import seaborn as sns
 
+from scipy.stats import ks_2samp as KS_test
+
 import sys
 sys.path.append('./')
 if sys.platform != 'darwin':
@@ -79,6 +81,26 @@ class Modeller:
                 sym_escapes = yaml.load(inp)
 
         return asym_escapes, sym_escapes
+
+    def model_two_distributions(self, d1, d2):
+        d1_hits, d1_count = np.sum(d1), len(d1)
+        d2_hits, d2_count = np.sum(d2), len(d2)
+
+        with pm.Model() as model:
+            p_d1 = pm.Uniform("p_d1", 0, 1)
+            p_d2 = pm.Uniform("p_d2", 0, 1)
+
+            obs_asym = pm.Binomial('obs_asym', n=d1_count, p=p_d1, observed=d1_hits)
+            obs_sym = pm.Binomial('obs_sym', n=d2_count, p=p_d2, observed=d2_hits)
+
+            trace = pm.sample(3000, tune=1000, nuts_kwargs={'target_accept': 0.95}) 
+        # pm.traceplot(trace)
+        df = pm.trace_to_dataframe(trace)
+
+        KS_stat, pVal = KS_test(df['p_d1'].values, df['p_d2'].values)
+
+        print('KS test:', KS_stat, pVal)
+        return df, KS_stat, pVal
 
     def model_grouped(self):
         if self.platform == 'darwin':
@@ -190,11 +212,14 @@ class Modeller:
 
         plt.show()
 
-
-    def summary_plot(self):
+    def load_trace(self):
         savename = 'Processing/modelling/bayesian/hb_trace.pkl'
         with open(savename, 'rb') as dataload:
             trace = pickle.load(dataload)
+        return trace
+
+    def summary_plot(self):
+        trace = self.load_trace()
 
         colors = get_n_colors(6)
         f, axarr = plt.subplots(ncols=2, nrows=3, figsize=(16, 10))
@@ -203,7 +228,7 @@ class Modeller:
         f2, ax2 = plt.subplots()
         # Plot grouped
         sns.kdeplot(trace['p_asym_grouped'].values, ax=axarr[0], shade=True, color=colors[2],  linewidth=2, alpha=.8, cumulative =cum ,clip=[0, 1])
-        sns.kdeplot(trace['p_sym_grouped'].values,  ax=axarr[1], shade=True, color=colors[-1], linewidth=2, alpha=.8, cumulative =cum ,clip=[0, 1])
+        sns.kdeplot(trace['p_sym_grouped'].values,  ax=axarr[0], shade=True, color=colors[-1], linewidth=2, alpha=.8, cumulative =cum ,clip=[0, 1])
 
         # plot individuals shades
         for col in trace.columns:
@@ -243,11 +268,17 @@ class Modeller:
             ax.set(title=ttl, xlim=[0, 1], xlabel='p(R)', ylabel='frequency')
 
         f.savefig("Processing/modelling/bayesian/summary_{}.png".format(cum))
-
-
+        f.savefig("Processing/modelling/bayesian/summary.svg", format="svg")
 
         plt.show()
 
+
+    def stats(self):
+        trace = self.load_trace()
+
+        ks_results = KS_test(trace['p_asym_grouped'].values, trace['p_sym_grouped'].values)
+
+        a = 1
 
 
 
