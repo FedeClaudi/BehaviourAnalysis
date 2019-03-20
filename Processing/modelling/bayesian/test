@@ -1,0 +1,35 @@
+digraph {
+	subgraph cluster30 {
+		obs_asym [label="obs_asym ~ Binomial" style=filled]
+		asym_hierarchical [label="asym_hierarchical ~ Beta"]
+		individuals_asym [label="individuals_asym ~ Uniform"]
+		indi_obs_asym [label="indi_obs_asym ~ Binomial" style=filled]
+		label=30 labeljust=r labelloc=b style=rounded
+	}
+	subgraph cluster17 {
+		obs_sym [label="obs_sym ~ Binomial" style=filled]
+		sym_hierarchicalsym [label="sym_hierarchicalsym ~ Beta"]
+		individuals_sym [label="individuals_sym ~ Uniform"]
+		indi_obs_sym [label="indi_obs_sym ~ Binomial" style=filled]
+		label=17 labeljust=r labelloc=b style=rounded
+	}
+	subgraph cluster2 {
+		hyperpriors_beta [label="hyperpriors_beta ~ Uniform"]
+		hyperpriors_alfa [label="hyperpriors_alfa ~ Uniform"]
+		label=2 labeljust=r labelloc=b style=rounded
+	}
+	obs_sym_grouped [label="obs_sym_grouped ~ Binomial" style=filled]
+	p_asym_grouped [label="p_asym_grouped ~ Uniform"]
+	obs_asym_grouped [label="obs_asym_grouped ~ Binomial" style=filled]
+	p_sym_grouped [label="p_sym_grouped ~ Uniform"]
+	individuals_asym -> indi_obs_asym
+	individuals_sym -> indi_obs_sym
+	hyperpriors_beta -> asym_hierarchical
+	hyperpriors_alfa -> asym_hierarchical
+	asym_hierarchical -> obs_asym
+	hyperpriors_beta -> sym_hierarchicalsym
+	hyperpriors_alfa -> sym_hierarchicalsym
+	sym_hierarchicalsym -> obs_sym
+	p_asym_grouped -> obs_asym_grouped
+	p_sym_grouped -> obs_sym_grouped
+}
