@@ -15,6 +15,7 @@ import pickle
 import seaborn as sns
 
 from scipy.stats import ks_2samp as KS_test
+from scipy import stats
 
 import sys
 sys.path.append('./')
@@ -97,10 +98,10 @@ class Modeller:
         # pm.traceplot(trace)
         df = pm.trace_to_dataframe(trace)
 
-        KS_stat, pVal = KS_test(df['p_d1'].values, df['p_d2'].values)
+        D, ks_pVal, t, t_pval = self.stats(distributions=[df['p_d1'].values, df['p_d2'].values])
 
-        print('KS test:', KS_stat, pVal)
-        return df, KS_stat, pVal
+        # print('KS test:', KS_stat, pVal)
+        return df, D, ks_pVal, t, t_pval
 
     def model_grouped(self):
         if self.platform == 'darwin':
@@ -273,15 +274,21 @@ class Modeller:
         plt.show()
 
 
-    def stats(self):
-        trace = self.load_trace()
+    def stats(self, distributions=None):
+        if distributions is None:
+            trace = self.load_trace()
+            d1 = trace['p_asym_grouped'].values
+            d2 = trace['p_sym_grouped'].values
+        else:
+            d1, d2 = distributions[0], distributions[1]
 
-        ks_results = KS_test(trace['p_asym_grouped'].values, trace['p_sym_grouped'].values)
+        d, p1 = KS_test(d1, d2)
+        t, p2 =  stats.ttest_ind(d1, d2)
 
-        a = 1
+        return d, p1, t, p2
 
 
 
 if __name__ == "__main__":
     mod = Modeller()
-    mod.summary_plot()
+    mod.stats()

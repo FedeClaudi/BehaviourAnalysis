@@ -225,13 +225,13 @@ if __name__ == '__main__':
     p = PopulateDatabase()
 
     print(p)
-
-    # p.remove_table(['videofiles'])
-
+# 
+    # p.remove_table(['tracking_data', 'tracking_data_justbody'])
+    
     # p.populate_mice_table()
     # p.populate_experiments_table()
     # p.populate_sessions_table()
-# 
+
     # p.dlcmodels.populate()
 
     # p.recordings.populate()
@@ -241,9 +241,9 @@ if __name__ == '__main__':
     # p.templates.populate()
     
     # p.behaviourstimuli.populate() 
-    p.mantisstimuli.populate()
+    # p.mantisstimuli.populate()
 
-    # p.tracking_data.populate()
+    p.tracking_data.populate()
     # p.tracking_data_justbody.populate()
 # 
     # p.populate_armsprobs()

@@ -383,7 +383,7 @@ class Model:
 		
 		# geo_distances = np.rot90(geo_distances[::-1, :], 3)
 		geo_distances = None
-		number_of_walks = 20
+		number_of_walks = 1
 		all_walked = []
 		for walk_n in np.arange(number_of_walks):
 			walk = []
@@ -434,6 +434,8 @@ class Model:
 				if abs(calc_distance_between_points_2d(curr, self.env.goal)) < 2: 
 					break
 
+			return walk
+
 			all_walked.extend([w for w in walk if w != self.env.start and w!= self.env.goal])
 		
 			# modify the geodesic landscape for the next walk
@@ -456,7 +458,7 @@ class Model:
 			axarr[1].imshow(geo_distances)
 			axarr[0].set(title="walk_n "+str(walk_n))
 
-		plt.show()
+		# plt.show()
 
 
 

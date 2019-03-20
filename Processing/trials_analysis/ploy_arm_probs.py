@@ -141,14 +141,14 @@ class Plotter:
         if 1 == 1:
             asym_r_ori_int = [1 if 'Right' in e else 0 for e in asym_r_ori]
             asym_l_ori_int = [1 if 'Right' in e else 0 for e in asym_l_ori]
-            trace, D, pVal = bayes.model_two_distributions(asym_r_ori_int, asym_l_ori_int)
-            plot_two_dists_kde(trace['p_d1'].values, trace['p_d2'].values, 'ASYM $p(R)$ given origin - D:{},p{}'.format(D, pVal), 'R origin', 'L origin')
+            trace, D, dp, t, tp = bayes.model_two_distributions(asym_r_ori_int, asym_l_ori_int)
+            plot_two_dists_kde(trace['p_d1'].values, trace['p_d2'].values, 'ASYM $p(R)$ given origin - D:{},p{}'.format(t, tp), 'R origin', 'L origin')
             
 
             sym_r_ori_int = [1 if 'Right' in e else 0 for e in sym_r_ori]
             sym_l_ori_int = [1 if 'Right' in e else 0 for e in sym_l_ori]
-            trace, D, pVal = bayes.model_two_distributions(sym_r_ori_int, sym_l_ori_int)
-            plot_two_dists_kde(trace['p_d1'].values, trace['p_d2'].values, 'SYM $p(R)$ given origin - D:{},p{}'.format(D, pVal), 'R origin', 'L origin')
+            trace,  D, dp, t, tp = bayes.model_two_distributions(sym_r_ori_int, sym_l_ori_int)
+            plot_two_dists_kde(trace['p_d1'].values, trace['p_d2'].values, 'SYM $p(R)$ given origin - D:{},p{}'.format(t, tp), 'R origin', 'L origin')
 
         """
         p_asym_r_lori = self.calc_arm_p(asym_l_ori, "Right_Medium")
@@ -211,10 +211,10 @@ class Plotter:
             asym_l_pos_int, asym_r_pos_int = [1 if 'Right' in e else 0 for e in asym_l_pos], [1 if 'Right' in e else 0 for e in asym_r_pos]
             sym_l_pos_int, sym_r_pos_int = [1 if 'Right' in e else 0 for e in sym_l_pos], [1 if 'Right' in e else 0 for e in sym_r_pos]
 
-            trace, D, pVal = bayes.model_two_distributions(asym_r_pos_int, asym_l_pos_int)
-            plot_two_dists_kde(trace['p_d1'].values, trace['p_d2'].values, 'ASYM $p(R)$ given X position - D:{},p{}'.format(D, pVal), 'R pos', 'L pos')
-            trace, D, pVal = bayes.model_two_distributions(sym_r_pos_int, sym_l_pos_int)
-            plot_two_dists_kde(trace['p_d1'].values, trace['p_d2'].values, 'SYM $p(R)$ given X position - D:{},p{}'.format(D, pVal), 'R pos', 'L pos')
+            trace,  D, dp, t, tp = bayes.model_two_distributions(asym_r_pos_int, asym_l_pos_int)
+            plot_two_dists_kde(trace['p_d1'].values, trace['p_d2'].values, 'ASYM $p(R)$ given X position - D:{},p{}'.format(t, tp), 'R pos', 'L pos')
+            trace,  D, dp, t, tp = bayes.model_two_distributions(sym_r_pos_int, sym_l_pos_int)
+            plot_two_dists_kde(trace['p_d1'].values, trace['p_d2'].values, 'SYM $p(R)$ given X position - D:{},p{}'.format(t, tp), 'R pos', 'L pos')
 
         """
             LOOK AT THE EFFECT OF ORIENTATION
@@ -232,10 +232,10 @@ class Plotter:
         asym_rorient_int, asym_lorient_int= [1 if 'Right' in e else 0 for e in asym_rorient], [1 if 'Right' in e else 0 for e in asym_lorient]
         sym_rorient_int, sym_lorient_int= [1 if 'Right' in e else 0 for e in sym_rorient], [1 if 'Right' in e else 0 for e in sym_lorient]
 
-        trace, D, pVal = bayes.model_two_distributions(asym_rorient_int, asym_lorient_int)
-        plot_two_dists_kde(trace['p_d1'].values, trace['p_d2'].values, 'ASYM $p(R)$ given Orientation - D:{},p{}'.format(D, pVal), 'R oriented', 'L oriented')
-        trace, D, pVal = bayes.model_two_distributions(sym_rorient_int, sym_lorient_int)
-        plot_two_dists_kde(trace['p_d1'].values, trace['p_d2'].values, 'SYM $p(R)$ given Orientation - D:{},p{}'.format(D, pVal), 'R oriented', 'L oriented')
+        trace, D, dp, t, tp = bayes.model_two_distributions(asym_rorient_int, asym_lorient_int)
+        plot_two_dists_kde(trace['p_d1'].values, trace['p_d2'].values, 'ASYM $p(R)$ given Orientation - D:{},p{}'.format(t, tp), 'R oriented', 'L oriented')
+        trace, D, dp, t, tp = bayes.model_two_distributions(sym_rorient_int, sym_lorient_int)
+        plot_two_dists_kde(trace['p_d1'].values, trace['p_d2'].values, 'SYM $p(R)$ given Orientation - D:{},p{}'.format(t, tp), 'R oriented', 'L oriented')
 
         plt.show()
 
@@ -244,10 +244,7 @@ class Plotter:
         ax.bar(xx2, [asym_p_r_lpos, asym_p_r_rpos, sym_p_r_lpos, sym_p_r_rpos], color=colors)
         ax.set(title="P(R) given position on the left vs given position on the right", xticks=xx, xticklabels=labels, yticks=yy, ylabel="p(R)", ylim=[0, 1])
         f.savefig("D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Presentations\\ThesisCommitte\\plots\\pR_asym_sym_given_pos.svg", format="svg")
-
-
-
-
+            
         # Plot the probs of escaping left and right based on the position at stim onset
         asym_body_pos, asym_tail_pos = np.vstack([tr[0, :2, 0] for tr in asym_tracking ]), np.vstack([tr[0, :2, -1] for tr in asym_tracking ])
         sym_body_pos, sym_tail_pos = np.vstack([tr[0, :2, 0] for tr in sym_tracking ]), np.vstack([tr[0, :2, -1] for tr in sym_tracking ])

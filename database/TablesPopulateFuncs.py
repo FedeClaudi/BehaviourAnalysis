@@ -812,6 +812,8 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
 
 
 def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessions, fast_mode=False):
+    if key['camera_name'] != 'overview': return
+        
     # Get the name of the experiment the video belongs to
     fetched_sessions = sessions.fetch(as_dict=True)
     session = [s for s in fetched_sessions if s['uid']==key['uid']][0]
@@ -821,8 +823,9 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
 
     fast_mode = fast_mode # ! fast MODE
     to_include = dict(
-            bodyparts=['snout', 'neck', 'body', 'tail_base', 'left_ear', 'right_ear'],
-            segments=['head', 'body_upper', 'body_lower']
+            bodyparts=['snout', 'neck', 'body', 'tail_base'], # , 'left_ear', 'right_ear'],
+            segments = []
+            # segments=['head', 'body_upper', 'body_lower']
     )
 
 
@@ -857,8 +860,6 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
     first_frame = posedata.iloc[0]
     bodyparts = first_frame.index.levels[1]
     scorer = first_frame.index.levels[0]
-    print(' Scorer: ', scorer)
-    print(' Bodyparts ', bodyparts)
 
     """
         Loop over bodyparts and populate Bodypart Part table
@@ -917,47 +918,47 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
     """
         Loop over body segments and populate body semgents Part table
     """
-    if not fast_mode:
-        body_axis = []
-        for segment_name, (bp1, bp2) in table.segments.items():
-            if segment_name not in to_include['segments']: continue
-            print('     ... body segment: ', segment_name)
-            # get position of each bodypart as numpy array
-            bp1_data = np.array([bp_data[bp1]['x'], bp_data[bp1]['y']])
-            bp2_data = np.array([bp_data[bp2]['x'], bp_data[bp2]['y']])
+    # if not fast_mode:
+    #     body_axis = []
+    #     for segment_name, (bp1, bp2) in table.segments.items():
+    #         if segment_name not in to_include['segments']: continue
+    #         print('     ... body segment: ', segment_name)
+    #         # get position of each bodypart as numpy array
+    #         bp1_data = np.array([bp_data[bp1]['x'], bp_data[bp1]['y']])
+    #         bp2_data = np.array([bp_data[bp2]['x'], bp_data[bp2]['y']])
 
-            # Create dataframe with segment data and convert to dataframe
-            segment_data = {}
-            segment_data['length'] = calc_distance_between_points_two_vectors_2d(bp1_data.T, bp2_data.T)
-            try:
-                segment_data['theta'] = calc_angle_between_vectors_of_points_2d(bp1_data, bp2_data)  
-                segment_data['angvel'] = calc_ang_velocity(segment_data['theta'])
-            except:
-                warnings.warn('Could not extract theta')
-                segment_data['theta'] = np.zeros((len(segment_data['length'])))
-                segment_data['angvel'] = np.zeros((len(segment_data['length'])))
+    #         # Create dataframe with segment data and convert to dataframe
+    #         segment_data = {}
+    #         segment_data['length'] = calc_distance_between_points_two_vectors_2d(bp1_data.T, bp2_data.T)
+    #         try:
+    #             segment_data['theta'] = calc_angle_between_vectors_of_points_2d(bp1_data, bp2_data)  
+    #             segment_data['angvel'] = calc_ang_velocity(segment_data['theta'])
+    #         except:
+    #             warnings.warn('Could not extract theta')
+    #             segment_data['theta'] = np.zeros((len(segment_data['length'])))
+    #             segment_data['angvel'] = np.zeros((len(segment_data['length'])))
 
-            if segment_name in ['head', 'body_upper', 'body_lower']:
-                body_axis.append(np.array(segment_data['length']))
+    #         if segment_name in ['head', 'body_upper', 'body_lower']:
+    #             body_axis.append(np.array(segment_data['length']))
 
-            segment_data_df = pd.DataFrame.from_dict(segment_data)
-            # Insert into part table
-            segment_key = key.copy()
-            segment_key['bp1'] = bp1
-            segment_key['bp2'] = bp2
-            segment_key['tracking_data'] = segment_data_df.values 
+    #         segment_data_df = pd.DataFrame.from_dict(segment_data)
+    #         # Insert into part table
+    #         segment_key = key.copy()
+    #         segment_key['bp1'] = bp1
+    #         segment_key['bp2'] = bp2
+    #         segment_key['tracking_data'] = segment_data_df.values 
 
-            table.BodySegmentData.insert1(segment_key)
+    #         table.BodySegmentData.insert1(segment_key)
 
 
-        # Calculate body length and insert it into table
-        body_axis_length = np.add(body_axis[0], body_axis[1])
-        body_axis_length = np.add(body_axis_length, body_axis[2])
+    #     # Calculate body length and insert it into table
+    #     body_axis_length = np.add(body_axis[0], body_axis[1])
+    #     body_axis_length = np.add(body_axis_length, body_axis[2])
 
-        temp_key = key.copy()
-        temp_key['bp1'] = 'body_axis'
-        temp_key['bp2'] = 'body_axis'
-        temp_key['tracking_data'] = body_axis_length
+    #     temp_key = key.copy()
+    #     temp_key['bp1'] = 'body_axis'
+    #     temp_key['bp2'] = 'body_axis'
+    #     temp_key['tracking_data'] = body_axis_length
 
 
 

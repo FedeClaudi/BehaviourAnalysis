@@ -27,7 +27,8 @@ if __name__ == "__main__":
 
 	grid_size = 120
 
-	maze_designs = ["PathInt2.png", "PathInt2_Closed.png", "Square Maze.png",  "ModelBased.png", "PathInt.png"]
+	maze_designs = ["leftfar.png", "rightmedium.png"]
+    #["PathInt2.png", "PathInt2_Closed.png", "Square Maze.png",  "ModelBased.png", "PathInt.png"]
 	
 					#  "FourArms Maze.png", "TwoAndahalf Maze.png",
 					# "Square Maze.png", "TwoArmsLong Maze.png", "mazemodel.png", "ModelBased.png", "ModelBased_mod.png"]
@@ -41,7 +42,7 @@ if __name__ == "__main__":
 		
 		# Define goal and start position
 		goal = [round(grid_size/2), round(grid_size/4)]
-		start_position = [round(grid_size/2), round(grid_size*.68)]	
+		start_position = [round(grid_size/2), round(grid_size*.85)]	
 		start_index = [i for i,e in enumerate(free_states) if e == start_position][0]
 		
 
@@ -74,10 +75,10 @@ if __name__ == "__main__":
 
 		# Make policy plot
 		# print("Plotting")
-		# model.policy_plot()
+		model.policy_plot()
 
 		# # save model
-		# model.save_model()
+		model.save_model()
 
 		# # ? Actor critic part
 		# actor = AA(env.name)
