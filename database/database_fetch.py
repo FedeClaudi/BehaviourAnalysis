@@ -156,7 +156,8 @@ def get_maze_template(exp=None):
         elif 'model based' in exp.lower():
             maze_model = cv2.imread('Utilities\\Maze_templates\\Modelbased.png')
         else:
-            maze_model = cv2.imread('Utilities\\Maze_templates\\mazemodel.png')
+            # maze_model = cv2.imread('Utilities\\Maze_templates\\mazemodel.png')
+            maze_model = np.ones((1000, 1000))+255
         
     maze_model = cv2.resize(maze_model, (1000, 1000))
 
