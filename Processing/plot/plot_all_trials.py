@@ -42,8 +42,11 @@ class PlotAllTrials:
             experiments, trials, fps, number_of_trials, trial_number, rec_uid, stim_frames, escapes, origins, is_escape = \
                 (AllTrials & "escape_arm='{}'".format(arm) & "is_escape='{}'".format(self.escapes)).fetch(*self.to_fetch)
 
-            self.plot_as_video(trials, exp, fps[0], rec_uid, stim_frames, escapes, origins,
-                               None, number_of_trials, trial_number, savename=arm)
+            if not np.any(fps): fps = 30
+            else: fps=fps[0]
+
+            self.plot_as_video(trials, "allexp", fps, rec_uid, stim_frames, escapes, origins,
+                                None, number_of_trials, trial_number, savename=arm)
 
 
     def plot_by_exp(self):
@@ -292,10 +295,10 @@ class PlotAllTrials:
                     ttl = savename + ' - ' + exp[n]
                 else:
                     ttl = savename
-                # cv2.putText(background, ttl + '- trial ' + str(trn) + ' of ' + str(n_of_t),
-                #             (int(maze_model.shape[1]/10), int(maze_model.shape[1]/10)), 
-                #             cv2.FONT_HERSHEY_SIMPLEX, 1,
-                #             (255, 255, 255), 2, cv2.LINE_AA)
+                cv2.putText(background, ttl + '- trial ' + str(trn), # + ' of ' + str(n_of_t),
+                            (int(maze_model.shape[1]/10), int(maze_model.shape[1]/10)), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 1,
+                            (255, 255, 255), 2, cv2.LINE_AA)
 
                 # Time elapsed
                 elapsed = frame / fps
@@ -476,8 +479,10 @@ class PlotAllTrials:
 
 if __name__ == "__main__":
     plotter = PlotAllTrials(select_escapes=True)
-    plotter.plot_by_exp()
-    plotter.plot_by_session(as_video=True)
+    # plotter.plot_by_exp()
+    # plotter.plot_by_session(as_video=True)
+
+    plotter.plot_by_arm()
 
     # features_keys = load_yaml('Processing\\trials_analysis\\trials_observations.yml').keys()
     # for feature in features_keys:
