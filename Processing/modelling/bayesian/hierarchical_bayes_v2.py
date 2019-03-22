@@ -217,11 +217,19 @@ class Modeller:
 
         plt.show()
 
-    def load_trace(self):
-        savename = 'Processing/modelling/bayesian/hb_trace.pkl'
+    def load_trace(self, savename=None):
+        if savename is None:
+            savename = 'Processing/modelling/bayesian/hb_trace.pkl'
+
         with open(savename, 'rb') as dataload:
             trace = pickle.load(dataload)
+
         return trace
+
+    def save_trace(self, trace, savepath):
+        with open(savename, 'wb') as output:
+            pickle.dump(pm.trace_to_dataframe(trace), output, pickle.HIGHEST_PROTOCOL)
+
 
     def summary_plot(self):
         trace = self.load_trace()

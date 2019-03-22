@@ -40,8 +40,8 @@ class PlotAllTrials:
         experiments, trials, fps, number_of_trials, trial_number, rec_uid, stim_frames, escapes, origins, is_escape, trial_ids = \
                 (AllTrials & "is_escape='{}'".format(self.escapes)).fetch(*self.to_fetch)
 
-        self.plot_as_video(trial_ids, trials, 'ALL TRIALS', fps, rec_uid, stim_frames, escapes, origins,
-                           None, number_of_trials, trial_number, savename=arm)
+        self.plot_as_video(trial_ids, trials, 'ALL TRIALS', 200, rec_uid, stim_frames, escapes, origins,
+                        None, number_of_trials, trial_number, savename='alltrials2')
 
     def plot_by_arm(self):
         arms = set((AllTrials).fetch("escape_arm"))
@@ -49,10 +49,7 @@ class PlotAllTrials:
             experiments, trials, fps, number_of_trials, trial_number, rec_uid, stim_frames, escapes, origins, is_escape = \
                 (AllTrials & "escape_arm='{}'".format(arm) & "is_escape='{}'".format(self.escapes)).fetch(*self.to_fetch)
 
-            if not np.any(fps): fps = 30
-            else: fps=fps[0]
-
-            self.plot_as_video(trials, "allexp", fps, rec_uid, stim_frames, escapes, origins,
+            self.plot_as_video(trials, "allexp", 35, rec_uid, stim_frames, escapes, origins,
                                 None, number_of_trials, trial_number, savename=arm)
 
 
@@ -134,6 +131,7 @@ class PlotAllTrials:
                 savename = exp
         
         complete_name = os.path.join(self.save_fld, savename+'.mp4')
+        print("         saving: ", complete_name)
         if os.path.isfile(complete_name): return
 
         # Get maze model, idxs of bodypats for contours, location of cropping for threat pltform...
@@ -427,7 +425,7 @@ if __name__ == "__main__":
     # plotter.plot_by_exp()
     # plotter.plot_by_session(as_video=True)
 
-    plotter.plot_by_arm()
+    plotter.plot_all_trials()
 
     # features_keys = load_yaml('Processing\\trials_analysis\\trials_observations.yml').keys()
     # for feature in features_keys:
