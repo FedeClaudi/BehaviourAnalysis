@@ -27,7 +27,7 @@ class PlotAllTrials:
             self.escapes = 'false'
 
         self.to_fetch = ['experiment_name', 'tracking_data', 'fps', 'number_of_trials', 'trial_number', 
-                        'recording_uid', 'stim_frame', 'escape_arm', 'origin_arm', 'is_escape']
+                         'recording_uid', 'stim_frame', 'escape_arm', 'origin_arm', 'is_escape', 'trial_id']
 
 
     """
@@ -35,6 +35,13 @@ class PlotAllTrials:
     #####################################################################################################################################################################################################################################################
     #####################################################################################################################################################################################################################################################
     """
+
+    def plot_all_trials(self):
+        experiments, trials, fps, number_of_trials, trial_number, rec_uid, stim_frames, escapes, origins, is_escape, trial_ids = \
+                (AllTrials & "is_escape='{}'".format(self.escapes)).fetch(*self.to_fetch)
+
+        self.plot_as_video(trial_ids, trials, 'ALL TRIALS', fps, rec_uid, stim_frames, escapes, origins,
+                           None, number_of_trials, trial_number, savename=arm)
 
     def plot_by_arm(self):
         arms = set((AllTrials).fetch("escape_arm"))
@@ -103,62 +110,6 @@ class PlotAllTrials:
         self.plot_as_video(trials, experiments, 35, rec_uid, stim_frames, escapes, origins, \
                             uid, number_of_trials, trial_number, savename=feature)
 
-    def plot_dPhi_by_exp(self):
-
-        trials, exits, ids = (AllTrials &  "experiment_name='{}'".format("FlipFlop2 Maze") & "is_escape='{}'".format('true')).fetch("tracking_data", "threat_exits", "trial_id")
-
-        df = pd.DataFrame.from_dict(dict(id=ids, tracking=trials, exits=exits, ))
-
-        body_LogIdPhi, head_LogIdPhi, head_body_angle, body_xy_l = [], [], [], []
-        for idx, trial in df.iterrows():
-            if not np.any(trial['exits']): continue
-            if trial['tracking'][0, 1, 0] > 230: continue
-
-            tr = trial['tracking']
-            ex = trial['exits']
-            body_xy = tr[:ex[0], :2, 0]
-            snout_xy = tr[:ex[0], :2, 1]
-            tail_base_xy = tr[:ex[0], :2, 5]
-
-            try:
-                body_phi = calc_angle_between_vectors_of_points_2d(body_xy.T, tail_base_xy.T)
-                head_phi = calc_angle_between_vectors_of_points_2d(snout_xy.T, body_xy.T)
-            except:
-                continue
-            
-            body_LogIdPhi.append(calc_LogIdPhi(body_phi))
-            head_LogIdPhi.append(calc_LogIdPhi(head_phi))
-            head_body_angle.append(body_phi - head_phi)
-            body_xy_l.append(body_xy)
-            
-        df['body_LogIdPhi'] = body_LogIdPhi
-        df['head_LogIdPhi'] = head_LogIdPhi
-        df['head_body_angle'] = head_body_angle
-        df['body_xy'] = body_xy_l
-
-        f, axarr = plt.subplots(nrows=2, ncols=2)
-        axarr = axarr.flatten()
-
-        sns.distplot(df['body_LogIdPhi'], ax=axarr[0], label='body_LogIdPhi', kde=False)
-        sns.distplot(df['head_LogIdPhi'], ax=axarr[0], label='head_LogIdPhi', kde=False)
-        axarr[0].legend()
-
-        for v in df['head_body_angle'].values:
-            axarr[1].plot(v)
-
-        low_dpi = df.loc[df['body_LogIdPhi'] < 6]['body_xy'].values
-        high_dpi = df.loc[df['body_LogIdPhi'] > 6]['body_xy'].values
-
-        for tr in low_dpi:
-            axarr[2].scatter(tr[:, 0], tr[:, 1], alpha=.5)
-
-        for tr in high_dpi:
-            axarr[3].scatter(tr[:, 0], tr[:, 1], alpha=.5)
-
-
-        plt.show()
-
-
 
     """
     #####################################################################################################################################################################################################################################################
@@ -168,7 +119,7 @@ class PlotAllTrials:
 
 
 
-    def plot_as_video(self, trials, exp,  fps, rec_uids, stim_frames, escapes, origins, \
+    def plot_as_video(self, trial_ids, trials, exp,  fps, rec_uids, stim_frames, escapes, origins, \
                         label0=None, number_of_trials = None, trial_number=None, savename=None, is_escape=None):
         def draw_contours(fr, cont, c1, c2):
             if c2 is not None:
@@ -204,7 +155,7 @@ class PlotAllTrials:
 
         # loop over each trial
         stored_contours = []
-        for n, (tr, trn, rec_uid, stim_frame, escs, ors) in enumerate(zip(trials, trial_number, rec_uids, stim_frames, escapes, origins)): #, is_escape)):
+        for n, (trid, tr, trn, rec_uid, stim_frame, escs, ors) in enumerate(zip(trial_ids, trials, trial_number, rec_uids, stim_frames, escapes, origins)): #, is_escape)):
             is_esc = ''
             # shift all tracking Y up by 10px to align better
             trc = tr.copy()
@@ -295,7 +246,8 @@ class PlotAllTrials:
                     ttl = savename + ' - ' + exp[n]
                 else:
                     ttl = savename
-                cv2.putText(background, ttl + '- trial ' + str(trn), # + ' of ' + str(n_of_t),
+
+                cv2.putText(background, ttl + '- trial id: ' + str(trid), 
                             (int(maze_model.shape[1]/10), int(maze_model.shape[1]/10)), 
                             cv2.FONT_HERSHEY_SIMPLEX, 1,
                             (255, 255, 255), 2, cv2.LINE_AA)
@@ -323,13 +275,6 @@ class PlotAllTrials:
                             (int(maze_model.shape[0]*.6), int(maze_model.shape[1]*.15)), 
                             cv2.FONT_HERSHEY_SIMPLEX, 1, 
                             (255, 255, 255), 2,cv2.LINE_AA)
-
-
-                # IdPhi
-                # cv2.putText(background, 'IdPhi: '+ str(round(IdPhi, 2)),
-                #             (int(maze_model.shape[0]*.65), int(maze_model.shape[1]*.2)), 
-                #             cv2.FONT_HERSHEY_SIMPLEX, 1, 
-                #             (255, 255, 255), 2,cv2.LINE_AA)
 
                 # Head and body angle
                 cc = (int(maze_model.shape[0]*.66), int(maze_model.shape[1]*.88))
