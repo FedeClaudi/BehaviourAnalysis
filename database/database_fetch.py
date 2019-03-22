@@ -122,9 +122,11 @@ def get_trials_by_exp(experiment, escape, args):
                             .fetch(*args)
 
 def get_trials_by_exp_and_session(experiment, uid, escape, args):
-    return (AllTrials & "experiment_name='{}'".format(experiment) & "is_escape='{}'".format(escape)\
-            & "session_uid={}".format(uid)).fetch(*args)
-
+    if escape is not None:
+        return (AllTrials & "experiment_name='{}'".format(experiment) & "is_escape='{}'".format(escape)\
+                & "session_uid={}".format(uid)).fetch(*args)
+    else:
+        return (AllTrials & "experiment_name='{}'".format(experiment) & "session_uid={}".format(uid)).fetch(*args)
 
 def get_sessuids_given_experiment(experiment):
     return (Sessions & "experiment_name='{}'".format(experiment)).fetch("uid")

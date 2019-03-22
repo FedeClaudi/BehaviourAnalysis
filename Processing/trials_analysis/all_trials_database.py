@@ -33,18 +33,6 @@ class analyse_all_trals:
             self.fill()
 
     def define_duration_limits(self):
-        # # ?  speed threshold is 30 cm /s
-        # # path lengths in cm
-        # path_lengths = dict(Left_Far=156,
-        #                     Left_Medium=102,
-        #                     Centre=88,
-        #                     Right_Medium=102,
-        #                     Right_Far=156,
-        #                     Right2=193,
-        #                     Left2=190)
-
-        # # escape duration threshold is lenghts in cm divided by min escape speed rounded to the second decimal
-        # self.durations_lims = {k:round(v/30, 2) for k,v in path_lengths.items()}
 
         """
             Speed limits not duration limits. A trial is considered an escape if themean of the velocity during the trial
@@ -57,7 +45,7 @@ class analyse_all_trals:
     def erase_table(self):
         """ drops table from DataJoint database """
         AllTrials.drop()
-        print('Table erased, exiting...')
+        print('Table erased, exiting...')#
         sys.exit()
 
     def fill(self):
@@ -79,6 +67,11 @@ class analyse_all_trals:
 
 
         for n, (uid, sess_name, exp) in enumerate(sorted(zip(sessions, session_names, experiments))):
+
+            # if 'model based' not in exp.lower(): 
+            #     print('skipped experiment')
+            #    continue # ! wfbaefbEWYLBFLbfWLIUBLWEBVKJEBVLJHREAB
+            
             print(' Processing session {} of {} - {}'.format(n, len(sessions), sess_name))
 
             if uid in sessions_in_table: continue
@@ -101,7 +94,7 @@ class analyse_all_trals:
                     rec_tracking = {bp: get_tracking_given_recuid(r, just_body=False, bp=bp, just_trackin_data=True)[0] for bp in bps}
                     recs_trackins[r] = rec_tracking
             except:
-                print("No tracking data found !!!")
+                print("Smth went wrong while getting tracking data, maybe there is no data there, maybe smth else is wrong")
                 continue
 
 
@@ -148,8 +141,8 @@ class analyse_all_trals:
 
                 # Now we have the max possible length for the trial
                 # But check if the mouse got to the shelter first or if 30s elapsed
-                if stop - start > 30*fps:  # max duration > 30s
-                    stop = start + 30*fps
+                if stop - start > 20*fps:  # max duration > 30s
+                    stop = start + 20*fps
 
                 # Okay get the tracking data between provisory start and stop
                 trial_tracking = {bp:remove_tracking_errors(tr[start:stop, :]) for bp,tr in rec_tracking.items()}
@@ -295,11 +288,11 @@ def check_arm_assignment():
 
 if __name__ == "__main__":
     # a = analyse_all_trals(erase_table=True, fill_in_table=False)
-
+# 
     a = analyse_all_trals(erase_table=False, fill_in_table=True)
                 
 
-    check_arm_assignment()
+    #   check_arm_assignment()
 
 
 

@@ -41,9 +41,9 @@ class PlotAllTrials:
 
         # Get all trials for each experiment, regardless of the mouse they belong to
         for exp in sorted(experiments):           
-            trials, fps, number_of_trials, trial_number, rec_uid, stim_frames, escapes, origins= \
+            experiments, trials, fps, number_of_trials, trial_number, rec_uid, stim_frames, escapes, origins, is_escape= \
                 (AllTrials & "experiment_name='{}'".format(exp) & "is_escape='{}'".format(self.escapes))\
-                            .fetch(self.to_fetch)
+                            .fetch(*self.to_fetch)
 
             if not np.any(fps): continue
             self.plot_as_video(trials, exp, fps[0], rec_uid, stim_frames, escapes, origins, \
@@ -191,11 +191,13 @@ class PlotAllTrials:
 
         # loop over each trial
         stored_contours = []
-        for n, (tr, trn, rec_uid, stim_frame, escs, ors, is_esc) in enumerate(zip(trials, trial_number, rec_uids, stim_frames, escapes, origins, is_escape)):
+        for n, (tr, trn, rec_uid, stim_frame, escs, ors) in enumerate(zip(trials, trial_number, rec_uids, stim_frames, escapes, origins)): #, is_escape)):
+            is_esc = ''
             # shift all tracking Y up by 10px to align better
             trc = tr.copy()
             trc[:, 1, :] = np.add(trc[:, 1, :], 10)
             tr = trc
+
 
             # cv2.namedWindow('frame',cv2.WINDOW_AUTOSIZE )
             tot_frames = tr.shape[0]
@@ -280,10 +282,10 @@ class PlotAllTrials:
                     ttl = savename + ' - ' + exp[n]
                 else:
                     ttl = savename
-                cv2.putText(background, ttl + '- trial ' + str(trn) + ' of ' + str(n_of_t),
-                            (int(maze_model.shape[1]/10), int(maze_model.shape[1]/10)), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 1,
-                            (255, 255, 255), 2, cv2.LINE_AA)
+                # cv2.putText(background, ttl + '- trial ' + str(trn) + ' of ' + str(n_of_t),
+                #             (int(maze_model.shape[1]/10), int(maze_model.shape[1]/10)), 
+                #             cv2.FONT_HERSHEY_SIMPLEX, 1,
+                #             (255, 255, 255), 2, cv2.LINE_AA)
 
                 # Time elapsed
                 elapsed = frame / fps
@@ -464,7 +466,7 @@ class PlotAllTrials:
 
 if __name__ == "__main__":
     plotter = PlotAllTrials(select_escapes=True)
-    # plotter.plot_by_exp()
+    plotter.plot_by_exp()
     plotter.plot_by_session(as_video=True)
 
     # features_keys = load_yaml('Processing\\trials_analysis\\trials_observations.yml').keys()

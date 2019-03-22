@@ -813,17 +813,18 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
 
 def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessions, fast_mode=False):
     if key['camera_name'] != 'overview': return
-        
+
     # Get the name of the experiment the video belongs to
     fetched_sessions = sessions.fetch(as_dict=True)
     session = [s for s in fetched_sessions if s['uid']==key['uid']][0]
     experiment = session['experiment_name']
 
     if 'lambda' in experiment.lower(): return  # ? skip this useless experiment :)
+    # if 'Model Based' not in experiment: return  #!
 
     fast_mode = fast_mode # ! fast MODE
     to_include = dict(
-            bodyparts=['snout', 'neck', 'body', 'tail_base'], # , 'left_ear', 'right_ear'],
+            bodyparts=['snout', 'neck', 'body', 'tail_base' , 'left_ear', 'right_ear'],
             segments = []
             # segments=['head', 'body_upper', 'body_lower']
     )
@@ -913,7 +914,10 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
         bpkey = key.copy()
         bpkey['bpname'] = bp
         bpkey['tracking_data'] = corrected_data.values 
-        table.BodyPartData.insert1(bpkey)
+        try:
+            table.BodyPartData.insert1(bpkey)
+        except:
+            pass
 
     """
         Loop over body segments and populate body semgents Part table

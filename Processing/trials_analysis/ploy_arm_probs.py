@@ -9,7 +9,7 @@ from database.NewTablesDefinitions import *
 from database.database_fetch import *
 
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame, get_arm_given_rois, convert_roi_id_to_tag
-from Processing.tracking_stats.math_utils import get_roi_enters_exits, line_smoother, calc_distance_between_points_2d, remove_tracking_errors
+from Processing.tracking_stats.math_utils import get_roi_enters_exits, line_smoother, calc_distance_between_points_2d, remove_tracking_errors, get_n_colors
 
 from Processing.modelling.bayesian.hierarchical_bayes_v2 import Modeller as Bayesian
 
@@ -78,8 +78,6 @@ class Plotter:
             experiments_pR[exp] = np.array(experiment_pr)
             experiments_pRo[exp] = np.array(experiment_pro)
 
-
-        
         x = np.arange(self.n_experiments)
         f, ax = plt.subplots()
         for n, (pR, pRo) in enumerate(zip(experiments_pR.values(), experiments_pRo.values())):
@@ -93,6 +91,39 @@ class Plotter:
         ax.axhline(-.5, color='k', linewidth=.5)
         ax.set(title="$p(R)$", xticks=x, xticklabels=experiments_pR.keys())
 
+    def modelbased(self):
+        exp = 'Model Based'
+        sessions = get_trials_by_exp(exp, 'true', ['session_uid'])
+        experiment_pr, experiment_pro = [], []
+        arms = ['Left_Far', 'Centre', 'Right2']
+        probs = {a:[] for a in arms}
+
+        x = np.arange(3)
+        f, axarr = plt.subplots(ncols=2)
+
+        all_escapes = []
+        mean_all_p = []
+        for uid in sorted(set(sessions)):
+            origin, escape = get_trials_by_exp_and_session(exp, uid, 'true', ['origin_arm', 'escape_arm'])
+
+            all_escapes.extend(escape)
+            p = [self.calc_arm_p(escape, a) for a in arms]
+            mean_all_p.append(p)
+            print(uid, len(escape), p)
+
+            axarr[1].scatter(x, p, c='k', s=4*len(escape), alpha=.5)
+            axarr[1].plot(x, p,  alpha=.5)
+
+        mean_all_p = np.sum(np.vstack(mean_all_p), 0)/np.vstack(mean_all_p).shape[0]
+        axarr[1].scatter(x, mean_all_p, c='r', s=50, alpha=1)
+
+        all_probs = [self.calc_arm_p(all_escapes, a) for a in arms]
+        colors = get_n_colors(len(set(sessions)))
+        axarr[0].bar(x, all_probs, color=colors[:3])
+
+        axarr[0].set(title="Model Based - Baseline", ylabel='p(R)', xticks=x, xticklabels=['Left', 'Centre', 'Right'])
+        axarr[1].set(title="Model Based - Baseline", ylabel='p(R)', xticks=x, xticklabels=['Left', 'Centre', 'Right'])
+        plt.show()
 
 
     def pr_sym_vs_asmy(self):
@@ -268,9 +299,12 @@ class Plotter:
 
 if __name__ == "__main__":
     p = Plotter()
-    p.pr_sym_vs_asmy()
+    # p.pr_sym_vs_asmy()
     # p.plot_pR_individuals_by_exp()
     # p.plot_p_same_origin_and_escape_by_exp()
+
+    # p.plot_pR_by_exp()
+    p.modelbased()
 
 
     plt.show()

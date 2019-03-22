@@ -61,12 +61,12 @@ for uid, experiment, tracking, escape_arm in zip(*trials):
     tot += 1
     if escape_arm == 'Centre':
         c = 'r'
-        byarm[0] += 1
+        byarm[1] += 1
     elif escape_arm == 'Right2':
         c = 'g'
-        byarm[1] += 1
-    else: 
         byarm[2] += 1
+    else: 
+        byarm[0] += 1
 
     ax2.scatter(trial.x, trial.y,  c=trial.s, alpha=1, s=50)
 ax2.set(xlim=[0, 1000], ylim=[0, 1000])

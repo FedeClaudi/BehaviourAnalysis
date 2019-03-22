@@ -21,6 +21,7 @@ from database.NewTablesDefinitions import *
 
 from Utilities.video_and_plotting.video_editing import *
 from Utilities.stim_times_loader import *
+from database.database_fetch import *
 
 def disable_pandas_warnings():
     import warnings
@@ -219,13 +220,22 @@ class PopulateDatabase:
         print(sumdf)
         return ''
 
+    def cleanup_tracking(self):
+        sessions = set(TrackingData.fetch("uid"))
+
+        for uid in sessions:
+            exp = get_exp_given_sessname(get_sessname_given_sessuid(uid)[0])
+            if exp == "Model Based":
+                a = 1
+
 
 if __name__ == '__main__':
     disable_pandas_warnings()
     p = PopulateDatabase()
 
     print(p)
-# 
+
+
     # p.remove_table(['tracking_data', 'tracking_data_justbody'])
     
     # p.populate_mice_table()
@@ -245,7 +255,7 @@ if __name__ == '__main__':
 
     p.tracking_data.populate()
     # p.tracking_data_justbody.populate()
-# 
+
     # p.populate_armsprobs()
 
 
@@ -253,4 +263,3 @@ if __name__ == '__main__':
 
     # print(p.armsprobs.Arm())
 
-# 
