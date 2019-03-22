@@ -36,6 +36,16 @@ class PlotAllTrials:
     #####################################################################################################################################################################################################################################################
     """
 
+    def plot_by_arm(self):
+        arms = set((AllTrials).fetch("escape_arm"))
+        for arm in arms:
+            experiments, trials, fps, number_of_trials, trial_number, rec_uid, stim_frames, escapes, origins, is_escape = \
+                (AllTrials & "escape_arm='{}'".format(arm) & "is_escape='{}'".format(self.escapes)).fetch(*self.to_fetch)
+
+            self.plot_as_video(trials, exp, fps[0], rec_uid, stim_frames, escapes, origins,
+                               None, number_of_trials, trial_number, savename=arm)
+
+
     def plot_by_exp(self):
         experiments = set(AllTrials.fetch('experiment_name'))
 
