@@ -227,8 +227,11 @@ class Modeller:
         return trace
 
     def save_trace(self, trace, savepath):
-        with open(savename, 'wb') as output:
-            pickle.dump(pm.trace_to_dataframe(trace), output, pickle.HIGHEST_PROTOCOL)
+        if not isinstance(trace, pd.DataFrame):
+            trace = pm.trace_to_dataframe(trace)
+
+        with open(savepath, 'wb') as output:
+            pickle.dump(trace, output, pickle.HIGHEST_PROTOCOL)
 
 
     def summary_plot(self):

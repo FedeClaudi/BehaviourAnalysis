@@ -41,8 +41,8 @@ class PlotAllTrials:
                 (AllTrials & "is_escape='{}'".format(self.escapes)).fetch(*self.to_fetch)
 
         self.plot_as_video(trial_ids, trials, 'ALL TRIALS', 200, rec_uid, stim_frames, escapes, origins,
-                        None, number_of_trials, trial_number, savename='alltrials2')
-
+                        None, number_of_trials, trial_number, savename='alltrials3')
+ 
     def plot_by_arm(self):
         arms = set((AllTrials).fetch("escape_arm"))
         for arm in arms:

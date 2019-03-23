@@ -14,21 +14,10 @@ from Processing.tracking_stats.math_utils import get_roi_enters_exits, line_smoo
 from Processing.modelling.bayesian.hierarchical_bayes_v2 import Modeller as Bayesian
 
 
+traces_fld = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Presentations\\ThesisCommitte\\HB traces'
 
 
 def pr_sym_vs_asmy_get_traces():
-    def plot_two_dists_kde(d1, d2, title, l1=None, l2=None):
-        colors = get_n_colors(6)
-        f, ax = plt.subplots()
-
-        c1, c2 = colors[2], colors[3]
-
-        sns.kdeplot(d1, ax=ax, shade=True, color=c1, linewidth=2, alpha=.8, clip=[0, 1], label=l1)
-        sns.kdeplot(d2, ax=ax, shade=True, color=c2, linewidth=2, alpha=.8, clip=[0, 1], label=l2)
-        ax.set(title=title, xlim=[0, 1])
-        ax.legend()
-        f.savefig("D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Presentations\\ThesisCommitte\\plots\\{}.svg".format(title.strip().split('-')[0]), format="svg")
-
     bayes = Bayesian()
     traces_fld = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Presentations\\ThesisCommitte\\HB traces'
 
@@ -195,8 +184,32 @@ def pr_sym_vs_asmy_get_traces():
     """
 
 
+def plot_two_dists_kde(d1, d2, title, l1=None, l2=None):
+        colors = get_n_colors(6)
+        f, ax = plt.subplots()
+
+        c1, c2 = colors[2], colors[3]
+
+        sns.kdeplot(d1, ax=ax, shade=True, color=c1, linewidth=2, alpha=.8, clip=[0, 1], label=l1)
+        sns.kdeplot(d2, ax=ax, shade=True, color=c2, linewidth=2, alpha=.8, clip=[0, 1], label=l2)
+        ax.set(title=title, xlim=[0, 1])
+        ax.legend()
+        f.savefig("D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Presentations\\ThesisCommitte\\plots\\{}.svg".format(title.strip().split('-')[0]), format="svg")
+
+def plotter():
+    bayes = Bayesian()
+    types = ['asym', 'sym']
+    variables = ['origin', 'position', 'orientation']
+    names = [t+'_'+v for t in types for v in variables]
+
+    for name in names:
+        trace = bayes.load_trace(savename=os.path.join(traces_fld, name+'.pkl'))
+        plot_two_dists_kde(trace['p_d1'].values, trace['p_d2'].values, name, 'R', 'L')
+
+
 
 
 if __name__ == "__main__":
-    pr_sym_vs_asmy_get_traces()
+    plotter()
+    plt.show()
 
