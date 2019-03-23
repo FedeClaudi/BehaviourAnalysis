@@ -92,7 +92,7 @@ def get_videometadata_given_recuid(rec, just_fps=True):
     if not just_fps:
         return (VideoFiles.Metadata & "recording_uid='{}'".format(rec)).fetch()
     else:
-        return (VideoFiles.Metadata & "recording_uid='{}'".format(rec)).fetch("fps")
+        return (VideoFiles.Metadata & "recording_uid='{}'".format(rec)).fetch("fps")[0]
 
 def get_exp_given_sessname(name):
     return (Sessions & "session_name='{}'".format(name)).fetch("experiment_name")
