@@ -69,21 +69,30 @@ class AllExplorationsPopulate:
             first_stim_rec = recs.index(first_stim['recording_uid'])
 
             # Get the tracking datas
-            tracking_data = {r:(get_tracking_given_recuid(r, bp='body')[0] if get_tracking_given_recuid(r, bp='body').shape[0] == 1 else get_tracking_given_recuid(r, bp='body'))
-                            for i, r in enumerate(recs) if i <= first_stim_rec}
+            tracking_data = {}
+            useful_dims = [0, 1, 2, -1]
+            bps = ['body', 'snout', 'left_ear', 'right_ear', 'neck', 'tail_base']
+            for i,rec in enumerate(recs):
+                if i <= first_stim_rec:
+                    rec_tracking = [get_tracking_given_recuid(rec, bp=bp)[0][:, useful_dims] for bp in bps]
+                    temp = np.zeros((rec_tracking[0].shape[0], rec_tracking[0].shape[1], len(rec_tracking)))
+
+                    for tn, t in enumerate(rec_tracking):
+                        temp[:, :, i] = t
+                    tracking_data[rec] = temp
 
             # Crop the last tracking data to the stimulus frame
             try:
-                tracking_data[first_stim['recording_uid']] = tracking_data[first_stim['recording_uid']][:start, :]
+                tracking_data[first_stim['recording_uid']] = tracking_data[first_stim['recording_uid']][:start, :, :] 
             except: 
                 print("skipping")
                 continue
 
             # Get the tracking data as an array
-            tracking_data_array = np.vstack(tracking_data.values())
+            tracking_data_array = np.vstack([tracking_data[k] for k in sorted(tracking_data.keys())])
 
             # Remove the first n seconds
-            fps = get_videometadata_given_recuid(first_stim['recording_uid'])[0]
+            fps = get_videometadata_given_recuid(first_stim['recording_uid'])
             if fps == 0: fps = 40
             cutoff = self.cutoff * fps
             tracking_data_array =tracking_data_array[cutoff:, :]
@@ -93,7 +102,9 @@ class AllExplorationsPopulate:
 
 
             # Get dict to insert in table
-            expl_id = AllExplorations.fetch("exploration_id")[-1] + 1
+            ids_in_table = AllExplorations.fetch("exploration_id")
+            expl_id = ids_in_table[-1] + 1
+
 
             key = dict(
             exploration_id = expl_id,

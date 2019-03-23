@@ -109,11 +109,12 @@ class VideoMaker:
 
         for exp_id in ids:
             uid, experiment, tracking = (AllExplorations & 'exploration_id={}'.format(exp_id)).fetch('session_uid', 'experiment_name', 'tracking_data')
+            uid = uid[0]
             session = get_sessname_given_sessuid(uid)
             recuid = get_recordings_given_sessuid(uid)[0]
-            videoname = session * '_exploration'
-            fps = get_videometadata_given_recuid(recuid)
-            self.data(make_dataframe)
+            videoname = session[0] + '_exploration'
+            fps = get_videometadata_given_recuid(recuid['recording_uid'])
+            self.data = self.make_dataframe(tracking, session, [''])
 
             self.make_video(videoname=videoname, experimentname=experiment[0], savefolder=self.save_fld_explorations, fps=fps,
                             trial_mode=None, frame_title=session)
@@ -163,7 +164,7 @@ class VideoMaker:
         
         # loop over each trial
         stored_contours = []
-        for row_n, trial in self.data.iterrows():
+        for row_n, row in self.data.iterrows():
             tr = row['tracking']
             # shift all tracking Y up by 10px to align better
             trc = tr.copy()
@@ -339,7 +340,7 @@ class VideoMaker:
 
 
 if __name__ == "__main__":
-    videomaker = VideoMaker(select_escapes=True)
+    videomaker = VideoMaker()
 
     videomaker.make_explorations_video()
 
