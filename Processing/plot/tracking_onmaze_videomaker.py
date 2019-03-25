@@ -6,6 +6,7 @@ from matplotlib.patches import Polygon
 import matplotlib.image as mpimg
 import pandas as pd
 import os
+from tqdm import tqdm
 import seaborn as sns
 import math
 
@@ -37,7 +38,7 @@ class VideoMaker:
 
         t, r, n = [], [], []
 
-        for tr_id in AllTrials.fetch("trial_id"):
+        for tr_id in tqdm(AllTrials.fetch("trial_id")):
             escape,recuid, uid, experiment, tracking = (AllTrials & 'trial_id={}'.format(tr_id)).fetch('is_escape', 'recording_uid', 'session_uid', 'experiment_name', 'tracking_data')
             
             if escape == 'false': continue
@@ -51,7 +52,7 @@ class VideoMaker:
             n.append('')
         self.data = self.make_dataframe(t, r, n)
 
-        self.make_video(videoname=videoname, experimentname=experiment[0], savefolder=self.save_fld_explorations, fps=fps,
+        self.make_video(videoname=videoname, experimentname="all_trials", savefolder=self.save_fld_explorations, fps=fps,
                         trial_mode=None, frame_title=session)
     def plot_by_arm(self):
         arms = set((AllTrials).fetch("escape_arm"))
@@ -168,7 +169,7 @@ class VideoMaker:
         head_idxs = [2, 1, 3, 0]
 
         # Cropping coordinates for threat area
-        threat_cropping = ((570, 800), (200, 600))
+        threat_cropping = ((370, 800), (400, 600))
 
         # open openCV writer
         video_editor = Editor()
@@ -179,7 +180,7 @@ class VideoMaker:
         stored_contours = []
         for row_n, row in self.data.iterrows():
             print("Processing trial: ", row_n)
-            tr = row['tracking']
+            tr = row['tracking'][0]
             # shift all tracking Y up by 10px to align better
             trc = tr.copy()
             trc[:, 1, :] = np.add(trc[:, 1, :], 10)
@@ -188,7 +189,7 @@ class VideoMaker:
 
             if trial_mode:
                 start_frame = 0
-            else: start_frame = fps+120
+            else: start_frame = fps+0
 
             # get tracking data for the different contours to draw
             body_contour = tr[start_frame:, :, body_idxs]
@@ -215,7 +216,7 @@ class VideoMaker:
             # LOOP OVER FRAMES
             trial_stored_contours = []
             prev_frame_bl = 0  # keep track of the body length at each frame to remove jumps
-            for frame in np.arange(tot_frames):  # loop over each frame and draw
+            for frame in tqdm(np.arange(tot_frames)):  # loop over each frame and draw
                 background = trial_background.copy()
 
                 # Get body ellipse
@@ -324,7 +325,7 @@ class VideoMaker:
 
                 # add frame's contour to trial background
                 mask = np.uint8(np.ones(trial_background.shape) * 0)
-                self.draw_contours(mask, trial_stored_contours[-1],  (255, 255, 255), None)
+                self.draw_contours(mask, [trial_stored_contours[-1]],  (255, 255, 255), None)
                 mask = mask.astype(bool)
                 trial_background[mask] = trial_background[mask] * .8
  
@@ -342,8 +343,7 @@ class VideoMaker:
     #####################################################################################################################################################################################################################################################
     """
 
-    @staticmethod 
-    def prepare_background(n, maze_model, stored_contours):
+    def prepare_background(self, n, maze_model, stored_contours):
         if n == 0:
             trial_background = maze_model.copy()
         else:
@@ -368,7 +368,7 @@ class VideoMaker:
 
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":        
     videomaker = VideoMaker()
 
     videomaker.plot_all_trials()
