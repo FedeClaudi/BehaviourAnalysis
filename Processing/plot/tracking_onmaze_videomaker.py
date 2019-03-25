@@ -172,10 +172,14 @@ class VideoMaker:
             tr = trc
             tot_frames = tr.shape[0]
 
+            if trial_mode:
+                start_frame = 0
+            else: start_frame = fps+120
+
             # get tracking data for the different contours to draw
-            body_contour = tr[:, :, body_idxs]
-            head_contour = tr[:, :, head_idxs]
-            body_ellipse = tr[:, :, [0, 5]]
+            body_contour = tr[start_frame:, :, body_idxs]
+            head_contour = tr[start_frame:, :, head_idxs]
+            body_ellipse = tr[start_frame:, :, [0, 5]]
 
             # Compute body and head angle vectors
             body_angle = calc_angle_between_vectors_of_points_2d(tr[:, :2, -1].T, tr[:, :2, 0].T)
@@ -190,7 +194,9 @@ class VideoMaker:
                 raise FileNotFoundError
             else:
                 if trial_mode: cap.set(1, row['stim_frame'])
-                else: cap.set(1, fps+90)
+                else: 
+                    cap.set(1, start_frame)
+
 
             # LOOP OVER FRAMES
             trial_stored_contours = []
@@ -304,9 +310,12 @@ class VideoMaker:
 
                 # add frame's contour to trial background
                 mask = np.uint8(np.ones(trial_background.shape) * 0)
-                self.draw_contours(mask, trial_stored_contours[-1],  (255, 255, 255), None)
-                mask = mask.astype(bool)
-                trial_background[mask] = trial_background[mask] * .8
+                try:
+                    self.draw_contours(mask, trial_stored_contours[-1],  (255, 255, 255), None)
+                    mask = mask.astype(bool)
+                    trial_background[mask] = trial_background[mask] * .8
+                except:
+                    print("didn't draw contours")
 
 
             stored_contours.append(trial_stored_contours)
