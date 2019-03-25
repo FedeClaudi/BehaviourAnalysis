@@ -74,12 +74,24 @@ class AllExplorationsPopulate:
             bps = ['body', 'snout', 'left_ear', 'right_ear', 'neck', 'tail_base']
             for i,rec in enumerate(recs):
                 if i <= first_stim_rec:
-                    rec_tracking = [get_tracking_given_recuid(rec, bp=bp)[0][:, useful_dims] for bp in bps]
-                    temp = np.zeros((rec_tracking[0].shape[0], rec_tracking[0].shape[1], len(rec_tracking)))
+                    rec_tracking = None
+                    try:
+                        rec_tracking = [get_tracking_given_recuid(rec, bp=bp)[0][:, useful_dims] for bp in bps]
+                        temp = np.zeros((rec_tracking[0].shape[0], rec_tracking[0].shape[1], len(rec_tracking)))
 
-                    for tn, t in enumerate(rec_tracking):
-                        temp[:, :, i] = t
-                    tracking_data[rec] = temp
+                    except:
+                        body = get_tracking_given_recuid(rec, bp='body')
+                        if np.any(body):
+                            rec_tracking = [get_tracking_given_recuid(rec, bp=bp)[:, useful_dims] for bp in bps]
+
+                            temp = np.zeros((rec_tracking[0].shape[0], rec_tracking[0].shape[1], len(rec_tracking)))
+
+                    if rec_tracking is not None:
+                        for tn, t in enumerate(rec_tracking):
+                            temp[:, :, i] = t
+                        tracking_data[rec] = temp
+                    else:
+                        continue
 
             # Crop the last tracking data to the stimulus frame
             try:

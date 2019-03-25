@@ -111,13 +111,13 @@ class VideoMaker:
             uid, experiment, tracking = (AllExplorations & 'exploration_id={}'.format(exp_id)).fetch('session_uid', 'experiment_name', 'tracking_data')
             uid = uid[0]
             session = get_sessname_given_sessuid(uid)
-            recuid = get_recordings_given_sessuid(uid)[0]
+            recuid = get_recordings_given_sessuid(uid)[0]['recording_uid']
             videoname = session[0] + '_exploration'
-            fps = get_videometadata_given_recuid(recuid['recording_uid'])
-            self.data = self.make_dataframe(tracking, session, [''])
+            fps = get_videometadata_given_recuid(recuid)
+            self.data = self.make_dataframe(tracking, recuid, [''])
 
             self.make_video(videoname=videoname, experimentname=experiment[0], savefolder=self.save_fld_explorations, fps=fps,
-                            trial_mode=None, frame_title=session)
+                            trial_mode=None, frame_title=session[0])
 
 
     @staticmethod
@@ -189,7 +189,8 @@ class VideoMaker:
             if not cap.isOpened():
                 raise FileNotFoundError
             else:
-                cap.set(1, row['stim_frame'])
+                if trial_mode: cap.set(1, row['stim_frame'])
+                else: cap.set(1, fps+90)
 
             # LOOP OVER FRAMES
             trial_stored_contours = []
@@ -218,9 +219,9 @@ class VideoMaker:
                 cv2.ellipse(background, centre, (min_axis, main_axis), angle-90, 0, 360, (50, 50, 50), 2)
 
                 # Draw current trial head contours
-                coords = selected_tracking[frame, :2, :].T.astype(np.int32)
-                head = head_tracking[frame, :2, :].T.astype(np.int32)
-                draw_contours(background, [head],  (0, 0, 255), (50, 50, 50))
+                coords = body_contour[frame, :2, :].T.astype(np.int32)
+                head = head_contour[frame, :2, :].T.astype(np.int32)
+                self.draw_contours(background, [head],  (0, 0, 255), (50, 50, 50))
 
                 # flip frame Y
                 background = np.array(background[::-1, :, :])
@@ -232,7 +233,7 @@ class VideoMaker:
                     ttl = frame_title
                 cv2.putText(background, ttl,
                             (int(maze_model.shape[1]/10),
-                             int(maze_model.shape[1]/10)),
+                            int(maze_model.shape[1]/10)),
                             cv2.FONT_HERSHEY_SIMPLEX, 1,
                             (255, 255, 255), 2, cv2.LINE_AA)
 
@@ -240,31 +241,31 @@ class VideoMaker:
                 elapsed = frame / fps
                 cv2.putText(background, str(round(elapsed, 2)),
                             (int(maze_model.shape[0]*.85),
-                             int(maze_model.shape[1]*.8)),
+                            int(maze_model.shape[1]*.8)),
                             cv2.FONT_HERSHEY_SIMPLEX, 1.6,
                             (255, 255, 255), 2, cv2.LINE_AA)
 
                 # Escape and Origin Arms
-                cv2.putText(background, 'origin arm: ' + row['origin'],
-                            (int(maze_model.shape[0]*.1),
-                             int(maze_model.shape[1]*.15)),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1,
-                            (255, 255, 255), 2, cv2.LINE_AA)
-                cv2.putText(background, 'escape arm: ' + row['escape'],
-                            (int(maze_model.shape[0]*.1),
-                             int(maze_model.shape[1]*.2)),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1,
-                            (255, 255, 255), 2, cv2.LINE_AA)
+                if trial_mode:
+                    cv2.putText(background, 'origin arm: ' + row['origin'],
+                                (int(maze_model.shape[0]*.1),
+                                int(maze_model.shape[1]*.15)),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1,
+                                (255, 255, 255), 2, cv2.LINE_AA)
+                    cv2.putText(background, 'escape arm: ' + row['escape'],
+                                (int(maze_model.shape[0]*.1),
+                                int(maze_model.shape[1]*.2)),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1,
+                                (255, 255, 255), 2, cv2.LINE_AA)
 
-                # cv2.putText(background, 'is escape: ' + row['is_escape'],
-                #             (int(maze_model.shape[0]*.6),
-                #              int(maze_model.shape[1]*.15)),
-                #             cv2.FONT_HERSHEY_SIMPLEX, 1,
-                #             (255, 255, 255), 2, cv2.LINE_AA)
+                    # cv2.putText(background, 'is escape: ' + row['is_escape'],
+                    #             (int(maze_model.shape[0]*.6),
+                    #              int(maze_model.shape[1]*.15)),
+                    #             cv2.FONT_HERSHEY_SIMPLEX, 1,
+                    #             (255, 255, 255), 2, cv2.LINE_AA)
 
                 # Head and body angle dials
-                cc = (int(maze_model.shape[0]*.66),
-                      int(maze_model.shape[1]*.88))
+                cc = (int(maze_model.shape[0]*.66), int(maze_model.shape[1]*.88))
                 cv2.circle(background, cc, 100, (255, 255, 255), 2)
                 cv2.ellipse(background, cc, (100, 5), - body_angle[frame], -45, 45, (0, 255, 0), -1)
                 cv2.ellipse(background, cc, (50, 10), - head_angle[frame], -45, 45, (0, 0, 255), -1)
