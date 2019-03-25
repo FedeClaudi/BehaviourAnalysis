@@ -373,6 +373,7 @@ class AllExplorations(dj.Manual):
         duration: float                   # Total duration of the exploration in seconds
         median_vel: float                  # median velocity in px/s 
         session_number_trials: int      # Number of trials in the session following the expl
+        exploration_start: int              # frame start exploration
     """
 
 

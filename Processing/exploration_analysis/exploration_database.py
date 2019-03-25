@@ -83,7 +83,6 @@ class AllExplorationsPopulate:
                         body = get_tracking_given_recuid(rec, bp='body')
                         if np.any(body):
                             rec_tracking = [get_tracking_given_recuid(rec, bp=bp)[:, useful_dims] for bp in bps]
-
                             temp = np.zeros((rec_tracking[0].shape[0], rec_tracking[0].shape[1], len(rec_tracking)))
 
                     if rec_tracking is not None:
@@ -128,7 +127,8 @@ class AllExplorationsPopulate:
             tot_time_on_threat = int(time_on_t),
             duration = int(duration), 
             median_vel = int(median_velocity),            
-            session_number_trials = len(session_stims)  
+            session_number_trials = len(session_stims),
+            exploration_start = cutoff
             )
 
             self.table.insert1(key)
