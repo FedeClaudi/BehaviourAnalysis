@@ -34,12 +34,17 @@ class VideoMaker:
     """
 
     def plot_all_trials(self):
-        experiments, trials, fps, number_of_trials, trial_number, rec_uid, stim_frames, escapes, origins, is_escape, trial_ids = \
-                (AllTrials & "is_escape='{}'".format(self.escapes)).fetch(*self.to_fetch)
 
-        self.plot_as_video(trial_ids, trials, 'ALL TRIALS', 200, rec_uid, stim_frames, escapes, origins,
-                        None, number_of_trials, trial_number, savename='alltrials3')
- 
+        for tr_id in AllTrials.fetch("trial_id"):
+            recuid, uid, experiment, tracking = (AllTrials & 'trial_id={}'.format(exp_id) & "is_escape='true'").fetch('recording_uid', 'session_uid', 'experiment_name', 'tracking_data')
+            uid = uid[0]
+            session = get_sessname_given_sessuid(uid)
+            videoname = session[0] + '_all_trials'
+            fps = get_videometadata_given_recuid(recuid)
+            self.data = self.make_dataframe(tracking, recuid, [''])
+
+            self.make_video(videoname=videoname, experimentname=experiment[0], savefolder=self.save_fld_explorations, fps=fps,
+                            trial_mode=None, frame_title=session[0])
     def plot_by_arm(self):
         arms = set((AllTrials).fetch("escape_arm"))
         for arm in arms:
