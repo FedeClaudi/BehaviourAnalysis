@@ -122,7 +122,7 @@ class VideoMaker:
         ids = AllExplorations.fetch('exploration_id')
 
         for exp_id in ids:
-            uid, experiment, tracking = (AllExplorations & 'exploration_id={}'.format(exp_id)).fetch('session_uid', 'experiment_name', 'tracking_data')
+            uid, experiment, tracking, start = (AllExplorations & 'exploration_id={}'.format(exp_id)).fetch('session_uid', 'experiment_name', 'tracking_data', 'exploration_start')
             uid = uid[0]
             session = get_sessname_given_sessuid(uid)
             recuid = get_recordings_given_sessuid(uid)[0]['recording_uid']
@@ -130,8 +130,8 @@ class VideoMaker:
             fps = get_videometadata_given_recuid(recuid)
             self.data = self.make_dataframe(tracking, recuid, [''])
 
-            self.make_video(videoname=videoname, experimentname=experiment[0], savefolder=self.save_fld_explorations, fps=fps,
-                            trial_mode=None, frame_title=session[0])
+            self.make_video(videoname=videoname, experimentname=experiment[0], savefolder=self.save_fld_explorations, fps=fps*4,
+                            trial_mode=None, frame_title=session[0], start_frame=0)
 
 
     @staticmethod
@@ -151,7 +151,7 @@ class VideoMaker:
     #####################################################################################################################################################################################################################################################
     """
 
-    def make_video(self, videoname=None, experimentname=None, savefolder=None, fps=40, trial_mode=True, frame_title=''):
+    def make_video(self, videoname=None, experimentname=None, savefolder=None, fps=40, trial_mode=True, frame_title='', start_frame=0):
         # check if file exists
         complete_video_path = os.path.join(savefolder, videoname+'.mp4')
         if os.path.isfile(complete_video_path):
@@ -173,24 +173,25 @@ class VideoMaker:
 
         # open openCV writer
         video_editor = Editor()
-        writer = video_editor.open_cvwriter(complete_video_path, w=maze_model.shape[0]*2, h=maze_model.shape[1],
+        if trial_mode: width_factor = 2
+        else: width_factor = 1
+        writer = video_editor.open_cvwriter(complete_video_path, w=maze_model.shape[0]*width_factor, h=maze_model.shape[1],
                                             framerate = fps, iscolor=True)
         
         # loop over each trial
         stored_contours = []
         for row_n, row in self.data.iterrows():
             print("Processing trial: ", row_n)
-            tr = row['tracking'][0]
+            if len(row['tracking'].shape) == 3:
+                tr = row['tracking']
+            else: tr = row['tracking'][0]
+            
             # shift all tracking Y up by 10px to align better
             trc = tr.copy()
             trc[:, 1, :] = np.add(trc[:, 1, :], 10)
             tr = trc
             tot_frames = tr.shape[0]
-
-            if trial_mode:
-                start_frame = 0
-            else: start_frame = fps+0
-
+                
             # get tracking data for the different contours to draw
             body_contour = tr[start_frame:, :, body_idxs]
             head_contour = tr[start_frame:, :, head_idxs]
@@ -216,6 +217,7 @@ class VideoMaker:
             # LOOP OVER FRAMES
             trial_stored_contours = []
             prev_frame_bl = 0  # keep track of the body length at each frame to remove jumps
+            snout_position = None
             for frame in tqdm(np.arange(tot_frames)):  # loop over each frame and draw
                 background = trial_background.copy()
 
@@ -242,6 +244,11 @@ class VideoMaker:
                 # Draw current trial head contours
                 coords = body_contour[frame, :2, :].T.astype(np.int32)
                 head = head_contour[frame, :2, :].T.astype(np.int32)
+                head_length = calc_distance_between_points_2d(head[0], head[1])
+                if head_length > 15:
+                    head[1] = snout_position
+                else:
+                    snout_position = head[1]
                 self.draw_contours(background, [head],  (0, 0, 255), (50, 50, 50))
 
                 # flip frame Y
@@ -293,27 +300,29 @@ class VideoMaker:
                 cv2.ellipse(background, cc, (100, 2), - head_angle[frame] - (-body_angle[frame]) - 90, -45, 45, (255, 255, 255), -1)
 
                 # threat frame
-                threat = background[threat_cropping[0][0]:threat_cropping[0][1],
-                                    threat_cropping[1][0]:threat_cropping[1][1]]
-                threat = cv2.resize(threat, (background.shape[1], background.shape[0]))
+                if trial_mode:
+                    threat = background[threat_cropping[0][0]:threat_cropping[0][1],
+                                        threat_cropping[1][0]:threat_cropping[1][1]]
+                    threat = cv2.resize(threat, (background.shape[1], background.shape[0]))
 
-                # video frame
-                ret, videoframe = cap.read()
-                if not ret:
-                    raise ValueError
+                    # video frame
+                    ret, videoframe = cap.read()
+                    if not ret:
+                        raise ValueError
 
-                wh_ratio = videoframe.shape[0] / videoframe.shape[1]
-                height = 350
-                width = int(250*wh_ratio)
+                    wh_ratio = videoframe.shape[0] / videoframe.shape[1]
+                    height = 350
+                    width = int(250*wh_ratio)
+                    videoframe = cv2.resize(videoframe, (height, width))
 
-                videoframe = cv2.resize(videoframe, (height, width))
-
-                # Create the whole frame
-                shape = background.shape
-                whole_frame = np.zeros((shape[0], shape[1]*2, shape[2])).astype(np.uint8)
-                whole_frame[:, :shape[0], :] = background
-                whole_frame[:, shape[0]:, :] = threat
-                whole_frame[shape[0]-width:, :height, :] = videoframe
+                    # Create the whole frame
+                    shape = background.shape
+                    whole_frame = np.zeros((shape[0], shape[1]*2, shape[2])).astype(np.uint8)
+                    whole_frame[:, :shape[0], :] = background
+                    whole_frame[:, shape[0]:, :] = threat
+                    whole_frame[shape[0]-width:, :height, :] = videoframe
+                else:
+                    whole_frame = background.copy()
 
                 # Show and write
                 # cv2.imshow("frame", whole_frame)
@@ -327,7 +336,7 @@ class VideoMaker:
                 mask = np.uint8(np.ones(trial_background.shape) * 0)
                 self.draw_contours(mask, [trial_stored_contours[-1]],  (255, 255, 255), None)
                 mask = mask.astype(bool)
-                trial_background[mask] = trial_background[mask] * .8
+                trial_background[mask] = trial_background[mask] * .9
  
 
             stored_contours.append(trial_stored_contours)
@@ -371,7 +380,7 @@ class VideoMaker:
 if __name__ == "__main__":        
     videomaker = VideoMaker()
 
-    videomaker.plot_all_trials()
+    videomaker.make_explorations_video()
 
 
     plt.show()

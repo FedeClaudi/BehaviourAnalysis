@@ -87,7 +87,7 @@ class AllExplorationsPopulate:
 
                     if rec_tracking is not None:
                         for tn, t in enumerate(rec_tracking):
-                            temp[:, :, i] = t
+                            temp[:, :, tn] = t
                         tracking_data[rec] = temp
                     else:
                         continue
