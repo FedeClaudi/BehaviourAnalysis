@@ -301,6 +301,14 @@ class VideoMaker:
 
                 # Store contours points of this trials to use them as background for next
                 trial_stored_contours.append(coords)
+
+                # add frame's contour to trial background
+                mask = np.uint8(np.ones(trial_background.shape) * 0)
+                self.draw_contours(mask, trial_stored_contours[-1],  (255, 255, 255), None)
+                mask = mask.astype(bool)
+                trial_background[mask] = trial_background[mask] * .8
+
+
             stored_contours.append(trial_stored_contours)
         writer.release()
 
@@ -323,7 +331,7 @@ class VideoMaker:
             if stored_contours:
                 for past_trial in stored_contours:
                     mask = np.uint8(np.ones(trial_background.shape) * 0)
-                    draw_contours(mask, past_trial,  (255, 255, 255), None)
+                    self.draw_contours(mask, past_trial,  (255, 255, 255), None)
                     mask = mask.astype(bool)
                     trial_background[mask] = trial_background[mask] * .8
 
