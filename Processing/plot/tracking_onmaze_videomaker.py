@@ -35,6 +35,8 @@ class VideoMaker:
 
     def plot_all_trials(self):
 
+        t, r, n = [], [], []
+
         for tr_id in AllTrials.fetch("trial_id"):
             escape,recuid, uid, experiment, tracking = (AllTrials & 'trial_id={}'.format(tr_id)).fetch('is_escape', 'recording_uid', 'session_uid', 'experiment_name', 'tracking_data')
             
@@ -44,10 +46,13 @@ class VideoMaker:
             session = get_sessname_given_sessuid(uid)[0]
             videoname = session + '_all_trials'
             fps = get_videometadata_given_recuid(recuid)
-            self.data = self.make_dataframe(tracking, recuid, [''])
+            t.append(tracking)
+            r.append(recuid)
+            n.append('')
+        self.data = self.make_dataframe(t, r, n)
 
-            self.make_video(videoname=videoname, experimentname=experiment[0], savefolder=self.save_fld_explorations, fps=fps,
-                            trial_mode=None, frame_title=session)
+        self.make_video(videoname=videoname, experimentname=experiment[0], savefolder=self.save_fld_explorations, fps=fps,
+                        trial_mode=None, frame_title=session)
     def plot_by_arm(self):
         arms = set((AllTrials).fetch("escape_arm"))
         for arm in arms:
@@ -173,6 +178,7 @@ class VideoMaker:
         # loop over each trial
         stored_contours = []
         for row_n, row in self.data.iterrows():
+            print("Processing trial: ", row_n)
             tr = row['tracking']
             # shift all tracking Y up by 10px to align better
             trc = tr.copy()
@@ -318,13 +324,10 @@ class VideoMaker:
 
                 # add frame's contour to trial background
                 mask = np.uint8(np.ones(trial_background.shape) * 0)
-                try:
-                    self.draw_contours(mask, trial_stored_contours[-1],  (255, 255, 255), None)
-                    mask = mask.astype(bool)
-                    trial_background[mask] = trial_background[mask] * .8
-                except:
-                    print("didn't draw contours")
-
+                self.draw_contours(mask, trial_stored_contours[-1],  (255, 255, 255), None)
+                mask = mask.astype(bool)
+                trial_background[mask] = trial_background[mask] * .8
+ 
 
             stored_contours.append(trial_stored_contours)
         writer.release()
