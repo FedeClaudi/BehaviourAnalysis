@@ -54,6 +54,39 @@ class VideoMaker:
 
         self.make_video(videoname=videoname, experimentname="all_trials", savefolder=self.save_fld_explorations, fps=fps,
                         trial_mode=None, frame_title=session)
+
+
+    def first_trial(self, first_escape=True):
+        print("Making video of first trials")
+        t, r, stfr, ors, esc = [], [], [], [], []
+
+        sessions = sorted(set(AllTrials.fetch("session_uid")))
+
+        for uid in tqdm(sessions):
+            is_escape, escape_arm, origin_arm, recuid, experiment, tracking, stimframes = (AllTrials & 'session_uid={}'.format(uid)).fetch('is_escape','escape_arm', 'origin_arm', 'recording_uid', 'experiment_name', 'tracking_data', 'stim_frame')
+            
+            if first_escape:
+                if 'true' in is_escape:
+                    is_escape_index = list(is_escape).index('true')
+                else: continue
+            else: is_escape_index = 0
+
+            recuid = recuid[is_escape_index]
+            session = get_sessname_given_sessuid(uid)[0]
+            tracking = tracking[is_escape_index]
+            t.append(tracking)
+            r.append(recuid)
+            ors.append(origin_arm[is_escape_index])
+            esc.append(escape_arm[is_escape_index])
+            stfr.append(stimframes[is_escape_index])
+
+        self.data = self.make_dataframe(t, r, stim_frame=stfr, origin=ors, escape=esc)
+
+        self.make_video(videoname='first_escapes', experimentname="all_trials", savefolder=self.save_fld_trials, fps=30,
+                        trial_mode=True)
+
+
+    """
     def plot_by_arm(self):
         arms = set((AllTrials).fetch("escape_arm"))
         for arm in arms:
@@ -117,7 +150,8 @@ class VideoMaker:
 
         self.plot_as_video(trials, experiments, 35, rec_uid, stim_frames, escapes, origins, \
                             uid, number_of_trials, trial_number, savename=feature)
-
+    """
+    
     def make_explorations_video(self):
         ids = AllExplorations.fetch('exploration_id')
 
@@ -135,11 +169,20 @@ class VideoMaker:
 
 
     @staticmethod
-    def make_dataframe(tracking, recuid, trialid):
+    def make_dataframe(tracking, recuid, trialid=None, stim_frame=None, origin=None, escape=None):
+        if trialid is None: trialid = ['' for x in tracking]
+        if stim_frame is None: stim_frame = ['' for x in tracking]
+        if origin is None: origin = ['' for x in tracking]
+        if escape is None: escape = ['' for x in tracking]
+
+
         d = dict(
             rec_uid = recuid,
             trial_id = trialid, 
-            tracking = tracking
+            tracking = tracking,
+            stim_frame = stim_frame,
+            origin = origin, 
+            escape = escape
         )
 
         return pd.DataFrame.from_dict(d)
@@ -154,7 +197,7 @@ class VideoMaker:
     def make_video(self, videoname=None, experimentname=None, savefolder=None, fps=40, trial_mode=True, frame_title='', start_frame=0):
         # check if file exists
         complete_video_path = os.path.join(savefolder, videoname+'.mp4')
-        if os.path.isfile(complete_video_path):
+        if os.path.isfile(complete_video_path) and os.path.getsize(complete_video_path) > 10000:
             print(videoname, " exists already ")
             return
         else:
@@ -169,7 +212,7 @@ class VideoMaker:
         head_idxs = [2, 1, 3, 0]
 
         # Cropping coordinates for threat area
-        threat_cropping = ((370, 800), (400, 600))
+        threat_cropping = ((500, 950), (400, 600))
 
         # open openCV writer
         video_editor = Editor()
@@ -245,7 +288,7 @@ class VideoMaker:
                 coords = body_contour[frame, :2, :].T.astype(np.int32)
                 head = head_contour[frame, :2, :].T.astype(np.int32)
                 head_length = calc_distance_between_points_2d(head[0], head[1])
-                if head_length > 15:
+                if head_length > 15 and snout_position is not None:
                     head[1] = snout_position
                 else:
                     snout_position = head[1]
@@ -380,7 +423,7 @@ class VideoMaker:
 if __name__ == "__main__":        
     videomaker = VideoMaker()
 
-    videomaker.make_explorations_video()
+    videomaker.first_trial()
 
 
     plt.show()

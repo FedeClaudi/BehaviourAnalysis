@@ -340,7 +340,7 @@ def calc_angle_between_points_of_vector(v):
                     print('Failed with d: ', d)
                     thetas[i] = 0
             else:
-                thetas[i] = np.nan
+                thetas[i] = 0
     return thetas
 
 

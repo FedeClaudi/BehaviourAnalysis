@@ -13,7 +13,9 @@ import matplotlib.mlab as mlab
 import matplotlib as mpl
 from scipy.signal import medfilt as median_filter
 from sklearn.preprocessing import normalize
+from scipy.integrate import cumtrapz as integral
 import seaborn as sns
+from tqdm import tqdm
 
 mpl.rcParams['text.color'] = 'k'
 mpl.rcParams['xtick.color'] = 'k'
@@ -30,54 +32,72 @@ from database.database_fetch import *
 
 
 
-trials = (AllTrials & "is_escape='true'").fetch("session_uid", "experiment_name", "tracking_data", "escape_arm") 
+sessions = sorted(set((AllTrials & "experiment_name='PathInt2'").fetch("session_uid") ))
 
-arms=['Left_Far', 'Centre', 'Right2']
+yth = 400
+dth = 20
 
-trial_t = namedtuple("t", "x y s")
+idphi_l, trackings = [], []
+for sess_n, uid in tqdm(enumerate(sessions)):
+    trials = (AllTrials & "session_uid={}".format(uid) & "is_escape='true'").fetch("tracking_data")
+    # if sess_n > 2: break
 
-template = get_maze_template('model based')
+    for i, tracking in enumerate(trials):
+        
+        x, y = median_filter(tracking[:, 0, 1]), median_filter(tracking[:, 1, 1])
 
-f, axarr = plt.subplots(ncols=3, nrows=3)
-f2, ax2 = plt.subplots()
-ax2.imshow(template)
-tot, byarm = 0, [0, 0, 0]
-for uid, experiment, tracking, escape_arm in zip(*trials):
-    if not experiment in ['Model Based']: continue
+        xy = np.vstack([x,y])
+        try:
+            d = np.cumsum(calc_distance_between_points_in_a_vector_2d(xy.T))
+        except:
+            continue
 
-    y = tracking[:, 1, :]
-    if np.any(y[0] > 300): continue
-    # thresh = np.where(y>400)[0][0]
-    thresh = -1
-    trial = trial_t(*[tracking[:thresh, i, :] for i in [0, 1, 2]])
+        at_yth = np.where(y >= yth)[0][0]
+        at_dth = np.where(y > y[0]+dth)[0][0]
+        #at_dth = np.where(d >= dth)[0][0]
 
-    if np.min(trial.x)< 300: escape_arm='Left_Far'
+        x = x[at_dth : at_yth]
+        y = y[at_dth : at_yth]
 
-    # theta = math.atan2(line_smoother(np.diff(trial.x)),line_smoother(np.diff(trial.y)))
+        dx, dy = np.diff(x), np.diff(y)
 
-    ax = axarr[0, arms.index(escape_arm)]
-    ax.scatter(trial.x, trial.y,  c=trial.s, alpha=.15, s=50)
+        # vel = median_filter(np.unwrap(np.arctan2(dy, dx)))
+        vel = calc_angle_between_points_of_vector(np.vstack([dx, dy]).T)
+        vel[vel==np.nan] = 0
 
-    tot += 1
-    if escape_arm == 'Centre':
-        c = 'r'
-        byarm[1] += 1
-    elif escape_arm == 'Right2':
-        c = 'g'
-        byarm[2] += 1
-    else: 
-        byarm[0] += 1
+        dv = np.diff(line_smoother(vel)).reshape(len(line_smoother(vel))-1, 1)
+        idphi = np.trapz(vel)
 
-    ax2.scatter(trial.x, trial.y,  c=trial.s, alpha=1, s=50)
-ax2.set(xlim=[0, 1000], ylim=[0, 1000])
-p_byarm = [c/tot for c in byarm]
-x = np.arange(len(arms))
-colors = get_n_colors(3)
-axarr[1, 0].bar(x, p_byarm, color=colors)
-axarr[1, 0].set(xticks=x, xticklabels=arms)
-    
+        #plt.figure()
+        #plt.plot(vel)
+        #plt.plot(dv)
+        #plt.plot(median_filter(np.rad2deg(np.unwrap(np.arctan2(dy, dx)))))
+        #plt.show()
 
 
+        idphi_l.append(idphi)
+        trackings.append(np.vstack([x, y, np.insert(0, 0, vel)]).T)
+
+        # ax.plot(x,y, alpha=.6, label=str(round(idphi[0], 2)))
+
+f, axarr = plt.subplots(ncols = 3)
+
+zdphi = stats.zscore(np.array(idphi_l))
+
+th = 1.25
+normal = [t for z,t in zip(zdphi, trackings) if z <= th]
+vte = [t for z,t in zip(zdphi, trackings) if z > th]
+
+axarr[0].hist(zdphi, bins=20)
+
+for i, n in enumerate(normal):
+    if i > 15: break
+    # axarr[1].scatter(n[:, 0], n[:, 1], c=n[:, 2], alpha=.5, vmin=np.min(n[:, 2]), vmax=np.max(n[:, 2]))
+    axarr[1].plot(n[:, 0], n[:, 1],alpha=.5)
+
+for i, v in enumerate(vte):
+    if i > 25: break
+    # axarr[2].scatter(v[:, 0], v[:, 1], c=v[:, 2], alpha=.5)
+    axarr[2].plot(v[:, 0], v[:, 1], alpha=.5)
 
 plt.show()
-
