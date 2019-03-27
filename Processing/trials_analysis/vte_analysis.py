@@ -251,8 +251,8 @@ class VTE:
         data['zidphi'] = stats.zscore(data['idphi'].values)
 
         overall_escapes = [1 if e == target else 0 for e in list(data['escape_arm'].values)]
-        vte_escapes = [1 if e == target else 0 for e in list(dataloc[data['zidphi'] >= self.zscore_th]['escape_arm'].values)]
-        non_vte_escapes = [1 if e == target else 0 for e in list(dataloc[data['zidphi'] < self.zscore_th]['escape_arm'].values)]
+        vte_escapes = [1 if e == target else 0 for e in list(data.loc[data['zidphi'] >= self.zscore_th]['escape_arm'].values)]
+        non_vte_escapes = [1 if e == target else 0 for e in list(data.loc[data['zidphi'] < self.zscore_th]['escape_arm'].values)]
 
         overall_pR = np.mean(overall_escapes)
         non_vte_pR = np.mean(non_vte_escapes)
@@ -270,7 +270,7 @@ class VTE:
         n_vte_trials = len(list(data.loc[data['zidphi'] >= self.zscore_th]['escape_arm'].values))
         random_pR = []
         for i in np.arange(100000):
-            random_pR.append(np.mean(ranom.choices(overal_escapes, k=n_vte_trials)))
+            random_pR.append(np.mean(random.choices(overall_escapes, k=n_vte_trials)))
 
 
         # Plot with bootstrap
