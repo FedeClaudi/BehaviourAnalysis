@@ -239,7 +239,7 @@ class VTE:
         =======================================================================================================================================================
     """
 
-    def pR_byVTE(self, experiment=None, title=None):
+    def pR_byVTE(self, experiment=None, title=None, target="Right_Medium"):
         trials = []
         for exp in experiment:
             t = (ZidPhi & "experiment_name='{}'".format(exp)).fetch('idphi', "escape_arm")
@@ -248,10 +248,10 @@ class VTE:
         data = pd.DataFrame.from_dict(dict(idphi=trials[0], escape_arm=trials[1]))
         data['zidphi'] = stats.zscore(data['idphi'].values)
 
-        overall_pR = calc_prob_item_in_list(list(data['escape_arm'].values), 'Right_Medium')
+        overall_pR = calc_prob_item_in_list(list(data['escape_arm'].values), target)
 
-        non_vte_pR = calc_prob_item_in_list(list(data.loc[data['zidphi'] < self.zscore_th]['escape_arm'].values), 'Right_Medium')
-        vte_pR = calc_prob_item_in_list(list(data.loc[data['zidphi'] >= self.zscore_th]['escape_arm'].values), 'Right_Medium')
+        non_vte_pR = calc_prob_item_in_list(list(data.loc[data['zidphi'] < self.zscore_th]['escape_arm'].values), target)
+        vte_pR = calc_prob_item_in_list(list(data.loc[data['zidphi'] >= self.zscore_th]['escape_arm'].values), target)
 
         print("""
         Experiment {}
@@ -264,7 +264,7 @@ class VTE:
         n_vte_trials = len(list(data.loc[data['zidphi'] >= self.zscore_th]['escape_arm'].values))
         random_pR = []
         for i in np.arange(100000):
-            random_pR.append(calc_prob_item_in_list(random.choices(list(data['escape_arm'].values), k=n_vte_trials), 'Right_Medium'))
+            random_pR.append(calc_prob_item_in_list(random.choices(list(data['escape_arm'].values), k=n_vte_trials), target))
 
 
         f, ax = plt.subplots()
@@ -291,6 +291,7 @@ if __name__ == "__main__":
     vte.pR_byVTE(experiment=['PathInt2', 'PathInt2-L'], title="Asymmetric Maze")
     vte.pR_byVTE(experiment=['Square Maze', 'TwoAndahalf Maze'], title='Symmetric Maze')
     vte.pR_byVTE(experiment=[ 'PathInt2-D'], title="Asymmetric Maze Dark")
+    vte.pR_byVTE(experiment=[ 'PathInt'], title="3 Arms", target="Centre")
 
     # vte.zidphi_histogram(experiment=['PathInt2', 'PathInt2 - L'], title="Asymmetric Maze")
     # vte.zidphi_histogram(experiment=['Square Maze', 'TwoAndahalf Maze'], title='Symmetric Maze')
