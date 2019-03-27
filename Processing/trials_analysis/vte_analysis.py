@@ -37,8 +37,14 @@ from database.database_fetch import *
 
 class VTE:
     def __init__(self):
-        self.zscore_th = 1
+        self.zscore_th = .5
         self.video_maker = VideoMaker()
+
+    """
+        =======================================================================================================================================================
+            TABLE FUNCTIONS    
+        =======================================================================================================================================================
+    """
 
     def drop(self):
         ZidPhi.drop()
@@ -54,7 +60,7 @@ class VTE:
         from database.NewTablesDefinitions import AllTrials
 
         # get tracking from corresponding trial
-        trials = (AllTrials & "trial_id={}".format(key['trial_id']) & "is_escape='true'").fetch("tracking_data","session_uid", "experiment_name")
+        trials = (AllTrials & "trial_id={}".format(key['trial_id']) & "is_escape='true'").fetch("tracking_data","session_uid", "experiment_name", "escape_arm")
         try:
             trials[0][0]
         except:
@@ -63,33 +69,23 @@ class VTE:
 
         print("processing trial id: ", key['trial_id'])
 
-        tracking, uid, experiment = trials[0][0], trials[1][0], trials[2][0]
-        # get xy for snout
-        x, y, platf = median_filter(tracking[:, 0, 0]), median_filter(tracking[:, 1, 0]),  median_filter(tracking[:, 1, -1])
+        tracking, uid, experiment, escape_arm = trials[0][0], trials[1][0], trials[2][0], trials[3][0]
+        # get xy for snout and platform at each frame
+        x, y, platf = median_filter(tracking[:, 0, 1]), median_filter(tracking[:, 1, 1]),  median_filter(tracking[:, -1, 0])
 
-
-        # Select the times between when the mice leave the catwalk and when they leave the threat platform
-        first_above_catwalk = np.where(y > 250)[0][0]
-
-
-
-
-
-
-
-        # keep only beteween when the mouse started running and got to Y max
         try:
-            at_max_y = np.where(y >= max_y)[0][0]
-            # started_moving = np.where(y > y[0] + displacement_th)[0][0]
-            started_moving = 0
+            # Select the times between when the mice leave the catwalk and when they leave the threat platform
+            # first_above_catwalk = np.where(y > 250)[0][0]
+            first_above_catwalk = 0
+            first_out_threat = np.where(platf != 1)[0][0]
         except:
             return
 
-        n_steps = at_max_y - started_moving
+        n_steps = first_out_threat - first_above_catwalk
         if n_steps < min_length: return  # the trial started too close to max Y
 
         # using interpolation to remove nan from array
-        x, y = fill_nans_interpolate(x[started_moving : at_max_y]), fill_nans_interpolate(y[started_moving : at_max_y])
+        x, y = fill_nans_interpolate(x[first_above_catwalk : first_out_threat]), fill_nans_interpolate(y[first_above_catwalk : first_out_threat])
 
         dx, dy = np.diff(x), np.diff(y)
 
@@ -104,8 +100,18 @@ class VTE:
         key['idphi'] = idphi
         key['session_uid'] = uid
         key['experiment_name'] = experiment
+        key['escape_arm'] = escape_arm
 
         table.insert1(key)
+
+
+    """
+        =======================================================================================================================================================
+            PLOTTING FUNCTIONS    
+        =======================================================================================================================================================
+    """
+
+
 
     def zidphi_histogram(self, experiment=None, title=''):
         if experiment is None:
@@ -159,6 +165,15 @@ class VTE:
         axarr[0].set(title=title + ' non VTE trials', ylabel='Y', xlabel='X')
         axarr[1].set(title='VTE trials', ylabel='Y', xlabel='X')
 
+
+
+    """
+        =======================================================================================================================================================
+            VIDEO FUNCTIONS    
+        =======================================================================================================================================================
+    """
+
+
     def zidphi_videos(self, experiment=None, title='', fps=30, background='', vte=True):
         trials = []
         for exp in experiment:
@@ -183,7 +198,6 @@ class VTE:
         self.video_maker.data = data
         self.video_maker.make_video(videoname = title, experimentname=background, fps=fps, 
                                     savefolder=self.video_maker.save_fld_trials, trial_mode=False)
-
 
     def parallel_videos(self):
         a1 = (['PathInt2', 'PathInt2 - L'], "Asymmetric Maze - NOT VTE", 40, 'PathInt2', False)
@@ -217,21 +231,38 @@ class VTE:
             p.join()
 
 
+
+
+
+
+
+
+"""
+    =======================================================================================================================================================
+    =======================================================================================================================================================
+    =======================================================================================================================================================
+    =======================================================================================================================================================
+"""
 if __name__ == "__main__":
     vte = VTE()
 
     # vte.drop()
-    vte.populate()
+    # vte.populate()
 
 
-    # vte.zidphi_histogram(experiment=['PathInt2', 'PathInt2 - L'], title="Asymmetric Maze")
-    # vte.zidphi_histogram(experiment=['Square Maze', 'TwoAndahalf Maze'], title='Symmetric Maze')
+    vte.zidphi_histogram(experiment=['PathInt2', 'PathInt2 - L'], title="Asymmetric Maze")
+    vte.zidphi_histogram(experiment=['Square Maze', 'TwoAndahalf Maze'], title='Symmetric Maze')
+    vte.zidphi_histogram(experiment=['Model Based'], title="Model Based")
+    vte.zidphi_histogram(experiment=['FourArms Maze'], title="4 arm")
+
+
     vte.zidphi_tracking(experiment=['PathInt2', 'PathInt2 - L'], title="Asymmetric Maze")
-    # vte.zidphi_tracking(experiment=['Square Maze', 'TwoAndahalf Maze'], title='Symmetric Maze')
-    # vte.parallel_videos()
+    vte.zidphi_tracking(experiment=['Square Maze', 'TwoAndahalf Maze'], title='Symmetric Maze')
+    vte.zidphi_tracking(experiment=['Model Based'], title="Model Based")
+    vte.zidphi_tracking(experiment=['FourArms Maze'], title="4 arm")
 
-    # vte.zidphi_histogram(experiment=['Model Based'], title="Model Based")
-    # vte.zidphi_tracking(experiment=['Model Based'], title="Model Based")
+
+    # vte.parallel_videos()
     # vte.parallel_videos2()
 
 

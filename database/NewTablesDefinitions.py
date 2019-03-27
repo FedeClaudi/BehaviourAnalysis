@@ -415,6 +415,7 @@ class ZidPhi(dj.Computed):
     ---
     session_uid: int
     experiment_name: varchar(128)
+    escape_arm: varchar(128)
     xy: longblob
     dphi: longblob
     idphi: float
