@@ -19,7 +19,6 @@ from Utilities.video_and_plotting.video_editing import Editor
 
 class VideoMaker:
     def __init__(self):
-        self.trials = AllTrials()
         self.save_fld_trials = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\plots\\all_trials'
         self.save_fld_explorations = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\plots\\explorations'
         self.escapes = 'true'
@@ -85,72 +84,6 @@ class VideoMaker:
         self.make_video(videoname='first_escapes', experimentname="all_trials", savefolder=self.save_fld_trials, fps=30,
                         trial_mode=True)
 
-
-    """
-    def plot_by_arm(self):
-        arms = set((AllTrials).fetch("escape_arm"))
-        for arm in arms:
-            experiments, trials, fps, number_of_trials, trial_number, rec_uid, stim_frames, escapes, origins, is_escape = \
-                (AllTrials & "escape_arm='{}'".format(arm) & "is_escape='{}'".format(self.escapes)).fetch(*self.to_fetch)
-
-            self.plot_as_video(trials, "allexp", 35, rec_uid, stim_frames, escapes, origins,
-                                None, number_of_trials, trial_number, savename=arm)
-
-
-    def plot_by_exp(self):
-        experiments = set(AllTrials.fetch('experiment_name'))
-
-        # Get all trials for each experiment, regardless of the mouse they belong to
-        for exp in sorted(experiments):           
-            experiments, trials, fps, number_of_trials, trial_number, rec_uid, stim_frames, escapes, origins, is_escape= \
-                (AllTrials & "experiment_name='{}'".format(exp) & "is_escape='{}'".format(self.escapes))\
-                            .fetch(*self.to_fetch)
-
-            if not np.any(fps): continue
-            self.plot_as_video(trials, exp, fps[0], rec_uid, stim_frames, escapes, origins, \
-                        None, number_of_trials, trial_number)
-
-    def plot_by_session(self, as_video=False):
-        sessions = set(AllTrials.fetch('session_uid'))
-
-        for uid in sessions:
-            experiments, trials, fps, number_of_trials, trial_number, rec_uid, stim_frames, escapes, origins, is_escape = \
-                (AllTrials & "session_uid='{}'".format(uid) & "is_escape='{}'".format(self.escapes)).fetch(*self.to_fetch)
-
-            if not np.any(experiments): continue
-
-
-            self.plot_as_video(trials, experiments[0], fps[0], rec_uid, stim_frames, escapes, origins, \
-                                uid, number_of_trials[0], trial_number, is_escape=is_escape)
-
-    def plot_by_feature(self, feature):
-        # Get notes and sort them
-        features = load_yaml('Processing\\trials_analysis\\trials_observations.yml')[feature]
-        uids = np.array([u for u, n in features])
-        trials_n = np.array([n for u,n in features])
-
-        experiments, trials, fps, number_of_trials, trial_number, rec_uid, stim_frames = [],[],[],[],[],[],[],
-        escapes, origins = [], []
-        for uid, n in zip(uids, trials_n):
-
-            exp, tr, fp, numtr, trnum, r, sfr, esc, ori = (AllTrials & "session_uid='{}'".format(uid) & "trial_number={}".format(n))\
-                            .fetch(*self.to_fetch)
-
-            if not np.any(exp): continue
-
-            experiments.append(exp[0])
-            trials.append(tr[0])
-            fps.append(fp[0])
-            number_of_trials.append(numtr[0])
-            trial_number.append(trnum[0])
-            rec_uid.append(r[0])
-            stim_frames.append(sfr[0])
-            escapes.append(esc)
-            origins.append(ori)      
-
-        self.plot_as_video(trials, experiments, 35, rec_uid, stim_frames, escapes, origins, \
-                            uid, number_of_trials, trial_number, savename=feature)
-    """
     
     def make_explorations_video(self):
         ids = AllExplorations.fetch('exploration_id')
@@ -248,13 +181,14 @@ class VideoMaker:
             trial_background = self.prepare_background(row_n, maze_model, stored_contours)
 
             # open raw video and move to stim start frame
-            cap = cv2.VideoCapture(get_video_path_give_recuid(row['rec_uid']))
-            if not cap.isOpened():
-                raise FileNotFoundError
-            else:
-                if trial_mode: cap.set(1, row['stim_frame'])
-                else: 
-                    cap.set(1, start_frame)
+            if trial_mode:
+                cap = cv2.VideoCapture(get_video_path_give_recuid(row['rec_uid']))
+                if not cap.isOpened():
+                    raise FileNotFoundError
+                else:
+                    if trial_mode: cap.set(1, row['stim_frame'])
+                    else: 
+                        cap.set(1, start_frame)
 
 
             # LOOP OVER FRAMES

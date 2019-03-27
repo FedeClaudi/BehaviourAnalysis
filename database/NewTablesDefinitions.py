@@ -6,6 +6,10 @@ from Processing.tracking_stats.math_utils import *
 from Processing.tracking_stats.extract_velocities_from_tracking import complete_bp_with_velocity, get_body_segment_stats
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 from Utilities.file_io.files_load_save import load_yaml
+try:
+    from Processing.trials_analysis.vte_analysis import VTE
+except:
+    pass
 
 import warnings
 import cv2
@@ -405,6 +409,23 @@ class AllTrials(dj.Manual):
 
 
 @schema
+class ZidPhi(dj.Computed):
+    definition = """
+    -> AllTrials
+    ---
+    session_uid: int
+    experiment_name: varchar(128)
+    xy: longblob
+    dphi: longblob
+    idphi: float
+
+    """
+
+    def make(self, key):
+        VTE.populate_vte_table(self, key)
+
+
+@schema
 class ArmsProbs(dj.Manual):
     definition = """
         -> Sessions
@@ -446,10 +467,15 @@ class ArmsProbs(dj.Manual):
         return lookup
 
 
-if __name__ == "__main__":
-    import sys
-    sys.path.append('./')
-    from dj_config import start_connection
+
+
+
+# if __name__ == "__main__":
+#     import sys
+#     sys.path.append('./')
+#     from dj_config import start_connection
     
-    start_connection()
+#     start_connection()
+
+#     ZidPhi.drop()
 

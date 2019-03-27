@@ -17,6 +17,9 @@ from scipy.integrate import cumtrapz as integral
 import seaborn as sns
 from tqdm import tqdm
 
+import multiprocessing as mp
+
+
 mpl.rcParams['text.color'] = 'k'
 mpl.rcParams['xtick.color'] = 'k'
 mpl.rcParams['ytick.color'] = 'k'
@@ -26,78 +29,211 @@ from database.NewTablesDefinitions import *
 
 from Processing.tracking_stats.math_utils import *
 from Utilities.file_io.files_load_save import load_yaml
+from Processing.plot.tracking_onmaze_videomaker import VideoMaker
 
 from database.database_fetch import *
 
 
 
+class VTE:
+    def __init__(self):
+        self.zscore_th = 1
+        self.video_maker = VideoMaker()
 
-sessions = sorted(set((AllTrials & "experiment_name='PathInt2'").fetch("session_uid") ))
+    def drop(self):
+        ZidPhi.drop()
+        sys.exit()
 
-yth = 400
-dth = 20
+    def populate(self):
+        zdiphi = ZidPhi()
+        zdiphi.populate()
 
-idphi_l, trackings = [], []
-for sess_n, uid in tqdm(enumerate(sessions)):
-    trials = (AllTrials & "session_uid={}".format(uid) & "is_escape='true'").fetch("tracking_data")
-    # if sess_n > 2: break
+    @staticmethod
+    def populate_vte_table(table, key, max_y = 450, displacement_th = 20, min_length=20):
 
-    for i, tracking in enumerate(trials):
-        
-        x, y = median_filter(tracking[:, 0, 1]), median_filter(tracking[:, 1, 1])
+        from database.NewTablesDefinitions import AllTrials
 
-        xy = np.vstack([x,y])
+        # get tracking from corresponding trial
+        trials = (AllTrials & "trial_id={}".format(key['trial_id']) & "is_escape='true'").fetch("tracking_data","session_uid", "experiment_name")
         try:
-            d = np.cumsum(calc_distance_between_points_in_a_vector_2d(xy.T))
+            trials[0][0]
         except:
-            continue
+            # no trials
+            return
 
-        at_yth = np.where(y >= yth)[0][0]
-        at_dth = np.where(y > y[0]+dth)[0][0]
-        #at_dth = np.where(d >= dth)[0][0]
+        print("processing trial id: ", key['trial_id'])
 
-        x = x[at_dth : at_yth]
-        y = y[at_dth : at_yth]
+        tracking, uid, experiment = trials[0][0], trials[1][0], trials[2][0]
+        # get xy for snout
+        x, y, platf = median_filter(tracking[:, 0, 0]), median_filter(tracking[:, 1, 0]),  median_filter(tracking[:, 1, -1])
+
+
+        # Select the times between when the mice leave the catwalk and when they leave the threat platform
+        first_above_catwalk = np.where(y > 250)[0][0]
+
+
+
+
+
+
+
+        # keep only beteween when the mouse started running and got to Y max
+        try:
+            at_max_y = np.where(y >= max_y)[0][0]
+            # started_moving = np.where(y > y[0] + displacement_th)[0][0]
+            started_moving = 0
+        except:
+            return
+
+        n_steps = at_max_y - started_moving
+        if n_steps < min_length: return  # the trial started too close to max Y
+
+        # using interpolation to remove nan from array
+        x, y = fill_nans_interpolate(x[started_moving : at_max_y]), fill_nans_interpolate(y[started_moving : at_max_y])
 
         dx, dy = np.diff(x), np.diff(y)
 
-        # vel = median_filter(np.unwrap(np.arctan2(dy, dx)))
-        vel = calc_angle_between_points_of_vector(np.vstack([dx, dy]).T)
-        vel[vel==np.nan] = 0
+        try:
+            dphi = calc_angle_between_points_of_vector(np.vstack([dx, dy]).T)
+        except:
+            raise ValueError
+        idphi = np.trapz(dphi)
 
-        dv = np.diff(line_smoother(vel)).reshape(len(line_smoother(vel))-1, 1)
-        idphi = np.trapz(vel)
+        key['xy'] = np.vstack([x, y])
+        key['dphi'] = dphi
+        key['idphi'] = idphi
+        key['session_uid'] = uid
+        key['experiment_name'] = experiment
 
-        #plt.figure()
-        #plt.plot(vel)
-        #plt.plot(dv)
-        #plt.plot(median_filter(np.rad2deg(np.unwrap(np.arctan2(dy, dx)))))
-        #plt.show()
+        table.insert1(key)
+
+    def zidphi_histogram(self, experiment=None, title=''):
+        if experiment is None:
+            idphi = ZidPhi.fetch('idphi')
+        else:
+            if isinstance(experiment, str):
+                idphi = (ZidPhi & "experiment_name='{}'".format(experiment)).fetch('idphi')
+            else:
+                idphi = []
+                for exp in experiment:
+                    i = (ZidPhi & "experiment_name='{}'".format(exp)).fetch('idphi')
+                    idphi.extend(i)
+
+        zidphi = stats.zscore(idphi)
+
+        above_th = [1 if z>self.zscore_th else 0 for z in zidphi]
+        perc_above_th = np.mean(above_th)*100
+
+        f, ax = plt.subplots()
+
+        ax.hist(zidphi, bins=16, color=[.4, .7, .4])
+        ax.axvline(self.zscore_th, linestyle=":", color='k')
+        ax.set(title=title+" {}% VTE".format(round(perc_above_th, 2)), xlabel='zIdPhi')
 
 
-        idphi_l.append(idphi)
-        trackings.append(np.vstack([x, y, np.insert(0, 0, vel)]).T)
+    def zidphi_tracking(self, experiment=None, title=''):
+        if experiment is None:
+            trials = ZidPhi.fetch('idphi', "xy")
+        else:
+            if isinstance(experiment, str):
+                trials = (ZidPhi & "experiment_name='{}'".format(experiment)).fetch('idphi', "xy")
+            else:
+                trials = []
+                for exp in experiment:
+                    t = (ZidPhi & "experiment_name='{}'".format(exp)).fetch('idphi', "xy")
+                    trials.extend(t)
 
-        # ax.plot(x,y, alpha=.6, label=str(round(idphi[0], 2)))
+        data = pd.DataFrame.from_dict(dict(idphi=trials[0], xy=trials[1]))
+        data['zidphi'] = stats.zscore(data['idphi'].values)
 
-f, axarr = plt.subplots(ncols = 3)
+        f, axarr = plt.subplots(ncols=2)
 
-zdphi = stats.zscore(np.array(idphi_l))
+        for i, row in data.iterrows():
+            if row['zidphi'] > self.zscore_th:
+                axn = 1
+            else:
+                axn = 0
 
-th = 1.25
-normal = [t for z,t in zip(zdphi, trackings) if z <= th]
-vte = [t for z,t in zip(zdphi, trackings) if z > th]
+            axarr[axn].plot(row['xy'].T[:, 0], row['xy'].T[:, 1], alpha=.3, linewidth=2)
 
-axarr[0].hist(zdphi, bins=20)
+        axarr[0].set(title=title + ' non VTE trials', ylabel='Y', xlabel='X')
+        axarr[1].set(title='VTE trials', ylabel='Y', xlabel='X')
 
-for i, n in enumerate(normal):
-    if i > 15: break
-    # axarr[1].scatter(n[:, 0], n[:, 1], c=n[:, 2], alpha=.5, vmin=np.min(n[:, 2]), vmax=np.max(n[:, 2]))
-    axarr[1].plot(n[:, 0], n[:, 1],alpha=.5)
+    def zidphi_videos(self, experiment=None, title='', fps=30, background='', vte=True):
+        trials = []
+        for exp in experiment:
+            t = (ZidPhi & "experiment_name='{}'".format(exp)).fetch('idphi', "trial_id")
+            trials.extend(t)
 
-for i, v in enumerate(vte):
-    if i > 25: break
-    # axarr[2].scatter(v[:, 0], v[:, 1], c=v[:, 2], alpha=.5)
-    axarr[2].plot(v[:, 0], v[:, 1], alpha=.5)
+        data = pd.DataFrame.from_dict(dict(idphi=trials[0], trial_id=trials[1]))
+        data['zidphi'] = stats.zscore(data['idphi'].values)
 
-plt.show()
+        data['rec_uid'] = [(AllTrials & "trial_id={}".format(i)).fetch("recording_uid")[0] for i in data['trial_id']]
+        data['tracking'] = [(AllTrials & "trial_id={}".format(i)).fetch("tracking_data")[0] for i in data['trial_id']]
+
+        data['origin'] = ['' for i in np.arange(len(data['rec_uid']))]
+        data['escape'] = ['' for i in np.arange(len(data['rec_uid']))]
+        data['stim_frame'] = ['' for i in np.arange(len(data['rec_uid']))]
+
+        if vte:
+            data = data.loc[data['zidphi'] > self.zscore_th]
+        else:
+            data = data.loc[data['zidphi'] <= self.zscore_th]
+
+        self.video_maker.data = data
+        self.video_maker.make_video(videoname = title, experimentname=background, fps=fps, 
+                                    savefolder=self.video_maker.save_fld_trials, trial_mode=False)
+
+
+    def parallel_videos(self):
+        a1 = (['PathInt2', 'PathInt2 - L'], "Asymmetric Maze - NOT VTE", 40, 'PathInt2', False)
+        a2 = (['PathInt2', 'PathInt2 - L'], "Asymmetric Maze - VTE", 40, 'PathInt2', True)
+        a3 = (['Square Maze', 'TwoAndahalf Maze'], "Symmetric Maze - NOT VTE", 40, 'Square Maze', False)
+        a4 = (['Square Maze', 'TwoAndahalf Maze'], "Symmetric Maze - VTE", 40, 'Square Maze', True)
+
+        a = [a1, a2, a3, a4]
+
+        processes = [mp.Process(target=self.zidphi_videos, args=arg) for arg in a]
+
+        for p in processes:
+            p.start()
+
+        for p in processes:
+            p.join()
+
+    def parallel_videos2(self):
+        a1 = (['Model based'], "MB - NOT VTE", 40, 'Model Based', False)
+        a2 = (['Model Based', 'PathInt2 - L'], "MB - VTE", 40, 'Model Based', True)
+
+
+        a = [a1, a2]
+
+        processes = [mp.Process(target=self.zidphi_videos, args=arg) for arg in a]
+
+        for p in processes:
+            p.start()
+
+        for p in processes:
+            p.join()
+
+
+if __name__ == "__main__":
+    vte = VTE()
+
+    # vte.drop()
+    vte.populate()
+
+
+    # vte.zidphi_histogram(experiment=['PathInt2', 'PathInt2 - L'], title="Asymmetric Maze")
+    # vte.zidphi_histogram(experiment=['Square Maze', 'TwoAndahalf Maze'], title='Symmetric Maze')
+    vte.zidphi_tracking(experiment=['PathInt2', 'PathInt2 - L'], title="Asymmetric Maze")
+    # vte.zidphi_tracking(experiment=['Square Maze', 'TwoAndahalf Maze'], title='Symmetric Maze')
+    # vte.parallel_videos()
+
+    # vte.zidphi_histogram(experiment=['Model Based'], title="Model Based")
+    # vte.zidphi_tracking(experiment=['Model Based'], title="Model Based")
+    # vte.parallel_videos2()
+
+
+
+    plt.show()

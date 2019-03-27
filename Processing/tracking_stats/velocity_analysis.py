@@ -45,7 +45,7 @@ def get_expl_speeds():
     exp = (AllExplorations).fetch("experiment_name", "tracking_data", "session_uid") 
     d = dict(
         experiment = exp[0],
-        speed = [t[:, 2] for t in exp[1]],
+        speed = [t[:, 2, 0] for t in exp[1]],
         uid  = exp[2]
     )
     explorations = pd.DataFrame.from_dict(d)
@@ -62,7 +62,7 @@ def get_expl_speeds():
         fps = get_videometadata_given_recuid(rec_for_that_sess)
 
         exploration_speeds[experiment] =  correct_speed(speed)
-        fpss[experiment] = fps[0]
+        fpss[experiment] = fps
     exploration_speeds['all'] = correct_speed(np.hstack(explorations['speed'].values))
     fpss['all'] = 30
 

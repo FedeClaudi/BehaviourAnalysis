@@ -106,7 +106,7 @@ class analyse_all_trals:
                 rec_tracking = recs_trackins[stim['recording_uid']]
 
                 # Get video FPS
-                fps = get_videometadata_given_recuid(stim['recording_uid'])[0]
+                fps = get_videometadata_given_recuid(stim['recording_uid'])
                 if fps == 0: fps = 40  # ? dabsigebrlgb`kj
 
                 # Get frame at which stim start
@@ -199,7 +199,7 @@ class analyse_all_trals:
                     #     is_escape = 'false'
 
                     trial_speed = correct_speed(trial_tracking['body'][:, 2])
-                    if np.mean(trial_speed)>self.escape_speed_thresholds[exp]:
+                    if np.mean(trial_speed)>self.escape_speed_thresholds[exp] and check_got_at_shelt:
                         is_escape = "true"
                     else:
                         is_escape = "false"

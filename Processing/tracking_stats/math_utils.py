@@ -9,6 +9,32 @@ import math
 import matplotlib.pyplot as plt
 from Utilities.file_io.files_load_save import load_yaml
 from scipy.signal import medfilt as median_filter
+from scipy.interpolate import interp1d
+
+
+
+def fill_nans_interpolate(y, pkind='linear'):
+    """
+    Interpolates data to fill nan values
+
+    Parameters:
+        y : nd array 
+            source data with np.NaN values
+
+    Returns:
+        nd array 
+            resulting data with interpolated values instead of nans
+    """
+    aindexes = np.arange(y.shape[0])
+    agood_indexes, = np.where(np.isfinite(y))
+    f = interp1d(agood_indexes
+            , y[agood_indexes]
+            , bounds_error=False
+            , copy=False
+            , fill_value="extrapolate"
+            , kind=pkind)
+    return f(aindexes)
+
 
 
 def calc_prob_item_in_list(ls, it):

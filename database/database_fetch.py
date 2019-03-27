@@ -11,11 +11,13 @@ import warnings
 
 
 def get_recordings_given_sessuid(uid, recordings = None, as_dict=True):
+    from database.NewTablesDefinitions import Recordings
     if recordings is not None:
         return recordings.loc[recordings['uid'] == uid]
     else: return (Recordings & "uid='{}'".format(uid)).fetch(as_dict=as_dict)
 
 def get_stimuli_given_sessuid(uid, stimuli=None, as_dict=True):
+    from database.NewTablesDefinitions import Recordings, BehaviourStimuli, MantisStimuli
     if stimuli is not None:
         if 'stim_duration' in stimuli.columns:
             return stimuli.loc[(stimuli['uid']==uid)&(stimuli['stim_duration'] != -1)]
@@ -35,6 +37,7 @@ def get_stimuli_given_sessuid(uid, stimuli=None, as_dict=True):
             return (MantisStimuli & "uid='{}'".format(uid) & "duration != 1").fetch(as_dict=as_dict)
 
 def get_stimuli_give_recuid(rec_uid):
+    from database.NewTablesDefinitions import Recordings, BehaviourStimuli, MantisStimuli
     software = (Recordings & "recording_uid='{}'".format(rec_uid)).fetch("software")
     if software == "behaviour":
         return (BehaviourStimuli & "recording_uid='{}'".format(rec_uid) & "stim_duration != 1").fetch(as_dict=True)
@@ -42,10 +45,12 @@ def get_stimuli_give_recuid(rec_uid):
         return (MantisStimuli & "recording_uid='{}'".format(rec_uid) & "duration > -1").fetch(as_dict=True)
 
 def get_tracking_given_bp(bp):
+    from database.NewTablesDefinitions import TrackingData
     fetched = pd.DataFrame((TrackingData.BodyPartData & 'bpname = "{}"'.format(bp)).fetch())
     return fetched.loc[fetched['bpname'] == bp]
 
 def get_tracking_given_recuid(ruid, tracking=None, just_body=False, bp=None, just_trackin_data=True):
+    from database.NewTablesDefinitions import TrackingData, TrackingDataJustBody
     if tracking is not None:
         return tracking.loc[tracking['recording_uid']==ruid]
     else:
@@ -61,11 +66,9 @@ def get_tracking_given_recuid(ruid, tracking=None, just_body=False, bp=None, jus
                 return (TrackingData.BodyPartData & "recording_uid='{}'".format(ruid) & "camera_name='overview'" & "bpname='{}'".format(bp)).fetch('tracking_data')
 
 def get_tracking_given_recuid_and_bp(recuid, bp):
+    from database.NewTablesDefinitions import TrackingData
     fetched = pd.DataFrame((TrackingData.BodyPartData & 'bpname = "{}"'.format(bp) & 'recording_uid = "{}"'.format(recuid)).fetch())
     return fetched
-
-# def get_videometadata_given_recuid(ruid, videometadata):
-#     return videometadata.loc[videometadata['recording_uid'] == ruid]
 
 def get_videometadata_given_sessuid(uid, videometadata):
     return videometadata.loc[videometadata['uid'] == uid]
@@ -76,6 +79,7 @@ def get_sessuid_given_recuid(recuid, sessions):
     return sessions.loc[sessions['session_name']==session_name], session_name
 
 def get_recs_given_sessuid(uid, recordings=None):
+    from database.NewTablesDefinitions import Recordings
     if recordings is not None:
         return recordings.loc[recordings['uid'] == int(uid)]
     else:
@@ -83,21 +87,27 @@ def get_recs_given_sessuid(uid, recordings=None):
         return recs
 
 def get_sessuid_given_sessname(name):
+    from database.NewTablesDefinitions import Sessions
     return (Sessions & "session_name = '{}'".format(name)).fetch('uid')
 
 def get_sessname_given_sessuid(uid):
+    from database.NewTablesDefinitions import Sessions
+
     return (Sessions & "uid = '{}'".format(uid)).fetch('session_name')
 
 def get_videometadata_given_recuid(rec, just_fps=True):
+    from database.NewTablesDefinitions import VideoFiles
     if not just_fps:
         return (VideoFiles.Metadata & "recording_uid='{}'".format(rec)).fetch()
     else:
         return (VideoFiles.Metadata & "recording_uid='{}'".format(rec)).fetch("fps")[0]
 
 def get_exp_given_sessname(name):
+    from database.NewTablesDefinitions import Sessions
     return (Sessions & "session_name='{}'".format(name)).fetch("experiment_name")
 
 def get_video_path_give_recuid(recuid):
+    from database.NewTablesDefinitions import VideoFiles
     paths = (VideoFiles & "recording_uid='{}'".format(recuid)).fetch(as_dict="True")
 
     if len(paths) > 1:
@@ -114,6 +124,7 @@ def get_video_path_give_recuid(recuid):
 
 
 def get_trials_by_exp(experiment, escape, args):
+    from database.NewTablesDefinitions import AllTrials
     """
         args is a list of attributes to be fetched
     """
@@ -122,6 +133,7 @@ def get_trials_by_exp(experiment, escape, args):
                             .fetch(*args)
 
 def get_trials_by_exp_and_session(experiment, uid, escape, args):
+    from database.NewTablesDefinitions import AllTrials
     if escape is not None:
         return (AllTrials & "experiment_name='{}'".format(experiment) & "is_escape='{}'".format(escape)\
                 & "session_uid={}".format(uid)).fetch(*args)
@@ -129,6 +141,7 @@ def get_trials_by_exp_and_session(experiment, uid, escape, args):
         return (AllTrials & "experiment_name='{}'".format(experiment) & "session_uid={}".format(uid)).fetch(*args)
 
 def get_sessuids_given_experiment(experiment):
+    from database.NewTablesDefinitions import Sessions
     return (Sessions & "experiment_name='{}'".format(experiment)).fetch("uid")
 
 
