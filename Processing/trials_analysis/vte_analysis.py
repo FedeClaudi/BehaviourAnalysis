@@ -16,6 +16,7 @@ from sklearn.preprocessing import normalize
 from scipy.integrate import cumtrapz as integral
 import seaborn as sns
 from tqdm import tqdm
+import random
 
 import multiprocessing as mp
 
@@ -229,12 +230,50 @@ class VTE:
 
         for p in processes:
             p.join()
+        
 
 
+    """
+        =======================================================================================================================================================
+            STATS FUNCTIONS    
+        =======================================================================================================================================================
+    """
+
+    def pR_byVTE(self, experiment=None, title=None):
+        trials = []
+        for exp in experiment:
+            t = (ZidPhi & "experiment_name='{}'".format(exp)).fetch('idphi', "escape_arm")
+            trials.extend(t)
+
+        data = pd.DataFrame.from_dict(dict(idphi=trials[0], escape_arm=trials[1]))
+        data['zidphi'] = stats.zscore(data['idphi'].values)
+
+        overall_pR = calc_prob_item_in_list(list(data['escape_arm'].values), 'Right_Medium')
+
+        non_vte_pR = calc_prob_item_in_list(list(data.loc[data['zidphi'] < self.zscore_th]['escape_arm'].values), 'Right_Medium')
+        vte_pR = calc_prob_item_in_list(list(data.loc[data['zidphi'] >= self.zscore_th]['escape_arm'].values), 'Right_Medium')
+
+        print("""
+        Experiment {}
+                overall pR: {}
+                VTE pR:     {}
+                non VTE pR: {}
+        
+        """.format(title, round(overall_pR, 2), round(vte_pR, 2), round(non_vte_pR, 2)))
+
+        n_vte_trials = len(list(data.loc[data['zidphi'] >= self.zscore_th]['escape_arm'].values))
+        random_pR = []
+        for i in np.arange(100000):
+            random_pR.append(calc_prob_item_in_list(random.choices(list(data['escape_arm'].values), k=n_vte_trials), 'Right_Medium'))
 
 
-
-
+        f, ax = plt.subplots()
+        ax.hist(random_pR, bins=30, color=[.4, .7, .4], density=True)
+        ax.axvline(overall_pR, color='k', linestyle=':', label='Overall p(R)', linewidth=3)
+        ax.axvline(vte_pR, color='r', linestyle=':', label='VTE p(R)', linewidth=3)
+        ax.axvline(non_vte_pR, color='g', linestyle=':', label='nVTE p(R)', linewidth=3)
+        ax.set(title=title)
+        ax.legend()
 
 
 """
@@ -249,17 +288,20 @@ if __name__ == "__main__":
     # vte.drop()
     # vte.populate()
 
+    vte.pR_byVTE(experiment=['PathInt2', 'PathInt2-L'], title="Asymmetric Maze")
+    vte.pR_byVTE(experiment=['Square Maze', 'TwoAndahalf Maze'], title='Symmetric Maze')
+    vte.pR_byVTE(experiment=[ 'PathInt2-D'], title="Asymmetric Maze Dark")
 
-    vte.zidphi_histogram(experiment=['PathInt2', 'PathInt2 - L'], title="Asymmetric Maze")
-    vte.zidphi_histogram(experiment=['Square Maze', 'TwoAndahalf Maze'], title='Symmetric Maze')
-    vte.zidphi_histogram(experiment=['Model Based'], title="Model Based")
-    vte.zidphi_histogram(experiment=['FourArms Maze'], title="4 arm")
+    # vte.zidphi_histogram(experiment=['PathInt2', 'PathInt2 - L'], title="Asymmetric Maze")
+    # vte.zidphi_histogram(experiment=['Square Maze', 'TwoAndahalf Maze'], title='Symmetric Maze')
+    # vte.zidphi_histogram(experiment=['Model Based'], title="Model Based")
+    # vte.zidphi_histogram(experiment=['FourArms Maze'], title="4 arm")
 
 
-    vte.zidphi_tracking(experiment=['PathInt2', 'PathInt2 - L'], title="Asymmetric Maze")
-    vte.zidphi_tracking(experiment=['Square Maze', 'TwoAndahalf Maze'], title='Symmetric Maze')
-    vte.zidphi_tracking(experiment=['Model Based'], title="Model Based")
-    vte.zidphi_tracking(experiment=['FourArms Maze'], title="4 arm")
+    # vte.zidphi_tracking(experiment=['PathInt2', 'PathInt2 - L'], title="Asymmetric Maze")
+    # vte.zidphi_tracking(experiment=['Square Maze', 'TwoAndahalf Maze'], title='Symmetric Maze')
+    # vte.zidphi_tracking(experiment=['Model Based'], title="Model Based")
+    # vte.zidphi_tracking(experiment=['FourArms Maze'], title="4 arm")
 
 
     # vte.parallel_videos()
