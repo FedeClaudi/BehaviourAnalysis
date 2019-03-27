@@ -31,7 +31,8 @@ from database.NewTablesDefinitions import *
 from Processing.tracking_stats.math_utils import *
 from Utilities.file_io.files_load_save import load_yaml
 from Processing.plot.tracking_onmaze_videomaker import VideoMaker
-
+from Processing.trials_analysis.tc_plotting import plot_two_dists_kde
+from Processing.modelling.bayesian.hierarchical_bayes_v2 import Modeller as Bayes
 from database.database_fetch import *
 
 
@@ -40,6 +41,7 @@ class VTE:
     def __init__(self):
         self.zscore_th = .5
         self.video_maker = VideoMaker()
+        self.bayes = Bayes()
 
     """
         =======================================================================================================================================================
@@ -248,10 +250,13 @@ class VTE:
         data = pd.DataFrame.from_dict(dict(idphi=trials[0], escape_arm=trials[1]))
         data['zidphi'] = stats.zscore(data['idphi'].values)
 
-        overall_pR = calc_prob_item_in_list(list(data['escape_arm'].values), target)
+        overall_escapes = [1 if e == target else 0 for e in list(data['escape_arm'].values)]
+        vte_escapes = [1 if e == target else 0 for e in list(dataloc[data['zidphi'] >= self.zscore_th]['escape_arm'].values)]
+        non_vte_escapes = [1 if e == target else 0 for e in list(dataloc[data['zidphi'] < self.zscore_th]['escape_arm'].values)]
 
-        non_vte_pR = calc_prob_item_in_list(list(data.loc[data['zidphi'] < self.zscore_th]['escape_arm'].values), target)
-        vte_pR = calc_prob_item_in_list(list(data.loc[data['zidphi'] >= self.zscore_th]['escape_arm'].values), target)
+        overall_pR = np.mean(overall_escapes)
+        non_vte_pR = np.mean(non_vte_escapes)
+        vte_pR = np.mean(vte_escapes)
 
         print("""
         Experiment {}
@@ -261,19 +266,30 @@ class VTE:
         
         """.format(title, round(overall_pR, 2), round(vte_pR, 2), round(non_vte_pR, 2)))
 
+        # boot strap
         n_vte_trials = len(list(data.loc[data['zidphi'] >= self.zscore_th]['escape_arm'].values))
         random_pR = []
         for i in np.arange(100000):
-            random_pR.append(calc_prob_item_in_list(random.choices(list(data['escape_arm'].values), k=n_vte_trials), target))
+            random_pR.append(np.mean(ranom.choices(overal_escapes, k=n_vte_trials)))
 
 
-        f, ax = plt.subplots()
-        ax.hist(random_pR, bins=30, color=[.4, .7, .4], density=True)
-        ax.axvline(overall_pR, color='k', linestyle=':', label='Overall p(R)', linewidth=3)
-        ax.axvline(vte_pR, color='r', linestyle=':', label='VTE p(R)', linewidth=3)
-        ax.axvline(non_vte_pR, color='g', linestyle=':', label='nVTE p(R)', linewidth=3)
-        ax.set(title=title)
-        ax.legend()
+        # Plot with bootstrap
+        f, axarr = plt.subplots(ncols=2)
+        axarr[0].hist(random_pR, bins=30, color=[.4, .7, .4], density=True)
+        axarr[0].axvline(overall_pR, color='k', linestyle=':', label='Overall p(R)', linewidth=3)
+        axarr[0].axvline(vte_pR, color='r', linestyle=':', label='VTE p(R)', linewidth=3)
+        axarr[0].axvline(non_vte_pR, color='g', linestyle=':', label='nVTE p(R)', linewidth=3)
+        axarr[0].set(title=title)
+        axarr[0].legend()
+
+
+        # plot with bayes
+        vte_vs_non_vte, _, _, _, _ = self.bayes.model_two_distributions(vte_escapes, non_vte_escapes)
+        vte_vs_all, _, _, _, _ = self.bayes.model_two_distributions(vte_escapes, overall_escapes)
+        plot_two_dists_kde(vte_vs_all['p_d2'], vte_vs_all['p_d1'], vte_vs_non_vte['p_d2'], "bayesian posteriors",   l1="VTE", l2="not VTE", ax=axarr[1])
+
+
+
 
 
 """
