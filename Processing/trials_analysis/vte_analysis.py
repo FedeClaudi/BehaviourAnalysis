@@ -114,21 +114,21 @@ class VTE:
         =======================================================================================================================================================
     """
 
+    def get_dataframe(self, experiment):
+        trials = []
+        for exp in experiment:
+            t = (ZidPhi & "experiment_name='{}'".format(exp)).fetch('idphi', "xy", "escape_arm", "trial_id")
+            trials.extend(t)
+
+        data = pd.DataFrame.from_dict(dict(idphi=trials[0], xy=trials[1], escape_arm=t[2], trial_id=t[3]))
+        data['zidphi'] = stats.zscore(data['idphi'].values)
+        return data
+
 
 
     def zidphi_histogram(self, experiment=None, title=''):
-        if experiment is None:
-            idphi = ZidPhi.fetch('idphi')
-        else:
-            if isinstance(experiment, str):
-                idphi = (ZidPhi & "experiment_name='{}'".format(experiment)).fetch('idphi')
-            else:
-                idphi = []
-                for exp in experiment:
-                    i = (ZidPhi & "experiment_name='{}'".format(exp)).fetch('idphi')
-                    idphi.extend(i)
-
-        zidphi = stats.zscore(idphi)
+        data = self.get_dataframe(experiment)
+        zidphi = stats.zscore(data['idphi'])
 
         above_th = [1 if z>self.zscore_th else 0 for z in zidphi]
         perc_above_th = np.mean(above_th)*100
@@ -141,22 +141,9 @@ class VTE:
 
 
     def zidphi_tracking(self, experiment=None, title=''):
-        if experiment is None:
-            trials = ZidPhi.fetch('idphi', "xy")
-        else:
-            if isinstance(experiment, str):
-                trials = (ZidPhi & "experiment_name='{}'".format(experiment)).fetch('idphi', "xy")
-            else:
-                trials = []
-                for exp in experiment:
-                    t = (ZidPhi & "experiment_name='{}'".format(exp)).fetch('idphi', "xy")
-                    trials.extend(t)
-
-        data = pd.DataFrame.from_dict(dict(idphi=trials[0], xy=trials[1]))
-        data['zidphi'] = stats.zscore(data['idphi'].values)
+        data = self.get_dataframe(experiment)
 
         f, axarr = plt.subplots(ncols=2)
-
         for i, row in data.iterrows():
             if row['zidphi'] > self.zscore_th:
                 axn = 1
@@ -165,6 +152,22 @@ class VTE:
 
             axarr[axn].plot(row['xy'].T[:, 0], row['xy'].T[:, 1], alpha=.3, linewidth=2)
 
+        axarr[0].set(title=title + ' non VTE trials', ylabel='Y', xlabel='X')
+        axarr[1].set(title='VTE trials', ylabel='Y', xlabel='X')
+
+    def vte_position(self, experiment=None, title=''):
+        data = self.get_dataframe(experiment)
+
+        f, axarr = plt.subplots(ncols=2)
+        for i, row in data.iterrows():
+            if row['zidphi'] > self.zscore_th:
+                axn = 1
+                c = 'r'
+            else:
+                axn = 0
+                c = 'b'
+            
+            axarr.scatter(ow['xy'].T[0, 0], row['xy'].T[0, 1], c=c, alpha=.4, s=40)
         axarr[0].set(title=title + ' non VTE trials', ylabel='Y', xlabel='X')
         axarr[1].set(title='VTE trials', ylabel='Y', xlabel='X')
 
@@ -178,13 +181,7 @@ class VTE:
 
 
     def zidphi_videos(self, experiment=None, title='', fps=30, background='', vte=True):
-        trials = []
-        for exp in experiment:
-            t = (ZidPhi & "experiment_name='{}'".format(exp)).fetch('idphi', "trial_id")
-            trials.extend(t)
-
-        data = pd.DataFrame.from_dict(dict(idphi=trials[0], trial_id=trials[1]))
-        data['zidphi'] = stats.zscore(data['idphi'].values)
+        data = self.get_dataframe(experiment)
 
         data['rec_uid'] = [(AllTrials & "trial_id={}".format(i)).fetch("recording_uid")[0] for i in data['trial_id']]
         data['tracking'] = [(AllTrials & "trial_id={}".format(i)).fetch("tracking_data")[0] for i in data['trial_id']]
@@ -202,38 +199,34 @@ class VTE:
         self.video_maker.make_video(videoname = title, experimentname=background, fps=fps, 
                                     savefolder=self.video_maker.save_fld_trials, trial_mode=False)
 
+
+    @staticmethod
+    def make_parall_videos(arguments):
+        processes = [mp.Process(target=self.zidphi_videos, args=arg) for arg in arguments]
+
+        for p in processes:
+            p.start()
+
+        for p in processes:
+            p.join()
+
+
     def parallel_videos(self):
         a1 = (['PathInt2', 'PathInt2 - L'], "Asymmetric Maze - NOT VTE", 40, 'PathInt2', False)
         a2 = (['PathInt2', 'PathInt2 - L'], "Asymmetric Maze - VTE", 40, 'PathInt2', True)
         a3 = (['Square Maze', 'TwoAndahalf Maze'], "Symmetric Maze - NOT VTE", 40, 'Square Maze', False)
         a4 = (['Square Maze', 'TwoAndahalf Maze'], "Symmetric Maze - VTE", 40, 'Square Maze', True)
+        self.make_parall_videos([a1, a2, a3, a4])
 
-        a = [a1, a2, a3, a4]
-
-        processes = [mp.Process(target=self.zidphi_videos, args=arg) for arg in a]
-
-        for p in processes:
-            p.start()
-
-        for p in processes:
-            p.join()
+        
 
     def parallel_videos2(self):
         a1 = (['Model based'], "MB - NOT VTE", 40, 'Model Based', False)
         a2 = (['Model Based', 'PathInt2 - L'], "MB - VTE", 40, 'Model Based', True)
+        self.make_parall_videos([a1, a2])
 
 
-        a = [a1, a2]
-
-        processes = [mp.Process(target=self.zidphi_videos, args=arg) for arg in a]
-
-        for p in processes:
-            p.start()
-
-        for p in processes:
-            p.join()
-        
-
+    
 
     """
         =======================================================================================================================================================
@@ -242,14 +235,7 @@ class VTE:
     """
 
     def pR_byVTE(self, experiment=None, title=None, target="Right_Medium"):
-        trials = []
-        for exp in experiment:
-            t = (ZidPhi & "experiment_name='{}'".format(exp)).fetch('idphi', "escape_arm")
-            trials.extend(t)
-
-        data = pd.DataFrame.from_dict(dict(idphi=trials[0], escape_arm=trials[1]))
-        data['zidphi'] = stats.zscore(data['idphi'].values)
-
+        data = self.get_dataframe(experiment)
         overall_escapes = [1 if e == target else 0 for e in list(data['escape_arm'].values)]
         vte_escapes = [1 if e == target else 0 for e in list(data.loc[data['zidphi'] >= self.zscore_th]['escape_arm'].values)]
         non_vte_escapes = [1 if e == target else 0 for e in list(data.loc[data['zidphi'] < self.zscore_th]['escape_arm'].values)]
@@ -304,10 +290,13 @@ if __name__ == "__main__":
     # vte.drop()
     # vte.populate()
 
-    vte.pR_byVTE(experiment=['PathInt2', 'PathInt2-L'], title="Asymmetric Maze")
-    vte.pR_byVTE(experiment=['Square Maze', 'TwoAndahalf Maze'], title='Symmetric Maze')
-    vte.pR_byVTE(experiment=[ 'PathInt2-D'], title="Asymmetric Maze Dark")
-    vte.pR_byVTE(experiment=[ 'PathInt'], title="3 Arms", target="Centre")
+    vte.vte_position(experiment=['PathInt2', 'PathInt2-L'], title="Asymmetric Maze - position")
+    vte.vte_position(experiment=['Square Maze', 'TwoAndahalf Maze'], title='Symmetric Maze - position')
+
+    # vte.pR_byVTE(experiment=['PathInt2', 'PathInt2-L'], title="Asymmetric Maze")
+    # vte.pR_byVTE(experiment=['Square Maze', 'TwoAndahalf Maze'], title='Symmetric Maze')
+    # vte.pR_byVTE(experiment=[ 'PathInt2-D'], title="Asymmetric Maze Dark")
+    # vte.pR_byVTE(experiment=[ 'PathInt'], title="3 Arms", target="Centre")
 
     # vte.zidphi_histogram(experiment=['PathInt2', 'PathInt2 - L'], title="Asymmetric Maze")
     # vte.zidphi_histogram(experiment=['Square Maze', 'TwoAndahalf Maze'], title='Symmetric Maze')
