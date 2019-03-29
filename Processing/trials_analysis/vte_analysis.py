@@ -21,11 +21,6 @@ import random
 import multiprocessing as mp
 
 
-mpl.rcParams['text.color'] = 'k'
-mpl.rcParams['xtick.color'] = 'k'
-mpl.rcParams['ytick.color'] = 'k'
-mpl.rcParams['axes.labelcolor'] = 'k'
-
 from database.NewTablesDefinitions import *
 
 from Processing.tracking_stats.math_utils import *
@@ -39,7 +34,7 @@ from database.database_fetch import *
 
 class VTE:
     def __init__(self):
-        self.zscore_th = .5
+        self.zscore_th = 0.5
         self.video_maker = VideoMaker()
         self.bayes = Bayes()
 
@@ -56,14 +51,15 @@ class VTE:
     def populate(self):
         zdiphi = ZidPhi()
         zdiphi.populate()
+        sys.exit()
 
     @staticmethod
-    def populate_vte_table(table, key, max_y = 450, displacement_th = 20, min_length=20):
+    def populate_vte_table(table, key, max_y = 450, displacement_th = 20, min_length=10):
 
         from database.NewTablesDefinitions import AllTrials
 
         # get tracking from corresponding trial
-        trials = (AllTrials & "trial_id={}".format(key['trial_id']) & "is_escape='true'").fetch("tracking_data","session_uid", "experiment_name", "escape_arm")
+        trials = (AllTrials & "trial_id={}".format(key['trial_id']) & "is_escape='true'" ).fetch("tracking_data","session_uid", "experiment_name", "escape_arm", "origin_arm")
         try:
             trials[0][0]
         except:
@@ -72,40 +68,46 @@ class VTE:
 
         print("processing trial id: ", key['trial_id'])
 
-        tracking, uid, experiment, escape_arm = trials[0][0], trials[1][0], trials[2][0], trials[3][0]
-        # get xy for snout and platform at each frame
-        x, y, platf = median_filter(tracking[:, 0, 1]), median_filter(tracking[:, 1, 1]),  median_filter(tracking[:, -1, 0])
+        tracking, uid, experiment, escape_arm, origin_arm = trials[0][0], trials[1][0], trials[2][0], trials[3][0],  trials[4][0]
+        # get xy for snout and platform at each fram - interpolate to remove nan
+        x, y, platf = tracking[:, 0, 1], tracking[:, 1, 1],  tracking[:, -1, 0]
+        bx, by = tracking[:, 0, 0], tracking[:, 1, 0]
 
         try:
-            # Select the times between when the mice leave the catwalk and when they leave the threat platform
-            # first_above_catwalk = np.where(y > 250)[0][0]
-            first_above_catwalk = 0
+            # Select the times before when they leave the threat platform
             first_out_threat = np.where(platf != 1)[0][0]
+
+            # Selct the time when the mouse moved up for N pixels
+            # moved_up = np.where(y>= np.nanmean(y[0:10]) + displacement_th)[0][0]
         except:
             return
+        x = x[0:first_out_threat]
+        y = y[0:first_out_threat]
 
-        n_steps = first_out_threat - first_above_catwalk
-        if n_steps < min_length: return  # the trial started too close to max Y
-
-        # using interpolation to remove nan from array
-        x, y = fill_nans_interpolate(x[first_above_catwalk : first_out_threat]), fill_nans_interpolate(y[first_above_catwalk : first_out_threat])
+        # Calc iDiPhi
+        fps = get_videometadata_given_recuid(get_recs_given_sessuid(uid)['recording_uid'][0])
+        if fps == 0: fps = 40
 
         dx, dy = np.diff(x), np.diff(y)
+        dphi = np.rad2deg(np.diff([math.atan2(xx,yy) for xx,yy in zip(dx, dy)]))
+        idphi = np.trapz(np.abs(dphi), dx=1000/fps)
 
+        # Calculate speed of movement
         try:
-            dphi = calc_angle_between_points_of_vector(np.vstack([dx, dy]).T)
+            s = calc_distance_between_points_in_a_vector_2d(np.array([x,y]).T) * fps
         except:
-            raise ValueError
-        idphi = np.trapz(dphi)
+            pass
+        else:
 
-        key['xy'] = np.vstack([x, y])
-        key['dphi'] = dphi
-        key['idphi'] = idphi
-        key['session_uid'] = uid
-        key['experiment_name'] = experiment
-        key['escape_arm'] = escape_arm
+            key['xy'] = np.vstack([x, y, s])
+            key['dphi'] = dphi
+            key['idphi'] = idphi
+            key['session_uid'] = uid
+            key['experiment_name'] = experiment
+            key['escape_arm'] = escape_arm
+            key['origin_arm'] = origin_arm
 
-        table.insert1(key)
+            table.insert1(key)
 
 
     """
@@ -115,35 +117,32 @@ class VTE:
     """
 
     def get_dataframe(self, experiment):
-        trials = []
-        for exp in experiment:
-            t = (ZidPhi & "experiment_name='{}'".format(exp)).fetch('idphi', "xy", "escape_arm", "trial_id")
-            trials.extend(t)
-
-        data = pd.DataFrame.from_dict(dict(idphi=trials[0], xy=trials[1], escape_arm=t[2], trial_id=t[3]))
+        data = pd.DataFrame(ZidPhi.fetch())
         data['zidphi'] = stats.zscore(data['idphi'].values)
+        if experiment is not None:
+            data = data[data['experiment_name'].isin(experiment)]
         return data
 
 
 
-    def zidphi_histogram(self, experiment=None, title=''):
+    def zidphi_histogram(self, experiment=None, title='', ax=None):
         data = self.get_dataframe(experiment)
         zidphi = stats.zscore(data['idphi'])
 
         above_th = [1 if z>self.zscore_th else 0 for z in zidphi]
         perc_above_th = np.mean(above_th)*100
 
-        f, ax = plt.subplots()
-
         ax.hist(zidphi, bins=16, color=[.4, .7, .4])
-        ax.axvline(self.zscore_th, linestyle=":", color='k')
+        ax.axvline(self.zscore_th, linestyle="--", color='k', linewidth=2)
+        ax.axvline(np.percentile(zidphi, 5), linestyle=":", color='k')
+        ax.axvline(np.percentile(zidphi, 95), linestyle=":", color='k')
+
         ax.set(title=title+" {}% VTE".format(round(perc_above_th, 2)), xlabel='zIdPhi')
 
 
-    def zidphi_tracking(self, experiment=None, title=''):
+    def zidphi_tracking(self, experiment=None, title='', axarr=None):
         data = self.get_dataframe(experiment)
 
-        f, axarr = plt.subplots(ncols=2)
         for i, row in data.iterrows():
             if row['zidphi'] > self.zscore_th:
                 axn = 1
@@ -155,22 +154,85 @@ class VTE:
         axarr[0].set(title=title + ' non VTE trials', ylabel='Y', xlabel='X')
         axarr[1].set(title='VTE trials', ylabel='Y', xlabel='X')
 
-    def vte_position(self, experiment=None, title=''):
+
+    def zidphi_tracking_examples(self, experiment=None, title='', axarr=None):
         data = self.get_dataframe(experiment)
 
-        f, axarr = plt.subplots(ncols=2)
+        low = np.percentile(data['zidphi'].values,5)
+        high = np.percentile(data['zidphi'].values, 95)
+
+        for i, row in data.iterrows():
+            if row['zidphi'] < low:
+                axn = 0
+            elif row['zidphi'] > high:
+                axn = 1
+            else:
+                continue
+
+            axarr[axn].plot(row['xy'].T[:, 0], row['xy'].T[:, 1], alpha=.3, linewidth=2)
+
+        axarr[0].set(title=' low zidphi', ylabel='Y', xlabel='X')
+        axarr[1].set(title='high zidphi', ylabel='Y', xlabel='X')
+
+
+    def vte_position(self, experiment=None, title='', background=''):
+        data = self.get_dataframe(experiment)
+
+        template = get_maze_template(background)
+
+        f, ax = plt.subplots()
+        ax.imshow(template)
         for i, row in data.iterrows():
             if row['zidphi'] > self.zscore_th:
                 axn = 1
                 c = 'r'
             else:
                 axn = 0
-                c = 'b'
+                c = 'g'
             
-            axarr.scatter(ow['xy'].T[0, 0], row['xy'].T[0, 1], c=c, alpha=.4, s=40)
-        axarr[0].set(title=title + ' non VTE trials', ylabel='Y', xlabel='X')
-        axarr[1].set(title='VTE trials', ylabel='Y', xlabel='X')
+            ax.scatter(row['xy'].T[0, 0], row['xy'].T[0, 1], c=c, alpha=.6, s=80)
+        ax.set(title=title + ' non VTE trials', ylabel='Y', xlabel='X', xlim=[400, 600], ylim=[0, 400])
 
+
+    def vte_speed(self, experiment=None, title='', background='', ax=None):
+        data = self.get_dataframe(experiment)
+        data['tracking'] = [(AllTrials & "trial_id={}".format(i)).fetch("tracking_data")[0] for i in data['trial_id']]
+        data['recording_uid'] = [(AllTrials & "trial_id={}".format(i)).fetch("recording_uid")[0] for i in data['trial_id']]
+
+        vte_speed, n_vte_speed = [], []
+     
+        for i, row in data.iterrows():
+            # Take the mean speed from when they leave the arm to when they get to the shetler
+            fps = get_videometadata_given_recuid(row['recording_uid'])
+
+            whet_out_of_t = np.where(row['tracking'][:, -1, 0] != 1)[0][0]
+            mean_speed = np.nanmean(row['tracking'][whet_out_of_t:, 2, 0] * fps)
+
+            if row['zidphi'] > self.zscore_th:
+                x = np.random.normal(0, .05, 1)
+                c = 'r'
+                vte_speed.append(mean_speed)
+            else:
+                x = np.random.normal(1, .05, 1)
+                c = 'g'
+                n_vte_speed.append(mean_speed)
+
+
+            ax.scatter(x, mean_speed, c=c, alpha=.8, s=30)
+            
+        try:
+            vte_CI, vte_range = mean_confidence_interval(vte_speed), percentile_range(vte_speed)
+            nvte_CI, nvte_range = mean_confidence_interval(n_vte_speed), percentile_range(n_vte_speed)
+        except:
+            return
+
+        ax.plot([0.25, 0.25], [vte_CI.interval_min, vte_CI.interval_max], color='r', linewidth=4)
+        ax.plot([0.25, 0.25], [vte_range.low, vte_range.high], color='r', linewidth=2)
+
+        ax.plot([.75, .75], [nvte_CI.interval_min, nvte_CI.interval_max], color='g', linewidth=4)
+        ax.plot([.75, .75], [nvte_range.low, nvte_range.high], color='g', linewidth=2)
+
+        ax.set(title=title , ylabel='Speed', xticks=[0, 1], xticklabels=['VTE', 'Not VTE'])
 
 
     """
@@ -234,7 +296,7 @@ class VTE:
         =======================================================================================================================================================
     """
 
-    def pR_byVTE(self, experiment=None, title=None, target="Right_Medium"):
+    def pR_byVTE(self, experiment=None, title=None, target="Right_Medium", ax=None, bayes=True):
         data = self.get_dataframe(experiment)
         overall_escapes = [1 if e == target else 0 for e in list(data['escape_arm'].values)]
         vte_escapes = [1 if e == target else 0 for e in list(data.loc[data['zidphi'] >= self.zscore_th]['escape_arm'].values)]
@@ -258,25 +320,34 @@ class VTE:
         for i in np.arange(100000):
             random_pR.append(np.mean(random.choices(overall_escapes, k=n_vte_trials)))
 
-
-        # Plot with bootstrap
-        f, axarr = plt.subplots(ncols=2)
-        axarr[0].hist(random_pR, bins=30, color=[.4, .7, .4], density=True)
-        axarr[0].axvline(overall_pR, color='k', linestyle=':', label='Overall p(R)', linewidth=3)
-        axarr[0].axvline(vte_pR, color='r', linestyle=':', label='VTE p(R)', linewidth=3)
-        axarr[0].axvline(non_vte_pR, color='g', linestyle=':', label='nVTE p(R)', linewidth=3)
-        axarr[0].set(title=title)
-        axarr[0].legend()
-
-
         # plot with bayes
-        vte_vs_non_vte, _, _, _, _ = self.bayes.model_two_distributions(vte_escapes, non_vte_escapes)
-        vte_vs_all, _, _, _, _ = self.bayes.model_two_distributions(vte_escapes, overall_escapes)
-        plot_two_dists_kde(vte_vs_all['p_d2'], vte_vs_all['p_d1'], vte_vs_non_vte['p_d2'], "bayesian posteriors",   l1="VTE", l2="not VTE", ax=axarr[1])
+        if bayes:
+            try:
+                vte_vs_non_vte, _, _, _, _ = self.bayes.model_two_distributions(vte_escapes, non_vte_escapes)
+                vte_vs_all, _, _, _, _ = self.bayes.model_two_distributions(vte_escapes, overall_escapes)
+                plot_two_dists_kde(vte_vs_all['p_d2'], vte_vs_all['p_d1'], vte_vs_non_vte['p_d2'], title,   l1="VTE", l2="not VTE", ax=ax)
+            except:
+                return
 
+    def pR_bysess_VTE(self, experiment=None, title=None, target="Right_Medium", ax=None):
+        data = self.get_dataframe(experiment)
 
+        has_vte = 0
+        for sess in set(sorted(data['session_uid'].values)):
+            sess_data = data.loc[data['session_uid']==sess]
+            y =  np.random.normal(0, 0.05, 1)
+            pR_VTE = np.nanmean([1 if e == target else 0 for e in list(sess_data.loc[sess_data['zidphi'] >= self.zscore_th]['escape_arm'].values)]) + y
+            pR_nVTE = np.nanmean([1 if e == target else 0 for e in list(sess_data.loc[sess_data['zidphi'] < self.zscore_th]['escape_arm'].values)]) + y
 
+            if pR_VTE == pR_VTE:
+                has_vte += 1
 
+            ax.plot([0, 1], [pR_nVTE, pR_VTE], 'o', color='k')
+            ax.plot([0, 1], [pR_nVTE, pR_VTE],  color='k')
+
+        n_mice = len(set(sorted(data['session_uid'].values)))
+        perc_with_vte = round((has_vte / n_mice)*100, 2)
+        ax.set(title=title + " - {}% of {} mice with VTE".format(perc_with_vte, n_mice), ylabel='$p(R)$', xticks=[0, 1], xticklabels=['Not VTE', 'VTE'])
 
 """
     =======================================================================================================================================================
@@ -290,24 +361,21 @@ if __name__ == "__main__":
     # vte.drop()
     # vte.populate()
 
-    vte.vte_position(experiment=['PathInt2', 'PathInt2-L'], title="Asymmetric Maze - position")
-    vte.vte_position(experiment=['Square Maze', 'TwoAndahalf Maze'], title='Symmetric Maze - position')
+    experiments_to_plot =  ['PathInt2', 'PathInt2-L'],  ['Square Maze', 'TwoAndahalf Maze'],
+    titles = [ 'Asymmetric',  'Symmetric']
+    backgrounds = ['PathInt2', 'Square Maze']
 
-    # vte.pR_byVTE(experiment=['PathInt2', 'PathInt2-L'], title="Asymmetric Maze")
-    # vte.pR_byVTE(experiment=['Square Maze', 'TwoAndahalf Maze'], title='Symmetric Maze')
-    # vte.pR_byVTE(experiment=[ 'PathInt2-D'], title="Asymmetric Maze Dark")
-    # vte.pR_byVTE(experiment=[ 'PathInt'], title="3 Arms", target="Centre")
+    for e,t,bg in zip(experiments_to_plot, titles, backgrounds):
+        f, axarr = plt.subplots(ncols=4, nrows=2)
+        vte.pR_bysess_VTE(experiment=e, title='p(R|VTE) - individuals', ax=axarr[1, 1])
+        vte.vte_speed(experiment=e, title='Mean Speed ', background=bg, ax=axarr[0, 1])
+        vte.pR_byVTE(experiment=e, title='p(R|VTE)', ax=axarr[1, 0], bayes=True)
+        vte.zidphi_histogram(experiment=e, title=t + ' zdiphi ', ax=axarr[0, 0])
+        vte.zidphi_tracking(experiment=e, title='tracking', axarr=axarr[:, 2])
+        vte.zidphi_tracking_examples(experiment=e, title='tracking - examples', axarr=axarr[:, 3])
+        break
+        # plt.show()
 
-    # vte.zidphi_histogram(experiment=['PathInt2', 'PathInt2 - L'], title="Asymmetric Maze")
-    # vte.zidphi_histogram(experiment=['Square Maze', 'TwoAndahalf Maze'], title='Symmetric Maze')
-    # vte.zidphi_histogram(experiment=['Model Based'], title="Model Based")
-    # vte.zidphi_histogram(experiment=['FourArms Maze'], title="4 arm")
-
-
-    # vte.zidphi_tracking(experiment=['PathInt2', 'PathInt2 - L'], title="Asymmetric Maze")
-    # vte.zidphi_tracking(experiment=['Square Maze', 'TwoAndahalf Maze'], title='Symmetric Maze')
-    # vte.zidphi_tracking(experiment=['Model Based'], title="Model Based")
-    # vte.zidphi_tracking(experiment=['FourArms Maze'], title="4 arm")
 
 
     # vte.parallel_videos()

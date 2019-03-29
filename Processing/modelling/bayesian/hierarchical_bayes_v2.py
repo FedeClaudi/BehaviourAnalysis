@@ -94,7 +94,7 @@ class Modeller:
             obs_asym = pm.Binomial('obs_asym', n=d1_count, p=p_d1, observed=d1_hits)
             obs_sym = pm.Binomial('obs_sym', n=d2_count, p=p_d2, observed=d2_hits)
 
-            trace = pm.sample(3000, tune=1000, nuts_kwargs={'target_accept': 0.95}) 
+            trace = pm.sample(2000, tune=1000, nuts_kwargs={'target_accept': 0.95}) 
         # pm.traceplot(trace)
         df = pm.trace_to_dataframe(trace)
 

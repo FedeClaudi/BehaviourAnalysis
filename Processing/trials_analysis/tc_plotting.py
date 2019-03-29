@@ -132,11 +132,24 @@ def plot_two_dists_kde(d0, d1, d2, title, l1=None, l2=None, ax=None):
 
         c1, c2 = colors[2], colors[3]
 
-        sns.kdeplot(d1, ax=ax, shade=True, color=c1, linewidth=2, alpha=.8, clip=[0, 1], label=l1)
-        sns.kdeplot(d2, ax=ax, shade=True, color=c2, linewidth=2, alpha=.8, clip=[0, 1], label=l2)
-        sns.kdeplot(d0, ax=ax, shade=False, color='k', linewidth=2, alpha=.25, clip=[0, 1], label='all')
+        colors = ['k', c1, c2]
+        labels = ['all', l1, l2]
+        distributions = [d0, d1, d2]
+        alphas = [.25, .8, .8]
+        shades = [False, True, True]
 
-        ax.set(title=title, xlim=[0, 1])
+        for i, (d,c,l,a,s) in enumerate(zip(distributions, colors, labels, alphas, shades)):
+            d_mean_ci = mean_confidence_interval(d)
+            d_range = percentile_range(d)
+
+            sns.kdeplot(d, ax=ax, shade=s, color=c, linewidth=2, alpha=a, clip=[0, 1], label=l)
+
+            y = (-i * .5) - .5
+            ax.plot([d_range.low, d_range.high], [y, y], color=c, linewidth=4)
+            ax.plot([d_mean_ci.interval_min, d_mean_ci.interval_max], [y, y], color=c, linewidth=8)
+            ax.axhline(0, color='k', linewidth=2)
+
+        ax.set(title=title, xlim=[-0.05, 1.05])
         ax.legend()
 
         if ax is None:
