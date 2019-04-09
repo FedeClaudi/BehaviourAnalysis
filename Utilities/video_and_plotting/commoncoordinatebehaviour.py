@@ -23,15 +23,6 @@ def run(videopath, maze_model=None):
     points = np.array([[435, 290], [565, 290], [500, 250],
                     [435, 710], [565, 710], [500, 620]])
 
-    # <- uncomment to display point on image
-    # for i, p in enumerate(points):
-    #     cv2.circle(maze_model, tuple(p), 7, (i*50, 125, 125), -1)
-    # cv2.imshow('cc', maze_model)
-    # cv2.waitKey(2000)
-    # cv2.destroyAllWindows()
-    # return
-
-
     # Get the background (first frame) of the video being processed
     try:
         cap = cv2.VideoCapture(videopath)

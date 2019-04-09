@@ -145,11 +145,12 @@ def plot_two_dists_kde(d0, d1, d2, title, l1=None, l2=None, ax=None):
             sns.kdeplot(d, ax=ax, shade=s, color=c, linewidth=2, alpha=a, clip=[0, 1], label=l)
 
             y = (-i * .5) - .5
-            ax.plot([d_range.low, d_range.high], [y, y], color=c, linewidth=4)
-            ax.plot([d_mean_ci.interval_min, d_mean_ci.interval_max], [y, y], color=c, linewidth=8)
+            ax.plot([d_range.low, d_range.high], [y, y], color=c, linewidth=4, label='5-95 perc')
+            ax.scatter(d_mean_ci.mean, y, s=100, alpha=.35, c=c)
+            ax.plot([d_mean_ci.interval_min, d_mean_ci.interval_max], [y, y], color=c, linewidth=8, label='Mean C.I.')
             ax.axhline(0, color='k', linewidth=2)
 
-        ax.set(title=title, xlim=[-0.05, 1.05])
+        ax.set(title=title, xlim=[-0.01, 1.01], xticks=[], xlabel='p(R)', ylabel='pdf')
         ax.legend()
 
         if ax is None:
@@ -177,8 +178,90 @@ def plotter():
     f.savefig("D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Presentations\\ThesisCommitte\\plots\\alternative_hp_stuff_things.svg", format="svg")
 
 
+def number_of_trials_per_session():
+    ntrials = []
+    good_exp = ['PathInt', 'PathInt2', 'PathInt2-L', 'PathInt2 - L', 'Square Maze', 'TwoAndahalf Maze']
+    for session in set((Sessions).fetch("uid")):
+        try:
+            exp = (AllTrials & "session_uid={}".format(session)).fetch("experiment_name")[0]
+            if not exp in good_exp: continue
+            ntrials.append((AllTrials & "session_uid={}".format(session)).fetch("number_of_trials")[0])
+        except:
+            pass
+    
+    f, ax = plt.subplots()
+    ax.hist(ntrials, color='k', bins=18)
+    ax.axvline(np.median(ntrials), color='r', linewidth=3, linestyle='--')
+    a = 1
+
+
+def plot_distributions():
+    f, axarr = plt.subplots(ncols=3)
+
+    binom = np.random.binomial(25, .5, size=1000000)
+    # binom = stats.binom(1000, .5)
+    sns.kdeplot(binom/25, color='k', linewidth=3, ax=axarr[0], clip=[0, 1], bw=.1)
+
+    beta = np.random.beta(2, 9, size=1000000)
+    sns.kdeplot(beta, color='k', linewidth=3, ax=axarr[1], clip=[0, 1])
+
+    uniform = np.random.uniform(0, 1, 1000000)
+    sns.kdeplot(uniform, color='k', linewidth=3, ax=axarr[2], clip=[0, 1])
+
+    titles = ['binomial', 'beta', 'uniform']
+    for t,ax in zip(titles, axarr):
+        ax.set(title=t, xlim=[-0.1, 1.1])
+
+
+
+def plot_expl_asym_vs_sym():
+    asym_exps = ['PathInt2', 'PathInt2 - L']
+    asym_exploration_tracking = []
+    for e in asym_exps:
+        asym_exploration_tracking.extend([x[:, :, 0] for x in (AllExplorations & "experiment_name='{}'".format(e)).fetch("tracking_data")])
+    asym_exploration_tracking = np.vstack(asym_exploration_tracking)
+    asym_exploration_tracking = asym_exploration_tracking[(asym_exploration_tracking[:, -1] != 0) & (asym_exploration_tracking[:, -1] != 1)]
+
+    sym_exps = ['Square Maze', 'TwoAndahalf Maze']
+    sym_exploration_tracking = []
+    for e in sym_exps:
+        sym_exploration_tracking.extend([x[:, :, 0] for x in (AllExplorations & "experiment_name='{}'".format(e)).fetch("tracking_data")])
+    sym_exploration_tracking = np.vstack(sym_exploration_tracking)
+    sym_exploration_tracking = sym_exploration_tracking[(sym_exploration_tracking[:, -1] != 0) & (sym_exploration_tracking[:, -1] != 1)] # ? remove times where its on shelter and thereat platf
+
+    f, axarr = plt.subplots(ncols=2)
+    axarr[0].hexbin(asym_exploration_tracking[:, 0], asym_exploration_tracking[:, 1], mincnt=1, bins='log')
+    axarr[1].hexbin(sym_exploration_tracking[:, 0], sym_exploration_tracking[:, 1], mincnt=1, bins='log')
+
+    
+
+    asym_platforms = asym_exploration_tracking[:, -1]
+    asym_on_right = asym_exploration_tracking[(asym_platforms == 18) | (asym_platforms == 6) | (asym_platforms==13)].shape[0]
+    asym_on_left = asym_exploration_tracking[(asym_platforms == 17) | (asym_platforms == 3) | (asym_platforms==11) | (asym_platforms==2) | (asym_platforms==8)].shape[0]
+
+    sym_platforms = sym_exploration_tracking[:, -1]
+    sym_on_right = sym_exploration_tracking[(sym_platforms == 18) | (sym_platforms == 6) | (sym_platforms==13)].shape[0]
+    sym_on_left = sym_exploration_tracking[(sym_platforms == 17) | (sym_platforms == 3) | (sym_platforms==12) ].shape[0]
+
+
+    f, ax = plt.subplots()
+
+    ax.plot([0, 1], [asym_on_left/asym_on_right, asym_on_right/asym_on_right], color='k')
+    ax.plot([0, 1], [asym_on_left/asym_on_right, asym_on_right/asym_on_right], 'o', color='k')
+
+    ax.plot([0, 1], [sym_on_left/sym_on_right, sym_on_right/sym_on_right], color='r')
+    ax.plot([0, 1], [sym_on_left/sym_on_right, sym_on_right/sym_on_right], 'o', color='r')
+
+    ax.set(title='Exploration time on left vs right', ylabel='Normed time spent', xticks=[0, 1], xticklabels=['left', 'right'], ylim=[0, 1.8])
+
+    plt.show()
+
+    a =1 
+
+
+
 
 if __name__ == "__main__":
-    plotter()
+    plot_expl_asym_vs_sym()
     plt.show()
 

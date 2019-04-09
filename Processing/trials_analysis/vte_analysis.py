@@ -262,8 +262,7 @@ class VTE:
                                     savefolder=self.video_maker.save_fld_trials, trial_mode=False)
 
 
-    @staticmethod
-    def make_parall_videos(arguments):
+    def make_parall_videos(self, arguments):
         processes = [mp.Process(target=self.zidphi_videos, args=arg) for arg in arguments]
 
         for p in processes:
@@ -274,8 +273,8 @@ class VTE:
 
 
     def parallel_videos(self):
-        a1 = (['PathInt2', 'PathInt2 - L'], "Asymmetric Maze - NOT VTE", 40, 'PathInt2', False)
-        a2 = (['PathInt2', 'PathInt2 - L'], "Asymmetric Maze - VTE", 40, 'PathInt2', True)
+        a1 = (['PathInt2', 'PathInt2-L'], "Asymmetric Maze - NOT VTE", 40, 'PathInt2', False)
+        a2 = (['PathInt2', 'PathInt2-L'], "Asymmetric Maze - VTE", 40, 'PathInt2', True)
         a3 = (['Square Maze', 'TwoAndahalf Maze'], "Symmetric Maze - NOT VTE", 40, 'Square Maze', False)
         a4 = (['Square Maze', 'TwoAndahalf Maze'], "Symmetric Maze - VTE", 40, 'Square Maze', True)
         self.make_parall_videos([a1, a2, a3, a4])
@@ -326,6 +325,8 @@ class VTE:
                 vte_vs_non_vte, _, _, _, _ = self.bayes.model_two_distributions(vte_escapes, non_vte_escapes)
                 vte_vs_all, _, _, _, _ = self.bayes.model_two_distributions(vte_escapes, overall_escapes)
                 plot_two_dists_kde(vte_vs_all['p_d2'], vte_vs_all['p_d1'], vte_vs_non_vte['p_d2'], title,   l1="VTE", l2="not VTE", ax=ax)
+
+                
             except:
                 return
 
@@ -336,18 +337,19 @@ class VTE:
         for sess in set(sorted(data['session_uid'].values)):
             sess_data = data.loc[data['session_uid']==sess]
             y =  np.random.normal(0, 0.05, 1)
-            pR_VTE = np.nanmean([1 if e == target else 0 for e in list(sess_data.loc[sess_data['zidphi'] >= self.zscore_th]['escape_arm'].values)]) + y
-            pR_nVTE = np.nanmean([1 if e == target else 0 for e in list(sess_data.loc[sess_data['zidphi'] < self.zscore_th]['escape_arm'].values)]) + y
+            pR_VTE = np.nanmean([1 if e == target else 0 for e in list(sess_data.loc[sess_data['zidphi'] >= self.zscore_th]['escape_arm'].values)]) 
+            pR_nVTE = np.nanmean([1 if e == target else 0 for e in list(sess_data.loc[sess_data['zidphi'] < self.zscore_th]['escape_arm'].values)]) 
 
-            if pR_VTE == pR_VTE:
+            if pR_VTE == pR_VTE and pR_nVTE == pR_nVTE:  # ? check that they are both not nan
                 has_vte += 1
 
-            ax.plot([0, 1], [pR_nVTE, pR_VTE], 'o', color='k')
-            ax.plot([0, 1], [pR_nVTE, pR_VTE],  color='k')
+                ax.plot([0, 1], [pR_nVTE, pR_VTE], 'o', color='k')
+                ax.plot([0, 1], [pR_nVTE, pR_VTE],  color='k')
+                ax.scatter( 3, pR_VTE - pR_nVTE, alpha=.5, s=50, color='k')
 
         n_mice = len(set(sorted(data['session_uid'].values)))
         perc_with_vte = round((has_vte / n_mice)*100, 2)
-        ax.set(title=title + " - {}% of {} mice with VTE".format(perc_with_vte, n_mice), ylabel='$p(R)$', xticks=[0, 1], xticklabels=['Not VTE', 'VTE'])
+        ax.set(title=title + " - {}% of {} mice with VTE".format(perc_with_vte, n_mice), ylabel='$p(R)$', xticks=[0, 1, 3], xticklabels=['Not VTE', 'VTE', 'd(p(R))'])
 
 """
     =======================================================================================================================================================
@@ -361,26 +363,22 @@ if __name__ == "__main__":
     # vte.drop()
     # vte.populate()
 
+    # vte.parallel_videos()
+
+
+
     experiments_to_plot =  ['PathInt2', 'PathInt2-L'],  ['Square Maze', 'TwoAndahalf Maze'],
     titles = [ 'Asymmetric',  'Symmetric']
     backgrounds = ['PathInt2', 'Square Maze']
 
     for e,t,bg in zip(experiments_to_plot, titles, backgrounds):
         f, axarr = plt.subplots(ncols=4, nrows=2)
-        vte.pR_bysess_VTE(experiment=e, title='p(R|VTE) - individuals', ax=axarr[1, 1])
+        vte.pR_bysess_VTE(experiment=e, title='p(R|VTE)', ax=axarr[1, 1])
         vte.vte_speed(experiment=e, title='Mean Speed ', background=bg, ax=axarr[0, 1])
         vte.pR_byVTE(experiment=e, title='p(R|VTE)', ax=axarr[1, 0], bayes=True)
         vte.zidphi_histogram(experiment=e, title=t + ' zdiphi ', ax=axarr[0, 0])
         vte.zidphi_tracking(experiment=e, title='tracking', axarr=axarr[:, 2])
         vte.zidphi_tracking_examples(experiment=e, title='tracking - examples', axarr=axarr[:, 3])
         break
-        # plt.show()
-
-
-
-    # vte.parallel_videos()
-    # vte.parallel_videos2()
-
-
-
+      
     plt.show()
