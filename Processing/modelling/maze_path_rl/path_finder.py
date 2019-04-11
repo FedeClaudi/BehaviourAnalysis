@@ -60,14 +60,22 @@ if __name__ == "__main__":
 	# env.get_geodesic_representation()
 
 
-	"""
 	model = MBRL(env)
 	model.do_random_walk()
-	model.walk_with_state_transitions()
-	plt.show()
-	"""
+
+	for i in range(50):
+		model.value_estimation()
+
+	model.mental_simulations('naive')
 
 
+	model.introduce_blockage()
+
+	f, ax = plt.subplots()
+	for i in range(50):
+		model.value_estimation()
+
+	model.mental_simulations('blocked')
 
 
 	# Train the Q-learning agent

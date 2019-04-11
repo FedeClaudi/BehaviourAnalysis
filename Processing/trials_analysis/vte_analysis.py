@@ -17,6 +17,7 @@ from scipy.integrate import cumtrapz as integral
 import seaborn as sns
 from tqdm import tqdm
 import random
+import shutil
 
 import multiprocessing as mp
 
@@ -69,6 +70,7 @@ class VTE:
         print("processing trial id: ", key['trial_id'])
 
         tracking, uid, experiment, escape_arm, origin_arm = trials[0][0], trials[1][0], trials[2][0], trials[3][0],  trials[4][0]
+
         # get xy for snout and platform at each fram - interpolate to remove nan
         x, y, platf = tracking[:, 0, 1], tracking[:, 1, 1],  tracking[:, -1, 0]
         bx, by = tracking[:, 0, 0], tracking[:, 1, 0]
@@ -76,13 +78,15 @@ class VTE:
         try:
             # Select the times before when they leave the threat platform
             first_out_threat = np.where(platf != 1)[0][0]
+            moved_up = np.where(by > by[0]+25)
+            if not np.any(moved_up): return
+            else: moved_up = moved_up[0][0]
+            if not moved_up < first_out_threat-1 or not first_out_threat: return
 
-            # Selct the time when the mouse moved up for N pixels
-            # moved_up = np.where(y>= np.nanmean(y[0:10]) + displacement_th)[0][0]
         except:
-            return
-        x = x[0:first_out_threat]
-        y = y[0:first_out_threat]
+            raise ValueError
+        x = x[moved_up:first_out_threat]   
+        y = y[moved_up:first_out_threat]
 
         # Calc iDiPhi
         fps = get_videometadata_given_recuid(get_recs_given_sessuid(uid)['recording_uid'][0])
@@ -96,7 +100,7 @@ class VTE:
         try:
             s = calc_distance_between_points_in_a_vector_2d(np.array([x,y]).T) * fps
         except:
-            pass
+            raise ValueError
         else:
 
             key['xy'] = np.vstack([x, y, s])
@@ -118,9 +122,12 @@ class VTE:
 
     def get_dataframe(self, experiment):
         data = pd.DataFrame(ZidPhi.fetch())
-        data['zidphi'] = stats.zscore(data['idphi'].values)
+
         if experiment is not None:
             data = data[data['experiment_name'].isin(experiment)]
+
+        data['zidphi'] = stats.zscore(data['idphi'].values)
+
         return data
 
 
@@ -321,10 +328,13 @@ class VTE:
 
         # plot with bayes
         if bayes:
+            fld = 'Processing\\trials_analysis\\'
             try:
                 vte_vs_non_vte, _, _, _, _ = self.bayes.model_two_distributions(vte_escapes, non_vte_escapes)
-                vte_vs_all, _, _, _, _ = self.bayes.model_two_distributions(vte_escapes, overall_escapes)
-                plot_two_dists_kde(vte_vs_all['p_d2'], vte_vs_all['p_d1'], vte_vs_non_vte['p_d2'], title,   l1="VTE", l2="not VTE", ax=ax)
+                # vte_vs_all, _, _, _, _ = self.bayes.model_two_distributions(vte_escapes, overall_escapes)
+                # plot_two_dists_kde(vte_vs_all['p_d2'], vte_vs_all['p_d1'], vte_vs_non_vte['p_d2'], title,   l1="VTE", l2="not VTE", ax=ax)
+
+                np.save(os.path.join(fld, experiment[0]+'.npy'), vte_vs_non_vte)
 
                 
             except:
@@ -351,6 +361,90 @@ class VTE:
         perc_with_vte = round((has_vte / n_mice)*100, 2)
         ax.set(title=title + " - {}% of {} mice with VTE".format(perc_with_vte, n_mice), ylabel='$p(R)$', xticks=[0, 1, 3], xticklabels=['Not VTE', 'VTE', 'd(p(R))'])
 
+
+    def plot_delta_pR_given_VTE(self):
+        # 0th column is VTE trials
+        asym_data = np.load('Processing\\trials_analysis\\PathInt2.npy')
+        sym_data = np.load('Processing\\trials_analysis\\Square Maze.npy')
+
+        asym_pr_vte = random.choices(asym_data[:, 0], k=100000)
+        asym_pr_nvte = random.choices(asym_data[:, 1], k=100000)
+        asym_delta = np.array(asym_pr_vte) -  np.array(asym_pr_nvte)
+
+        sym_pr_vte = random.choices(sym_data[:, 0], k=100000)
+        sym_pr_nvte = random.choices(sym_data[:, 1], k=100000)
+        sym_delta = np.array(sym_pr_vte) -  np.array(sym_pr_nvte)
+
+        f, axarr = plt.subplots(ncols = 3)
+        axarr[0].hist(asym_delta, alpha=.3, bins=20)
+        axarr[0].hist(sym_delta, alpha=.3, bins=20)
+
+        asym_ci = percentile_range(asym_delta)
+        sym_ci = percentile_range(sym_delta)
+
+        axarr[0].axvline(np.mean(asym_delta), color='k')
+        axarr[0].axvline(np.mean(sym_delta), color='r')
+
+        axarr[0].plot([asym_ci.low, asym_ci.high], [-1, -1], color='k')
+        axarr[0].plot([sym_ci.low, sym_ci.high], [-100, -100], color='r')
+
+
+        axarr[1].hist(asym_data[:, 0])
+        axarr[1].hist(asym_data[:, 1])
+        axarr[2].hist(sym_data[:, 0])
+        axarr[2].hist(sym_data[:, 1])
+
+
+
+    def get_vte_trials_videos(self, experiment=None, ):
+        data = self.get_dataframe(experiment)
+
+        clips_fld = "Z:\\branco\\Federico\\raw_behaviour\maze\\trials_clips"
+        copy_fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\plots\\vte_trials_exampels"
+
+        all_videos = os.listdir(clips_fld)
+        for trn, trial in data.loc[data.zidphi > self.zscore_th].iterrows():
+            trial_metadata = (AllTrials & "trial_id={}".format(trial.trial_id)).fetch("recording_uid", "stim_frame", "trial_number")
+            videopath = get_video_path_give_recuid(trial_metadata[0][0])
+            print("""
+            {}
+
+            {}
+            trial: {}
+            
+            """.format(videopath, trial_metadata[0][0], trial_metadata[-1][0]))
+
+            session_name = trial_metadata[0][0][:-2]
+            session_videos = [v for v in all_videos if session_name in v if "_trials" not in v]
+            video = session_videos[trial_metadata[-1][0]]
+            shutil.copy2(os.path.join(clips_fld, video), os.path.join(copy_fld, video))
+            a = 1
+
+
+    def compare_probVTE_by_exp(self, *exps):
+        probs = []
+        t = []
+        for e in exps:
+            data = self.get_dataframe(e)
+            n_trials = len(data)
+            if not n_trials: 
+                probs.append(0)
+                continue
+            n_vte_trials = len(data.loc[data['zidphi'] > self.zscore_th])
+            probs.append(n_vte_trials/n_trials)
+
+            t.append([0 if x<self.zscore_th else 1 for x in data['zidphi'].values])
+
+
+        e1vse2, _, _, _, _ = self.bayes.model_two_distributions(*t)
+
+        f, ax = plt.subplots()
+        plot_two_dists_kde(None, e1vse2['p_d1'], e1vse2['p_d2'], 'p(VTE|exp)',   l1="Asym", l2="SYM", ax=ax)
+        # ax.bar(np.arange(len(probs)), probs)
+
+
+
+
 """
     =======================================================================================================================================================
     =======================================================================================================================================================
@@ -362,9 +456,13 @@ if __name__ == "__main__":
 
     # vte.drop()
     # vte.populate()
-
     # vte.parallel_videos()
 
+    # vte.get_vte_trials_videos()
+
+    # vte.compare_probVTE_by_exp(['PathInt2', 'PathInt2-L'],  ['Square Maze', 'TwoAndahalf Maze'],  )
+
+    # vte.plot_delta_pR_given_VTE()
 
 
     experiments_to_plot =  ['PathInt2', 'PathInt2-L'],  ['Square Maze', 'TwoAndahalf Maze'],
@@ -375,10 +473,10 @@ if __name__ == "__main__":
         f, axarr = plt.subplots(ncols=4, nrows=2)
         vte.pR_bysess_VTE(experiment=e, title='p(R|VTE)', ax=axarr[1, 1])
         vte.vte_speed(experiment=e, title='Mean Speed ', background=bg, ax=axarr[0, 1])
-        vte.pR_byVTE(experiment=e, title='p(R|VTE)', ax=axarr[1, 0], bayes=True)
+        vte.pR_byVTE(experiment=e, title='p(R|VTE)', ax=axarr[1, 0], bayes=False)
         vte.zidphi_histogram(experiment=e, title=t + ' zdiphi ', ax=axarr[0, 0])
         vte.zidphi_tracking(experiment=e, title='tracking', axarr=axarr[:, 2])
         vte.zidphi_tracking_examples(experiment=e, title='tracking - examples', axarr=axarr[:, 3])
-        break
       
     plt.show()
+ 

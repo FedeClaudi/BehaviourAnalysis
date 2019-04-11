@@ -139,6 +139,8 @@ def plot_two_dists_kde(d0, d1, d2, title, l1=None, l2=None, ax=None):
         shades = [False, True, True]
 
         for i, (d,c,l,a,s) in enumerate(zip(distributions, colors, labels, alphas, shades)):
+            if d is None: continue
+
             d_mean_ci = mean_confidence_interval(d)
             d_range = percentile_range(d)
 
@@ -150,7 +152,7 @@ def plot_two_dists_kde(d0, d1, d2, title, l1=None, l2=None, ax=None):
             ax.plot([d_mean_ci.interval_min, d_mean_ci.interval_max], [y, y], color=c, linewidth=8, label='Mean C.I.')
             ax.axhline(0, color='k', linewidth=2)
 
-        ax.set(title=title, xlim=[-0.01, 1.01], xticks=[], xlabel='p(R)', ylabel='pdf')
+        ax.set(title=title, xlim=[-0.01, 1.01],  xlabel='p(R)', ylabel='pdf')
         ax.legend()
 
         if ax is None:

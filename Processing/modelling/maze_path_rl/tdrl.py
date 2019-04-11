@@ -60,12 +60,13 @@ class Agent:
 			nxt[1] += down
 		return nxt
 
-	def plot_walk(self, walk):
+	def plot_walk(self, walk, title=None):
 		f, ax = plt.subplots()
 
 		ax.imshow(self.env.maze_image, cmap="Greys_r")
 		ax.scatter(np.vstack(walk)[:, 0], np.vstack(walk)[:, 1],
 				c = np.arange(len(walk)), s=50)
+		ax.set(title=title)
 
 	def get_state_index(self, state):
 		return [i for i,f in enumerate(self.env.free_states) if f == state][0]
