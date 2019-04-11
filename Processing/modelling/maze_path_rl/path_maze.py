@@ -94,9 +94,6 @@ class Maze(object):
 			with open(filename, "w") as f:
 				f.write(json.dumps(self.subgoals))
 
-
-
-
 	def reset(self,):
 		# reset the environment
 		if not self.randomise_start:
@@ -128,11 +125,13 @@ class Maze(object):
 			curr {[list]} -- [x,y coordinates of the agent]
 		"""
 		legals = []
-		for action in self.actions.values():
-			action_next = self.move(action, curr)
-			if action_next in self.free_states:
-				legals.append(action)
 
+		surroundings = self.maze_image[curr[1]-1:curr[1]+2, curr[0]-1:curr[0]+2]
+
+		actions = ["up-left", "up", "up-right", "left", "still", "right", "down-left", "down", "down-right"]
+
+		legals = [a for i, a in enumerate(actions) if surroundings.flatten()[i] and a != "still"]
+		if not legals: raise ValueError
 		return legals
 
 

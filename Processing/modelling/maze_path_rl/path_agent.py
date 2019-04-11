@@ -34,9 +34,6 @@ class Model:
 		self.alpha = 1      # how much to value new experience, in a deterministic world set as 1
 		self.gamma = .9     # discount on future rewards, the higher the less discount
 
-		self.shelter_is_goal = [0, .5, 1]  # 0-1 probability of prefering the action that leads to the shelter
-
-
 		self.shortest_walk = None
 
 		self.n_random_walks = 500
