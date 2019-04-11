@@ -1,7 +1,7 @@
 import sys
 sys.path.append('./')
 import numpy as np
-from scipy import misc, signal
+from scipy import misc, signal, stats
 import pandas as pd
 from scipy.spatial import distance
 from math import factorial, atan2, degrees, acos, sqrt, pi
@@ -10,8 +10,38 @@ import matplotlib.pyplot as plt
 from Utilities.file_io.files_load_save import load_yaml
 from scipy.signal import medfilt as median_filter
 from scipy.interpolate import interp1d
+from collections import namedtuple
 
 
+def median_filter_1d(x, pad=20, kernel=11):
+    half_pad = int(pad/2)
+    x_pad = np.pad(x, pad, 'edge')
+    x_filtered = median_filter(x_pad, kernel_size=kernel)[half_pad:-half_pad]
+    return x_filtered
+
+
+def mean_confidence_interval(data, confidence=0.95):
+    # a = 1.0 * np.array(data)
+    # n = len(a)
+    # m, se = np.mean(a), stats.sem(a)
+    # h = se * stats.t.ppf((1 + confidence) / 2., n-1)
+    # return res(m, m-h, m+h)
+    
+    mean, var, std = stats.bayes_mvs(data)
+
+    res = namedtuple("confidenceinterval", "mean interval_min interval_max")
+    return res(mean.statistic, mean.minmax[0], mean.minmax[1])
+
+
+
+def percentile_range(data, low=5, high=95):
+    """[Calculates the range between the low and high percentiles]
+    """
+
+    lowp = np.percentile(data, low)
+    highp = np.percentile(data, high)
+    res = namedtuple("percentile", "low high")
+    return res(lowp, highp)
 
 def fill_nans_interpolate(y, pkind='linear'):
     """

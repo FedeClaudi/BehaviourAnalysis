@@ -2,11 +2,11 @@
 	{
 		"name": "vte",
 		"paths": [
-			"/Users/federicoclaudi/Documents/Github/BehaviourAnalysis/Processing/trials_analysis/vte_analysis.py",
-			"extension-output-#7",
-			"/Users/federicoclaudi/Documents/Github/BehaviourAnalysis/Processing/tracking_stats/math_utils.py",
-			"/Users/federicoclaudi/Documents/Github/BehaviourAnalysis/Processing/tracking_stats/math_utils.py.git",
-			"/Users/federicoclaudi/Documents/Github/BehaviourAnalysis/Processing/trials_analysis/vte_analysis.py.git"
+			"tasks",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Processing\\trials_analysis\\vte_analysis.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\database\\NewTablesDefinitions.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\database\\NewTablesDefinitions.py.git",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Processing\\trials_analysis\\vte_analysis.py.git"
 		]
 	}
 ]

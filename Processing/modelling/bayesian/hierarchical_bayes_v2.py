@@ -13,7 +13,7 @@ import theano.tensor as tt
 import yaml
 import pickle 
 import seaborn as sns
-
+import random
 from scipy.stats import ks_2samp as KS_test
 from scipy import stats
 
@@ -94,7 +94,7 @@ class Modeller:
             obs_asym = pm.Binomial('obs_asym', n=d1_count, p=p_d1, observed=d1_hits)
             obs_sym = pm.Binomial('obs_sym', n=d2_count, p=p_d2, observed=d2_hits)
 
-            trace = pm.sample(3000, tune=1000, nuts_kwargs={'target_accept': 0.95}) 
+            trace = pm.sample(2000, tune=1000, nuts_kwargs={'target_accept': 0.95}) 
         # pm.traceplot(trace)
         df = pm.trace_to_dataframe(trace)
 
@@ -245,6 +245,8 @@ class Modeller:
         lw, a = .75, .05
 
         f2, ax2 = plt.subplots()
+        f3, ax3 = plt.subplots()
+
         # Plot grouped
         sns.kdeplot(trace['p_asym_grouped'].values, ax=axarr[0], shade=True, color=c0,  linewidth=lw, alpha=.8, cumulative =cum ,clip=[0, 1])
         sns.kdeplot(trace['p_sym_grouped'].values,  ax=axarr[0], shade=True, color=c1, linewidth=lw, alpha=.8, cumulative =cum ,clip=[0, 1])
@@ -268,10 +270,10 @@ class Modeller:
                 sns.kdeplot(trace[col].values, ax=axarr[3], shade=False, color=c1, linewidth=1, alpha=1, cumulative =cum ,clip=[0, 1])
             elif 'asym_hierarchical' in col:
                 sns.kdeplot(trace[col].values, ax=axarr[4], shade=False, color=c0, linewidth=1, alpha=1, cumulative =cum ,clip=[0, 1])
-                sns.kdeplot(trace[col].values, ax=ax2, shade=False, color=c0, linewidth=1, alpha=1, cumulative =cum ,clip=[0, 1])
+                sns.kdeplot(trace[col].values, ax=ax2, shade=False, color='k', linewidth=1, alpha=1, cumulative =cum ,clip=[0, 1])
             elif 'sym_hierarchicalsym' in col:
                 sns.kdeplot(trace[col].values, ax=axarr[5], shade=False, color=c1, linewidth=1, alpha=1, cumulative =cum)
-                sns.kdeplot(trace[col].values, ax=ax2, shade=False, color=c1, linewidth=1, alpha=1, cumulative =cum ,clip=[0, 1])
+                sns.kdeplot(trace[col].values, ax=ax3, shade=False, color='r', linewidth=1, alpha=1, cumulative =cum ,clip=[0, 1])
 
 
         titles = [
@@ -286,8 +288,22 @@ class Modeller:
         for ttl, ax in zip(titles, axarr):
             ax.set(title=ttl, xlim=[0, 1], xlabel='p(R)', ylabel='frequency')
 
+        ax2.set(xlim=[ 0, 1], ylim=[0, 12])
+        ax3.set(xlim=[ 0, 1], ylim=[0, 12])
+
         f.savefig("Processing/modelling/bayesian/summary_{}.png".format(cum))
         f.savefig("Processing/modelling/bayesian/summary.svg", format="svg")
+
+        # Get delta between grouped sym and grouped asym
+        asym_samples = random.choices(list(trace['p_asym_grouped'].values), k=10000)
+        sym_samples = random.choices(list(trace['p_sym_grouped'].values), k=10000)
+
+        delta = np.array(asym_samples) - np.array(sym_samples)
+        f4, ax4 = plt.subplots()
+        sns.kdeplot(delta,  ax=ax4, shade=True, color='k', linewidth=lw, alpha=.8, cumulative =cum ,clip=[0, 1])
+        ci = percentile_range(delta)
+        ax4.plot([ci.low, ci.high], [10, 10], color='k', linewidth=3)
+        ax4.set(title = 'delta asym - sym', xlim=[ 0, 1], ylim=[0, 12])
 
         plt.show()
 
