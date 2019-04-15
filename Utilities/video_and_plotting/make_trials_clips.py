@@ -76,7 +76,7 @@ class ClipWriter:
 
     def make_concatenated_clips(self):
         pre_stim = self.fps*1
-        post_stim = self.fps*2
+        post_stim = self.fps*11
 
         for stim_number, (stim_start, stim_dur) in enumerate(self.stimuli.values()):
             print('Adding new trial to the clip')
@@ -128,7 +128,7 @@ class ClipWriter:
                 self.writer.write(frame)
 
 
-def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False):
+def create_trials_clips(prestim=3, poststim=25, clean_vids=True, plt_pose=False):
     def write_clip(video, savename, stim_frame, stim_duration, prestim, poststim, clean_vids, posedata):
         # parameters to draw on frame
         border_size = 0 # 20
@@ -219,9 +219,9 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
     for recn, rec in enumerate(recs.fetch(as_dict=True)):
         # Get the stim table entry and clip ame
         print('Processing recording {} of {}'.format(recn, len(recs.fetch())))
-        # if rec['uid']<194: 
-        #     print(' ... skipped')
-        #     continue
+        if rec['uid']<260: 
+            print(' ... skipped')
+            continue
 
         if rec['software'] == 'behaviour':
             stims = [s for s in behav_stims if s['recording_uid']==rec['recording_uid']]
@@ -283,6 +283,13 @@ def create_trials_clips(prestim=10, poststim=10, clean_vids=True, plt_pose=False
 
         if videoname is not None:
             ClipWriter(videoname, stimuli_dict, clean_vids)
+
+
+
+
+
+
+
 
 def make_video_with_all_escapes(select_escapes=True, select_stim_evoked=True, select_exp = None, align_to_stim=True):
     savename = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\\plots\\videos\\{}.mp4'.format(select_exp)

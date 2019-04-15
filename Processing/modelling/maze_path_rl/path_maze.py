@@ -39,11 +39,8 @@ class Maze(object):
 		self.grid_size = grid_size
 		self.randomise_start = randomise_start
 
-		self.subgoals_fld = "Processing/modelling/maze_path_rl/subgoals"
-
 		self.actions()
 		
-
 		self.free_states = free_states
 		self.goal = goal
 		self.maze = np.zeros((grid_size,grid_size))
@@ -52,62 +49,20 @@ class Maze(object):
 
 		self.maze_image = np.rot90(self.maze[::-1, :], 3)
 
-		self.load_subgoals()
-
-		self.intermediate_reached_subgoal = False
-
-	def get_subgoals(self):
-		def register_click(event,x,y, flags, data):
-			if event == cv2.EVENT_LBUTTONDOWN:
-					# clicks = np.reshape(np.array([x, y]),(1,2))
-					data.append([x,y])
-
-		clicks_data = []
-
-		maze = self.maze.copy()
-		cv2.startWindowThread()
-		cv2.namedWindow('background')
-		cv2.imshow('background', maze)
-		cv2.setMouseCallback('background', register_click, clicks_data)  # Mouse callback
-
-		while True:
-			k = cv2.waitKey(10)
-			if k == ord('u'):
-					print('Updating')
-					# Update positions
-					for x,y in clicks_data:
-						cv2.circle(maze, (x, y), 2, (255, 0, 0), 2)
-						cv2.imshow('background', maze)
-			elif k == ord('q'):
-				break
-		return clicks_data
-
-	def load_subgoals(self):
-		filename = os.path.join(self.subgoals_fld, self.name+'.json')
-		if os.path.isfile(filename):
-			self.subgoals = json.load(open(filename))
-			# self.subgoals = [x[::-1] for x in temp]  # switch x and y because of opencv
-		else:
-			self.subgoals = self.get_subgoals()
-			fixed = [x[::-1] for x in self.subgoals]
-			self.subgoals = fixed
-			with open(filename, "w") as f:
-				f.write(json.dumps(self.subgoals))
-
 	def reset(self,):
 		# reset the environment
 		if not self.randomise_start:
-			self.start_index = self._start_index  #  always start at the same position
+			# self.start_index = self._start_index  #  always start at the same position
+			self.curr_state = self.start.copy()
 		else:
 			self.start_index = np.random.randint(0,len(self.free_states))
-		self.curr_state = self.free_states[self.start_index]
+			self.curr_state = self.free_states[self.start_index]
 
 	def state(self):
 		return self.curr_state
 
 	def actions(self):
 		self.actions = {
-			-1:'still',
 			0: 'left',
 			1: 'right',
 			2: 'up',
@@ -128,7 +83,7 @@ class Maze(object):
 
 		surroundings = self.maze_image[curr[1]-1:curr[1]+2, curr[0]-1:curr[0]+2]
 
-		actions = ["up-left", "up", "up-right", "left", "still", "right", "down-left", "down", "down-right"]
+		actions = ["up-left", "up", "up-right", "left","right", "down-left", "down", "down-right"]
 
 		legals = [a for i, a in enumerate(actions) if surroundings.flatten()[i] and a != "still"]
 		if not legals: raise ValueError
@@ -150,9 +105,8 @@ class Maze(object):
 		# depending on the action taken, move the agent by x,y offsets
 		up, down = -1, 1
 		left, right = -1, 1
-		if action == "still":
-			nxt_state = change(curr, 0, 0)
-		elif action == "left":
+
+		if action == "left":
 			nxt_state = change(curr, left, 0)
 		elif action == "right":
 			nxt_state = change(curr, right, 0)
@@ -183,8 +137,7 @@ class Maze(object):
 			self.reward = 0
 		else: 
 			self.next_state = self.curr_state
-			self.reward = 0
-
+			self.reward = -1 
 
 		if(self.next_state == self.goal):
 			self.reward = 1
@@ -192,7 +145,7 @@ class Maze(object):
 		else:
 			self.game_over = False
 
-		return self.next_state, self.reward, self.game_over
+		return self.next_state, self.reward, self.game_over 
 
 
 

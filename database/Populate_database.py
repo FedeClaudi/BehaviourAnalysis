@@ -251,7 +251,7 @@ if __name__ == '__main__':
     # p.templates.populate()
     
     # p.behaviourstimuli.populate() 
-    p.mantisstimuli.populate()
+    # p.mantisstimuli.populate()
 
     # p.tracking_data.populate()
     # p.tracking_data_justbody.populate()

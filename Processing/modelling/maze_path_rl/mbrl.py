@@ -34,6 +34,21 @@ class MBRL(Agent):
 		self.n_steps = 1000
 
 	
+	def reset_values(self):
+		self.V = np.zeros(len(self.env.free_states))	
+
+	def plot_func(self, func="R"):
+		f, ax = plt.subplots()
+		if func == "R":
+			policy = self.R
+			title = "reward function"
+		else: 
+			title = "value function"
+			policy = self.V
+
+		ax.scatter([x for x,y in self.env.free_states], [y for x,y in self.env.free_states], c=policy)
+		ax.set(title = title)
+
 	def define_transitions_func(self):
 		return np.zeros((len(self.env.free_states), len(self.env.free_states), len(self.actions))).astype(np.int8)
 
@@ -41,7 +56,7 @@ class MBRL(Agent):
 		curr = self.env.start.copy()
 		walk = []
 
-		for step in tqdm(np.arange(self.n_steps)):
+		for step in np.arange(self.n_steps):
 			walk.append(curr.copy())
 
 			nxt, action_n = self.step("shelter", curr, random_action=True)
@@ -67,19 +82,21 @@ class MBRL(Agent):
 		valid_actions = self.get_valid_actions(state)
 
 		landing_states_values = [self.V[si] for si, a in valid_actions]
-		if not np.max(landing_states_values) == 0:
-			action_prob = softmax(landing_states_values)   # ? policy <- select highest value option with higher freq
-		else:
-			action_prob = [1/len(valid_actions) for i in np.arange(len(valid_actions))]
 
-		value = np.sum([action_prob[i] * self.V[s1] for i, (s1,a) in enumerate(valid_actions)])
-		self.V[idx] = reward + value
+		if landing_states_values:
+
+			if not np.max(landing_states_values) == 0:
+				action_prob = softmax(landing_states_values)   # ? policy <- select highest value option with higher freq
+			else:
+				action_prob = [1/len(valid_actions) for i in np.arange(len(valid_actions))]
+
+			value = np.sum([action_prob[i] * self.V[s1] for i, (s1,a) in enumerate(valid_actions)])
+			self.V[idx] = reward + value
 		
 
-	def value_estimation(self):
+	def value_estimation(self, ax=None):
 		for state in self.env.free_states:
 			self.estimate_state_value(state)
-
 		# ax.scatter([x for x,y in self.env.free_states], [y for x,y in self.env.free_states], c=self.V)
 			
 
@@ -100,16 +117,11 @@ class MBRL(Agent):
 			current_index = self.get_state_index(curr)
 			valid_actions = self.get_valid_actions(curr)
 			values = [self.V[si] for si,a in valid_actions]
+
+			# softmax_choice = random.choices(valid_actions, k=1, weights=softmax(values))[0]
+			# selected = self.env.free_states[softmax_choice[0]]
+
 			selected = self.env.free_states[valid_actions[np.argmax(values)][0]]
-
-			# for each possible action check which one would bring you closer to the shelter
-			# possibe_states_value = [self.R[a[0]] for a in valid_actions]
-			# selected = self.env.free_states[valid_actions[np.argmin(possibe_states_value)][0]]
-
-			# # select an option - those that have smaller distance select with higher prob. 
-			# # future_states_probs = softmax(1 - softmax(possible_states_distances))
-			# # selected = self.env.free_states[random.choices(valid_actions, k=1, weights=future_states_probs)[0][0]]
-
 			curr = selected
 
 			if curr == self.env.goal: break
@@ -118,14 +130,13 @@ class MBRL(Agent):
 
 		# self.plot_walk(walk)
 
-	def mental_simulations(self, ttl, n_walks = 10):
+	def mental_simulations(self, ttl, n_walks = 1):
 		walks = [self.walk_with_state_transitions() for i in np.arange(n_walks)]
 		min_len = np.min([len(w) for w in walks])
 		shortest = [w for w in walks if len(w)==min_len][0]
 
-		self.plot_walk(shortest, "MB shortest walk - "+ttl)
+		self.plot_walk(shortest, "MB - "+ttl)
 
-		a = 1
 
 
 	def plot_transitions_func(self):
@@ -152,11 +163,13 @@ class MBRL(Agent):
 		return self.enact_step(current, action), action_n
 
 	def introduce_blockage(self):
-		states_to_block = [[11, 8], [12, 8], [11, 7], [11, 8]]
-
-		for state in states_to_block:
-			idx = self.get_state_index(state)
-			self.P[:, idx] = 0
+		for state in self.states_to_block_mb:
+			try:
+				idx = self.get_state_index(state)
+			except:
+				pass
+			else:
+				self.P[:, idx] = 0
 
 			
 
