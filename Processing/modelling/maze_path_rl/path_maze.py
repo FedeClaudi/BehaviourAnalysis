@@ -83,7 +83,7 @@ class Maze(object):
 
 		surroundings = self.maze_image[curr[1]-1:curr[1]+2, curr[0]-1:curr[0]+2]
 
-		actions = ["up-left", "up", "up-right", "left","right", "down-left", "down", "down-right"]
+		actions = ["up-left", "up", "up-right", "left", "still", "right", "down-left", "down", "down-right"] # ! dont delete still from this list
 
 		legals = [a for i, a in enumerate(actions) if surroundings.flatten()[i] and a != "still"]
 		if not legals: raise ValueError

@@ -25,6 +25,10 @@ class Agent:
 		self.env = env
 		self.actions()
 
+		# Save a copy of the initial free_states
+		self.free_states = self.env.free_states.copy()
+		self.maze_image = self.env.maze_image.copy()
+
 		self.states_to_block_mb_lambda = [[9, 5], [10, 5], [9, 6], [10, 6]]
 		self.states_to_block_mf_lambda = [x[::-1] for x in self.states_to_block_mb_lambda]
 
@@ -86,7 +90,6 @@ class TDRL(Agent):
 		# Define empty Q table and learning params
 		self.Q = self.empty_policy()
 
-
 		# Parameters
 		self.max_iters = 301
 		self.max_steps = round(self.env.grid_size**2 / 2)
@@ -95,20 +98,17 @@ class TDRL(Agent):
 		self.alpha = 1     # how much to value new experience, in a deterministic world set as 1
 		self.gamma = .99    # discount on future rewards, the higher the less discount
 
-		# Save a copy of the initial free_states
-		self.free_states = self.env.free_states.copy()
-		self.maze_image = self.env.maze_image.copy()
-
+		
 
 	def empty_policy(self):
 		return np.zeros((self.env.grid_size, self.env.grid_size, len(self.actions)))
 
 	def run(self):
 		# prep figure
-		f, axarr =  plt.subplots(ncols=3, nrows=2)
+		f, axarr =  plt.subplots(ncols=4, nrows=2)
 
 		# Train on vanilla environment
-		self.train(plot=True)
+		self.train(plot=False)
 
 		# Plot the shortest path given the environment
 		walk = self.shortest_walk_f()
@@ -122,22 +122,36 @@ class TDRL(Agent):
 		self.plot_walk(walk, ax=axarr[1, 1], blocked = self.states_to_block_mf_lambda)
 
 		# Train with blocked lambda to visualise policy update
-		self.env.randomise_start = False
-		self.train(plot=True)
+		self.train(plot=False)
 
 		# Re train (to re-initialise stuff)
-		self.env.free_states = self.free_states.copy()  # restore original free states
-		self.env.maze_image = self.maze_image.copy()
-		self.train()
+		self.reset_trained()
 
 		# Block ALPHA and get the shortest path
 		self.introduce_blockage('alpha0')
 		walk = self.shortest_walk_f()
-		self.plot_policy(ax=axarr[0, 2], title="Bocked ALPHA")
+		self.plot_policy(ax=axarr[0, 2], title="Bocked ALPHA0")
 		self.plot_walk(walk, ax=axarr[1, 2], blocked = self.states_to_block_mf_alpha0)
 
 		# Train with blocked alpha to visualise policy update
-		self.train(plot=True)
+		self.train(plot=False)
+
+		# Re train (to re-initialise stuff)
+		self.reset_trained()
+
+		# Block both ALPHA and get the shortest path
+		self.introduce_blockage('alpha')
+		walk = self.shortest_walk_f()
+		self.plot_policy(ax=axarr[0, 3], title="Bocked ALPHAs")
+		self.plot_walk(walk, ax=axarr[1, 3], blocked = self.states_to_block_mf_alpha0)
+
+		self.reset_trained()
+
+
+	def reset_trained(self):
+		self.env.free_states = self.free_states.copy()  # restore original free states
+		self.env.maze_image = self.maze_image.copy()
+		self.train()
 
 	def train(self, plot=False):
 		print("Training")
@@ -224,12 +238,16 @@ class TDRL(Agent):
 
 	def plot_policy(self, ax, title):
 		ax.imshow(np.rot90(np.sum(self.Q, 2), 3)[:, ::-1])
+
 		ax.set(title=title, xticks=[], yticks=[])
 
 	def introduce_blockage(self, bridge):
 		if 'lambda' in bridge: blocks = self.states_to_block_mf_lambda
-		elif bridge=='alpha1': blocks = self.states_to_block_mb_alpha1
-		elif bridge=='alpha0': blocks = self.states_to_block_mb_alpha0
+		elif bridge=='alpha1': blocks = self.states_to_block_mf_alpha1
+		elif bridge=='alpha0': blocks = self.states_to_block_mf_alpha0
+		else:
+			blocks = self.states_to_block_mf_alpha1
+			blocks.extend(self.states_to_block_mf_alpha0)
 
 		for block in blocks:
 			self.Q[block[1], block[0], :] = 0
