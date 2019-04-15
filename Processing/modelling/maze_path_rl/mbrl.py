@@ -33,22 +33,23 @@ class MBRL(Agent):
 		self.R = np.zeros(len(self.env.free_states))		# Reward function
 		self.V = np.zeros(len(self.env.free_states))		# Value function
 
-		self.n_steps = 1000
+		self.n_steps = 10000
 
 	def run(self):
 		# prep figure
-		f, axarr =  plt.subplots(ncols=4, nrows=2)
+		f, axarr =  plt.subplots(ncols=4, nrows=3)
 
 		# Learn the reward and transitions functions
 		exploration = self.do_random_walk()
 
 		# Perform value estimation
 		self.value_estimation()
-		self.plot_func("V", ax=axarr[0, 0], ttl="MB - Naive")
+		self.plot_func("P", ax=axarr[0, 0], ttl="MB - Naive")
+		self.plot_func("V", ax=axarr[1, 0], ttl="")
 
 		# Do a walk and plot
 		walk = self.walk_with_state_transitions()
-		self.plot_walk(walk, ax=axarr[1, 0])
+		self.plot_walk(walk, ax=axarr[2, 0])
 
 		# Introduce blocage on LAMBDA
 		self.introduce_blockage('lambda')
@@ -58,21 +59,23 @@ class MBRL(Agent):
 		self.value_estimation()
 		
 		walk = self.walk_with_state_transitions()
-		self.plot_func("V", ax=axarr[0, 1], ttl="Blocked LAMBDA")
-		self.plot_walk(walk,ax=axarr[1, 1])
+		self.plot_func("P", ax=axarr[0, 1], ttl="Blocked LAMBDA")
+		self.plot_func("V", ax=axarr[1, 1], ttl="")
+		self.plot_walk(walk,ax=axarr[2, 1])
 
 		# Relearn state transitions (reset to before blockage)
 		self.reset()
 		self.do_random_walk()
 
 		# Block alpha and do a walk
-		self.introduce_blockage("alpha0")
+		self.introduce_blockage("alpha1")
 		self.reset_values()
 		self.value_estimation()
 		walk = self.walk_with_state_transitions()
 
-		self.plot_func("V", ax=axarr[0, 2], ttl="Blocked - ALPHA0")
-		self.plot_walk(walk, ax=axarr[1, 2])
+		self.plot_func("P", ax=axarr[0, 2], ttl="Blocked - ALPHA1")
+		self.plot_func("V", ax=axarr[1, 2], ttl="")
+		self.plot_walk(walk, ax=axarr[2, 2])
 
 		# Reset and repeat with both alphas closed
 		self.reset()
@@ -82,8 +85,9 @@ class MBRL(Agent):
 		self.value_estimation()
 		walk = self.walk_with_state_transitions()
 
-		self.plot_func("V", ax=axarr[0, 3], ttl="Blocked - ALPHAs")
-		self.plot_walk(walk, ax=axarr[1, 3])
+		self.plot_func("P", ax=axarr[0, 3], ttl="Blocked - ALPHAs")
+		self.plot_func("V", ax=axarr[1, 3], ttl="")
+		self.plot_walk(walk, ax=axarr[2, 3])
 
 		self.reset()
 
@@ -101,9 +105,13 @@ class MBRL(Agent):
 		if func == "R":
 			policy = self.R
 			title = ttl + " - reward function"
-		else: 
-			title = ttl + "- value function"
+		elif func=='V': 
+			title = ttl + " - value function"
 			policy = self.V
+		else:
+			title = ttl + " - transition function"
+			# policy = np.sum(self.P, 1)[:, 0]
+			policy = np.sum(np.sum(self.P, 2),1)
 
 		# Create an image
 		img = np.full(self.env.maze_image.shape, -1)
@@ -141,21 +149,29 @@ class MBRL(Agent):
 		return walk
 	
 	def estimate_state_value(self, state):
+		# Get the reward at the current state
 		idx = self.get_state_index(state)
 		reward = self.R[idx]
 
+		# Get which actions can be perfomed and the values of the states they lead to
 		valid_actions = self.get_valid_actions(state)
-
-		landing_states_values = [self.V[si] for si, a in valid_actions]
+		landing_states_values = [self.V[si] for si, a, p in valid_actions]
 
 		if landing_states_values:
-
+			# If the landing states don't have values, choose a random one
 			if not np.max(landing_states_values) == 0:
 				action_prob = softmax(landing_states_values)   # ? policy <- select highest value option with higher freq
 			else:
+				# Each action has equal probability of bein selected
 				action_prob = [1/len(valid_actions) for i in np.arange(len(valid_actions))]
 
-			value = np.sum([action_prob[i] * self.V[s1] for i, (s1,a) in enumerate(valid_actions)])
+			# The value of the current state is given by the sum for each action of the product of:
+			# the probability of taking the action
+			# the value of the landing state
+			# the probaility of taking getting to the state (transtion function)
+			if [p for s,a,p in valid_actions if p<1]:
+				 a= 1
+			value = np.sum([action_prob[i] * self.V[s1] * p for i, (s1,a, p) in enumerate(valid_actions)])
 			self.V[idx] = reward + value
 		
 
@@ -173,7 +189,9 @@ class MBRL(Agent):
 		idx = self.get_state_index(state)
 		valid_actions = []
 		for state_idx, state in enumerate(self.P[idx]):
-			[valid_actions.append((state_idx, action)) for action, p in enumerate(state) if p > 0]
+			if [p for p in state if 0<p<1]:
+				a = 1
+			[valid_actions.append((state_idx, action, p)) for action, p in enumerate(state) if p > 0]
 		return valid_actions
 
 	def walk_with_state_transitions(self):
@@ -185,7 +203,7 @@ class MBRL(Agent):
 
 			current_index = self.get_state_index(curr)
 			valid_actions = self.get_valid_actions(curr)
-			values = [self.V[si] for si,a in valid_actions]
+			values = [self.V[si] for si,a,p in valid_actions]
 
 			# softmax_choice = random.choices(valid_actions, k=1, weights=softmax(values))[0]
 			# selected = self.env.free_states[softmax_choice[0]]
@@ -197,20 +215,6 @@ class MBRL(Agent):
 		walk.append(curr)
 		return walk
 
-	def mental_simulations(self, ttl, n_walks = 1):
-		walks = [self.walk_with_state_transitions() for i in np.arange(n_walks)]
-		min_len = np.min([len(w) for w in walks])
-		shortest = [w for w in walks if len(w)==min_len][0]
-
-		self.plot_walk(shortest, "MB - "+ttl)
-
-	def plot_transitions_func(self):
-		ncols = self.P.shape[-1]
-		f, axarr = plt.subplots(ncols = 3, nrows=3)
-		axarr = axarr.flatten()
-		for i, ax in zip(np.arange(ncols), axarr):
-			ax.imshow(self.P[:, :, i])
-			ax.set(title=list(self.actions.keys())[i])
 
 	def step(self, policy, current):
 		legal_actions = [a for a in self.env.get_available_moves(current) if a != "still" not in a]
@@ -220,7 +224,7 @@ class MBRL(Agent):
 		action_n = [k for k,v in self.actions.items() if v == action][0]
 		return self.enact_step(current, action), action_n
 
-	def introduce_blockage(self, bridge):
+	def introduce_blockage(self, bridge, p=.1):
 		if 'lambda' in bridge: blocks = self.states_to_block_mb_lambda
 		elif bridge=='alpha1': blocks = self.states_to_block_mb_alpha1
 		elif bridge=='alpha0': blocks = self.states_to_block_mb_alpha0
@@ -228,16 +232,17 @@ class MBRL(Agent):
 			blocks = self.states_to_block_mb_alpha1
 			blocks.extend(self.states_to_block_mb_alpha0)
 
-
+		actions_to_block = [0, 1, 2, 4, 5] # Only actions between left, up, right should be blocked
+		
 		for state in blocks:
 			try:
 				idx = self.get_state_index(state)
 			except:
 				pass
 			else:
-				self.P[:, idx] = 0
+				self.P[:, idx, actions_to_block] = p
 
-			self.env.maze_image[state[1], state[0]] = 0 
+			self.env.maze_image[state[1], state[0]] = p
 			
 
 
