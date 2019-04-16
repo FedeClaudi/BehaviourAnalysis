@@ -71,12 +71,17 @@ class Agent:
 			nxt[1] += down
 		return nxt
 
-	def plot_walk(self, walk, ax=None, blocked=None, background=True):
+	def plot_walk(self, walk, ax=None, blocked=None, background=True, multiple=False):
 		if ax is None:
 			f,ax = plt.subplots()
-		if background: ax.imshow(self.env.maze_image, cmap="Greys_r")
-		ax.scatter(np.vstack(walk)[:, 0], np.vstack(walk)[:, 1],
-				c = np.arange(len(walk)), s=150)
+
+		if background: 
+			ax.imshow(self.env.maze_image, cmap="Greys_r")
+
+		if not multiple:
+			ax.scatter(np.vstack(walk)[:, 0], np.vstack(walk)[:, 1], c = np.arange(len(walk)), s=150)
+		else:
+			ax.scatter(np.vstack(walk)[:, 0], np.vstack(walk)[:, 1], alpha=.4, s=100)
 
 		if blocked:
 			ax.scatter([y for x,y in blocked], [x for x,y in blocked], c='r', s=250, alpha=.4)

@@ -17,6 +17,7 @@ from scipy.special import softmax
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.ndimage.filters import gaussian_filter
 from tqdm import tqdm 
+from scipy.special import expit as sigmoid
 
 
 from Processing.modelling.maze_path_rl.tdrl import Agent
@@ -207,7 +208,6 @@ class MBRL(Agent):
 				value += action_value # the value is the sum across all action values
 
 		self.V[idx] = value
-
 		
 	def value_estimation(self, ax=None):
 		print("\n\nValue estimation")
@@ -226,38 +226,60 @@ class MBRL(Agent):
 
 		return valid_actions
 
-	def walk_with_state_transitions(self, start=None, probabilistic = False):
+	def walk_with_state_transitions(self, start=None, probabilistic = False, avoid_states=[]):
 		if start is None:
 			curr = self.env.start.copy()
 		else: 
 			curr = self.second_start_position.copy()
 
-		walk = []
+		walk, walk_idxs = [], []
 
-		for step in np.arange(100):
+		reached_goal = False
+		for step in np.arange(50):
 			walk.append(curr)
 
 			current_index = self.get_state_index(curr)
+			walk_idxs.append(current_index)
 			valid_actions = self.get_valid_actions(curr)
+			
+			if avoid_states: # avoid going to states visited during previous walks
+				if step > 3:
+					valid_actions = [(s,a,p) for s,a,p in valid_actions if s not in avoid_states and a not in [3] and s not in walk_idxs]
+					if not valid_actions: break
+
 			values = [self.V[si] for si,a,p in valid_actions]
 
 			if not probabilistic: # choose the action lading to the state with the highest value
 				selected = self.env.free_states[valid_actions[np.argmax(values)][0]]
 			else:  # choose the actions with a probability proportional to their relative value
-				selected = self.env.free_states[random.choices(valid_actions, weights=softmax(values), k=1)[0]]
+				selected = self.env.free_states[random.choices(valid_actions, weights=softmax(values), k=1)[0][0]]
 			curr = selected
 
-			if curr == self.env.goal or dist(self.env.goal, curr) < 2: break
-		walk.append(curr)
-		return walk
+			if curr == self.env.goal or dist(self.env.goal, curr) < 2: 
+				reached_goal = True
+				break
+
+		if reached_goal:
+			walk.append(curr)
+			return walk
+		# else:
+		# 	print("Walk didnt reach the shelter sorry")
 
 
-	def do_probabilistic_walks(self, n=10):
-		walks = [self.walk_with_state_transitions(probabilistic=True) for i in np.arange(n)]
+	def do_probabilistic_walks(self, n=100):
+		visited, walks = [], []
+		for i in np.arange(n):
+			walk = self.walk_with_state_transitions(probabilistic=True, avoid_states=visited)
+			if walk is None: continue
+			else:
+				visited.extend([self.get_state_index(s) for s in walk])
+				walks.append(walk)
+
 		f, ax = plt.subplots()
 		ax.imshow(self.env.maze_image, cmap="Greys_r")
 		for walk in walks:
-			self.plot_walk(walk, background=False)
+			if walk is not None:
+				self.plot_walk(walk, ax=ax, background=False, multiple=True)
 
 
 	def step(self, policy, current):
