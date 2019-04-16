@@ -17,7 +17,7 @@ from Processing.modelling.maze_path_rl.mbrl import MBRL
 
 
 randomise_start_during_training = False
-run_model_free = True
+run_model_free = False
 run_model_based = True
 
 
@@ -62,7 +62,10 @@ if __name__ == "__main__":
 
 	if run_model_based:
 		model = MBRL(env)
-		model.run()
+		# model.run()
+		model.explore()
+		model.value_estimation()
+		model.do_probabilistic_walks()
 		
 
 

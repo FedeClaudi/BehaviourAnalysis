@@ -25,6 +25,8 @@ class Agent:
 		self.env = env
 		self.actions()
 
+		self.second_start_position = [9, 9]
+
 		# Save a copy of the initial free_states
 		self.free_states = self.env.free_states.copy()
 		self.maze_image = self.env.maze_image.copy()
@@ -69,10 +71,10 @@ class Agent:
 			nxt[1] += down
 		return nxt
 
-	def plot_walk(self, walk, ax=None, blocked=None):
+	def plot_walk(self, walk, ax=None, blocked=None, background=True):
 		if ax is None:
 			f,ax = plt.subplots()
-		ax.imshow(self.env.maze_image, cmap="Greys_r")
+		if background: ax.imshow(self.env.maze_image, cmap="Greys_r")
 		ax.scatter(np.vstack(walk)[:, 0], np.vstack(walk)[:, 1],
 				c = np.arange(len(walk)), s=150)
 
@@ -105,7 +107,7 @@ class TDRL(Agent):
 
 	def run(self):
 		# prep figure
-		f, axarr =  plt.subplots(ncols=4, nrows=2)
+		f, axarr =  plt.subplots(ncols=5, nrows=2)
 
 		# Train on vanilla environment
 		self.train(plot=False)
@@ -145,13 +147,23 @@ class TDRL(Agent):
 		self.plot_policy(ax=axarr[0, 3], title="Bocked ALPHAs")
 		self.plot_walk(walk, ax=axarr[1, 3], blocked = self.states_to_block_mf_alpha0)
 
+		# Reset again
 		self.reset_trained()
 
+		# Make a trial from secondary start point
+		self.introduce_blockage('lambda')
+		walk = self.shortest_walk_f(start='secondary')
+		self.plot_policy(ax=axarr[0, 4], title="Start at P")
+		self.plot_walk(walk, ax=axarr[1, 4],  blocked = self.states_to_block_mf_lambda)
 
-	def reset_trained(self):
+		# reset but dont trian
+		self.reset_trained(train=False)
+
+
+	def reset_trained(self, train=True):
 		self.env.free_states = self.free_states.copy()  # restore original free states
-		self.env.maze_image = self.maze_image.copy()
-		self.train()
+		self.env.maze_image = self.maze_image.copy()		
+		if train: self.train()
 
 	def train(self, plot=False):
 		print("Training")
@@ -218,7 +230,7 @@ class TDRL(Agent):
 		if start is None:
 			curr = self.env.start.copy()
 		else:
-			curr = start.copy()
+			curr = self.second_start_position.copy()
 
 		step_n = 0
 		# do each step

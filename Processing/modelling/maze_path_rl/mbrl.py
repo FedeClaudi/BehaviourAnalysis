@@ -2,7 +2,6 @@ import sys
 sys.path.append('./')
 import matplotlib.pyplot as plt
 import numpy as np
-from Processing.tracking_stats.math_utils import calc_distance_between_points_in_a_vector_2d as dist
 from Processing.tracking_stats.math_utils import calc_distance_between_points_2d as dist
 from math import exp  
 import json
@@ -27,7 +26,7 @@ class MBRL(Agent):
 	def __init__(self, env):
 		Agent.__init__(self, env)
 
-		self.value_est_iters = 10
+		self.value_est_iters = 50
 
 		self.P = self.define_transitions_func()    			# transition function
 		self.R = np.zeros(len(self.env.free_states))		# Reward function
@@ -37,10 +36,10 @@ class MBRL(Agent):
 
 	def run(self):
 		# prep figure
-		f, axarr =  plt.subplots(ncols=4, nrows=3)
+		f, axarr =  plt.subplots(ncols=5, nrows=3)
 
 		# Learn the reward and transitions functions
-		exploration = self.do_random_walk()
+		exploration = self.explore()
 
 		# Perform value estimation
 		self.value_estimation()
@@ -63,9 +62,20 @@ class MBRL(Agent):
 		self.plot_func("V", ax=axarr[1, 1], ttl="")
 		self.plot_walk(walk,ax=axarr[2, 1])
 
+		# Do one trial starting at P with LAMBDA *fully* closed
+		self.introduce_blockage('lambda', p=0)
+
+		self.reset_values()
+		self.value_estimation()
+		walk = self.walk_with_state_transitions(start="secondary")
+		self.plot_func("P", ax=axarr[0, 4], ttl="Start at P")
+		self.plot_func("V", ax=axarr[1, 4], ttl="")
+		self.plot_walk(walk,ax=axarr[2, 4])
+
+
 		# Relearn state transitions (reset to before blockage)
 		self.reset()
-		self.do_random_walk()
+		self.explore()
 
 		# Block alpha and do a walk
 		self.introduce_blockage("alpha1")
@@ -79,7 +89,7 @@ class MBRL(Agent):
 
 		# Reset and repeat with both alphas closed
 		self.reset()
-		self.do_random_walk()
+		self.explore()
 		self.introduce_blockage("alpha")
 		self.reset_values()
 		self.value_estimation()
@@ -110,11 +120,12 @@ class MBRL(Agent):
 			policy = self.V
 		else:
 			title = ttl + " - transition function"
+			policy = self.P.copy()
+			policy[policy == 0] = np.nan
 			# policy = np.sum(self.P, 1)[:, 0]
-			policy = np.sum(np.sum(self.P, 2),1)
-
+			policy = np.nanmin(np.nanmin(policy, 2),1)
 		# Create an image
-		img = np.full(self.env.maze_image.shape, -1)
+		img = np.full(self.env.maze_image.shape, np.nan)
 		for i, (x,y) in enumerate(self.env.free_states):
 			img[x,y] = policy[i]
 
@@ -123,9 +134,9 @@ class MBRL(Agent):
 		ax.set(title = title, xticks=[], yticks=[])
 
 	def define_transitions_func(self):
-		return np.zeros((len(self.env.free_states), len(self.env.free_states), len(self.actions))).astype(np.int8)
+		return np.zeros((len(self.env.free_states), len(self.env.free_states), len(self.actions))).astype(np.float16)
 
-	def do_random_walk(self):
+	def explore(self):
 		curr = self.env.start.copy()
 		walk = []
 
@@ -155,26 +166,49 @@ class MBRL(Agent):
 
 		# Get which actions can be perfomed and the values of the states they lead to
 		valid_actions = self.get_valid_actions(state)
-		landing_states_values = [self.V[si] for si, a, p in valid_actions]
+		landing_states_values = [self.V[si] for si, a, p in valid_actions] #  get the values of the landing states to guide the prob of action selection
+		if not np.any(landing_states_values): 
+			action_probs = [1/len(valid_actions) for i in np.arange(len(valid_actions))]  # if landing states have no values choose each random with same prob
+		else:
+			action_probs = softmax(landing_states_values)
 
-		if landing_states_values:
-			# If the landing states don't have values, choose a random one
-			if not np.max(landing_states_values) == 0:
-				action_prob = softmax(landing_states_values)   # ? policy <- select highest value option with higher freq
-			else:
-				# Each action has equal probability of bein selected
-				action_prob = [1/len(valid_actions) for i in np.arange(len(valid_actions))]
+		"""
+			landing_states_values = [self.V[si] for si, a, p in valid_actions]
 
-			# The value of the current state is given by the sum for each action of the product of:
-			# the probability of taking the action
-			# the value of the landing state
-			# the probaility of taking getting to the state (transtion function)
-			if [p for s,a,p in valid_actions if p<1]:
-				 a= 1
-			value = np.sum([action_prob[i] * self.V[s1] * p for i, (s1,a, p) in enumerate(valid_actions)])
-			self.V[idx] = reward + value
+			if landing_states_values:
+				# If the landing states don't have values, choose a random one
+				if not np.max(landing_states_values) == 0:
+					action_prob = softmax(landing_states_values)   # ? policy <- select highest value option with higher freq
+				else:
+					# Each action has equal probability of bein selected
+					action_prob = [1/len(valid_actions) for i in np.arange(len(valid_actions))]
+
+				# The value of the current state is given by the sum for each action of the product of:
+				# the probability of taking the action
+				# the value of the landing state
+				# the probaility of taking getting to the state (transtion function)
+
+				value = np.sum([action_prob[i] * self.V[s1] * p for i, (s1,a, p) in enumerate(valid_actions)])
+				self.V[idx] = reward + value
+		"""
+		value = 0 # initialise the value as 0
+		if valid_actions:
+			for (s1_idx, action, transition_prob), action_prob in zip(valid_actions, action_probs):
+				r = self.R[s1_idx]  # reward at landing state
+				# transition_prob = probability of reaching s1 given s0,a -> p(s1|s0, a)
+				# action_prob = pi(a|s) -> probability of taking action a given state s and policy pi
+				s1_val = self.V[s1_idx]  # value of s1
+
+				if 0 < transition_prob < 1 and s1_val > 0:
+					a =1 
+
+				#action value: pi(a|s0)    * p(s1|s0,a)      *  [R(s)+V(s1)]
+				action_value = action_prob * transition_prob *  (r + s1_val)
+				value += action_value # the value is the sum across all action values
+
+		self.V[idx] = value
+
 		
-
 	def value_estimation(self, ax=None):
 		print("\n\nValue estimation")
 		for i in tqdm(range(self.value_est_iters)):
@@ -184,18 +218,20 @@ class MBRL(Agent):
 		if ax is not None:
 			ax.scatter([x for x,y in self.env.free_states], [y for x,y in self.env.free_states], c=self.V)
 			
-
 	def get_valid_actions(self, state):
 		idx = self.get_state_index(state)
 		valid_actions = []
 		for state_idx, state in enumerate(self.P[idx]):
-			if [p for p in state if 0<p<1]:
-				a = 1
 			[valid_actions.append((state_idx, action, p)) for action, p in enumerate(state) if p > 0]
+
 		return valid_actions
 
-	def walk_with_state_transitions(self):
-		curr = self.env.start.copy()
+	def walk_with_state_transitions(self, start=None, probabilistic = False):
+		if start is None:
+			curr = self.env.start.copy()
+		else: 
+			curr = self.second_start_position.copy()
+
 		walk = []
 
 		for step in np.arange(100):
@@ -205,15 +241,23 @@ class MBRL(Agent):
 			valid_actions = self.get_valid_actions(curr)
 			values = [self.V[si] for si,a,p in valid_actions]
 
-			# softmax_choice = random.choices(valid_actions, k=1, weights=softmax(values))[0]
-			# selected = self.env.free_states[softmax_choice[0]]
-
-			selected = self.env.free_states[valid_actions[np.argmax(values)][0]]
+			if not probabilistic: # choose the action lading to the state with the highest value
+				selected = self.env.free_states[valid_actions[np.argmax(values)][0]]
+			else:  # choose the actions with a probability proportional to their relative value
+				selected = self.env.free_states[random.choices(valid_actions, weights=softmax(values), k=1)[0]]
 			curr = selected
 
-			if curr == self.env.goal: break
+			if curr == self.env.goal or dist(self.env.goal, curr) < 2: break
 		walk.append(curr)
 		return walk
+
+
+	def do_probabilistic_walks(self, n=10):
+		walks = [self.walk_with_state_transitions(probabilistic=True) for i in np.arange(n)]
+		f, ax = plt.subplots()
+		ax.imshow(self.env.maze_image, cmap="Greys_r")
+		for walk in walks:
+			self.plot_walk(walk, background=False)
 
 
 	def step(self, policy, current):
@@ -224,7 +268,7 @@ class MBRL(Agent):
 		action_n = [k for k,v in self.actions.items() if v == action][0]
 		return self.enact_step(current, action), action_n
 
-	def introduce_blockage(self, bridge, p=.1):
+	def introduce_blockage(self, bridge, p=.3):
 		if 'lambda' in bridge: blocks = self.states_to_block_mb_lambda
 		elif bridge=='alpha1': blocks = self.states_to_block_mb_alpha1
 		elif bridge=='alpha0': blocks = self.states_to_block_mb_alpha0
@@ -240,8 +284,9 @@ class MBRL(Agent):
 			except:
 				pass
 			else:
-				self.P[:, idx, actions_to_block] = p
-
+				# Get all the states-actions leading to state and set the probability to p
+				self.P[:, idx] = np.where(self.P[:, idx], p, self.P[:, idx])
+				
 			self.env.maze_image[state[1], state[0]] = p
 			
 
