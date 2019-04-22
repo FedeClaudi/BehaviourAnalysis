@@ -132,7 +132,6 @@ class Modeller:
         pm.posteriorplot.plot_posterior(burned_trace)
         plt.show()
 
-
     def model_individuals(self):
 
         asym_escapes, sym_escapes = self.get_individuals_data()
@@ -177,22 +176,32 @@ class Modeller:
         print("Setting up model")
         with pm.Model() as model:
             # model individuals - not hierarcical
-            individuals_asym = pm.Uniform("individuals_asym", 0, 1, shape=len(asym_trials))
-            indi_obs_asym = pm.Binomial('indi_obs_asym', n=asym_trials, p=individuals_asym, observed=asym_hits)
+            # individuals_asym = pm.Uniform("individuals_asym", 0, 1, shape=len(asym_trials))
+            # indi_obs_asym = pm.Binomial('indi_obs_asym', n=asym_trials, p=individuals_asym, observed=asym_hits)
 
-            individuals_sym = pm.Uniform("individuals_sym", 0, 1, shape=len(sym_trials))
-            indi_obs_sym = pm.Binomial('indi_obs_sym', n=sym_trials, p=individuals_sym, observed=sym_hits)
+            # individuals_sym = pm.Uniform("individuals_sym", 0, 1, shape=len(sym_trials))
+            # indi_obs_sym = pm.Binomial('indi_obs_sym', n=sym_trials, p=individuals_sym, observed=sym_hits)
 
             # Model individuals - hierarchical
-            hyperpriors_alfa = pm.Uniform('hyperpriors_alfa', .1, 10, shape=2)
-            hyperpriors_beta = pm.Uniform('hyperpriors_beta', .1, 10, shape=2)
+            hyperpriors_alfa = pm.Uniform('hyperpriors_alfa', .1, 5, shape=2)
+            hyperpriors_beta = pm.Uniform('hyperpriors_beta', .1, 5, shape=2)
 
             asym_hierarchical = pm.Beta('asym_hierarchical', alpha=hyperpriors_alfa[0], beta=hyperpriors_beta[0], shape=len(asym_trials))
-            obs_asym = pm.Binomial('obs_asym', n=asym_trials, p=asym_hierarchical, observed=asym_hits)
-            
+            obs_asym_h = pm.Binomial('obs_asym', n=asym_trials, p=asym_hierarchical, observed=asym_hits)
+
 
             sym_hierarchical = pm.Beta('sym_hierarchicalsym', alpha=hyperpriors_alfa[1], beta=hyperpriors_beta[1], shape=len(sym_trials))
-            obs_sym = pm.Binomial('obs_sym', n=sym_trials, p=sym_hierarchical, observed=sym_hits)
+            obs_sym_h = pm.Binomial('obs_sym', n=sym_trials, p=sym_hierarchical, observed=sym_hits)
+
+            # extra params of the beta distributions for visualisation
+            kappa_asym = pm.Deterministic('kappa_asym', hyperpriors_alfa[0] + hyperpriors_beta[0])
+            kappa_sym = pm.Deterministic('kappa_sym', hyperpriors_alfa[1] + hyperpriors_beta[1])
+
+            mu_asym = pm.Deterministic('mu_asym', hyperpriors_alfa[0] / (hyperpriors_alfa[0] + hyperpriors_beta[0]))
+            mu_sym = pm.Deterministic('mu_sym', hyperpriors_alfa[1] / (hyperpriors_alfa[1] + hyperpriors_beta[1]))
+
+            sigma_asym = pm.Deterministic('sigma_asym', (hyperpriors_alfa[0] - 1) / (hyperpriors_alfa[0] + hyperpriors_beta[0] - 2))
+            sigma_sym = pm.Deterministic('sigma_sym', (hyperpriors_alfa[1] - 1) / (hyperpriors_alfa[1] + hyperpriors_beta[1] - 2))
 
             # Model grouped
             asym_grouped = pm.Uniform("p_asym_grouped", 0, 1)
@@ -203,9 +212,57 @@ class Modeller:
 
 
 
-            burned_trace = pm.sample(1000, tune=2000, nuts_kwargs={'target_accept': 0.95}) # , cores=1, chains=4)
+            burned_trace = pm.sample(2000, tune=2000, nuts_kwargs={'target_accept': 0.95}) # , cores=1, chains=4)
 
         pm.traceplot(burned_trace,)
+
+        trace = pm.trace_to_dataframe(burned_trace)
+
+        nrows = 6
+        f, axarr = plt.subplots(ncols=2, nrows=nrows)
+        r = np.random.uniform(0, 5, 10000)
+        axarr[0,0].hist(r, histtype='step', color='k', density=True)
+        axarr[0,0].hist(trace.hyperpriors_alfa__0, histtype='stepfilled', color='r', alpha=.75, density=True)
+
+        axarr[0,1].hist(r, histtype='step', color='k', density=True)
+        axarr[0,1].hist(trace.hyperpriors_alfa__1, histtype='stepfilled', color='r', alpha=.75, density=True)
+
+
+        axarr[1,0].hist(r, histtype='step', color='k', density=True)
+        axarr[1,0].hist(trace.hyperpriors_beta__0, histtype='stepfilled', color='r', alpha=.75, density=True)
+
+        axarr[1,1].hist(r, histtype='step', color='k', density=True)
+        axarr[1,1].hist(trace.hyperpriors_beta__1, histtype='stepfilled', color='r', alpha=.75, density=True)
+
+        for c in list(trace.columns):
+            if 'asym_hierarchical__' in c:
+                ax = axarr[2, 0]
+            elif 'sym_hierarchicalsym__' in c:
+                ax = axarr[2, 1]
+            else: continue
+            ax.hist(trace[c], histtype='step', alpha=.75, density=True)
+
+        axarr[3, 0].hist(trace.mu_asym, histtype='stepfilled', color='r', alpha=.75, density=True)
+        axarr[3, 1].hist(trace.mu_sym, histtype='stepfilled', color='r', alpha=.75, density=True)
+        axarr[4, 0].hist(trace.sigma_asym, histtype='stepfilled', color='r', alpha=.75, density=True)
+        axarr[4, 1].hist(trace.sigma_sym, histtype='stepfilled', color='r', alpha=.75, density=True)
+        axarr[5, 0].hist(trace.kappa_asym, histtype='stepfilled', color='r', alpha=.75, density=True)
+        axarr[5, 1].hist(trace.kappa_sym, histtype='stepfilled', color='r', alpha=.75, density=True)
+
+        titles = ['A hyper', 'B hyper', 'Posteriors', 'mu', 'omega', 'kappa']
+        for i, t in zip(np.arange(nrows), titles):
+            for ii in np.arange(2):
+                if i == 0 and ii == 0:
+                   t = t + ' asymmetric'
+                elif i == 0 and ii == 1:
+                    t = t + ' symmetric'
+
+                axarr[i, ii].set(title=t)
+
+
+
+        plt.show()
+
 
         a = pm.model_to_graphviz(model)
         a.render('Processing/modelling/bayesian/test', view=True)
@@ -325,4 +382,5 @@ class Modeller:
 
 if __name__ == "__main__":
     mod = Modeller()
-    mod.summary_plot()
+    mod.model_individuals_hierarchical()
+    # mod.summary_plot()

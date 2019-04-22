@@ -65,7 +65,7 @@ class ClipWriter:
 
     def prep_squares(self):
         n_squares = len(self.stimuli.keys())
-        centers = np.linspace(20, self.width-20, n_squares-1)
+        centers = np.linspace(20, self.width-20, n_squares)
 
         complete_centers = [(int(c), int(self.height - (self.height*.95))) for c in centers]
 
@@ -78,7 +78,7 @@ class ClipWriter:
         pre_stim = self.fps*1
         post_stim = self.fps*11
 
-        for stim_number, (stim_start, stim_dur) in enumerate(self.stimuli.values()):
+        for stim_number, (stim_start, stim_dur) in enumerate(sorted(self.stimuli.values())):
             print('Adding new trial to the clip')
             # Get start and stop frames
             clip_start = stim_start-pre_stim
@@ -218,10 +218,10 @@ def create_trials_clips(prestim=3, poststim=25, clean_vids=True, plt_pose=False)
     videoname = None
     for recn, rec in enumerate(recs.fetch(as_dict=True)):
         # Get the stim table entry and clip ame
-        print('Processing recording {} of {}'.format(recn, len(recs.fetch())))
         if rec['uid']<260: 
-            print(' ... skipped')
             continue
+            
+        print('Processing recording {} of {}'.format(recn, len(recs.fetch())))
 
         if rec['software'] == 'behaviour':
             stims = [s for s in behav_stims if s['recording_uid']==rec['recording_uid']]

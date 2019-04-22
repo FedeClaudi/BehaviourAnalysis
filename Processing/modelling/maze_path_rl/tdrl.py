@@ -83,8 +83,8 @@ class Agent:
 		else:
 			ax.scatter(np.vstack(walk)[:, 0], np.vstack(walk)[:, 1], alpha=.4, s=100)
 
-		if blocked:
-			ax.scatter([y for x,y in blocked], [x for x,y in blocked], c='r', s=250, alpha=.4)
+		# if blocked:
+		# 	ax.scatter([y for x,y in blocked], [x for x,y in blocked], c='r', s=250, alpha=.4)
 		ax.set(xticks=[], yticks=[])
 
 	def get_state_index(self, state):
@@ -98,12 +98,12 @@ class TDRL(Agent):
 		self.Q = self.empty_policy()
 
 		# Parameters
-		self.max_iters = 301
+		self.max_iters = 300
 		self.max_steps = round(self.env.grid_size**2 / 2)
 
 		self.epsilon = .95  # the higher the less greedy
 		self.alpha = 1     # how much to value new experience, in a deterministic world set as 1
-		self.gamma = .99    # discount on future rewards, the higher the less discount
+		self.gamma = .8    # discount on future rewards, the higher the less discount
 
 		
 
@@ -254,7 +254,9 @@ class TDRL(Agent):
 		return walk
 
 	def plot_policy(self, ax, title):
-		ax.imshow(np.rot90(np.sum(self.Q, 2), 3)[:, ::-1])
+		policy = np.rot90(np.mean(self.Q, 2), 3)[:, ::-1]
+		policy[policy == 0] = np.nan
+		ax.imshow(policy)
 
 		ax.set(title=title, xticks=[], yticks=[])
 

@@ -62,10 +62,11 @@ if __name__ == "__main__":
 
 	if run_model_based:
 		model = MBRL(env)
-		# model.run()
-		model.explore()
-		model.value_estimation()
-		model.do_probabilistic_walks()
+		model.run()
+
+		# model.explore()
+		# model.value_estimation()
+		# model.do_probabilistic_walks()
 		
 
 

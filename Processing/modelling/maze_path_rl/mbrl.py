@@ -290,7 +290,7 @@ class MBRL(Agent):
 		action_n = [k for k,v in self.actions.items() if v == action][0]
 		return self.enact_step(current, action), action_n
 
-	def introduce_blockage(self, bridge, p=.3):
+	def introduce_blockage(self, bridge, p=.7):
 		if 'lambda' in bridge: blocks = self.states_to_block_mb_lambda
 		elif bridge=='alpha1': blocks = self.states_to_block_mb_alpha1
 		elif bridge=='alpha0': blocks = self.states_to_block_mb_alpha0
