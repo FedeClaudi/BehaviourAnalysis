@@ -111,6 +111,9 @@ class ClipWriter:
                     cv2.putText(frame, sign + str(frame_time) + 's', (self.width - 120, self.height - 100), 0, 1,
                                 (20, 255, 20), thickness=2)
 
+                    cv2.putText(frame, sign + str(stim_start) + 's', (120, 100), 0, 1,
+                                (20, 255, 20), thickness=2)
+
                     # Add circle to mark frame number
                     centers, radius = self.prep_squares()
 
@@ -220,7 +223,7 @@ def create_trials_clips(prestim=3, poststim=25, clean_vids=True, plt_pose=False)
         # Get the stim table entry and clip ame
         if rec['uid']<260: 
             continue
-            
+
         print('Processing recording {} of {}'.format(recn, len(recs.fetch())))
 
         if rec['software'] == 'behaviour':

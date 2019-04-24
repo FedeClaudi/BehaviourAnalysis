@@ -16,6 +16,7 @@ import seaborn as sns
 import random
 from scipy.stats import ks_2samp as KS_test
 from scipy import stats
+plt.style.use('seaborn-darkgrid')
 
 import sys
 sys.path.append('./')
@@ -24,8 +25,8 @@ if sys.platform != 'darwin':
     from database.database_fetch import *
 
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame, get_arm_given_rois, convert_roi_id_to_tag
-from Processing.tracking_stats.math_utils import get_n_colors, get_roi_enters_exits, line_smoother, calc_distance_between_points_2d, remove_tracking_errors
-
+from Processing.tracking_stats.math_utils import *
+# from Processing.trials_analysis.tc_plotting import plot_two_dists_kde
 
 class Modeller:
     def __init__(self):
@@ -183,15 +184,17 @@ class Modeller:
             # indi_obs_sym = pm.Binomial('indi_obs_sym', n=sym_trials, p=individuals_sym, observed=sym_hits)
 
             # Model individuals - hierarchical
-            hyperpriors_alfa = pm.Uniform('hyperpriors_alfa', .1, 5, shape=2)
-            hyperpriors_beta = pm.Uniform('hyperpriors_beta', .1, 5, shape=2)
+            hyperpriors_alfa = pm.Uniform('hyperpriors_alfa', .1, 10, shape=2)
+            hyperpriors_beta = pm.Uniform('hyperpriors_beta', .1, 10, shape=2)
 
             asym_hierarchical = pm.Beta('asym_hierarchical', alpha=hyperpriors_alfa[0], beta=hyperpriors_beta[0], shape=len(asym_trials))
+            test = pm.Beta('test', alpha=hyperpriors_alfa[0], beta=hyperpriors_beta[0], shape=len(asym_trials))
             obs_asym_h = pm.Binomial('obs_asym', n=asym_trials, p=asym_hierarchical, observed=asym_hits)
 
-
             sym_hierarchical = pm.Beta('sym_hierarchicalsym', alpha=hyperpriors_alfa[1], beta=hyperpriors_beta[1], shape=len(sym_trials))
+            test2 = pm.Beta('test2', alpha=hyperpriors_alfa[1], beta=hyperpriors_beta[1], shape=len(asym_trials))
             obs_sym_h = pm.Binomial('obs_sym', n=sym_trials, p=sym_hierarchical, observed=sym_hits)
+
 
             # extra params of the beta distributions for visualisation
             kappa_asym = pm.Deterministic('kappa_asym', hyperpriors_alfa[0] + hyperpriors_beta[0])
@@ -200,19 +203,13 @@ class Modeller:
             mu_asym = pm.Deterministic('mu_asym', hyperpriors_alfa[0] / (hyperpriors_alfa[0] + hyperpriors_beta[0]))
             mu_sym = pm.Deterministic('mu_sym', hyperpriors_alfa[1] / (hyperpriors_alfa[1] + hyperpriors_beta[1]))
 
-            sigma_asym = pm.Deterministic('sigma_asym', (hyperpriors_alfa[0] - 1) / (hyperpriors_alfa[0] + hyperpriors_beta[0] - 2))
-            sigma_sym = pm.Deterministic('sigma_sym', (hyperpriors_alfa[1] - 1) / (hyperpriors_alfa[1] + hyperpriors_beta[1] - 2))
-
             # Model grouped
             asym_grouped = pm.Uniform("p_asym_grouped", 0, 1)
-            obs_asym = pm.Binomial('obs_asym_grouped', n=asym_trials_grouped, p=asym_grouped, observed=asym_hits_grouped)
-
             sym_grouped = pm.Uniform("p_sym_grouped", 0, 1)
+            obs_asym = pm.Binomial('obs_asym_grouped', n=asym_trials_grouped, p=asym_grouped, observed=asym_hits_grouped)
             obs_sym = pm.Binomial('obs_sym_grouped', n=sym_trials_grouped, p=sym_grouped, observed=sym_hits_grouped)
 
-
-
-            burned_trace = pm.sample(2000, tune=2000, nuts_kwargs={'target_accept': 0.95}) # , cores=1, chains=4)
+            burned_trace = pm.sample(2000, tune=2000, nuts_kwargs={'target_accept': 0.95})
 
         pm.traceplot(burned_trace,)
 
@@ -220,7 +217,7 @@ class Modeller:
 
         nrows = 6
         f, axarr = plt.subplots(ncols=2, nrows=nrows)
-        r = np.random.uniform(0, 5, 10000)
+        r = np.random.uniform(0, 10, 10000)
         axarr[0,0].hist(r, histtype='step', color='k', density=True)
         axarr[0,0].hist(trace.hyperpriors_alfa__0, histtype='stepfilled', color='r', alpha=.75, density=True)
 
@@ -244,12 +241,10 @@ class Modeller:
 
         axarr[3, 0].hist(trace.mu_asym, histtype='stepfilled', color='r', alpha=.75, density=True)
         axarr[3, 1].hist(trace.mu_sym, histtype='stepfilled', color='r', alpha=.75, density=True)
-        axarr[4, 0].hist(trace.sigma_asym, histtype='stepfilled', color='r', alpha=.75, density=True)
-        axarr[4, 1].hist(trace.sigma_sym, histtype='stepfilled', color='r', alpha=.75, density=True)
-        axarr[5, 0].hist(trace.kappa_asym, histtype='stepfilled', color='r', alpha=.75, density=True)
-        axarr[5, 1].hist(trace.kappa_sym, histtype='stepfilled', color='r', alpha=.75, density=True)
+        axarr[4, 0].hist(trace.kappa_asym, histtype='stepfilled', color='r', alpha=.75, density=True)
+        axarr[4, 1].hist(trace.kappa_sym, histtype='stepfilled', color='r', alpha=.75, density=True)
 
-        titles = ['A hyper', 'B hyper', 'Posteriors', 'mu', 'omega', 'kappa']
+        titles = ['A hyper', 'B hyper', 'Posteriors', 'mu', 'kappa']
         for i, t in zip(np.arange(nrows), titles):
             for ii in np.arange(2):
                 if i == 0 and ii == 0:
@@ -258,11 +253,6 @@ class Modeller:
                     t = t + ' symmetric'
 
                 axarr[i, ii].set(title=t)
-
-
-
-        plt.show()
-
 
         a = pm.model_to_graphviz(model)
         a.render('Processing/modelling/bayesian/test', view=True)
@@ -289,7 +279,6 @@ class Modeller:
 
         with open(savepath, 'wb') as output:
             pickle.dump(trace, output, pickle.HIGHEST_PROTOCOL)
-
 
     def summary_plot(self):
         trace = self.load_trace()
@@ -364,7 +353,6 @@ class Modeller:
 
         plt.show()
 
-
     def stats(self, distributions=None):
         if distributions is None:
             trace = self.load_trace()
@@ -378,9 +366,82 @@ class Modeller:
 
         return d, p1, t, p2
 
+    def better_hierarchical_bayes(self):
+        # Prepare data
+        asym_escapes, sym_escapes = self.get_individuals_data()
+        asym_hits = [np.sum(np.array(trials)) for trials in asym_escapes]
+        asym_trials = [len(trials) for trials in asym_escapes]
+        sym_hits = [np.sum(np.array(trials)) for trials in sym_escapes]
+        sym_trials = [len(trials) for trials in sym_escapes]
 
+        # Set up the model in PYMC3 and run the NUTS sampler to sample the posterior distribution through MCMC
+        print("Setting up model")
+        mode_hyper_a, mode_hyper_b = 5, 5
+        concentration_hyper_mean, concentration_hyper_sd = 1, 10
+        concentration_hyper_shape, concentration_hyper_rate = gamma_distribution_params(mean=concentration_hyper_mean, sd=concentration_hyper_sd)
+
+        with pm.Model() as model:
+            mode_hyper = pm.Beta("mode_hyper", alpha=mode_hyper_a, beta=mode_hyper_b, shape=2)
+            concentration_hyper = pm.Gamma("concentration_hyper", alpha=concentration_hyper_shape, beta=concentration_hyper_rate, shape=2) + 2
+
+            asym_prior_a, asym_prior_b = beta_distribution_params(omega=mode_hyper[0], kappa=concentration_hyper[0])
+            asym_prior = pm.Beta("asym_prior", alpha=asym_prior_a, beta=asym_prior_b, shape=len(asym_trials))
+            likelihood = pm.Binomial('asym_likelihood', n=asym_trials, p=asym_prior, observed=asym_hits)
+
+            sym_prior_a, sym_prior_b = beta_distribution_params(omega=mode_hyper[1], kappa=concentration_hyper[1])
+            sym_prior = pm.Beta("sym_prior", alpha=sym_prior_a, beta=sym_prior_b, shape=len(sym_trials))
+            likelihood = pm.Binomial('sym_likelihood', n=sym_trials, p=sym_prior, observed=sym_hits)
+
+            burned_trace = pm.sample(6000, tune=2000, nuts_kwargs={'target_accept': 0.95}, cores=8)
+
+        # Inspect MCMC traces
+        pm.traceplot(burned_trace)
+
+        # Make other plots
+        trace = pm.trace_to_dataframe(burned_trace)
+        f, axarr = plt.subplots(2, 2)
+
+        _ho = np.random.beta(mode_hyper_a,  mode_hyper_b, 10000)   
+        _hk = np.random.gamma(concentration_hyper_shape, concentration_hyper_rate, 10000)     
+        
+        axarr[0, 0].hist(_ho, color='k', histtype='step', alpha=.75, density=True)
+        axarr[0, 0].hist(trace.mode_hyper__0, color='r', histtype='stepfilled', alpha=.75, density=True)
+        axarr[0, 0].hist(trace.mode_hyper__1, color='g', histtype='stepfilled', alpha=.75, density=True)
+
+        axarr[0, 0].set(title="hyper. mode")
+
+        axarr[0, 1].hist(_hk, color='k', histtype='step', alpha=.75, density=True)
+        axarr[0, 1].hist(trace.concentration_hyper__0, color='r', histtype='stepfilled', alpha=.75, density=True)
+        axarr[0, 1].set(title="hyper. concentration")
+
+
+        a,b = beta_distribution_params(omega=np.max(trace.mode_hyper__0.values), kappa=np.max(trace.concentration_hyper__0.values))
+        asym_pop = np.random.beta(a, b, 10000)
+
+        a,b = beta_distribution_params(omega=np.max(trace.mode_hyper__1.values), kappa=np.max(trace.concentration_hyper__1.values))
+        sym_pop = np.random.beta(a, b, 10000)
+
+        _a, _b = beta_distribution_params(omega=.5, kappa=5)
+        _pop = np.random.beta(_a, _b, 10000)
+
+        axarr[1, 0].hist(_pop, color='k', histtype='step', alpha=.75, density=True)
+        axarr[1, 0].hist(asym_pop, color='r', histtype='stepfilled', alpha=.75, density=True)
+        axarr[1, 0].hist(sym_pop, color='g', histtype='stepfilled', alpha=.75, density=True)
+        axarr[1, 0].set(title="Population")
+
+        for c in list(trace.columns):
+            if "prior__" in c:
+                axarr[1, 1].hist(trace[c].values,  histtype='step', alpha=.75, density=True)
+
+
+
+        # plot_two_dists_kde(None, trace.mode_hyper__0.values, trace.mode_hyper__1.values, 'Pop Mode')
+        # plot_two_dists_kde(None, trace.concentration_hyper__0.values, trace.concentration_hyper__1.values, 'Pop Concentration', no_ax_lim=True)
+
+        self.save_trace(trace, "Processing\\modelling\\bayesian\\hierarchical_v2_2.pkl")
+        plt.show()
 
 if __name__ == "__main__":
     mod = Modeller()
-    mod.model_individuals_hierarchical()
+    mod.better_hierarchical_bayes()
     # mod.summary_plot()

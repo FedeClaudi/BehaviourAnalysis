@@ -124,7 +124,7 @@ def pr_sym_vs_asmy_get_traces():
 
 
 
-def plot_two_dists_kde(d0, d1, d2, title, l1=None, l2=None, ax=None):
+def plot_two_dists_kde(d0, d1, d2, title, l1=None, l2=None, ax=None, no_ax_lim=False):
         colors = get_n_colors(6)
 
         if ax is None:
@@ -144,7 +144,10 @@ def plot_two_dists_kde(d0, d1, d2, title, l1=None, l2=None, ax=None):
             d_mean_ci = mean_confidence_interval(d)
             d_range = percentile_range(d)
 
-            sns.kdeplot(d, ax=ax, shade=s, color=c, linewidth=2, alpha=a, clip=[0, 1], label=l)
+            if not no_ax_lim:
+                sns.kdeplot(d, ax=ax, shade=s, color=c, linewidth=2, alpha=a, clip=[0, 1], label=l)
+            else:
+                sns.kdeplot(d, ax=ax, shade=s, color=c, linewidth=2, alpha=a, label=l)
 
             y = (-i * .5) - .5
             ax.plot([d_range.low, d_range.high], [y, y], color=c, linewidth=4, label='5-95 perc')
@@ -152,7 +155,10 @@ def plot_two_dists_kde(d0, d1, d2, title, l1=None, l2=None, ax=None):
             ax.plot([d_mean_ci.interval_min, d_mean_ci.interval_max], [y, y], color=c, linewidth=8, label='Mean C.I.')
             ax.axhline(0, color='k', linewidth=2)
 
-        ax.set(title=title, xlim=[-0.01, 1.01],  xlabel='p(R)', ylabel='pdf')
+        if not no_ax_lim:
+            ax.set(title=title, xlim=[-0.01, 1.01],  xlabel='p(R)', ylabel='pdf')
+        else:
+            ax.set(title=title, xlabel='p(R)', ylabel='pdf')  
         ax.legend()
 
         if ax is None:
@@ -179,7 +185,6 @@ def plotter():
 
     f.savefig("D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Presentations\\ThesisCommitte\\plots\\alternative_hp_stuff_things.svg", format="svg")
 
-
 def number_of_trials_per_session():
     ntrials = []
     good_exp = ['PathInt', 'PathInt2', 'PathInt2-L', 'PathInt2 - L', 'Square Maze', 'TwoAndahalf Maze']
@@ -196,9 +201,8 @@ def number_of_trials_per_session():
     ax.axvline(np.median(ntrials), color='r', linewidth=3, linestyle='--')
     a = 1
 
-
 def plot_distributions():
-    f, axarr = plt.subplots(ncols=3)
+    f, axarr = plt.subplots(ncols=4)
 
     binom = np.random.binomial(25, .5, size=1000000)
     # binom = stats.binom(1000, .5)
@@ -207,13 +211,18 @@ def plot_distributions():
     beta = np.random.beta(2, 9, size=1000000)
     sns.kdeplot(beta, color='k', linewidth=3, ax=axarr[1], clip=[0, 1])
 
-    uniform = np.random.uniform(0, 1, 1000000)
+    uniform = np.random.uniform(0, 1, 10000000)
     sns.kdeplot(uniform, color='k', linewidth=3, ax=axarr[2], clip=[0, 1])
 
-    titles = ['binomial', 'beta', 'uniform']
-    for t,ax in zip(titles, axarr):
-        ax.set(title=t, xlim=[-0.1, 1.1])
+    gamma = np.random.gamma(2, 2, size=1000000)
+    sns.kdeplot(gamma, color='k', linewidth=3, ax=axarr[3])
 
+    titles = ['binomial', 'beta', 'uniform', 'gamma']
+    for t,ax in zip(titles, axarr):
+        if t != 'gamma':
+            ax.set(title=t, xlim=[-0.05, 1.05])
+        else: 
+            ax.set(title=t, xlim=[-0.05, 20.05])
 
 
 def plot_expl_asym_vs_sym():
@@ -262,8 +271,47 @@ def plot_expl_asym_vs_sym():
 
 
 
+def plot_hierarchical_bayes_posteriors():
+    bayes = Bayesian()
+    trace = bayes.load_trace("Processing\\modelling\\bayesian\\hierarchical_v2.pkl")
+
+    f, axarr = plt.subplots(ncols=5)
+
+    for c in list(trace.columns):
+        if 'asym_prior' in c:
+            col, i = 'k', 1
+        elif 'sym_prior' in c:
+            col, i = 'r', 2
+        else: continue
+        
+        sns.kdeplot(trace[c].values, color=col, linewidth=3, ax=axarr[i], clip=[0, 1])
+
+    plot_two_dists_kde(None, trace.mode_hyper__0.values, trace.mode_hyper__1.values, 'Pop Mode', ax=axarr[0])
+
+  
+
+    axarr[4].hist(np.random.gamma(0.01, 1/0.01, 100000), bins=500, density=True, alpha=.3, label='prior')
+    axarr[4].hist(trace.concentration_hyper__0.values, bins=500, density=True, alpha=.3, label='asym')
+    axarr[4].hist(trace.concentration_hyper__1.values, bins=500, density=True, alpha=.3, label='sym')
+    axarr[4].legend()
+    for ax in axarr[1:-2]:
+        ax.set(xlim=[0, 1], ylim=[0, 7])
+
+
+
+    diff = trace.mode_hyper__0.values - trace.mode_hyper__1.values
+    sns.kdeplot(diff, color=col, linewidth=3, ax=axarr[3], clip=[0, 1])
+    d_mean_ci = mean_confidence_interval(diff)
+    d_range = percentile_range(diff)
+
+    y = (-i * .5) - .5
+    axarr[3].plot([d_range.low, d_range.high], [y, y], color='k', linewidth=4, label='5-95 perc')
+    ax.scatter(d_mean_ci.mean, y, s=100, alpha=.35, c='r')
+    axarr[3].plot([d_mean_ci.interval_min, d_mean_ci.interval_max], [y, y], color='k', linewidth=8, label='Mean C.I.')
+
+
 
 if __name__ == "__main__":
-    plot_expl_asym_vs_sym()
+    plot_hierarchical_bayes_posteriors()
     plt.show()
 
