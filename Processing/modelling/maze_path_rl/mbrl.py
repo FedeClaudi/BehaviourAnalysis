@@ -255,9 +255,10 @@ class MBRL(Agent):
 				selected = self.env.free_states[random.choices(valid_actions, weights=softmax(values), k=1)[0][0]]
 			curr = selected
 
+			if reached_goal: break
+
 			if curr == self.env.goal or dist(self.env.goal, curr) < 2: 
-				reached_goal = True
-				break
+				reached_goal = True # do one more step and then stop
 
 		if reached_goal:
 			walk.append(curr)
@@ -290,7 +291,7 @@ class MBRL(Agent):
 		action_n = [k for k,v in self.actions.items() if v == action][0]
 		return self.enact_step(current, action), action_n
 
-	def introduce_blockage(self, bridge, p=.7):
+	def introduce_blockage(self, bridge, p=0):
 		if 'lambda' in bridge: blocks = self.states_to_block_mb_lambda
 		elif bridge=='alpha1': blocks = self.states_to_block_mb_alpha1
 		elif bridge=='alpha0': blocks = self.states_to_block_mb_alpha0

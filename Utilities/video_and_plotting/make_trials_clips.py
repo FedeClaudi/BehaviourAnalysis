@@ -111,9 +111,7 @@ class ClipWriter:
                     cv2.putText(frame, sign + str(frame_time) + 's', (self.width - 120, self.height - 100), 0, 1,
                                 (20, 255, 20), thickness=2)
 
-                    cv2.putText(frame, sign + str(stim_start) + 's', (120, 100), 0, 1,
-                                (20, 255, 20), thickness=2)
-
+               
                     # Add circle to mark frame number
                     centers, radius = self.prep_squares()
 

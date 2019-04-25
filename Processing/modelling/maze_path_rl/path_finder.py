@@ -16,8 +16,8 @@ from Processing.modelling.maze_path_rl.tdrl import TDRL
 from Processing.modelling.maze_path_rl.mbrl import MBRL
 
 
-randomise_start_during_training = False
-run_model_free = False
+randomise_start_during_training = True
+run_model_free = True
 run_model_based = True
 
 
