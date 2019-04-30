@@ -150,6 +150,7 @@ class FilesAutomationToolbox:
         poses = [f.split('_')[:-1] for f in os.listdir(self.pose_fld) if 'h5' in f]
 
         not_tracked = [f for f in videos if f.split('_') not in poses and 'overview'  in f.lower()]
+        # not_tracked = [f for f in videos if f.split('_') not in poses]
         print('To track: ', not_tracked)
         print(len(not_tracked), ' files yet to track')
 
@@ -230,15 +231,13 @@ class FilesAutomationToolbox:
 if __name__ == "__main__":
     automation = FilesAutomationToolbox()
 
-    automation.convert_tdms_to_mp4()
+    # automation.convert_tdms_to_mp4()
 
     automation.get_list_uncoverted_tdms_videos()
     automation.get_list_not_tracked_videos()
 
+    # Checks 
     # automation.extract_videotdms_metadata()
-    # automation.check_video_conversion_correct()
-
-    # automation.macro()
-
+    # automation.check_video_conversion_correct() 
     # automation.remove_stupid_videofiles()
 

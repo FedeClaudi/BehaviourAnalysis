@@ -12,6 +12,12 @@ import cv2
 
 from Utilities.file_io.files_load_save import load_yaml
 
+def correct_image_fisheye(img):
+    fisheye_file = "Utilities\\video_and_plotting\\fisheye_maps.npy"
+    fmap = np.load(fisheye_file)
+    return cv2.remap(img, fmap[:, :, 0:2], fmap[:, :, 2], interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+
+
 def run(videopath, maze_model=None):
     if maze_model is None:
         # Get the maze model template
@@ -20,8 +26,13 @@ def run(videopath, maze_model=None):
         maze_model = cv2.cvtColor(maze_model,cv2.COLOR_RGB2GRAY)
 
     # Define points to be used for alignemt
-    points = np.array([[435, 290], [565, 290], [500, 250],
-                    [435, 710], [565, 710], [500, 620]])
+    # ? Old points for smaller maze model
+    # points = np.array([[435, 290], [565, 290], [500, 250],
+    #                 [435, 710], [565, 710], [500, 620]])
+
+    points = np.array([ [435, 395], [565, 395], 
+                        [435, 130], [565, 130],
+                        [500, 616]])
 
     # Get the background (first frame) of the video being processed
     try:
@@ -58,7 +69,7 @@ def run(videopath, maze_model=None):
         raise ValueError('Datatypes dont match', padded.dtype, maze_model.dtype)
 
     # Get fisheye correction matriz path and correct
-    fisheye = 'Utilities\\video_and_plotting\\fisheye_maps.npy'
+    # corrected_frame = np.resize(correct_image_fisheye(padded), maze_model.
 
 
     # Call the registration function
@@ -86,8 +97,10 @@ def define_roi_on_template():
     # while True:
     #     cv2.waitKey(1)
 
+
+
 if __name__ == "__main__":
-    testfile = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video\\180606_CA2762.avi'
+    testfile = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video\\190426_CA557_1Overview.mp4'
     run(testfile)
     # define_roi_on_template()
     

@@ -201,7 +201,7 @@ def make_dlcmodels_table(table):
             print('Old model: ', (table & '{}={}'.format(var, model[var])))
             print('New model: ', model)
             yn = input('Overwrite? [y/n]')
-            if y != 'y': continue
+            if yn != 'y': continue
             else:
                 (table & '{}={}'.format(var, model[var]).delete())
                 table.insert1(model)
@@ -245,10 +245,7 @@ def make_commoncoordinatematrices_table(table, key, sessions, videofiles, fast_m
 
     if not rec:
         print('Did not find recording or videofiles while populating CCM table. Populate recordings and videofiles first! Session: ', key['session_name'])
-        a = 1
         return
-        # raise ValueError(
-        #     'Did not find recording while populating CCM table. Populate recordings first! Session: ', key['session_name'])
     else:
         rec = rec[0]
         if not '.' in rec['converted_filepath']:
