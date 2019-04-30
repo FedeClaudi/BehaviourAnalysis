@@ -78,18 +78,9 @@ def median_filter_1d(x, pad=20, kernel=11):
 
 
 def mean_confidence_interval(data, confidence=0.95):
-    # a = 1.0 * np.array(data)
-    # n = len(a)
-    # m, se = np.mean(a), stats.sem(a)
-    # h = se * stats.t.ppf((1 + confidence) / 2., n-1)
-    # return res(m, m-h, m+h)
-    
     mean, var, std = stats.bayes_mvs(data)
-
     res = namedtuple("confidenceinterval", "mean interval_min interval_max")
     return res(mean.statistic, mean.minmax[0], mean.minmax[1])
-
-
 
 def percentile_range(data, low=5, high=95):
     """[Calculates the range between the low and high percentiles]

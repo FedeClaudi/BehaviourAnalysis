@@ -311,7 +311,121 @@ def plot_hierarchical_bayes_posteriors():
 
 
 
+
+
+
+
+
+
+def mbv2_behav_plots(baseline = True):
+    trials_data = "Processing\\trials_analysis\\mbv2_trials.yml"
+    data = load_yaml(trials_data)
+
+    sessions = list(data.keys())
+    # Get the number of escapes on each arm in baseline trials
+    arms = ["B0", "A0", "A1",  "B1"]
+    escapes = {a:0 for a in arms}
+
+    for session in sessions:
+        if len(data[session][0]) != len(data[session][1]): raise ValueError(session, len(data[session][0]), len(data[session][1]))
+        for arm, maze_state in zip(*data[session]):
+            if arm.lower() == "n": continue
+
+            if baseline:
+                if maze_state != 0: 
+                    escapes[arm] += 1  # still count it
+                    break
+            else:
+                if maze_state == 0: continue
+
+            escapes[arm] += 1
+
+    tot_trials = np.sum(list(escapes.values()))
+    escapes_probs = {a:k/tot_trials for a,k in escapes.items()}
+
+    # f, ax = plt.subplots()
+    # ax.bar([0, 1, 2, 3], escapes_probs.values())
+    # ax.set(ylim=[0, 0.5])
+    # plt.show()
+
+    return escapes_probs
+
+
+def mbv2_closes_plots():
+    trials_data = "Processing\\trials_analysis\\mbv2_trials.yml"
+    data = load_yaml(trials_data)
+    sessions = list(data.keys())
+
+    arms = ["B0", "A0", "A1",  "B1"]
+    escapes = {a: [0, 0, 0, 0, 0, 0] for a in arms}
+
+    for session in sessions: 
+        if not 1 in data[session][1]: continue
+        else:
+            cleaned = [(a, m) for a,m in zip(*data[session]) if a.lower() != "n"]
+
+            first_closed =  [m for a,m in cleaned].index(1)
+            
+            for x in np.arange(5):
+                try:
+                    escapes[cleaned[first_closed+x-2][0]][x] += 1
+                except:
+                    pass
+
+    escapes['A'] = np.add(escapes['A0'], escapes['A1'])
+    escapes['B'] = np.add(escapes['B0'], escapes['B1'])
+
+    baseline_probs = mbv2_behav_plots(baseline=True)
+
+    baseline_probs['A'] = np.add(baseline_probs['A0'], baseline_probs['A1'])
+    baseline_probs['B'] = np.add(baseline_probs['B0'], baseline_probs['B1'])
+
+    n_trials = [a+b for a,b in zip(escapes['A'], escapes['B'])]
+
+    colors = get_n_colors(6)
+    f, ax = plt.subplots()
+    for c, (arm, escs) in zip(colors, escapes.items()):
+        if "1" in arm or "0" in arm: continue
+        ax.plot([np.divide(e, n_trials) for e in escs], 'o-', color=c,  label=arm)
+        ax.plot(0, baseline_probs[arm], 'o', color=c)
+
+    ax.axhline(0.25, color=[.8, .8, .8], linestyle="--", )
+
+    for x in [0, 1, 2]:
+        ax.axvline(x, color=[.8, .8, .8], linestyle="--", )
+
+    ax.legend()
+    ax.set(ylim=[0, 1.01], xlim=[-1, 5])
+    plt.show()
+
+def mbv2_make_videos():
+    trials_data = "Processing\\trials_analysis\\mbv2_trials.yml"
+    video_fld = "Z:\\branco\\Federico\\raw_behaviour\\maze\\trials_clips"
+    
+    videos = [v for v in os.listdir(video_fld) if not "_trials" in v]
+    data = load_yaml(trials_data)
+    sessions = list(data.keys())
+
+    for session in sessions: 
+        if not 1 in data[session][1]: continue
+        else:
+            # cleaned = [(a, m) for a,m in zip(*data[session]) if a.lower() != "n"]
+
+            session_vids = [v for v in videos if session in v]
+            vid_nums = [int(v.split("_")[3].split(".")[0]) for v in session_vids]
+            
+            first_closed =  data[session][1].index(1)
+            vid_idx = vid_nums.index(first_closed)
+
+            video = os.path.join(video_fld, session_vids[vid_idx])
+            print(video)
+            aa = 1
+
+
+        
+
 if __name__ == "__main__":
-    plot_hierarchical_bayes_posteriors()
+    # mbv2_closes_plots()
+    mbv2_make_videos()
     plt.show()
 
