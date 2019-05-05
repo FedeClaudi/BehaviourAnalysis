@@ -71,7 +71,13 @@ class Agent:
 			nxt[1] += down
 		return nxt
 
-	def plot_walk(self, walk, ax=None, blocked=None, background=True, multiple=False):
+	def plot_walks(self, walks):
+		f,ax = plt.subplots()
+		ax.imshow(self.env.maze_image, cmap="Greys_r")
+		for walk in walks:
+			ax.scatter(np.vstack(walk)[:, 0], np.vstack(walk)[:, 1], alpha=.3,  s=150)
+
+	def plot_walk(self, walk, ax=None, blocked=None, background=True, multiple=False, title=None):
 		if ax is None:
 			f,ax = plt.subplots()
 
@@ -85,7 +91,11 @@ class Agent:
 
 		# if blocked:
 		# 	ax.scatter([y for x,y in blocked], [x for x,y in blocked], c='r', s=250, alpha=.4)
-		ax.set(xticks=[], yticks=[])
+		if title is None:
+			ax.set(xticks=[], yticks=[])
+		else:
+			ax.set(title=title, xticks=[], yticks=[])
+
 
 	def get_state_index(self, state):
 		return [i for i,f in enumerate(self.env.free_states) if f == state][0]

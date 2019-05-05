@@ -14,11 +14,12 @@ import matplotlib.pyplot as plt
 from Processing.modelling.maze_path_rl.path_maze import Maze, get_maze_from_image
 from Processing.modelling.maze_path_rl.tdrl import TDRL
 from Processing.modelling.maze_path_rl.mbrl import MBRL
+from Processing.modelling.maze_path_rl.genetic_algorithm_solver import GA
 
-
-randomise_start_during_training = True
-run_model_free = True
-run_model_based = True
+randomise_start_during_training = False
+run_model_free = False
+run_model_based = False
+run_ga = True
 
 
 def generate_environment(maze_design, grid_size):
@@ -68,7 +69,8 @@ if __name__ == "__main__":
 		# model.value_estimation()
 		# model.do_probabilistic_walks()
 		
-
+	if run_ga:
+		model = GA(env)
 
 
 	plt.show()

@@ -147,6 +147,29 @@ class Maze(object):
 
 		return self.next_state, self.reward, self.game_over 
 
+	def ga_act(self, action):
+		# Different set of rewards and punishment for GA evolution
+		# Move
+		action_name = self.actions[action]
+		self.next_state = self.move(action_name, self.curr_state)
+
+		"""
+			EVALUATE THE CONSEQUENCES OF MOVING
+		"""
+		if self.next_state in self.free_states:
+			self.curr_state = self.next_state
+			self.reward = 0
+		else: 
+			self.next_state = self.curr_state
+			self.reward = -1 # punish going against walls   
+
+		if(self.next_state == self.goal):
+			self.reward = 200  # reward getting to the goal
+			self.game_over = True
+		else:
+			self.game_over = False
+
+		return self.next_state, self.reward, self.game_over 
 
 
 	def get_geodesic_representation(self, remove_free_states = None):

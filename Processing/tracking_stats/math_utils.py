@@ -234,9 +234,6 @@ def calc_distane_between_point_and_line(line_points, p3):
     
 
 
-
-
-
 def calc_distance_between_points_2d(p1, p2):
     '''calc_distance_between_points_2d [summary]
     
@@ -275,11 +272,7 @@ def calc_distance_between_points_in_a_vector_2d(v1):
             raise ValueError(
                 'Feature not implemented: cant handle with data format passed to this function')
 
-    # If pandas series were passed, try to get numpy arrays
-    try:
-        v1, v2 = v1.values, v2.values
-    except:  # all good
-        pass
+
     # loop over each pair of points and extract distances
     dist = []
     for n, pos in enumerate(v1):
@@ -350,7 +343,6 @@ def calc_distance_from_shelter(v, shelter):
 
     shelter_vector = np.array(shelter)
     shelter_vector = np.tile(shelter_vector, (v.shape[0], 1))
-
     return calc_distance_between_points_two_vectors_2d(v, shelter_vector)
 
 def angle_between_points_2d_clockwise(p1, p2):
