@@ -6,13 +6,14 @@ matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+from shutil import copyfile
 
 from database.NewTablesDefinitions import *
 from database.database_fetch import *
 
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame, get_arm_given_rois, convert_roi_id_to_tag
 from Processing.tracking_stats.math_utils import get_roi_enters_exits, line_smoother, calc_distance_between_points_2d, remove_tracking_errors, get_n_colors
-
+from Utilities.video_and_plotting.video_editing import Editor 
 from Processing.modelling.bayesian.hierarchical_bayes_v2 import Modeller as Bayesian
 
 
@@ -317,7 +318,7 @@ def plot_hierarchical_bayes_posteriors():
 
 
 
-def mbv2_behav_plots(baseline = True):
+def mbv2_behav_plots(plot=False, baseline = True):
     trials_data = "Processing\\trials_analysis\\mbv2_trials.yml"
     data = load_yaml(trials_data)
 
@@ -343,10 +344,11 @@ def mbv2_behav_plots(baseline = True):
     tot_trials = np.sum(list(escapes.values()))
     escapes_probs = {a:k/tot_trials for a,k in escapes.items()}
 
-    # f, ax = plt.subplots()
-    # ax.bar([0, 1, 2, 3], escapes_probs.values())
-    # ax.set(ylim=[0, 0.5])
-    # plt.show()
+    if plot:
+        f, ax = plt.subplots()
+        ax.bar([0, 1, 2, 3], escapes_probs.values())
+        ax.set(ylim=[0, 0.5])
+        plt.show()
 
     return escapes_probs
 
@@ -359,19 +361,25 @@ def mbv2_closes_plots():
     arms = ["B0", "A0", "A1",  "B1"]
     escapes = {a: [0, 0, 0, 0, 0, 0] for a in arms}
 
-    for session in sessions: 
+    f,ax = plt.subplots()
+    for i, session in enumerate(sessions): 
+        # if "190328" in session: continue
         if not 1 in data[session][1]: continue
         else:
-            cleaned = [(a, m) for a,m in zip(*data[session]) if a.lower() != "n"]
+            cleaned = [(a, m) for a,m in zip(*data[session][:2]) if a.lower() != "n"]
 
             first_closed =  [m for a,m in cleaned].index(1)
-            
-            for x in np.arange(5):
+
+            ax.plot(np.add(2*i, [1 if "A" in a else 0 for a,m in cleaned[first_closed:]]))
+            ax.axhline(2*i-0.1, color='k')
+            ax.axhline(2*i+1.1, color='k')
+
+            for x in np.arange(6):
                 try:
                     escapes[cleaned[first_closed+x-2][0]][x] += 1
                 except:
                     pass
-
+    plt.show()
     escapes['A'] = np.add(escapes['A0'], escapes['A1'])
     escapes['B'] = np.add(escapes['B0'], escapes['B1'])
 
@@ -386,7 +394,7 @@ def mbv2_closes_plots():
     f, ax = plt.subplots()
     for c, (arm, escs) in zip(colors, escapes.items()):
         if "1" in arm or "0" in arm: continue
-        ax.plot([np.divide(e, n_trials) for e in escs], 'o-', color=c,  label=arm)
+        ax.plot(escs / n_trials, 'o-', color=c,  label=arm)
         ax.plot(0, baseline_probs[arm], 'o', color=c)
 
     ax.axhline(0.25, color=[.8, .8, .8], linestyle="--", )
@@ -398,11 +406,13 @@ def mbv2_closes_plots():
     ax.set(ylim=[0, 1.01], xlim=[-1, 5])
     plt.show()
 
-def mbv2_make_videos():
+def mbv2_make_videos(play_videos = False):
+    editor = Editor()
     trials_data = "Processing\\trials_analysis\\mbv2_trials.yml"
-    video_fld = "Z:\\branco\\Federico\\raw_behaviour\\maze\\trials_clips"
+    video_fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\to watch"
+    save_fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Presentations\\ThesisCommitte\\videos"
     
-    videos = [v for v in os.listdir(video_fld) if not "_trials" in v]
+    videos = [v for v in os.listdir(video_fld)]
     data = load_yaml(trials_data)
     sessions = list(data.keys())
 
@@ -412,20 +422,58 @@ def mbv2_make_videos():
             # cleaned = [(a, m) for a,m in zip(*data[session]) if a.lower() != "n"]
 
             session_vids = [v for v in videos if session in v]
-            vid_nums = [int(v.split("_")[3].split(".")[0]) for v in session_vids]
             
             first_closed =  data[session][1].index(1)
-            vid_idx = vid_nums.index(first_closed)
+            video = [os.path.join(video_fld, v) for v in videos if session in v][0]
 
-            video = os.path.join(video_fld, session_vids[vid_idx])
-            print(video)
-            aa = 1
+            print("\n\n")
+            print("Sesssion: {}\ntrial: {}".format(session, first_closed))
+            print("\n\n")
+
+            start = 40*21*(first_closed+1)
+            elapse = 20*40
+            end = start + elapse
+
+            # editor.play_video(video, faster=False, play_from=start, stop_after=elapse)
+        
+            editor.trim_clip(video, os.path.join(save_fld, session+'_tri-{}_one_after.mp4'.format(first_closed)), frame_mode = True,
+                                start_frame=start, stop_frame=end)
+
+def  mbv2_make_cool_vids():
+    editor = Editor()
+    trials_data = "Processing\\trials_analysis\\mbv2_trials.yml"
+    video_fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\to watch"
+    save_fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Presentations\\ThesisCommitte\\videos"
+    
+    videos = [v for v in os.listdir(video_fld)]
+    data = load_yaml(trials_data)
+    sessions = list(data.keys())
+
+    for session in sessions:
+        if len(data[session]) == 2: continue
+        
+        else:
+            video = [os.path.join(video_fld, v) for v in videos if session in v][0]
+
+            for tr_num in data[session][3]:
+                start = 40*21*(tr_num)
+                elapse = 20*40
+                end = start + elapse        
+                savename = os.path.join(save_fld, session+'_tri-{}_cool.mp4'.format(tr_num))
+                if  session+'_tri-{}_cool.mp4'.format(tr_num) not in os.listdir(save_fld):
+                    editor.trim_clip(video, savename, frame_mode = True,
+                                        start_frame=start, stop_frame=end)
+        
+            
 
 
         
 
 if __name__ == "__main__":
-    # mbv2_closes_plots()
-    mbv2_make_videos()
+    # mbv2_behav_plots(plot=False, baseline=False)
+    mbv2_closes_plots()
+    # mbv2_make_videos()
+    # mbv2_make_cool_vids()
+    # pr_sym_vs_asmy_get_traces()
     plt.show()
 

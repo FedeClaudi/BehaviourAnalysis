@@ -84,7 +84,7 @@ class VideoConverter:
 
         fps = cap.get(cv2.CAP_PROP_FPS)
         width, height = int(cap.get(3)), int(cap.get(4))
-        fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 
         videowriter = cv2.VideoWriter(savepath, fourcc, fps, (width , height ), False)
         print('Converting video: ', videopath)
@@ -153,7 +153,7 @@ class VideoConverter:
                 vidname = '{}.mp4'.format(vidname)
             else:
                 vidname = '{}__{}.mp4'.format(vidname, limits[0])
-            fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             videowriter = cv2.VideoWriter(os.path.join(self.folder, vidname), fourcc,
                                             framerate, (w, h), iscolor)
 
@@ -278,6 +278,7 @@ class Editor:
             end {float} -- [video proportion to stop at ] (default: {0.0})
             start_frame {[type]} -- [video frame to stat at ] (default: {None})
             end_frame {[type]} -- [videoframe to stop at ] (default: {None})
+            selfpd {[int]}(default, None) -- [specify the fps of the output]
         """
 
         if not use_moviepy:
@@ -366,6 +367,12 @@ class Editor:
         cap.release()
 
     def tile_clips(self, clips_l, savepath):
+        """[Tiles multiple videos horizzontally. It assumes that all videos have the same width and height]
+        
+        Arguments:
+            clips_l {[list]} -- [list of paths to the videos to be tiled]
+            savepath {[type]} -- [complete filepath of the video to be saved]
+        """
         caps = [ cv2.VideoCapture(videofilepath) for videofilepath in clips_l]
 
         nframes, width, height, fps = self.get_video_params(caps[0])
@@ -378,9 +385,7 @@ class Editor:
             except:
                 break
             else:
-
                 tot_frame = np.hstack(frames)
-
                 writer.write(tot_frame)
         writer.release()
 
@@ -399,7 +404,7 @@ class Editor:
         if h is None: h = frames_data.shape[1]
         if framerate is None: raise ValueError('No frame rate parameter was given as an input')
 
-        fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         videowriter = cv2.VideoWriter(videopath, fourcc, framerate, (w, h), iscolor)
 
         for framen in tqdm(range(start, stop)):
@@ -415,7 +420,7 @@ class Editor:
             if 'avi' in format:
                 fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')    # (*'MP4V')
             else:
-                fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             videowriter = cv2.VideoWriter(filepath, fourcc, framerate, (w, h), iscolor)
         except:
             raise ValueError('Could not create videowriter')
@@ -538,7 +543,7 @@ class Editor:
             save_path = os.path.split(videopath)
             save_path = os.path.join(list(save_path))
 
-        fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         videowriter = cv2.VideoWriter(save_path, fourcc, fps, (resized_width, resized_height), False)
         framen = 0
         while True:
@@ -625,6 +630,28 @@ class Editor:
             wr.release()
         
         return main_name, side_name, top_name
+
+    @staticmethod
+    def play_video(videofilepath, faster=False, play_from=None,  stop_after=None):
+        import cv2
+        cap = cv2.VideoCapture(videofilepath)
+
+        if play_from is not None:
+            cap.set(1, play_from)
+
+        frame_counter = 0
+        while True:
+            ret, frame = cap.read()
+            if not ret: break
+            cv2.imshow('frame', frame)
+            if faster: wait = 5
+            else: wait = 15
+            k = cv2.waitKey(wait)
+            if k == ord('q'): break
+
+            frame_counter += 1
+            if stop_after is not None:
+                if frame_counter >= stop_after: break
 
     @staticmethod
     def manual_video_inspect(videofilepath):
@@ -759,29 +786,32 @@ class Editor:
 
 if __name__ == '__main__':
     
-    converter = VideoConverter(None, None)
+    # converter = VideoConverter(None, None)
+    # editor = Editor()
+    # print(converter, '\n\n', editor)
+
+    # ###############
+    # videofld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\plots\\funny"
+    # video1 = "Square Maze_cropped.mp4"
+    # video2 = "asym.mp4"
+    # video3 = "PathInt_cropped.mp4"
+
+    # videos = [os.path.join(videofld, video3),
+    #         os.path.join(videofld, video2),
+    #         os.path.join(videofld, video1)]
+    # savepath = os.path.join(videofld, "twoexp3.mp4")
+
+    # # editor.crop_video(os.path.join(videofld, video3), 1000, 1000)
+    # editor.tile_clips(videos, savepath)
+
+
+
     editor = Editor()
-    print(converter, '\n\n', editor)
+    fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\_overview_training_clips"
+    fld2 = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\_overview_training_clips_cut"
 
-    ###############
-    videofld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\plots\\funny"
-    video1 = "Square Maze_cropped.mp4"
-    video2 = "asym.mp4"
-    video3 = "PathInt_cropped.mp4"
-
-    videos = [os.path.join(videofld, video3),
-            os.path.join(videofld, video2),
-            os.path.join(videofld, video1)]
-    savepath = os.path.join(videofld, "twoexp3.mp4")
-
-    # editor.crop_video(os.path.join(videofld, video3), 1000, 1000)
-    editor.tile_clips(videos, savepath)
-
-
-
-
-
-
+    for v in os.listdir(fld):
+        editor.trim_clip(os.path.join(fld,v), os.path.join(fld2, v), frame_mode=True, start_frame=0, stop_frame=400)
 
 
 

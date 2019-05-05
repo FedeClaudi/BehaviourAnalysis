@@ -13,7 +13,9 @@ raw_video_folder: 'video'   # appended to raw data folder
 raw_to_sort: 'to_sort'   # appended to raw data folder
 raw_analoginput_folder: 'analoginputdata'
 
-trials_clips: 'Z:\branco\Federico\raw_behaviour\maze\trials_clips'   # appended to raw data folder
+# trials_clips: 'Z:\branco\Federico\raw_behaviour\maze\trials_clips'   # appended to raw data folder
+trials_clips: Z:\branco\Federico\raw_behaviour\maze\test_clips
+
 
 tracked_data_folder: Z:\branco\Federico\raw_behaviour\maze\pose
 

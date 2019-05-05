@@ -244,20 +244,20 @@ if __name__ == '__main__':
 
     # p.dlcmodels.populate()
 
-    p.recordings.populate()
-    p.videofiles.populate()
+    # p.recordings.populate()
+    # p.videofiles.populate()
 
-    p.commoncoordinatematrices.populate()
-    p.templates.populate()
+    # p.commoncoordinatematrices.populate()
+    # p.templates.populate()
     
     # p.behaviourstimuli.populate() 
-    p.mantisstimuli.populate()
+    # p.mantisstimuli.populate()
 
-    p.tracking_data.populate()
+    # p.tracking_data.populate()
     # p.tracking_data_justbody.populate()
 
     # p.populate_armsprobs()
 
 
-    # print(p.armsprobs.Arm())
+    print(pd.DataFrame(p.dlcmodels)['cfg_file_path'].values)
 

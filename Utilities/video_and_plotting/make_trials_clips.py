@@ -5,12 +5,16 @@ import os
 import cv2
 from tqdm import tqdm
 import pandas as pd
+from multiprocessing.dummy import Pool as ThreadPool
+
+from functools import partial
 
 from Utilities.file_io.files_load_save import load_yaml
 from Utilities.video_and_plotting.video_editing import Editor
 from database.NewTablesDefinitions import *
 from Processing.plot.plotting_utils import *
 from Processing.plot.video_plotting_toolbox import *
+
 
 from database.database_fetch import *
 
@@ -129,7 +133,7 @@ class ClipWriter:
                 self.writer.write(frame)
 
 
-def create_trials_clips(prestim=3, poststim=25, clean_vids=True, plt_pose=False):
+def create_trials_clips(prestim=3, poststim=25, clean_vids=True, plt_pose=False, all_trials=True, recs_range=None):
     def write_clip(video, savename, stim_frame, stim_duration, prestim, poststim, clean_vids, posedata):
         # parameters to draw on frame
         border_size = 0 # 20
@@ -191,11 +195,12 @@ def create_trials_clips(prestim=3, poststim=25, clean_vids=True, plt_pose=False)
             if not clean_vids:
                 # gray = cv2.copyMakeBorder(gray, border_size, border_size, border_size, border_size,
                 #                             cv2.BORDER_CONSTANT, value=curr_color)
-                cv2.circle(gray, (width-200, height-200), 30, curr_color, -1)
+                # cv2.circle(gray, (width-200, height-200), 30, curr_color, -1)
+                cv2.circle(gray, (width-100, height-50), 30, curr_color, -1)
                 frame_time = (frame_counter - window[0]) / fps
                 frame_time = str(round(.2 * round(frame_time / .2), 1)) + '0' * (abs(frame_time) < 10)
-                cv2.putText(gray, sign + str(frame_time) + 's', (width - 250, height - 130), 0, 1,
-                            (20, 20, 20), thickness=2)
+                # cv2.putText(gray, sign + str(frame_time) + 's', (width - 250, height - 130), 0, 1,
+                #             (20, 20, 20), thickness=2)
 
             # frame[:, :, 0] = gray
 
@@ -209,6 +214,7 @@ def create_trials_clips(prestim=3, poststim=25, clean_vids=True, plt_pose=False)
     save_fld = paths['trials_clips']
     saved_clips = [f for f in os.listdir(save_fld)]
 
+
     # Start looping over Recordings()
     recs = Recordings()
     behav_stims = BehaviourStimuli()
@@ -219,14 +225,16 @@ def create_trials_clips(prestim=3, poststim=25, clean_vids=True, plt_pose=False)
     videoname = None
     for recn, rec in enumerate(recs.fetch(as_dict=True)):
         # Get the stim table entry and clip ame
-        if rec['uid']<260: 
-            continue
+        # if rec['uid']<268: 
+        #     continue
+
+        if not recs_range[0] <= rec['uid'] <= recs_range[1]: continue
 
         print('Processing recording {} of {}'.format(recn, len(recs.fetch())))
 
         if rec['software'] == 'behaviour':
-            stims = sorted([s for s in behav_stims if s['recording_uid']==rec['recording_uid']])
-            raise NotImplementedError
+            stims = pd.DataFrame([s for s in behav_stims if s['recording_uid']==rec['recording_uid']])
+            # raise NotImplementedError
         else:
             stims = pd.DataFrame([s for s in mantis_stims if s['recording_uid'] == rec['recording_uid']]).sort_values("overview_frame")
         stimuli_dict = {}
@@ -282,14 +290,26 @@ def create_trials_clips(prestim=3, poststim=25, clean_vids=True, plt_pose=False)
 
                 stimuli_dict[stimn] = (int(stim['overview_frame']), dur)
 
-        if videoname is not None:
+        if videoname is not None and all_trials:
             ClipWriter(videoname, stimuli_dict, clean_vids)
 
 
 
+def parallelise_create_trials_clips():
+    start_rec = 0
+    end_rec = 300
+    n_processes = 4
 
+    arr = [x for x in np.arange(start_rec, end_rec)]
+    splitted = np.array_split(arr, n_processes)
+    limits = [(int(x[0]), int(x[-1])) for x in splitted]
+    print(limits)
 
-
+    # prestim=3, poststim=25, clean_vids=True, plt_pose=False, all_trials=True, recs_range=None
+    params = (3, 25, False, False, False)
+    partial_writer = partial(create_trials_clips, params)
+    pool = ThreadPool(n_processes)
+    _ = pool.map(partial_writer, limits)
 
 
 def make_video_with_all_escapes(select_escapes=True, select_stim_evoked=True, select_exp = None, align_to_stim=True):
@@ -510,6 +530,8 @@ def make_video_with_all_explorations():
 if __name__ == "__main__":
     paths = load_yaml('./paths.yml')
 
-    create_trials_clips(clean_vids=False)
+    create_trials_clips(clean_vids=False, all_trials=False, recs_range=[100, 120])
     # make_video_with_all_escapes(select_exp='PathInt2')
+
+    # parallelise_create_trials_clips()
 

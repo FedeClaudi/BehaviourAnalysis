@@ -8,7 +8,7 @@ import platform
 import random
 import sys
 import platform
-
+import matplotlib.pyplot as plt
 import deeplabcut
 import yaml
 
@@ -118,16 +118,19 @@ class DLCManager:
                 videos = [videos]
         deeplabcut.analyze_videos(self.dlc_paths['cfg_path'], videos, shuffle=1, save_as_csv=False)
 
-    def create_labeled_videos(self, videos=None, trajectory=False):
+    def create_labeled_videos(self, videos=None, trajectory=False, filtered=False, dr=None):
         if videos is None:
             videos = self.sel_videos_in_folder()
         else: 
             if not isinstance(videos, list):
                 videos = [videos]
 
-        deeplabcut.create_labeled_video(self.dlc_paths['cfg_path'],  videos)
+        if dr is None:
+            deeplabcut.create_labeled_video(self.dlc_paths['cfg_path'],  videos, filtered=filtered)
+        else:
+            deeplabcut.create_labeled_video(self.dlc_paths['cfg_path'],  dr, filtered=filtered)
         if trajectory:
-            deeplabcut.plot_trajectories(self.dlc_paths['cfg_path'], videos)
+            deeplabcut.plot_trajectories(self.dlc_paths['cfg_path'], videos, filtered=filtered)
 
     def create_labeled_videos_fc(self, videos=None):
         if videos is None:
@@ -200,14 +203,38 @@ class DLCManager:
     def add_new_videos(self, videos=None):
         if videos is None: raise ValueError('No videos')
         deeplabcut.add_new_videos(self.dlc_paths['cfg_path'], videos ,copy_videos=True)
-            
+
+    def filter_data(self, vids):
+        """[applies ARIMA model to filter errors in tracking]
+        
+        Arguments:
+            dr {[str]} -- [path to folder with vids]
+        """
+        for vid in vids:
+            deeplabcut.filterpredictions(self.dlc_paths['cfg_path'], vid) #, shuffle=1, trainingsetindex=0, comparisonbodyparts='all', p_bound=0.01, ARdegree=3, MAdegree=1, alpha=0.01)
+
+
+            raise ValueError(vid)
+
 if __name__ == "__main__":
     manager = DLCManager()
-    fld = "Z:\\branco\\Federico\\raw_behaviour\\maze\\_overview_training_clips"
+    fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\_overview_training_clips_cut"
 
-    vids = manager.sel_videos_in_folder(all=True, min_n=10)
+    vids = manager.sel_videos_in_folder(all=True, min_n=3, dr="D:\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\_overview_training_clips_cut")
 
     # manager.analyze_videos(videos=vids)
-    manager.create_labeled_videos(videos=vids)
-    # manager.extract_outliers(videos=vids)
+    manager.filter_data(vids)
 
+    manager.create_labeled_videos(videos=vids, trajectory=True)
+    manager.create_labeled_videos(videos=vids, trajectory=True, filtered=True, dr=fld)
+
+    # manager.extract_outliers(videos=vids)
+    # manager.refine_labels() 
+
+    # manager.update_training_video_list()
+    # manager.merge_datasets()
+
+    # manager.create_training_dataset()
+    # manager.train_network()
+
+    plt.show()

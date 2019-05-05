@@ -78,18 +78,29 @@ class Plotter:
             experiments_pR[exp] = np.array(experiment_pr)
             experiments_pRo[exp] = np.array(experiment_pro)
 
+        asym = ['PathInt2', "PathInt2-L"]
+        sym = ['Square Maze', 'TwoAndahalf maze']
+
+        pr = {e:[] for e in ['asym', 'sym']}
+        pr['asym'].extend(experiments_pR[asym[0]])
+        pr['asym'].extend(experiments_pR[asym[1]])
+        pr['sym'].extend(experiments_pR[sym[0]])
+        pr['sym'].extend(experiments_pR[sym[0]])
+
         x = np.arange(self.n_experiments)
         f, ax = plt.subplots()
-        for n, (pR, pRo) in enumerate(zip(experiments_pR.values(), experiments_pRo.values())):
+        # for n, (pR, pRo) in enumerate(zip(experiments_pR.values(), experiments_pRo.values())):
+
+        for n, pR in enumerate(pr.values()):
             xx = np.random.normal(n, 0.1, len(pR))
-            ax.bar(n, np.mean(pR),  color=[.4, .4, .4], alpha=.5)
-            ax.bar(n, -np.mean(pRo),  color=[.2, .2, .2], alpha=.5)
-            ax.scatter(xx, pR, s=90, alpha=.9)
-            ax.scatter(xx, -pRo, s=90, alpha=.9)
+            # ax.bar(n, np.mean(pR),  color=[.4, .4, .4], alpha=.5)
+            # ax.bar(n, -np.mean(pRo),  color=[.2, .2, .2], alpha=.5)
+            ax.scatter(xx, pR, s=600, alpha=.5)
+            # ax.scatter(xx, -pRo, s=90, alpha=.9)
 
         ax.axhline(.5, color='k', linewidth=.5)
-        ax.axhline(-.5, color='k', linewidth=.5)
-        ax.set(title="$p(R)$", xticks=x, xticklabels=experiments_pR.keys())
+        # ax.axhline(-.5, color='k', linewidth=.5)
+        # ax.set(title="$p(R)$", xticks=x, xticklabels=experiments_pR.keys())
 
     def modelbased(self):
         exp = 'Model Based'
@@ -130,10 +141,10 @@ class Plotter:
 
 if __name__ == "__main__":
     p = Plotter()
-    p.pr_sym_vs_asmy()
+    # p.pr_sym_vs_asmy()
 
 
-    # p.plot_pR_individuals_by_exp()
+    p.plot_pR_individuals_by_exp()
     # p.plot_p_same_origin_and_escape_by_exp()
 
     # p.plot_pR_by_exp()
