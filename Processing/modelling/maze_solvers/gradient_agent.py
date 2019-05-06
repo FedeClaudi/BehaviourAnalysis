@@ -74,9 +74,6 @@ class GradientAgent(Agent):
 		ax.imshow(self.geodesic_distance)
 
 		ax.scatter(self.curr_state[0], self.curr_state[1], c='g')
-
-		ax.set(xlim=[self.curr_state[0]-1, self.curr_state[0]+2], ylim=[self.curr_state[1]+2, self.curr_state[1]-1])
-
 	
 	def evaluate_geodesic_gradient(self):
 		'''     CALCULATE THE GRADIENT OF THE GEODESIC MAP AT THE CURRENT LOCATION      '''

@@ -229,13 +229,13 @@ if __name__ == "__main__":
     # manager.create_labeled_videos(videos=vids, trajectory=True)
     # manager.create_labeled_videos(videos=vids, trajectory=False, filtered=True, dr=None)
 
-    manager.extract_outliers(videos=vids)
+    # manager.extract_outliers(videos=vids)
     # manager.refine_labels() 
 
     # manager.update_training_video_list()
     # manager.merge_datasets()
 
     # manager.create_training_dataset()
-    # manager.train_network()
+    manager.train_network()
 
     plt.show()

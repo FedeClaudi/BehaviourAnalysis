@@ -103,7 +103,7 @@ class Environment(World):
 
 
 
-	def get_available_moves(self, curr):
+	def get_available_moves(self,):
 		"""[Get legal moves given the current position, i.e. moves that lead to a free cell]
 		
 		Arguments:
@@ -111,7 +111,7 @@ class Environment(World):
 		"""
 		legals = []
 
-		surroundings = self.maze[curr[1]-1:curr[1]+2, curr[0]-1:curr[0]+2]
+		surroundings = self.maze[self.curr_state[1]-1:self.curr_state[1]+2, self.curr_state[0]-1:self.curr_state[0]+2]
 
 		actions = ["up-left", "up", "up-right", "left", "still", "right", "down-left", "down", "down-right"] # ! dont delete still from this list
 
@@ -153,6 +153,7 @@ class Environment(World):
 			nxt_state = change(curr, left, down)
 		elif action == "still":
 			nxt_state = change(curr, 0, 0)
+		else: nxt_state = None
 		return nxt_state
 
 	def act(self, action, mode="standard"):
