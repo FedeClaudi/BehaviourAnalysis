@@ -5,7 +5,9 @@ import matplotlib.pyplot as plt
 import cv2
 import os
 from Processing.tracking_stats.math_utils import calc_distance_between_points_2d as dist
+from Processing.tracking_stats.math_utils import geodist
 import json
+
 
 
 def get_maze_from_image(size, maze_design):
@@ -48,6 +50,8 @@ class Maze(object):
 			self.maze[i[0]][i[1]] = 1
 
 		self.maze_image = np.rot90(self.maze[::-1, :], 3)
+
+		self.geodesic_distance, self.geodesic_gradient = geodist(self.maze, self.goal)
 
 	def reset(self,):
 		# reset the environment
@@ -170,43 +174,4 @@ class Maze(object):
 			self.game_over = False
 
 		return self.next_state, self.reward, self.game_over 
-
-
-	def get_geodesic_representation(self, remove_free_states = None):
-		from sklearn import manifold
-
-		# get a reduced list of freestates
-		if remove_free_states is not None:
-	
-			free = [fs for fs in self.free_states if fs not in remove_free_states]
-		else:
-			free = self.free_states
-
-		# X is a 2d array with shape: number-of-points by 2 [XY coordinates for each pixel on the maze]
-		X = np.vstack(free)  # self.freestates is a list of points which are the pixels on the maze
-		start_idx = free.index(self.start)
-		goal_idx = free.index(self.goal)
-
-		iso = manifold.Isomap(n_neighbors=6, n_components=2)  # fit the isomap
-		iso.fit(X)
-
-		# Make an image where each maze-pixel is colored accordingly to the distance from either the goal or the start
-		idxs = [start_idx, goal_idx]
-		titles = ['Geodesic distance from start', 'Geodesic distance from Shelter']
-		
-		self.geodesic_distance_states = []
-		f, axarr = plt.subplots(ncols=2)
-		for ax, target, title in zip(axarr, idxs, titles):
-			m = np.full(self.maze_image.shape, np.nan)
-			for n, coord in enumerate(free):
-				d = iso.dist_matrix_[n, target]
-				m[coord[1], coord[0]] = d
-
-				if target == goal_idx:
-					self.geodesic_distance_states.append(d)
-
-			ax.imshow(m)
-			ax.set(title=title)
-
-		f.savefig("Processing/modelling/maze_path_rl/results/{}_geodesic.png".format(self.name))
 

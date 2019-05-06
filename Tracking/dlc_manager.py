@@ -128,7 +128,8 @@ class DLCManager:
         if dr is None:
             deeplabcut.create_labeled_video(self.dlc_paths['cfg_path'],  videos, filtered=filtered)
         else:
-            deeplabcut.create_labeled_video(self.dlc_paths['cfg_path'],  dr, filtered=filtered)
+            deeplabcut.create_labeled_video(self.dlc_paths['cfg_path'],  [dr], filtered=filtered, videotype='.mp4')
+
         if trajectory:
             deeplabcut.plot_trajectories(self.dlc_paths['cfg_path'], videos, filtered=filtered)
 
@@ -211,22 +212,22 @@ class DLCManager:
             dr {[str]} -- [path to folder with vids]
         """
         for vid in vids:
+            print(vid)
             deeplabcut.filterpredictions(self.dlc_paths['cfg_path'], vid) #, shuffle=1, trainingsetindex=0, comparisonbodyparts='all', p_bound=0.01, ARdegree=3, MAdegree=1, alpha=0.01)
 
 
-            raise ValueError(vid)
 
 if __name__ == "__main__":
     manager = DLCManager()
-    fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\_overview_training_clips_cut"
+    fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\_overview_training_clips_cut\\bads"
 
-    vids = manager.sel_videos_in_folder(all=True, min_n=3, dr="D:\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\_overview_training_clips_cut")
+    vids = manager.sel_videos_in_folder(all=True, min_n=3, dr=fld)
 
-    # manager.analyze_videos(videos=vids)
-    # manager.filter_data(vids)
+    manager.analyze_videos(videos=vids)
+    manager.filter_data(vids)
 
-    manager.create_labeled_videos(videos=vids, trajectory=True)
-    manager.create_labeled_videos(videos=vids, trajectory=True, filtered=True, dr=fld)
+    # manager.create_labeled_videos(videos=vids, trajectory=True)
+    # manager.create_labeled_videos(videos=vids, trajectory=False, filtered=True, dr=None)
 
     # manager.extract_outliers(videos=vids)
     # manager.refine_labels() 
