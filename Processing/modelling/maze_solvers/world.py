@@ -29,7 +29,7 @@ class World:
         self.second_start_location = [9, 9]  # alternative start
 
         # static vars
-        self.maze_models_folder = "Processing/modelling/maze_path_rl/mods"
+        self.maze_models_folder = "Processing\modelling\maze_solvers\mazes_images"
 
         
 

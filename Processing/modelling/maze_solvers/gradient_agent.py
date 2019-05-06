@@ -69,11 +69,6 @@ class GradientAgent(Agent):
 
 
 
-
-
-		
-		
-
 	def plot_geodesic_distance(self):
 		f, ax = plt.subplots()
 		ax.imshow(self.geodesic_distance)
@@ -144,7 +139,6 @@ class GradientAgent(Agent):
 		for block in blocks:
 			self.maze[block[1], block[0]] = 0 
 			self.maze[block[0], block[1]] = 0 
-
 			self.geodesic_distance[block[1], block[0]] = np.nan # this will be overwritte if we are updating the geodesic distance
 
 

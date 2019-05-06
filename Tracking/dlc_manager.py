@@ -223,13 +223,13 @@ if __name__ == "__main__":
 
     vids = manager.sel_videos_in_folder(all=True, min_n=3, dr=fld)
 
-    manager.analyze_videos(videos=vids)
-    manager.filter_data(vids)
+    # manager.analyze_videos(videos=vids)
+    # manager.filter_data(vids)
 
     # manager.create_labeled_videos(videos=vids, trajectory=True)
     # manager.create_labeled_videos(videos=vids, trajectory=False, filtered=True, dr=None)
 
-    # manager.extract_outliers(videos=vids)
+    manager.extract_outliers(videos=vids)
     # manager.refine_labels() 
 
     # manager.update_training_video_list()
