@@ -14,7 +14,7 @@ class VanillaMF(Agent):
 		Agent.__init__(self)
 
 		# Parameters
-		self.max_iters = 300
+		self.max_iters = 600
 		
 
 		self.epsilon = .95  # the higher the less greedy
@@ -43,12 +43,11 @@ class VanillaMF(Agent):
 		self.plot_policy(ax=axarr[0, 0], title="Model Free - Naive")
 		self.plot_walk(walk, ax=axarr[1, 0])
 
-
 		# Block LAMBDA and get the shortest path
 		self.introduce_blockage('lambda')
 		walk = self.shortest_walk_f()
 		self.plot_policy(ax=axarr[0, 1], title="Bocked LAMBDA")
-		self.plot_walk(walk, ax=axarr[1, 1], blocked = self.states_to_block_lambda)
+		self.plot_walk(walk, ax=axarr[1, 1])
 
 		# Train with blocked lambda to visualise policy update
 		self.train(plot=False)
@@ -60,7 +59,7 @@ class VanillaMF(Agent):
 		self.introduce_blockage('alpha0')
 		walk = self.shortest_walk_f()
 		self.plot_policy(ax=axarr[0, 2], title="Bocked ALPHA0")
-		self.plot_walk(walk, ax=axarr[1, 2], blocked = self.states_to_block_alpha0)
+		self.plot_walk(walk, ax=axarr[1, 2])
 
 		# Train with blocked alpha to visualise policy update
 		self.train(plot=False)
@@ -69,10 +68,10 @@ class VanillaMF(Agent):
 		self.reset_trained()
 
 		# Block both ALPHA and get the shortest path
-		self.introduce_blockage('alpha')
+		self.introduce_blockage(['alpha0', 'alpha1'])
 		walk = self.shortest_walk_f()
 		self.plot_policy(ax=axarr[0, 3], title="Bocked ALPHAs")
-		self.plot_walk(walk, ax=axarr[1, 3], blocked = self.states_to_block_alpha0)
+		self.plot_walk(walk, ax=axarr[1, 3])
 
 		# Reset again
 		self.reset_trained()
@@ -81,7 +80,7 @@ class VanillaMF(Agent):
 		self.introduce_blockage('lambda')
 		walk = self.shortest_walk_f(start='secondary')
 		self.plot_policy(ax=axarr[0, 4], title="Start at P")
-		self.plot_walk(walk, ax=axarr[1, 4],  blocked = self.states_to_block_lambda)
+		self.plot_walk(walk, ax=axarr[1, 4])
 
 		# reset but dont trian
 		self.reset_trained(train=False)
@@ -192,10 +191,10 @@ class VanillaMF(Agent):
 		blocks = self.get_blocked_states(bridge)
 
 		for block in blocks:
-			self.geodesic_distance[block[0], block[1], :] = 0
+			self.Q[block[0], block[1], :] = 0
 
 			self.maze[block[1], block[0]] = 0 
-			self.maze[block[0], block[1]] = 0 
+			# self.maze[block[0], block[1]] = 0 
 
 		self.free_states = [fs for fs in self.free_states if fs[::-1] not in blocks]
 

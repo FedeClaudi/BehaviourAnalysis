@@ -19,14 +19,21 @@ class World:
     def __init__(self):
         # define variables
         self.maze_design = "ModelBased2.png"
-        self.maze_design_blocked =  "ModelBased_mod.png"  # alternative design with a bridge closed 
-        self.grid_size = 20
+        self.maze_type = "modelbased"
+
+        self.grid_size = 40
 
         self.randomise_start_location_during_training = False
 
-        self.goal_location = [10, 2]
-        self.start_location = [9, 14]
-        self.second_start_location = [9, 9]  # alternative start
+        if self.maze_type == "modelbased":
+            self.goal_location =  [20, 4] # [10, 2]  # for MBv2 like mazes
+        elif self.maze_type == "asymmetric":
+            self.goal_location = [19, 10] # [9, 5]     # for pathint2 like maze
+        else:
+            raise ValueError("unrecognised maze")
+            
+        self.start_location = [20, 32] # [9, 14]
+        self.second_start_location = [19, 17] # [9, 9]  # alternative start
 
         # static vars
         self.maze_models_folder = "Processing\modelling\maze_solvers\mazes_images"

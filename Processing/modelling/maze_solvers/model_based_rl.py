@@ -46,56 +46,65 @@ class VanillaMB(Agent):
 		walk = self.walk_with_state_transitions()
 		self.plot_walk(walk, ax=axarr[2, 0])
 
-		# Introduce blocage on LAMBDA
-		self.introduce_blockage('lambda')
-		
-		# Recompute values and do a walk
-		self.reset_values()
-		self.value_estimation()
-		
-		walk = self.walk_with_state_transitions()
-		self.plot_func("P", ax=axarr[0, 1], ttl="Blocked LAMBDA")
-		self.plot_func("V", ax=axarr[1, 1], ttl="")
-		self.plot_walk(walk,ax=axarr[2, 1])
+		if self.maze_type == "asymmetric":
+			self.introduce_blockage("right")
+			self.reset_values()
+			self.value_estimation()
+			walk = self.walk_with_state_transitions()
+			self.plot_func("P", ax=axarr[0, 1], ttl="Blocked LAMBDA")
+			self.plot_func("V", ax=axarr[1, 1], ttl="")
+			self.plot_walk(walk,ax=axarr[2, 1])
+		else:
+			# Introduce blocage on LAMBDA
+			self.introduce_blockage('lambda')
+			
+			# Recompute values and do a walk
+			self.reset_values()
+			self.value_estimation()
+			
+			walk = self.walk_with_state_transitions()
+			self.plot_func("P", ax=axarr[0, 1], ttl="Blocked LAMBDA")
+			self.plot_func("V", ax=axarr[1, 1], ttl="")
+			self.plot_walk(walk,ax=axarr[2, 1])
 
-		# Do one trial start_locationing at P with LAMBDA *fully* closed
-		self.introduce_blockage('lambda', p=0)
+			# Do one trial start_locationing at P with LAMBDA *fully* closed
+			self.introduce_blockage('lambda', p=0)
 
-		self.reset_values()
-		self.value_estimation()
-		walk = self.walk_with_state_transitions(start_location="secondary")
-		self.plot_func("P", ax=axarr[0, 4], ttl="start_location at P")
-		self.plot_func("V", ax=axarr[1, 4], ttl="")
-		self.plot_walk(walk,ax=axarr[2, 4])
+			self.reset_values()
+			self.value_estimation()
+			walk = self.walk_with_state_transitions(start_location="secondary")
+			self.plot_func("P", ax=axarr[0, 4], ttl="start_location at P")
+			self.plot_func("V", ax=axarr[1, 4], ttl="")
+			self.plot_walk(walk,ax=axarr[2, 4])
 
 
-		# Relearn state transitions (reset to before blockage)
-		self._reset()
-		self.explore()
+			# Relearn state transitions (reset to before blockage)
+			self._reset()
+			self.explore()
 
-		# Block alpha and do a walk
-		self.introduce_blockage("alpha1")
-		self.reset_values()
-		self.value_estimation()
-		walk = self.walk_with_state_transitions()
+			# Block alpha and do a walk
+			self.introduce_blockage("alpha1")
+			self.reset_values()
+			self.value_estimation()
+			walk = self.walk_with_state_transitions()
 
-		self.plot_func("P", ax=axarr[0, 2], ttl="Blocked - ALPHA1")
-		self.plot_func("V", ax=axarr[1, 2], ttl="")
-		self.plot_walk(walk, ax=axarr[2, 2])
+			self.plot_func("P", ax=axarr[0, 2], ttl="Blocked - ALPHA1")
+			self.plot_func("V", ax=axarr[1, 2], ttl="")
+			self.plot_walk(walk, ax=axarr[2, 2])
 
-		# Reset and repeat with both alphas closed
-		self._reset()
-		self.explore()
-		self.introduce_blockage("alpha")
-		self.reset_values()
-		self.value_estimation()
-		walk = self.walk_with_state_transitions()
+			# Reset and repeat with both alphas closed
+			self._reset()
+			self.explore()
+			self.introduce_blockage("alpha")
+			self.reset_values()
+			self.value_estimation()
+			walk = self.walk_with_state_transitions()
 
-		self.plot_func("P", ax=axarr[0, 3], ttl="Blocked - ALPHAs")
-		self.plot_func("V", ax=axarr[1, 3], ttl="")
-		self.plot_walk(walk, ax=axarr[2, 3])
+			self.plot_func("P", ax=axarr[0, 3], ttl="Blocked - ALPHAs")
+			self.plot_func("V", ax=axarr[1, 3], ttl="")
+			self.plot_walk(walk, ax=axarr[2, 3])
 
-		self._reset()
+			self._reset()
 
 	def _reset(self):
 		self.free_states = self._free_states.copy()
@@ -258,8 +267,7 @@ class VanillaMB(Agent):
 		if reached_goal_location:
 			walk.append(curr)
 			return walk
-		# else:
-		# 	print("Walk didnt reach the shelter sorry")
+
 
 
 	def do_probabilistic_walks(self, n=100):
@@ -279,7 +287,7 @@ class VanillaMB(Agent):
 
 
 	def step(self, policy, current):
-		legal_actions = [a for a in self.get_available_moves(current) if a != "still" not in a]
+		legal_actions = [a for a in self.get_available_moves(current = current) if a != "still" not in a]
 		action = choice(legal_actions)
 
 		# move

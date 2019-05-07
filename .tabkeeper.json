@@ -8,5 +8,20 @@
 			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\database\\NewTablesDefinitions.py.git",
 			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Processing\\trials_analysis\\vte_analysis.py.git"
 		]
+	},
+	{
+		"name": "mazesolvers",
+		"paths": [
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Processing\\modelling\\maze_solvers\\agent.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Processing\\modelling\\maze_solvers\\environment.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Processing\\modelling\\maze_solvers\\environment.py.git",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Processing\\modelling\\maze_solvers\\gradient_agent.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Processing\\modelling\\maze_solvers\\world.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Processing\\modelling\\maze_solvers\\options.yml",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Processing\\modelling\\maze_solvers\\model_free_rl.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Processing\\modelling\\maze_solvers\\hierarchical_model_free_rl.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Processing\\modelling\\maze_solvers\\hierarchical_model_free_rl.py.git",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Processing\\modelling\\maze_solvers\\world.py.git"
+		]
 	}
 ]

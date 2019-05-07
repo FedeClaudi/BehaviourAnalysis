@@ -212,8 +212,11 @@ class DLCManager:
             dr {[str]} -- [path to folder with vids]
         """
         for vid in vids:
-            print(vid)
-            deeplabcut.filterpredictions(self.dlc_paths['cfg_path'], vid) #, shuffle=1, trainingsetindex=0, comparisonbodyparts='all', p_bound=0.01, ARdegree=3, MAdegree=1, alpha=0.01)
+            if "DeepCut" in vid: continue
+            print(vid, "\n\n")
+            dst = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\_overview_training_clips_cut\\bads"
+            deeplabcut.filterpredictions(self.dlc_paths['cfg_path'], [vid], destfolder=dst, save_as_csv=False, 
+                                ARdegree=5,MAdegree=2) 
 
 
 
@@ -223,11 +226,11 @@ if __name__ == "__main__":
 
     vids = manager.sel_videos_in_folder(all=True, min_n=3, dr=fld)
 
-    manager.analyze_videos(videos=vids)
+    # manager.analyze_videos(videos=vids)
     # manager.filter_data(vids)
 
-    manager.create_labeled_videos(videos=vids, trajectory=True)
-    # manager.create_labeled_videos(videos=vids, trajectory=False, filtered=True, dr=None)
+    manager.create_labeled_videos(videos=vids, trajectory=False)
+    manager.create_labeled_videos(videos=vids, trajectory=False, filtered=True, dr=None)
 
     # manager.extract_outliers(videos=vids)
     # manager.refine_labels() 
