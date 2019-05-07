@@ -1,6 +1,8 @@
 import sys
 sys.path.append('./')
 
+import matplotlib
+matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import json
@@ -22,6 +24,19 @@ class GradientAgent(Agent):
 	def __init__(self):
 		Agent.__init__(self)
 
+	def get_maze_options(self):
+		options = {}
+		options['base'] = self.walk()
+
+		
+		options_names = ["lambda", "alpha0", "alpha1", "beta0", "beta1", ["lambda", "beta0"],  ["lambda", "beta0"]]
+		f, axarr = plt.subplots(ncols =len(options_names))
+
+		for i, name in enumerate(options_names):
+			self.itroduce_blockage(name)
+			axarr[i].plot(self.walk())
+
+			
 
 	def run(self):
 		# prep figure
@@ -30,8 +45,6 @@ class GradientAgent(Agent):
 		# walk  on vanilla environment
 		walk = self.walk()
 		self.plot_walk(walk, background_image=self.geodesic_distance, color='r', ax=axarr[0])
-
-
 
 		# Block LAMBDA and get the shortest path
 		self.introduce_blockage('lambda')
@@ -148,7 +161,7 @@ class GradientAgent(Agent):
 if __name__ == "__main__":
 	agent = GradientAgent()
 
-	agent.run()
+	agent.get_maze_options()
 
 
 	plt.show()

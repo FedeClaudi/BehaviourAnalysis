@@ -1,6 +1,10 @@
 import sys
 sys.path.append('./')
+
+import matplotlib
+matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
+
 import numpy as np
 import random
 import pickle
