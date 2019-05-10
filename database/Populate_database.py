@@ -9,18 +9,16 @@ import warnings
 from shutil import copyfile
 import cv2
 import datajoint as dj
-import moviepy
 import pandas as pd
 import pyexcel
 import yaml
-from moviepy.editor import VideoFileClip
 from tqdm import tqdm
 from collections import namedtuple
 
 from database.NewTablesDefinitions import *
 
 from Utilities.video_and_plotting.video_editing import *
-from Utilities.stim_times_loader import *
+from Utilities.dbase.stim_times_loader import *
 from database.database_fetch import *
 
 def disable_pandas_warnings():

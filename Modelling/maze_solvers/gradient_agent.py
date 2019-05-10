@@ -17,7 +17,7 @@ import yaml
 
 from Processing.tracking_stats.math_utils import geodist
 
-from Processing.modelling.maze_solvers.agent import Agent
+from Modelling.maze_solvers.agent import Agent
 
 
 class GradientAgent(Agent):
@@ -185,12 +185,33 @@ class GradientAgent(Agent):
 		if update: self.geodesic_distance = geodist(self.maze, self.goal_location)
 		
 
-		# self.free_states = [fs for fs in self.free_states if fs[::-1] not in blocks]
+		
 
+	def get_all_geo_distances(self):
+		self.all_geo = np.zeros((len(self.free_states), len(self.free_states)))
+
+		for row in np.arange(len(self.all_geo)):
+			dist = self.geodist(self.maze, self.free_states[row])
+			cleaned = [x for x in dist[~np.isnan(dist)].flatten()]
+
+			# image = self.create_maze_image_from_vales(cleaned)
+			# plt.imshow(image)
+			# plt.scatter(self.free_states[row][0], self.free_states[row][1], c='r')
+			# plt.show()
+
+			self.all_geo[row, :] = cleaned
+		
+		
+			# TODO test if this you can between any A and B
+
+
+			
 if __name__ == "__main__":
 	agent = GradientAgent()
-	agent.run()
-	agent.get_maze_options()
+	# agent.run()
+	# agent.get_maze_options()
+
+	agent.get_all_geo_distances()
 
 
 	plt.show()

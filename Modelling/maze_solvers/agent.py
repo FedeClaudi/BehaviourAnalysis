@@ -16,7 +16,7 @@ import yaml
 from Processing.tracking_stats.math_utils import calc_distance_between_points_in_a_vector_2d as dist
 from Processing.tracking_stats.math_utils import calc_distance_between_points_2d,  get_n_colors, calc_angle_between_points_of_vector, calc_ang_velocity, line_smoother
 
-from Processing.modelling.maze_solvers.environment import Environment
+from Modelling.maze_solvers.environment import Environment
 
 
 class Agent(Environment):
@@ -36,7 +36,7 @@ class Agent(Environment):
 		self._geodesic_distance = self.geodesic_distance.copy()
 
 		# define yaml file with save options (walks for each arm of the maze)
-		self.options_file = "Processing\modelling\maze_solvers\options.yml"
+		self.options_file = "Modelling\maze_solvers\options.yml"
 		self.load_options()
 
 	def load_options(self):

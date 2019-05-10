@@ -71,5 +71,19 @@
 			"d:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Nets\\maze_joined-Federico-2019-02-22\\dlc-models\\iteration-2\\maze_joinedFeb22-trainset95shuffle1\\train\\pose_cfg.yaml",
 			"d:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Nets\\maze_joined-Federico-2019-02-22\\dlc-models\\iteration-2\\maze_joinedFeb22-trainset95shuffle1\\train\\pose_cfg.yaml.git"
 		]
+	},
+	{
+		"name": "database",
+		"paths": [
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Processing\\modelling\\maze_solvers\\gradient_agent.py.git",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Processing\\modelling\\maze_solvers\\environment.py.git",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Tracking\\dlcproject_config.yml.git",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Utilities\\dbase\\stim_times_loader.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\database\\Populate_database.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Utilities\\dbase\\db_data_alignment.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Utilities\\dbase\\db_data_alignment.py.git",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\database\\NewTablesDefinitions.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\database\\NewTablesDefinitions.py.git"
+		]
 	}
 ]

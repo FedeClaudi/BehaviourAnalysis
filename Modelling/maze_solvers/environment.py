@@ -14,7 +14,7 @@ from tqdm import tqdm
 
 from Processing.tracking_stats.math_utils import calc_distance_between_points_in_a_vector_2d as dist
 from Processing.tracking_stats.math_utils import geodist
-from Processing.modelling.maze_solvers.world import World
+from Modelling.maze_solvers.world import World
 
 
 class Environment(World):
@@ -42,6 +42,7 @@ class Environment(World):
 
 		# Define geodesic distance from shelter at each location
 		self.geodesic_distance = geodist(self.maze, self.goal_location)
+		self.geodist = geodist
 
 		# initialise
 		self.reset()
@@ -199,6 +200,21 @@ class Environment(World):
 
 		return self.next_state, self.reward, self.game_over 
 
+
+	def create_maze_image_from_vales(self, vals):
+		"""[creates an image with the shape of the maze and the color from vals]
+		
+		Arguments:
+			vals {[list]} -- [list with same length as self.free_states]
+		
+		"""
+
+		image = np.zeros_like(self.maze)
+
+		for (x,y),v in zip(self.free_states, vals):
+			image[y, x] = v
+
+		return image
 
 
 if __name__ == "__main__":
