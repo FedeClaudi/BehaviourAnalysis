@@ -217,7 +217,7 @@ class DLCManager:
             try:
                 dst = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\_overview_training_clips_cut\\bads"
                 deeplabcut.filterpredictions(self.dlc_paths['cfg_path'], [vid], destfolder=dst, save_as_csv=False, 
-                                    ARdegree=3, MAdegree=1) 
+                                    ARdegree=5, MAdegree=2) 
             except: pass
 
 
@@ -236,8 +236,8 @@ if __name__ == "__main__":
     # manager.analyze_videos(videos=vids)
     # manager.create_labeled_videos(videos=vids, trajectory=True)
 
-    # manager.filter_data(vids)
-    # manager.create_labeled_videos(videos=vids, trajectory=False, filtered=True, dr=None)
+    manager.filter_data(vids)
+    manager.create_labeled_videos(videos=vids, trajectory=False, filtered=True, dr=None)
 
     # manager.extract_outliers(videos=vids)
     # manager.refine_labels() 
@@ -247,6 +247,6 @@ if __name__ == "__main__":
     # manager.check_labels()
 #
     # manager.create_training_dataset()
-    manager.train_network()
+    # manager.train_network()
 
     plt.show()

@@ -7,6 +7,7 @@ import pyfastcopy
 from multiprocessing import Process
 import numpy as np
 from functools import partial
+import pandas as pd
 
 def load_yaml(file):
         if not isinstance(file, str): raise ValueError('Invalid input argument')
@@ -21,11 +22,18 @@ def load_yaml(file):
         # subprocess.call("mv {} {}".format(source, dest), shell=True)
         # p = subprocess.Popen(['mv', source, dest], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
 
+def save_yaml(path, obj, mode='w'):
+    try:
+        with open(path, mode) as f:
+            yaml.dump(obj, f)
+    except: return False
+    else: return True
+    
 
 
 def load_tdms_from_winstore(filetomove):
         print('Moving ', filetomove, ' with size ', np.round(os.path.getsize(filetomove)/1000000000, 2), ' GB')
-        temp_dest = "D:\\"
+        temp_dest = "M:\\"
         origin, name = os.path.split(filetomove)
         dest = os.path.join(temp_dest, name)
         if name in os.listdir(temp_dest):
@@ -47,5 +55,11 @@ def load_tdms_from_winstore(filetomove):
         return dest
 
 
+def load_feather(path):
+    return pd.read_feather(path)
 
+if __name__ == "__main__":
+    path = "Z:\\branco\\Federico\\raw_behaviour\\maze\\analoginputdata\\as_pandas\\180223_CA503_1.ft"
+    loaded = load_feather(path)
+    print(loaded)
 

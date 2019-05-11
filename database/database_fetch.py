@@ -86,6 +86,12 @@ def get_recs_given_sessuid(uid, recordings=None):
         recs = pd.DataFrame((Recordings & "uid='{}'".format(uid)).fetch())
         return recs
 
+
+def get_recs_ai_given_sessuid(uid):
+    from database.NewTablesDefinitions import Recordings
+    recs = pd.DataFrame((Recordings.AnalogInputs & "uid='{}'".format(uid)).fetch())
+    return recs
+
 def get_sessuid_given_sessname(name):
     from database.NewTablesDefinitions import Sessions
     return (Sessions & "session_name = '{}'".format(name)).fetch('uid')

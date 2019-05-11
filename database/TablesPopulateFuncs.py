@@ -106,6 +106,9 @@ class ToolBox:
             cols = list(tdms_df.columns)
             return tdms_df, cols
 
+
+
+
     def extract_behaviour_stimuli(self, aifile):
         """extract_behaviour_stimuli [given the path to a .tdms file with session metadata extract
         stim names and timestamp (in frames)]

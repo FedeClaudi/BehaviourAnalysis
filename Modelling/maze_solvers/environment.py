@@ -201,7 +201,7 @@ class Environment(World):
 		return self.next_state, self.reward, self.game_over 
 
 
-	def create_maze_image_from_vales(self, vals):
+	def create_maze_image_from_vals(self, vals):
 		"""[creates an image with the shape of the maze and the color from vals]
 		
 		Arguments:
@@ -209,7 +209,7 @@ class Environment(World):
 		
 		"""
 
-		image = np.zeros_like(self.maze)
+		image = np.full(self.maze.shape, np.nan)
 
 		for (x,y),v in zip(self.free_states, vals):
 			image[y, x] = v

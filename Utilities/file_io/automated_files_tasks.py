@@ -21,7 +21,8 @@ import time
 
 from Utilities.video_and_plotting.video_editing import VideoConverter, Editor
 from Utilities.file_io.sort_behaviour_files import sort_mantis_files
-
+from database.TablesPopulateFuncs import ToolBox
+from Utilities.file_io.files_load_save import save_yaml
 
 
 """ [Toolbox functions to automate handling of files (e.g. convert videos from .tdms to .avi...)]
@@ -29,32 +30,31 @@ from Utilities.file_io.sort_behaviour_files import sort_mantis_files
 
 class FilesAutomationToolbox:
     def __init__(self):
+        self.tool_box = ToolBox()
+
         # self.database = PopulateDatabase()
         self.videos_fld = videofolder
         self.pose_fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\pose'
+        self.ai_fld = "Z:\\branco\\Federico\\raw_behaviour\\maze\\analoginputdata"
+        self.ai_dest_fld = "Z:\\branco\\Federico\\raw_behaviour\\maze\\analoginputdata\\as_pandas"
+
         try:
             self.video_metadata = VideoTdmsMetadata
         except:
             self.video_metadata = None
 
-    def macro(self):
-        # Fill in metadata dj table
-        try:
-            self.extract_videotdms_metadata()
-        except:
-            pass
+    def save_ai_files_as_pandas(self):
+        for ai in os.listdir(self.ai_fld):
+            savename = ai.split('.')[0]+".ft"
+            if savename in os.listdir(self.ai_dest_fld): continue
 
-        # IF something needs conversion, conert it
-        to_conv = self.get_list_uncoverted_tdms_videos()
-        print('Converting: ', to_conv)
-        if to_conv:
-            self.convert_tdms_to_mp4()
-        
-        # Check if there was something wrong with conversion
-        self.check_video_conversion_correct()
+            content = self.tool_box.open_temp_tdms_as_df(os.path.join(self.ai_fld, ai), move=True, skip_df=False)
+            content.to_feather(os.path.join(self.ai_dest_fld, savename))
 
-        # Join Clips
-        Editor.concated_tdms_to_mp4_clips(self.videos_fld)
+            # print("saving")
+            # ret = save_yaml(os.path.join(self.ai_dest_fld, savename), content)
+            # if not ret: raise ValueError("didnt save correctly")
+            # else: print("good move on")
 
     def extract_videotdms_metadata(self):
         """[Populate a dj table with the videos metadata]
@@ -233,11 +233,14 @@ if __name__ == "__main__":
 
     # automation.convert_tdms_to_mp4()
 
-    automation.get_list_uncoverted_tdms_videos()
-    automation.get_list_not_tracked_videos()
+    # automation.get_list_uncoverted_tdms_videos()
+    # automation.get_list_not_tracked_videos()
 
     # Checks 
     # automation.extract_videotdms_metadata()
     # automation.check_video_conversion_correct() 
     # automation.remove_stupid_videofiles()
+
+
+    automation.save_ai_files_as_pandas()
 

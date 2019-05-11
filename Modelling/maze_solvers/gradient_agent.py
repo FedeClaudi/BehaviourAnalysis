@@ -111,20 +111,21 @@ class GradientAgent(Agent):
 
 		ax.scatter(self.curr_state[0], self.curr_state[1], c='g')
 	
-	def evaluate_geodesic_gradient(self):
+	def evaluate_geodesic_gradient(self, geodesic_map = None):
 		'''     CALCULATE THE GRADIENT OF THE GEODESIC MAP AT THE CURRENT LOCATION      '''
-
-		surroundings = self.geodesic_distance[self.curr_state[1]-1:self.curr_state[1]+2, 
-												self.curr_state[0]-1:self.curr_state[0]+2]
+		if geodesic_map is None: 
+			geodesic_map = self.geodesic_distance
+		
+		surroundings = geodesic_map[self.curr_state[1]-1:self.curr_state[1]+2, self.curr_state[0]-1:self.curr_state[0]+2]
 		return np.nanargmin(surroundings.flatten()), surroundings
 
 		
-	def step(self, current):
+	def step(self, current, geodesic_map = None):
 		# Select which action to perform
 		actions_complete = ["up-left", "up", "up-right", "left", "still", "right", "down-left", "down", "down-right"] # ! dont delete still from this list
 		# ? this list includes the still action which is equivalent to the centre of the surrounding geodesic distance gradient
 
-		action, surroundings = self.evaluate_geodesic_gradient()	
+		action, surroundings = self.evaluate_geodesic_gradient(geodesic_map=geodesic_map)	
 		action = actions_complete[action]
 
 
@@ -132,7 +133,19 @@ class GradientAgent(Agent):
 		return self.move(action, current)
 
 
-	def walk(self, start=None, walk=None):
+	def walk(self, start=None, walk=None, geodesic_map=None, goal=None):
+		"""[Creates a "gradient descent" walk between the starting point and the goal point, by default the goal]
+		
+		Keyword Arguments:
+			start {[list]} -- [coordinates of start point or a name of start point] (default: {None})
+			walk {[list]} -- [list of previous walk to append this walk to] (default: {None})
+			geodesic_map {[list]} -- [list of geodesic distances from a specific place] (default: {None})
+			goal {[list]} -- [goal location when walking to something] (default: {None})
+
+		
+		Returns:
+			[type] -- [description]
+		"""
 		if walk is None: walk = []
 		if start is None:
 			curr = self.start_location.copy()
@@ -143,15 +156,17 @@ class GradientAgent(Agent):
 				curr = start
 		self.curr_state = curr
 
+		if goal is None: goal = self.goal_location
+
 		step_n = 0
 		# do each step
-		while curr != self.goal_location and step_n < self.max_steps:
+		while curr != goal and step_n < self.max_steps:
 			step_n += 1
 			walk.append(curr.copy())
 
 
 			try:
-				nxt = self.step(curr)
+				nxt = self.step(curr, geodesic_map=geodesic_map)
 			except:
 				break
 
@@ -194,18 +209,30 @@ class GradientAgent(Agent):
 			dist = self.geodist(self.maze, self.free_states[row])
 			cleaned = [x for x in dist[~np.isnan(dist)].flatten()]
 
-			# image = self.create_maze_image_from_vales(cleaned)
-			# plt.imshow(image)
-			# plt.scatter(self.free_states[row][0], self.free_states[row][1], c='r')
-			# plt.show()
 
 			self.all_geo[row, :] = cleaned
 		
 		
-			# TODO test if this you can between any A and B
-
-
 			
+		# Check what the walks look like
+		# draw 2 random states
+		states = random.choices(np.arange(len(self.free_states)), k=2)
+		geo = self.all_geo[states[1]]
+		geo_img = self.create_maze_image_from_vals(geo)
+
+
+		walk = self.walk(start=self.free_states[states[0]], goal=self.free_states[states[1]], geodesic_map=geo_img)
+
+		f, ax = plt.subplots()
+		self.plot_walk(walk, ax=ax)
+		ax.scatter(self.free_states[states[0]][0], self.free_states[states[0]][1], c='g')
+		ax.scatter(self.free_states[states[1]][0], self.free_states[states[1]][1], c='r')
+		self.show()
+		a = 1
+
+
+
+
 if __name__ == "__main__":
 	agent = GradientAgent()
 	# agent.run()
