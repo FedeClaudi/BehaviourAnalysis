@@ -14,7 +14,7 @@ from tqdm import tqdm
 
 from Processing.tracking_stats.math_utils import calc_distance_between_points_in_a_vector_2d as dist
 from Processing.tracking_stats.math_utils import geodist
-from Processing.modelling.maze_solvers.world import World
+from Modelling.maze_solvers.world import World
 
 
 class Environment(World):
@@ -42,6 +42,7 @@ class Environment(World):
 
 		# Define geodesic distance from shelter at each location
 		self.geodesic_distance = geodist(self.maze, self.goal_location)
+		self.geodist = geodist
 
 		# initialise
 		self.reset()
@@ -49,12 +50,17 @@ class Environment(World):
 		# define the location of bridges to block in the model based v2 experiment
 
 		self.bridges_block_states = {
-			"alpha0":[[8, 9], [9,9]],
-			"alpha1": [[10, 9], [11,9]],
-			"lambda": [[9, 5], [10, 5], [9, 6], [10, 6]],
-			"beta0": [[3, 8]],
-			"beta1": [[3, 17]]
+			"alpha0": [[x, 21] for x in np.arange(12, 20)],
+			"alpha1":  [[x, 21] for x in np.arange(20, 25)],
+			"lambda":  [[x, 11] for x in np.arange(16, 25)],
+			"beta0": [[x, 21] for x in np.arange(4, 10)],
+			"beta1": [[x, 21] for x in np.arange(30, 37)],
+			"right": [[x, 21] for x in np.arange(24, 30)],
+			"none": [],
 		}
+
+		self.model_based_bridges = ["alpha0", "alpha1", "beta0", "beta1"]
+		self.asymmetric_bridges = ["right", "left"]
 
 
 	def get_maze_from_image(self):
@@ -64,7 +70,7 @@ class Environment(World):
 		model = cv2.imread(os.path.join(self.maze_models_folder, self.maze_design))
 
 		# blur to remove imperfections
-		kernel_size = 101
+		kernel_size = 21
 		model = cv2.blur(model, (kernel_size, kernel_size))
 
 		# resize and change color space
@@ -103,15 +109,16 @@ class Environment(World):
 
 
 
-	def get_available_moves(self,):
+	def get_available_moves(self, current = None):
 		"""[Get legal moves given the current position, i.e. moves that lead to a free cell]
 		
 		Arguments:
 			curr {[list]} -- [x,y coordinates of the agent]
 		"""
 		legals = []
+		if current is None: current = self.curr_state
 
-		surroundings = self.maze[self.curr_state[1]-1:self.curr_state[1]+2, self.curr_state[0]-1:self.curr_state[0]+2]
+		surroundings = self.maze[current[1]-1:current[1]+2, current[0]-1:current[0]+2]
 
 		actions = ["up-left", "up", "up-right", "left", "still", "right", "down-left", "down", "down-right"] # ! dont delete still from this list
 
@@ -193,6 +200,21 @@ class Environment(World):
 
 		return self.next_state, self.reward, self.game_over 
 
+
+	def create_maze_image_from_vales(self, vals):
+		"""[creates an image with the shape of the maze and the color from vals]
+		
+		Arguments:
+			vals {[list]} -- [list with same length as self.free_states]
+		
+		"""
+
+		image = np.zeros_like(self.maze)
+
+		for (x,y),v in zip(self.free_states, vals):
+			image[y, x] = v
+
+		return image
 
 
 if __name__ == "__main__":

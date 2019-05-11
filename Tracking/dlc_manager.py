@@ -212,21 +212,31 @@ class DLCManager:
             dr {[str]} -- [path to folder with vids]
         """
         for vid in vids:
-            print(vid)
-            deeplabcut.filterpredictions(self.dlc_paths['cfg_path'], vid) #, shuffle=1, trainingsetindex=0, comparisonbodyparts='all', p_bound=0.01, ARdegree=3, MAdegree=1, alpha=0.01)
-
+            if "DeepCut" in vid: continue
+            print(vid, "\n\n")
+            try:
+                dst = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\_overview_training_clips_cut\\bads"
+                deeplabcut.filterpredictions(self.dlc_paths['cfg_path'], [vid], destfolder=dst, save_as_csv=False, 
+                                    ARdegree=3, MAdegree=1) 
+            except: pass
 
 
 if __name__ == "__main__":
     manager = DLCManager()
+
+
     fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\_overview_training_clips_cut\\bads"
+    # fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\threat_test"
+
 
     vids = manager.sel_videos_in_folder(all=True, min_n=3, dr=fld)
 
-    manager.analyze_videos(videos=vids)
-    # manager.filter_data(vids)
+    # manager.label_frames()
 
-    manager.create_labeled_videos(videos=vids, trajectory=True)
+    # manager.analyze_videos(videos=vids)
+    # manager.create_labeled_videos(videos=vids, trajectory=True)
+
+    # manager.filter_data(vids)
     # manager.create_labeled_videos(videos=vids, trajectory=False, filtered=True, dr=None)
 
     # manager.extract_outliers(videos=vids)
@@ -234,8 +244,9 @@ if __name__ == "__main__":
 
     # manager.update_training_video_list()
     # manager.merge_datasets()
-
+    # manager.check_labels()
+#
     # manager.create_training_dataset()
-    # manager.train_network()
+    manager.train_network()
 
     plt.show()

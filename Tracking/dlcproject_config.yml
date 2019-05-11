@@ -2,20 +2,14 @@
 # dr -> directory with videos to use for training and or analysis
 # project_path -> dlc project working directory (where the project will be stored)
 # cfg_path -> path to the configure yaml file
+
 paths-windows: 
-  # dr: D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Training_videos
-  # project_path: D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets
-  # cfg_path: D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets\maze_joined-Federico-2019-02-22\config.yaml
   dr: Z:\branco\Federico\raw_behaviour\maze\_overview_training_clips
   project_path: D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets
-  cfg_path: D:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Nets\\maze_mantis-Federico-2019-02-04\\config.yaml
-paths-mac: 
-  cfg_path: "/Users/federicoclaudi/Desktop/testgui-Federico-2018-11-12/config.yaml"
-  dr: "/Users/federicoclaudi/Rotation_vte/raw_data/video"
-  project_path: 'Users/federicoclaudi/Desktop'
+  cfg_path: D:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Nets\\maze_joined-Federico-2019-02-22\\config.yaml
 
 # DLC project NAME
-experiment: 'maze_joined'
+experiment: 'maze_mantis'
 experimenter: 'Federico'
 
 # DLC select videos options

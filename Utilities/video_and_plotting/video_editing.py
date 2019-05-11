@@ -264,7 +264,7 @@ class Editor:
         clip.write_videofile(outputname, codec=codec, fps=fps)
 
     def trim_clip(self, videopath, savepath, frame_mode=False, start=0.0, stop=0.0,
-                    start_frame=None, stop_frame=None, sel_fps=None, use_moviepy=False):
+                    start_frame=None, stop_frame=None, sel_fps=None, use_moviepy=False, lighten=False):
         """trim_clip [take a videopath, open it and save a trimmed version between start and stop. Either 
         looking at a proportion of video (e.g. second half) or at start and stop frames]
         
@@ -279,6 +279,7 @@ class Editor:
             start_frame {[type]} -- [video frame to stat at ] (default: {None})
             end_frame {[type]} -- [videoframe to stop at ] (default: {None})
             selfpd {[int]}(default, None) -- [specify the fps of the output]
+            lighten --> make the video a bit brighter
         """
 
         if not use_moviepy:
@@ -310,6 +311,9 @@ class Editor:
                     if not ret: break
                     else:
                         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+                        if lighten:
+                            a = 1
                         writer.write(frame)
             writer.release()
         else:
@@ -525,15 +529,12 @@ class Editor:
                     print('Joining Failed... removing incopmlete file: ', args[0])
                     os.remove(args[0])
 
-    @staticmethod
-    def compress_clip(videopath, compress_factor, save_path=None, start_frame=0, stop_frame=None):
+    def compress_clip(self, videopath, compress_factor, save_path=None, start_frame=0, stop_frame=None):
         '''
             takes the path to a video, opens it as opecv Cap and resizes to compress factor [0-1] and saves it
         '''
         cap = cv2.VideoCapture(videopath)
-        width = cap.get(3)
-        height = cap.get(4)
-        fps = cap.get(5)
+        nframes, width, height, fps = self.get_video_params(cap)
 
         resized_width = int(np.ceil(width*compress_factor))
         resized_height = int(np.ceil(height*compress_factor))
@@ -542,22 +543,26 @@ class Editor:
             save_name = os.path.split(videopath)[-1].split('.')[0] + '_compressed' + '.mp4'
             save_path = os.path.split(videopath)
             save_path = os.path.join(list(save_path))
+        else:
+            save_dir, extension = save_path.split(".")
+            save_path = save_dir+"_mod."+extension
 
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        videowriter = cv2.VideoWriter(save_path, fourcc, fps, (resized_width, resized_height), False)
+        videowriter = self.open_cvwriter(save_path, w=resized_width, h=resized_height, framerate=fps, format='.mp4', iscolor=False)
         framen = 0
+        cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
         while True:
             if framen % 100 == 0:
                 print('Processing frame ', framen)
             
-            if framen >= start_frame:
-                cap.set(cv2.CV_CAP_PROP_POS_FRAMES,framen)
-                ret, frame = cap.read()
-                if not ret: break
+          
+                
+            ret, frame = cap.read()
+            if not ret: break
 
-                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                resized = cv2.resize(gray, (resized_width, resized_height)) 
-                videowriter.write(resized)
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            resized = cv2.resize(gray, (resized_width, resized_height)) 
+            videowriter.write(resized)
             framen += 1
 
             if stop_frame is not None:
@@ -784,6 +789,7 @@ class Editor:
 
 
 
+
 if __name__ == '__main__':
     
     # converter = VideoConverter(None, None)
@@ -808,10 +814,11 @@ if __name__ == '__main__':
 
     editor = Editor()
     fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\_overview_training_clips"
-    fld2 = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\_overview_training_clips_cut"
+    fld2 = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\_overview_training_clips_cut\\bads"
 
     for v in os.listdir(fld):
-        editor.trim_clip(os.path.join(fld,v), os.path.join(fld2, v), frame_mode=True, start_frame=0, stop_frame=400)
+        editor.trim_clip(os.path.join(fld,v), os.path.join(fld2, v), frame_mode=True, start_frame=0, stop_frame=450)
+        # editor.compress_clip(os.path.join(fld2, v), .5, save_path=os.path.join(fld2, v))
 
 
 

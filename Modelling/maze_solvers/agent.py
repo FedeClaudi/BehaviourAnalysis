@@ -11,12 +11,12 @@ import pickle
 import pandas as pd
 from scipy.special import softmax
 from tqdm import tqdm
-
+import yaml
 
 from Processing.tracking_stats.math_utils import calc_distance_between_points_in_a_vector_2d as dist
 from Processing.tracking_stats.math_utils import calc_distance_between_points_2d,  get_n_colors, calc_angle_between_points_of_vector, calc_ang_velocity, line_smoother
 
-from Processing.modelling.maze_solvers.environment import Environment
+from Modelling.maze_solvers.environment import Environment
 
 
 class Agent(Environment):
@@ -35,7 +35,34 @@ class Agent(Environment):
 		self._maze = self.maze.copy()
 		self._geodesic_distance = self.geodesic_distance.copy()
 
+		# define yaml file with save options (walks for each arm of the maze)
+		self.options_file = "Modelling\maze_solvers\options.yml"
+		self.load_options()
 
+	def load_options(self):
+		with open(self.options_file, 'r') as f:
+			options = yaml.full_load(f) 
+
+		if self.maze_type == "asymmetric":
+			bridges = self.asymmetric_bridges
+		elif self.maze_type == "modelbased":
+			bridges = self.model_based_bridges
+		else: raise ValueError("unrecognised maze")
+
+		# make sure that only the options for the current maze design are being used
+		self.options = {k:v for k,v in options.items() if k in bridges}
+
+		
+
+	def plot_options(self):
+		f, axarr = plt.subplots(ncols=len(self.options))
+
+		for ax, option in zip(axarr, self.options.values()):
+			self.plot_walk(option, ax=ax)
+
+	@staticmethod
+	def show():
+		plt.show()
 
 	def plot_walks(self, walks):
 		f,ax = plt.subplots()
@@ -82,8 +109,19 @@ class Agent(Environment):
 		
 		return blocks
 
+	def inspect_options(self):
+		lengths = {}
+		for option, walk in self.options.items():
+			print(option, len(walk))
+			lengths[option] = len(walk)
+
+		print([(x/min(lengths.values()))/0.5 for x in lengths.values()])
 
 
-
+if __name__ == "__main__":
+	ag = Agent()
+	ag.inspect_options()
+	ag.plot_options()
+	ag.show()
 
 
