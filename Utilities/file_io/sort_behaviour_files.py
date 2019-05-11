@@ -75,6 +75,10 @@ def sort_mantis_files():
                 else:
                     # Threat Camera Data file
                     dest = video_fld
+            elif "log" in f:
+                # it's the file logging all the visual stimuli delivered
+                newname = fld*"visual_stimuli_log.yml"
+                dest = ai_fld
             else:
                 raise ValueError('Unexpected file: ', os.path.join(fld, f))
 
