@@ -13,6 +13,7 @@ import cv2
 import warnings
 import matplotlib.pyplot as plt
 import scipy.signal as signal
+from collections import OrderedDict
 
 from database.NewTablesDefinitions import *
 
@@ -78,6 +79,25 @@ class ToolBox:
             print(' ... found {} recs'.format(num_recs))
             return videos, metadatas
 
+
+    def tdms_as_dataframe(self, tdms, to_keep, time_index=False, absolute_time=False):
+        """
+        Converts the TDMS file to a DataFrame
+
+        :param time_index: Whether to include a time index for the dataframe.
+        :param absolute_time: If time_index is true, whether the time index
+            values are absolute times or relative to the start time.
+        :return: The full TDMS file data.
+        :rtype: pandas.DataFrame
+        """
+
+        dataframe_dict = OrderedDict()
+        for key, value in self.objects.items():
+            if key not in to_keep: continue
+            if value.has_data:
+                index = value.time_track(absolute_time) if time_index else None
+                dataframe_dict[key] = pd.Series(data=value.data, index=index)
+        return pd.DataFrame.from_dict(dataframe_dict)
 
     def open_temp_tdms_as_df(self, path, move=True, skip_df=False):
         """open_temp_tdms_as_df [gets a file from winstore, opens it and returns the dataframe]
