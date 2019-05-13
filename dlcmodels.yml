@@ -11,7 +11,7 @@ overview:
     cfg_file_path: 'D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets\maze_joined-Federico-2019-02-22\config.yaml'
     iteration: 3
 
-mantis_overview:
+overview_mantis:
     model_name: 'maze_joined-Federico-2019-02-22'
     camera: 'overview_mantis'
     cfg_file_path: 'D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets\maze_joined-Federico-2019-02-22\config.yaml'

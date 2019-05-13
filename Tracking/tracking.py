@@ -76,7 +76,10 @@ class SetUpTracking:
                 camera = 'overview'  # <- behaviour software videos 
 
             print('     video: {}\n     camera: {}'.format(video, camera))
-            config_path = self.dlc_models.loc[self.dlc_models['camera'] == camera]['cfg_file_path'].values[0]
+            try:
+                config_path = self.dlc_models.loc[self.dlc_models['camera'] == camera]['cfg_file_path'].values[0]
+            except:
+                raise ValueError("Could not find DLC model for camera: ", camera)
 
             # Move video to local HD: otherwise analysis breaks if internet connection is unstable
             complete_path = os.path.join(self.video_folder, video)

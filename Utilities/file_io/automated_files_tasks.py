@@ -239,5 +239,5 @@ if __name__ == "__main__":
     # automation.remove_stupid_videofiles()
 
 
-    # automation.save_ai_files_as_pandas()
+    automation.save_ai_files_as_pandas()
 # 
