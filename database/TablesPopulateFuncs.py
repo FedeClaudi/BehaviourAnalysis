@@ -19,7 +19,7 @@ if sys.platform != "darwin":
     from database.dj_config import start_connection
     from database.NewTablesDefinitions import *
 
-from Utilities.file_io.files_load_save import load_yaml, load_tdms_from_winstore
+from Utilities.file_io.files_load_save import load_yaml, load_tdms_from_winstore, load_feather
 from Utilities.video_and_plotting.commoncoordinatebehaviour import run as get_matrix
 from Utilities.video_and_plotting.video_editing import Editor
 
@@ -609,40 +609,6 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
                 camera = 'overview'
             elif 'Threat' in vid:
                 camera = 'threat'
-
-                # ? work on views videos
-                # Get file names and create cropped videos if dont exist
-                ed = Editor()
-                catwalk, side, top = ed.mirros_cropper(os.path.join(tb.raw_video_folder,vid),
-                                                            os.path.join(tb.raw_video_folder, 'Mirrors'))
-                views_videos = [catwalk, side, top]
-                views_names = ['catwalk', 'side_mirror', 'top_mirror']
-
-                # Get pose names
-                views_poses = {}
-                for vh, view_name in zip(views_videos, views_names):
-                    n = os.path.split(vh)[-1].split('.')[0]
-                    pd = [os.path.splitext(f)[0].split('_pose')[0]+'.h5'
-                                for f in os.listdir(os.path.join(tb.pose_folder, 'Mirrors'))
-                                if n in f and 'h5' in f]
-                    
-                    pd_check = check_files_correct(pd, 'cropped video pose file')
-                    if not pd_check:  
-                        add_videosincomplete_entry(videosincomplete, key, view_name, True, pd_check)
-                        # ? add dummy file name 
-                        pd = n+'_pose.h5'
-                    else: pd = pd[0]
-                    views_poses[view_name] = pd
-
-                # Insert into table [video and converted are the same here]
-                view = namedtuple('view', 'camera video metadata pose')
-                views = [view('catwalk', catwalk, 'nan', views_poses['catwalk']), 
-                        view('side_mirror', side, 'nan', views_poses['side_mirror']), 
-                        view('top_mirror', top, 'nan', views_poses['top_mirror'])]
-                
-                for insert in views:
-                    insert_for_mantis(table, key, insert.camera, insert.video,
-                                        insert.video, insert.metadata, insert.pose)
             else:
                 raise ValueError('Unexpected videoname ', vid)
 
@@ -730,18 +696,29 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
     if key['uid'] <= 184:
         return
     else:
-            print('Populating mantis stimuli for: ', key['recording_uid'])
+        print('Populating mantis stimuli for: ', key['recording_uid'])
 
+    # Get the feather file with the AI data and the .yml file with all the AI .tdms group names
+    fld, ainame = os.path.split(aifile)
+    ainame = ainame.split(".")[0]
+    
+    feather_file = os.path.join(fld, "as_pandas", ainame+".ft")
+    groups_file = os.path.join(fld,  ainame+".yml")
 
-    tb = ToolBox()
-    rec = [r for r in recordings if r['recording_uid']==key['recording_uid']][0]
-    aifile = rec['ai_file_path']
+    if not os.path.isfile(feather_file) or not os.path.isfile(groups_file):
+        print("Could't file feather or group file for ", ainame)
+        # ? load the AI file directly
+        # Get stimuli names from the ai file
+        tb = ToolBox()
+        rec = [r for r in recordings if r['recording_uid']==key['recording_uid']][0]
+        aifile = rec['ai_file_path']
+        tdms_df, cols = tb.open_temp_tdms_as_df(aifile, move=True, skip_df=True)
 
-    # Get stimuli names from the ai file
-    tdms_df, cols = tb.open_temp_tdms_as_df(aifile, move=True, skip_df=True)
-
-    # Get stimuli
-    groups = tdms_df.groups()
+        # Get stimuli
+        groups = tdms_df.groups()
+    else:
+        tdms_df = load_feather(feather_file)
+        groups = [g.split("'/'")[0][2:] for g in load_yaml(groups_file) if "'/'" in g]
 
     if 'WAVplayer' in groups:
         stimuli_groups = tdms_df.group_channels('WAVplayer')

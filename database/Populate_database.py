@@ -62,18 +62,15 @@ class PopulateDatabase:
         self.behaviourstimuli = BehaviourStimuli()
         self.mantisstimuli = MantisStimuli()
         self.tracking_data = TrackingData()
-        self.tracking_data_justbody = TrackingDataJustBody()
         self.commoncoordinatematrices = CommonCoordinateMatrices()
         self.dlcmodels = DLCmodels()
-        self.armsprobs = ArmsProbs()
 
         self.all_tables = dict(mice=self.mice, sessions= self.sessions, experiments=self.experiments,
                                 recordings=self.recordings, behaviourstimuli = self.behaviourstimuli,
                                 mantisstimuli = self.mantisstimuli, dlcmodels = self.dlcmodels,
                                 templates=self.templates, videofiles = self.videofiles, 
                                 commoncoordinatematrices=self.commoncoordinatematrices,
-                                tracking_data = self.tracking_data, armsprobs = self.armsprobs,
-                                tracking_data_justbody = self.tracking_data_justbody)
+                                tracking_data = self.tracking_data)
 
     def remove_table(self, tablename):
         """
@@ -181,18 +178,6 @@ class PopulateDatabase:
                 raise ValueError('Failed to add data entry {}-{} to {} table'.format(checktag, dataname, table.full_table_name))
 
 
-    def display_videos_incomplete(self):
-        fetched = self.videosincomplete.fetch(as_dict=True)
-        tot_conversions, tot_dlcs = 0, 0
-        for entry in fetched:
-            print('Recording: {}-{} - conversion: {} - dlc: {}'.format(entry['uid'], entry['recording_uid'], 
-                    entry['conversion_needed'], entry['dlc_needed']))
-            if entry['conversion_needed'] == 'true': tot_conversions += 1
-            if entry['dlc_needed'] == 'true': tot_dlcs += 1
-
-        print('\n\n In total there are {} incomplete videos of which\n    {} need conversion\n    {} need dlc'.format(
-                len(fetched), tot_conversions, tot_dlcs))
-
 
     def __str__(self):
         self.__repr__()
@@ -218,14 +203,6 @@ class PopulateDatabase:
         print(sumdf)
         return ''
 
-    def cleanup_tracking(self):
-        sessions = set(TrackingData.fetch("uid"))
-
-        for uid in sessions:
-            exp = get_exp_given_sessname(get_sessname_given_sessuid(uid)[0])
-            if exp == "Model Based":
-                a = 1
-
 
 if __name__ == '__main__':
     disable_pandas_warnings()
@@ -240,10 +217,10 @@ if __name__ == '__main__':
     # p.populate_experiments_table()
     # p.populate_sessions_table()
 # 
-    p.dlcmodels.populate()
+    # p.dlcmodels.populate()
 
     # p.recordings.populate()
-    # p.videofiles.populate()
+    p.videofiles.populate()
 
     # p.commoncoordinatematrices.populate()
     # p.templates.populate()
@@ -257,5 +234,5 @@ if __name__ == '__main__':
     # p.populate_armsprobs()
 
 
-    # print(pd.DataFrame(p.dlcmodels))
+    print(pd.DataFrame(p.videofiles))
 
