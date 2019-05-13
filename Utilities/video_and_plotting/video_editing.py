@@ -324,7 +324,6 @@ class Editor:
             name, ext = name.split('.')
             self.save_clip(trimmed, fld, name, '.mp4', 120)
 
-
     def split_clip(self, clip, number_of_clips=4, dest_fld=None):
         """[Takes a video and splits into clips of equal length]
         
@@ -392,7 +391,6 @@ class Editor:
                 tot_frame = np.hstack(frames)
                 writer.write(tot_frame)
         writer.release()
-
 
     @staticmethod
     def opencv_write_clip(videopath, frames_data, w=None, h=None, framerate=None, start=None, stop=None,
@@ -551,12 +549,7 @@ class Editor:
         videowriter = self.open_cvwriter(save_path, w=resized_width, h=resized_height, framerate=fps, format='.mp4', iscolor=False)
         framen = 0
         cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
-        while True:
-            if framen % 100 == 0:
-                print('Processing frame ', framen)
-            
-          
-                
+        while True:       
             ret, frame = cap.read()
             if not ret: break
 
@@ -785,41 +778,48 @@ class Editor:
         writer.release()
 
 
+    def brighten_video(self, videopath, save_path, add_value=100):
+        cap = cv2.VideoCapture(videopath)
+        nframes, width, height, fps = self.get_video_params(cap)
 
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        videowriter = self.open_cvwriter(save_path, w=width, h=height, framerate=fps, format='.mp4', iscolor=False)
 
+        while True:       
+            ret, frame = cap.read()
+            if not ret: break
+
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+            gray = np.add(gray, add_value)
+            gray[gray>255] + 255
+            videowriter.write(gray)
+        videowriter.release()
 
 
 
 if __name__ == '__main__':
     
-    # converter = VideoConverter(None, None)
-    # editor = Editor()
-    # print(converter, '\n\n', editor)
 
-    # ###############
-    # videofld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\plots\\funny"
-    # video1 = "Square Maze_cropped.mp4"
-    # video2 = "asym.mp4"
-    # video3 = "PathInt_cropped.mp4"
-
-    # videos = [os.path.join(videofld, video3),
-    #         os.path.join(videofld, video2),
-    #         os.path.join(videofld, video1)]
-    # savepath = os.path.join(videofld, "twoexp3.mp4")
-
-    # # editor.crop_video(os.path.join(videofld, video3), 1000, 1000)
-    # editor.tile_clips(videos, savepath)
-
-
-
+    # ! Preapre Threat Clips for DLC training
     editor = Editor()
-    fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\_overview_training_clips"
-    fld2 = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\_overview_training_clips_cut\\bads"
+    fld = "Z:\\branco\\Federico\\raw_behaviour\\maze\\_threat_training_clips\\originals"
+    fld2 = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\_threat_training_clips_cut"
 
-    for v in os.listdir(fld):
-        editor.trim_clip(os.path.join(fld,v), os.path.join(fld2, v), frame_mode=True, start_frame=0, stop_frame=450)
-        # editor.compress_clip(os.path.join(fld2, v), .5, save_path=os.path.join(fld2, v))
+    # ? trim em and move em
+    # for v in os.listdir(fld):
+    #     editor.trim_clip(os.path.join(fld,v), os.path.join(fld2, v), frame_mode=True, start_frame=0, stop_frame=450)
 
+    # ? squeeze em
+    # for v in tqdm(os.listdir(fld2)):
+    #     vv = v.split(".")[0]+"_compressed.mp4"
+    #     editor.compress_clip(os.path.join(fld2, v), .5, save_path=os.path.join(fld2, vv))
+
+    # ? add some light to em
+        # ? squeeze em
+    for v in tqdm(os.listdir(fld2)):
+        vv = v.split(".")[0]+"_light.mp4"
+        editor.brighten_video(os.path.join(fld2, v), os.path.join(fld2, vv), 25)
 
 
 

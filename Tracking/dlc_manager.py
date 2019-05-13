@@ -81,8 +81,6 @@ class DLCManager:
         deeplabcut.create_new_project(self.settings['experiment'], self.settings['experimenter'], 
                                         training_videos, working_directory=self.dlc_paths['project_path'], copy_videos=True)
 
-        print(config_path)
-
     def add_videos_to_project(self, videos=None):     
         if videos is None:
             videos = self.sel_videos_in_folder()
@@ -90,9 +88,9 @@ class DLCManager:
 
     def extract_frames(self, manual=False):
         if not manual:
-            deeplabcut.extract_frames(self.dlc_paths['cfg_path'], 'automatic', self.settings['extract_frames_mode'], crop=False, checkcropping=False)
+            deeplabcut.extract_frames(self.dlc_paths['cfg_path'], 'automatic', self.settings['extract_frames_mode'], crop=False)
         else:
-            deeplabcut.extract_frames(self.dlc_paths['cfg_path'], 'manual', self.settings['extract_frames_mode'], crop=False, checkcropping=False)
+            deeplabcut.extract_frames(self.dlc_paths['cfg_path'], 'manual', self.settings['extract_frames_mode'], crop=False, userfeedback=False, cluster_step=10, cluster_resizewidth=10)
 
     def label_frames(self):
         print('Getting ready to label frames')
@@ -231,13 +229,16 @@ if __name__ == "__main__":
 
     vids = manager.sel_videos_in_folder(all=True, min_n=3, dr=fld)
 
+    # manager.create_project()
+    # manager.extract_frames()
+
     # manager.label_frames()
 
     # manager.analyze_videos(videos=vids)
     # manager.create_labeled_videos(videos=vids, trajectory=True)
 
-    manager.filter_data(vids)
-    manager.create_labeled_videos(videos=vids, trajectory=False, filtered=True, dr=None)
+    # manager.filter_data(vids)
+    # manager.create_labeled_videos(videos=vids, trajectory=False, filtered=True, dr=None)
 
     # manager.extract_outliers(videos=vids)
     # manager.refine_labels() 
@@ -246,7 +247,7 @@ if __name__ == "__main__":
     # manager.merge_datasets()
     # manager.check_labels()
 #
-    # manager.create_training_dataset()
+    manager.create_training_dataset()
     # manager.train_network()
 
     plt.show()

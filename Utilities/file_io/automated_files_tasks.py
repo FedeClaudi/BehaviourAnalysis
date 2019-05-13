@@ -46,11 +46,13 @@ class FilesAutomationToolbox:
     def save_ai_files_as_pandas(self):
         for ai in os.listdir(self.ai_fld):
             savename = ai.split('.')[0]+".ft"
+            columns_savename = ai.split('.')[0]+"_groups.yml"
             if savename in os.listdir(self.ai_dest_fld): continue
 
             content = self.tool_box.open_temp_tdms_as_df(os.path.join(self.ai_fld, ai), move=True, skip_df=False)
             print("         ... saving")
             content[0].to_feather(os.path.join(self.ai_dest_fld, savename))
+            save_yaml(os.path.join(self.ai_dest_fld, columns_savename), content[1])
             print("                ... saved")
 
     def extract_videotdms_metadata(self):
@@ -210,8 +212,8 @@ if __name__ == "__main__":
 
     # automation.convert_tdms_to_mp4()
 
-    # automation.get_list_uncoverted_tdms_videos()
-    # automation.get_list_not_tracked_videos()
+    automation.get_list_uncoverted_tdms_videos()
+    automation.get_list_not_tracked_videos()
 
     # Checks 
     # automation.extract_videotdms_metadata()
@@ -219,5 +221,5 @@ if __name__ == "__main__":
     # automation.remove_stupid_videofiles()
 
 
-    automation.save_ai_files_as_pandas()
+    # automation.save_ai_files_as_pandas()
 # 
