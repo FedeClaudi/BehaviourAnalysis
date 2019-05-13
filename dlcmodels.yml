@@ -6,13 +6,13 @@
 
 
 overview: 
-    model_name: 'Maze-Federico-2018-11-24'
+    model_name: 'maze_joined-Federico-2019-02-22'
     camera: 'overview'
-    cfg_file_path: 'D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets\Maze-Federico-2018-11-24\config.yaml'
+    cfg_file_path: 'D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets\maze_joined-Federico-2019-02-22\config.yaml'
     iteration: 3
 
 mantis_overview:
-    model_name: 'maze_mantis-Federico-2019-02-04'
+    model_name: 'maze_joined-Federico-2019-02-22'
     camera: 'overview_mantis'
-    cfg_file_path: 'D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets\maze_mantis-Federico-2019-02-04\config.yaml'
-    iteration: 0
+    cfg_file_path: 'D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets\maze_joined-Federico-2019-02-22\config.yaml'
+    iteration: 3

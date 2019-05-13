@@ -234,7 +234,7 @@ if __name__ == '__main__':
     print(p)
 
 
-    # p.remove_table(['tracking_data', 'tracking_data_justbody'])
+    p.remove_table(["dlcmodels"])
     
     # p.populate_mice_table()
     # p.populate_experiments_table()
@@ -257,5 +257,5 @@ if __name__ == '__main__':
     # p.populate_armsprobs()
 
 
-    print(pd.DataFrame(p.dlcmodels)['cfg_file_path'].values)
+    # print(pd.DataFrame(p.dlcmodels))
 

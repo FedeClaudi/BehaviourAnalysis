@@ -15,21 +15,12 @@ def load_yaml(file):
                 loaded = yaml.load(f)
         return loaded
 
-
-# def copyWithSubprocess(cmd, source, dest):
-        # proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-        #                       stderr=subprocess.PIPE, shell=True)
-        # subprocess.call("mv {} {}".format(source, dest), shell=True)
-        # p = subprocess.Popen(['mv', source, dest], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
-
 def save_yaml(path, obj, mode='w'):
     try:
         with open(path, mode) as f:
             yaml.dump(obj, f)
     except: return False
     else: return True
-    
-
 
 def load_tdms_from_winstore(filetomove):
         print('Moving ', filetomove, ' with size ', np.round(os.path.getsize(filetomove)/1000000000, 2), ' GB')
@@ -44,12 +35,7 @@ def load_tdms_from_winstore(filetomove):
                         return dest
                 else:
                         os.remove(dest)
-        # ? python file copying is slow, using subprocess instead
-        # ? but suprocess is platform dependant so get right command 
-
-
         shutil.copy(filetomove, dest)
-
 
         print('Moved {} to {}'.format(filetomove, dest))
         return dest
