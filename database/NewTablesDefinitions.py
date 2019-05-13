@@ -280,9 +280,9 @@ class DLCmodels(dj.Lookup):
     definition = """
         # It got pointers to dlc models so that they can be used for analysing videos
         model_name: varchar(256)                        # name given to the model
+        camera: enum('overview', 'threat', 'mirrors', 'overview_mantis')   # for which kind of video it can be used
         ---
         cfg_file_path: varchar(256)                     # path to the cfg.yml file
-        camera: enum('overview', 'threat', 'mirrors', 'overview_mantis')   # for which kind of video it can be used
         iteration: int
     """
 

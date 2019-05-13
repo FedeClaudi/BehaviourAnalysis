@@ -12,7 +12,7 @@ import pandas as pd
 def load_yaml(file):
         if not isinstance(file, str): raise ValueError('Invalid input argument')
         with open(file, 'r') as f:
-                loaded = yaml.load(f)
+                loaded = yaml.full_load(f)
         return loaded
 
 def save_yaml(path, obj, mode='w'):
