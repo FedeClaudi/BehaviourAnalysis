@@ -698,7 +698,10 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
     else:
         print('Populating mantis stimuli for: ', key['recording_uid'])
 
+    # ? Load any AUDIO stim
     # Get the feather file with the AI data and the .yml file with all the AI .tdms group names
+    rec = [r for r in recordings if r['recording_uid']==key['recording_uid']][0]
+    aifile = rec['ai_file_path']
     fld, ainame = os.path.split(aifile)
     ainame = ainame.split(".")[0]
     
@@ -710,8 +713,6 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
         # ? load the AI file directly
         # Get stimuli names from the ai file
         tb = ToolBox()
-        rec = [r for r in recordings if r['recording_uid']==key['recording_uid']][0]
-        aifile = rec['ai_file_path']
         tdms_df, cols = tb.open_temp_tdms_as_df(aifile, move=True, skip_df=True)
 
         # Get stimuli
@@ -726,8 +727,12 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
         stimuli_groups = tdms_df.group_channels('AudioIRLED_analog')
     stimuli = {s.path:s.data[0] for s in stimuli_groups}
 
-    # Check if there is any stim
-    if not len(stimuli.keys()):
+    if "LDR_signal_AI" in tdms_df.columns: visuals_check = True
+    else: visuals_check = False
+    
+
+    # ? If there is no stimuli of any sorts insert a fake place holder to speed up future analysis
+    if not len(stimuli.keys()) and not visuals_check:
         # There were no stimuli, let's insert a fake one to avoid loading the same files over and over again
         print(' No stim detected, inserting fake place holder')
         stim_key = key.copy()
@@ -743,71 +748,78 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
         table.insert1(stim_key)
         return
 
-    # Get stim times from audio channel data
-    if  'AudioFromSpeaker_AI' in groups:
-        audio_channel_data = tdms_df.channel_data('AudioFromSpeaker_AI', '0')
-        # stim_start_times, _ = signal.find_peaks(audio_channel_data, height=.2, distance=9.1*sampling_rate, width=(1, 100), wlen=100)  # ! hardcoded miimal distance: duration * sampling rate
-        th = 1
-    else:
-        # First recordings with mantis had different params
-        audio_channel_data = tdms_df.channel_data('AudioIRLED_AI', '0')
-        th = 1.5
-    
-    sampling_rate = 25000
-    above_th = np.where(audio_channel_data>th)[0]
-    peak_starts = [x+1 for x in np.where(np.diff(above_th)>sampling_rate)]
-    stim_start_times = above_th[peak_starts]
-    try:
-        stim_start_times = np.insert(stim_start_times, 0, above_th[0])
-    except:
-        raise ValueError
-        return
-
-    # ? to visualise the finding of stim times over the audio channel:
-    # ThreatCameraTrigger_AI = tdms_df.channel_data('ThreatCameraTrigger_AI', '0')
-    # OverviewCameraTrigger_AI = tdms_df.channel_data('OverviewCameraTrigger_AI', '0')
-    # plot_signals(audio_channel_data, stim_start_times, overview=OverviewCameraTrigger_AI, threat=ThreatCameraTrigger_AI)
-    # plt.show()
-
-    # Chck we found the correct number of peaks
-    if not len(stimuli) == len(stim_start_times):
-        print('Names - times: ', len(stimuli), len(stim_start_times),stimuli.keys(), stim_start_times)
-        sel = input('Which to discard? ["n" if youd rather look at the plot]')
-        if not 'n' in sel:
-            sel = int(sel)
+    # ? If there are audio stimuli, process them 
+    if len(stimuli.keys()):
+        # Get stim times from audio channel data
+        if  'AudioFromSpeaker_AI' in groups:
+            audio_channel_data = tdms_df.channel_data('AudioFromSpeaker_AI', '0')
+            th = 1
         else:
-            plot_signals(audio_channel_data, stim_start_times)
-            plt.show()
-            sel = input('Which to discard? ')
-        if len(stim_start_times) > len(stimuli):
-            np.delete(stim_start_times, int(sel))
-        else:
-            del stimuli[list(stimuli.keys())[sel]]
-
-    if not len(stimuli) == len(stim_start_times):
-        raise ValueError
-
-    # Go from stim time in number of samples to number of frames
-    fps_overview = 40
-    fps_threat = 120
-    overview_stimuli_frames = np.round(np.multiply(np.divide(stim_start_times, sampling_rate), fps_overview))
-    threat_stimuli_frames = np.round(np.multiply(np.divide(stim_start_times, sampling_rate), fps_threat))
-
-    for i, (stimname, stim_protocol) in enumerate(stimuli.items()):
-        stim_key = key.copy()
-        stim_key['stimulus_uid'] = stim_key['recording_uid']+'_{}'.format(i)
-        stim_key['overview_frame'] = int(overview_stimuli_frames[i])
-        stim_key['threat_frame'] = int(threat_stimuli_frames[i])
-        stim_key['duration'] = 9 # ! hardcoded
-        stim_key['overview_frame_off'] =  int(overview_stimuli_frames[i]) + fps_overview*stim_key['duration'] # ! hardcoded!
-        stim_key['threat_frame_off'] = int(threat_stimuli_frames[i]) + fps_threat*stim_key['duration'] # ! hardcoded!
-        stim_key['stim_name'] = stimname
-        stim_key['stim_type'] = 'audio' # ! hardcoded
+            # First recordings with mantis had different params
+            audio_channel_data = tdms_df.channel_data('AudioIRLED_AI', '0')
+            th = 1.5
         
+        sampling_rate = 25000
+        above_th = np.where(audio_channel_data>th)[0]
+        peak_starts = [x+1 for x in np.where(np.diff(above_th)>sampling_rate)]
+        stim_start_times = above_th[peak_starts]
         try:
-            table.insert1(stim_key)
+            stim_start_times = np.insert(stim_start_times, 0, above_th[0])
         except:
-            raise ValueError('Cold not insert {} into {}'.format(stim_key, table.heading))
+            raise ValueError
+            return
+
+        # Check we found the correct number of peaks
+        if not len(stimuli) == len(stim_start_times):
+            print('Names - times: ', len(stimuli), len(stim_start_times),stimuli.keys(), stim_start_times)
+            sel = input('Which to discard? ["n" if youd rather look at the plot]')
+            if not 'n' in sel:
+                sel = int(sel)
+            else:
+                plot_signals(audio_channel_data, stim_start_times)
+                plt.show()
+                sel = input('Which to discard? ')
+            if len(stim_start_times) > len(stimuli):
+                np.delete(stim_start_times, int(sel))
+            else:
+                del stimuli[list(stimuli.keys())[sel]]
+
+        if not len(stimuli) == len(stim_start_times):
+            raise ValueError
+
+        # Go from stim time in number of samples to number of frames
+        fps_overview = 40
+        fps_threat = 120
+        overview_stimuli_frames = np.round(np.multiply(np.divide(stim_start_times, sampling_rate), fps_overview))
+        threat_stimuli_frames = np.round(np.multiply(np.divide(stim_start_times, sampling_rate), fps_threat))
+
+        
+        # Instert these stimuli into the table
+        for i, (stimname, stim_protocol) in enumerate(stimuli.items()):
+            stim_key = key.copy()
+            stim_key['stimulus_uid'] = stim_key['recording_uid']+'_{}'.format(i)
+            stim_key['overview_frame'] = int(overview_stimuli_frames[i])
+            stim_key['threat_frame'] = int(threat_stimuli_frames[i])
+            stim_key['duration'] = 9 # ! hardcoded
+            stim_key['overview_frame_off'] =  int(overview_stimuli_frames[i]) + fps_overview*stim_key['duration'] # ! hardcoded!
+            stim_key['threat_frame_off'] = int(threat_stimuli_frames[i]) + fps_threat*stim_key['duration'] # ! hardcoded!
+            stim_key['stim_name'] = stimname
+            stim_key['stim_type'] = 'audio' # ! hardcoded
+            
+            try:
+                table.insert1(stim_key)
+            except:
+                raise ValueError('Cold not insert {} into {}'.format(stim_key, table.heading))
+
+    # ? if there are any visual stimuli, process them
+    if visuals_check:
+        n_audio_stimuli = len(stimuli)
+        # TODO 1) extract LDR time series and identify stimuli onsets on that
+        # TODO 2) load visual stimuli log and extract params to match on the identified LDR stimuli
+        # TODO 3) populate and auxillary or PART table with stimuli log data
+
+
+    
 
 
 #####################################################################################################################
