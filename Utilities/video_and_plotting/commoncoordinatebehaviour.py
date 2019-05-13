@@ -3,9 +3,10 @@ sys.path.append('./')
 # Add Philip's script to path
 sys.path.append('C:\\Users\\Federico\\Documents\\GitHub\\CommonCoordinateBehaviour')
 # THIS: https://github.com/BrancoLab/Common-Coordinate-Behaviour
-try:
-    from video_funcs import register_arena
-except: pass
+if sys.platform != "darwin":
+    try:
+        from video_funcs import register_arena
+    except: pass
 import os 
 import numpy as np
 import cv2

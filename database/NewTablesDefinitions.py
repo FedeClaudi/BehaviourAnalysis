@@ -179,16 +179,6 @@ class VideoFiles(dj.Imported):
     def make(self, key):
         make_videofiles_table(self, key, Recordings, VideosIncomplete)
 
-@schema
-class VideosIncomplete(dj.Manual):
-    definition = """
-        # Stores the ID of Videos that have missing files or items and what is missing
-        -> Recordings
-        camera_name: enum('overview', 'threat', 'catwalk', 'top_mirror', 'side_mirror')       # name of the camera
-        ---
-        conversion_needed: enum('true', 'false')
-        dlc_needed: enum('true', 'false')
-    """
 
 @schema
 class BehaviourStimuli(dj.Computed):
@@ -270,40 +260,6 @@ class TrackingData(dj.Computed):
         make_trackingdata_table(self, key, VideoFiles, CommonCoordinateMatrices, Templates, Sessions, fast_mode=False)
 
 @schema
-class TrackingDataJustBody(dj.Computed):
-    definition = """
-        # store dlc data for bodyparts and body segments
-        -> VideoFiles
-    """
-
-    class BodyPartData(dj.Part):
-        definition = """
-            # stores X,Y,Velocity... for a single bodypart
-            -> TrackingDataJustBody
-            bpname: varchar(128)        # name of the bodypart
-            ---
-            tracking_data: longblob     # pandas dataframe with X,Y,Velocity, MazeComponent ... 
-        """
-
-
-    def define_bodysegments(self):
-        segment = namedtuple('seg', 'bp1 bp2')
-        self.segments = dict(
-            head = segment('snout', 'neck'),
-            ears=segment('left_ear', 'right_ear'),
-            body_upper=segment('neck', 'body'),
-            body_lower=segment('body', 'tail_base'),
-            
-        )
-        # tail1=segment('tail_base', 'tail_2'),
-        # tail2=segment('tail_2', 'tail_3'),
-
-    def make(self, key):
-        self.define_bodysegments()
-        make_trackingdata_table(self, key, VideoFiles, CommonCoordinateMatrices, Templates, Sessions, fast_mode=True)
-
-
-@schema
 class BehaviourTrialOutcomes(dj.Manual):
     definition = """
         # For each stimulus stores info about the escape...
@@ -333,35 +289,6 @@ class DLCmodels(dj.Lookup):
     def populate(self):
         make_dlcmodels_table(self)
 
-
-@schema
-class AllTrips(dj.Manual):
-    definition = """
-        # stores info about each time the mouse makes a shetler-threat-shelter trip 
-        trip_id: int                            # comulative trip number
-        ---
-        session_uid: varchar(128)       
-        recording_uid: varchar(128)             # reference to the recording the trip belongs to
-        shelter_exit: int                       # frame number at which it left shelter
-        shelter_enter: int                      # frame at which it returned
-        threat_enter: int                       # time at which it enters in the threat
-        threat_exit: int                        # frame at which it leaves the threat to reach the shetler
-        time_in_shelter: int                    # number of seconds before reemerging from the shelter
-        tracking_data: longblob                 # tracking
-        is_trial: enum('true', 'false')         # is it around a stim?
-        duration: float                           # duration of the escape in seconds
-        max_speed: int                          # 85th percentile of smoothed speed trace
-        is_escape: enum('true', 'false')        # did it meet the criteria for being considered an escape
-        experiment_name: varchar(128)           # name of the experiment this recording belongs to
-        all_threat_exits: longblob
-        all_threat_enters: longblob
-        
-        escape_arm: enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'Right2', 'Left2') 
-        origin_arm:  enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'Right2', 'Left2')
-
-        stim_frame: int                         # if is_trial add the frame of stim on set
-        stim_type: enum('audio', 'visual', 'nan')
-    """
 
 @schema
 class AllExplorations(dj.Manual):
@@ -407,66 +334,6 @@ class AllTrials(dj.Manual):
         threat_exits: longblob
     """
 
-
-@schema
-class ZidPhi(dj.Computed):
-    definition = """
-    -> AllTrials
-    ---
-    session_uid: int
-    experiment_name: varchar(128)
-    escape_arm: varchar(128)
-    origin_arm: varchar(128)
-    xy: longblob
-    dphi: longblob
-    idphi: float
-
-    """
-
-    def make(self, key):
-        VTE.populate_vte_table(self, key)
-
-
-@schema
-class ArmsProbs(dj.Manual):
-    definition = """
-        -> Sessions
-        ---
-        experiment_name: varchar(128)
-        escape_arms: longblob           # integers IDs of the arm taken for each escape during the session
-        origin_arms: longblob            # same but for origin
-        n_escapes: int                  # number of escape trials
-        n_trials: int                   # tot number of trials
-    """
-
-    class Arm(dj.Part):
-        definition = """
-            -> ArmsProbs
-            arm_name:  varchar(128)
-            ---
-            escape_p: float             # probability of taking this arm when escaping
-            origin_p: float             # probability o taking this arm for origin
-            n_times_taken: int          # number of trials this arm was used for the escape
-        """
-
-    def arms_lookup_f(self):
-        """
-            Define a lookup where each arm is given an integer ID to store in main table
-        """
-
-        lookup = dict(
-            Left2 = 0,
-            Left_Far = 1,
-            Left_Medium = 2,
-            Centre = 3,
-            Right_Medium = 4,
-            Right_Far = 5, 
-            Right2 = 6,
-            nan = -1, 
-        )
-
-        self.arms_lookup = lookup
-        return lookup
 
 
 

@@ -14,6 +14,33 @@ from collections import namedtuple
 
 import skfmm
 
+
+def find_peaks_in_signal(signal, time_limit, th):
+    """[Function to find the start of square peaks in a time series. 
+    Useful for example to find frame starts or stim starts in analog input data]
+    
+    Arguments:
+        signal {[np.array]} -- [the time series to be analysd]
+        time_limit {[float]} -- [min time inbetween peaks]
+        th {[float]} -- [where to threshold the signal to identify the peaks]
+    
+    Returns:
+        [np.ndarray] -- [peak starts times]
+    """
+    above_th = np.where(signal>th)[0]
+    peak_starts = [x for x,d in zip(above_th, np.diff(above_th)) if d > time_limit]
+    
+    # add the first and last above_th times to make sure all frames are included
+    peak_starts.insert(0, above_th[0])
+    peak_starts.append(above_th[-1])
+    
+    # we then remove the second item because it corresponds to the end of the first peak
+    peak_starts.pop(1)
+
+    return np.array(peak_starts)
+
+
+
 def beta_distribution_params(a=None, b=None, mu=None, sigma=None, omega=None, kappa=None):
 	"""[converts parameters of beta into different formulations]
 	
