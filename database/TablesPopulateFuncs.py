@@ -22,10 +22,11 @@ if sys.platform != "darwin":
 from Utilities.file_io.files_load_save import load_yaml, load_tdms_from_winstore, load_feather
 from Utilities.video_and_plotting.commoncoordinatebehaviour import run as get_matrix
 from Utilities.video_and_plotting.video_editing import Editor
+from Utilities.Maths.math_utils import *
 
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 from Processing.tracking_stats.extract_velocities_from_tracking import complete_bp_with_velocity, get_body_segment_stats
-from Processing.tracking_stats.math_utils import *
+from database.database_fetch import *
 
 
 """ 
@@ -788,7 +789,7 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
             raise ValueError
 
         # Go from stim time in number of samples to number of frames
-        fps_overview = 40
+        fps_overview = 40  # TODO make this depend on the actual framerate of the threat camera
         fps_threat = 120
         overview_stimuli_frames = np.round(np.multiply(np.divide(stim_start_times, sampling_rate), fps_overview))
         threat_stimuli_frames = np.round(np.multiply(np.divide(stim_start_times, sampling_rate), fps_threat))
@@ -817,6 +818,7 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
         # TODO 1) extract LDR time series and identify stimuli onsets on that
         # TODO 2) load visual stimuli log and extract params to match on the identified LDR stimuli
         # TODO 3) populate and auxillary or PART table with stimuli log data
+        # TODO 4) make sure that stim contrast is includeed
 
 
     
@@ -827,7 +829,9 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
 
 
 def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessions, fast_mode=False):
-    if key['camera_name'] != 'overview': return
+    if key['camera_name'] != 'overview': 
+        print("     WE ARE NOT PROCESSING THREAT VIDEOS HERE")
+        return
 
     # Get the name of the experiment the video belongs to
     fetched_sessions = sessions.fetch(as_dict=True)
@@ -835,28 +839,20 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
     experiment = session['experiment_name']
 
     if 'lambda' in experiment.lower(): return  # ? skip this useless experiment :)
-    # if 'Model Based' not in experiment: return  #!
 
-    fast_mode = fast_mode # ! fast MODE
-    to_include = dict(
-            bodyparts=['snout', 'neck', 'body', 'tail_base' , 'left_ear', 'right_ear'],
-            segments = []
-            # segments=['head', 'body_upper', 'body_lower']
-    )
-
+    to_include = dict(bodyparts=['snout', 'neck', 'body', 'tail_base',])
 
     # Check if we have all the data necessary to continue 
-    try:
-        vid, ccm = None, None
-        vid = [v for v in videofiles.fetch(as_dict=True) if v['recording_uid'] == key['recording_uid']][0]
-        ccm = [c for c in ccm_table.fetch(as_dict=True) if c['uid']==key['uid']][0]
-    except:
-        if vid is None:  print('Could not find videofile for ', key['recording_uid']) 
-        else:  print('Could not find common coordinate matrix for ', key['recording_uid']) 
+    vid = get_video_path_give_recuid(key['recording_uid'])
+    ccm = get_ccm_given_sessuid(key['uid'])
+    if not vid:
+        print('Could not find videofile for ', key['recording_uid']) 
+        return
+    elif not ccm:  
+        print('Could not find common coordinate matrix for ', key['recording_uid']) 
         return
     else:
         print('Processing tracking data for : ', key['recording_uid'])
-    
     
     
     # Load the .h5 file with the tracking data 
@@ -888,26 +884,15 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
 
         # Get XY pose and correct with CCM matrix
         xy = posedata[scorer[0], bp].values[:, :2]
-        corrected_data = correct_tracking_data(xy, ccm['correction_matrix'], ccm['top_pad'], ccm['side_pad'], experiment, session['uid'])
-        temp_dict = {}
-        temp_dict['x'] = corrected_data[:, 0]
-        temp_dict['y'] = corrected_data[:, 1]
-        corrected_data = pd.DataFrame.from_dict(temp_dict)
+        # TODO make this faster
+        corrected_data = correct_tracking_data(xy, ccm['correction_matrix'].values, ccm['top_pad'].values, ccm['side_pad'].values, experiment, session['uid'])
+        corrected_data = pd.DataFrame.from_dict({'x':corrected_data[:, 0], 'y':corrected_data[:, 1]})
 
         # get velocity
         vel = calc_distance_between_points_in_a_vector_2d(corrected_data.values)
 
-        # get orientation [angle between XY at t0 ad XY at t1]
-        theta = calc_angle_between_points_of_vector(corrected_data.values)
-
-        # get distance from shelter
-        shelter = (500, 740)
-        shelter_dist = calc_distance_from_shelter(corrected_data.values, shelter)
-
         # Add new vals
         corrected_data['velocity'] = vel
-        corrected_data['angle'] = theta
-        corrected_data['shelter_distance'] = shelter_dist
 
         # If bp is body get the position on the maze
         if 'body' in bp:
@@ -919,8 +904,6 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
 
             # Calcualate in which ROI the body is at each frame - and distance from the shelter
             corrected_data['roi_at_each_frame'] = get_roi_at_each_frame(experiment, key['recording_uid'], corrected_data, dict(rois))  # ? roi name
-            # ! dj limitation here
-            warnings.warn('Currently DJ canot store string of lists so roi_at_each_Frame is not saved in the databse')
             rois_ids = {p:i for i,p in enumerate(rois.keys())}  # assign a numeric value to each ROI
             corrected_data['roi_at_each_frame'] = np.array([rois_ids[r] for r in corrected_data['roi_at_each_frame']])
             
@@ -933,52 +916,6 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
             table.BodyPartData.insert1(bpkey)
         except:
             pass
-
-    """
-        Loop over body segments and populate body semgents Part table
-    """
-    # if not fast_mode:
-    #     body_axis = []
-    #     for segment_name, (bp1, bp2) in table.segments.items():
-    #         if segment_name not in to_include['segments']: continue
-    #         print('     ... body segment: ', segment_name)
-    #         # get position of each bodypart as numpy array
-    #         bp1_data = np.array([bp_data[bp1]['x'], bp_data[bp1]['y']])
-    #         bp2_data = np.array([bp_data[bp2]['x'], bp_data[bp2]['y']])
-
-    #         # Create dataframe with segment data and convert to dataframe
-    #         segment_data = {}
-    #         segment_data['length'] = calc_distance_between_points_two_vectors_2d(bp1_data.T, bp2_data.T)
-    #         try:
-    #             segment_data['theta'] = calc_angle_between_vectors_of_points_2d(bp1_data, bp2_data)  
-    #             segment_data['angvel'] = calc_ang_velocity(segment_data['theta'])
-    #         except:
-    #             warnings.warn('Could not extract theta')
-    #             segment_data['theta'] = np.zeros((len(segment_data['length'])))
-    #             segment_data['angvel'] = np.zeros((len(segment_data['length'])))
-
-    #         if segment_name in ['head', 'body_upper', 'body_lower']:
-    #             body_axis.append(np.array(segment_data['length']))
-
-    #         segment_data_df = pd.DataFrame.from_dict(segment_data)
-    #         # Insert into part table
-    #         segment_key = key.copy()
-    #         segment_key['bp1'] = bp1
-    #         segment_key['bp2'] = bp2
-    #         segment_key['tracking_data'] = segment_data_df.values 
-
-    #         table.BodySegmentData.insert1(segment_key)
-
-
-    #     # Calculate body length and insert it into table
-    #     body_axis_length = np.add(body_axis[0], body_axis[1])
-    #     body_axis_length = np.add(body_axis_length, body_axis[2])
-
-    #     temp_key = key.copy()
-    #     temp_key['bp1'] = 'body_axis'
-    #     temp_key['bp2'] = 'body_axis'
-    #     temp_key['tracking_data'] = body_axis_length
-
 
 
 

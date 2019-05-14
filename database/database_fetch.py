@@ -36,6 +36,8 @@ def get_stimuli_given_sessuid(uid, stimuli=None, as_dict=True):
         else:
             return (MantisStimuli & "uid='{}'".format(uid) & "duration != 1").fetch(as_dict=as_dict)
 
+
+
 def get_stimuli_give_recuid(rec_uid):
     from database.NewTablesDefinitions import Recordings, BehaviourStimuli, MantisStimuli
     software = (Recordings & "recording_uid='{}'".format(rec_uid)).fetch("software")
@@ -86,6 +88,13 @@ def get_recs_given_sessuid(uid, recordings=None):
         recs = pd.DataFrame((Recordings & "uid='{}'".format(uid)).fetch())
         return recs
 
+def get_ccm_given_sessname(name):
+    from database.NewTablesDefinitions import CommonCoordinateMatrices
+    return pd.DataFrame((CommonCoordinateMatrices & "session_name = '{}'".format(name)).fetch())
+
+def get_ccm_given_sessuid(uid):
+    from database.NewTablesDefinitions import CommonCoordinateMatrices
+    return pd.DataFrame((CommonCoordinateMatrices & "uid = '{}'".format(uid)).fetch())
 
 def get_recs_ai_given_sessuid(uid):
     from database.NewTablesDefinitions import Recordings

@@ -260,8 +260,6 @@ def calc_distane_between_point_and_line(line_points, p3):
 	p1, p2 = np.array(line_points[0]), np.array(line_points[1])
 	return np.cross(p2-p1,p3-p1)/np.linalg.norm(p2-p1)
 	
-
-
 def calc_distance_between_points_2d(p1, p2):
 	'''calc_distance_between_points_2d [summary]
 	
@@ -318,7 +316,6 @@ def calc_distance_between_points_in_a_vector_2d(v1):
 			p0 = p1
 
 	return np.array(dist)
-
 
 def calc_distance_between_points_two_vectors_2d(v1, v2):
 	'''calc_distance_between_points_two_vectors_2d [pairwise distance between vectors points]

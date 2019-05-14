@@ -2,7 +2,7 @@
 import sys
 sys.path.append('./')
 
-from Processing.tracking_stats.math_utils import *
+from Utilities.Maths.math_utils import *
 from Processing.tracking_stats.extract_velocities_from_tracking import complete_bp_with_velocity, get_body_segment_stats
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 from Utilities.file_io.files_load_save import load_yaml
@@ -249,28 +249,6 @@ class TrackingData(dj.Computed):
             ---
             tracking_data: longblob     # pandas dataframe with X,Y,Velocity, MazeComponent ... 
         """
-
-    class BodySegmentData(dj.Part):
-        definition = """
-            # stores length,orientation... for a body segment between two body parts
-            -> TrackingData
-            bp1: varchar(128)           # name of the first bodypart
-            bp2: varchar(128)
-            ---
-            tracking_data: longblob     # pandas dataframe with Length, Orientation, Ang Velovity... 
-        """
-
-    def define_bodysegments(self):
-        segment = namedtuple('seg', 'bp1 bp2')
-        self.segments = dict(
-            head = segment('snout', 'neck'),
-            ears=segment('left_ear', 'right_ear'),
-            body_upper=segment('neck', 'body'),
-            body_lower=segment('body', 'tail_base'),
-            
-        )
-        # tail1=segment('tail_base', 'tail_2'),
-        # tail2=segment('tail_2', 'tail_3'),
 
     def make(self, key):
         self.define_bodysegments()

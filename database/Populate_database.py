@@ -234,5 +234,5 @@ if __name__ == '__main__':
     # p.populate_armsprobs()
 
 
-    print(pd.DataFrame(p.videofiles))
+    print(p.sessions)
 

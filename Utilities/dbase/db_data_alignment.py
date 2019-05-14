@@ -19,7 +19,7 @@ from database.TablesPopulateFuncs import ToolBox
 
 from Utilities.video_and_plotting.video_editing import *
 from Utilities.file_io.files_load_save import load_feather
-from Utilities.maths.filtering import butter_lowpass_filter
+from Utilities.Maths.filtering import butter_lowpass_filter
 from Processing.tracking_stats.math_utils import find_peaks_in_signal
 
 class ThreatDataProcessing:

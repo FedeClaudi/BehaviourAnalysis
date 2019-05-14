@@ -23,7 +23,7 @@ mpl.rcParams['axes.labelcolor'] = 'k'
 
 from database.NewTablesDefinitions import *
 
-from Processing.tracking_stats.math_utils import *
+from Utilities.Maths.math_utils import *
 from Utilities.file_io.files_load_save import load_yaml
 
 from database.database_fetch import *
