@@ -113,7 +113,7 @@ def get_sessname_given_sessuid(uid):
 def get_videometadata_given_recuid(rec, just_fps=True):
     from database.NewTablesDefinitions import VideoFiles
     if not just_fps:
-        return (VideoFiles.Metadata & "recording_uid='{}'".format(rec)).fetch()
+        return pd.DataFrame((VideoFiles.Metadata & "recording_uid='{}'".format(rec)).fetch())
     else:
         return (VideoFiles.Metadata & "recording_uid='{}'".format(rec)).fetch("fps")[0]
 
@@ -135,6 +135,10 @@ def get_video_path_give_recuid(recuid):
         return paths['converted_filepath']
     else:
         return paths['video_filepath']
+
+def get_videos_given_recuid(recuid):
+    from database.NewTablesDefinitions import VideoFiles
+    return pd.DataFrame((VideoFiles & "recording_uid='{}'".format(recuid)).fetch())
 
 
 

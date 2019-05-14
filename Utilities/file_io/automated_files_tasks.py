@@ -33,11 +33,11 @@ class FilesAutomationToolbox:
         self.tool_box = ToolBox()
 
         # self.database = PopulateDatabase()
-        paths = load_yaml("paths_spike1.yml")
+        paths = load_yaml("paths.yml")
         self.videos_fld = videofolder
         self.pose_fld = paths['tracked_data_folder']
         self.ai_fld = os.path.join(paths['raw_data_folder'], paths['raw_analoginput_folder'])
-        self.ai_dest_fld = os.path.join(self.ai_fld, "to_pandas")
+        self.ai_dest_fld = os.path.join(self.ai_fld, "as_pandas")
 
         try:
             self.video_metadata = VideoTdmsMetadata
@@ -46,6 +46,7 @@ class FilesAutomationToolbox:
 
     def save_ai_files_as_pandas(self):
         for ai in os.listdir(self.ai_fld):
+            if ".yml" in ai: continue
             savename = ai.split('.')[0]+".ft"
             columns_savename = ai.split('.')[0]+"_groups.yml"
             if savename in os.listdir(self.ai_dest_fld): continue
@@ -222,5 +223,5 @@ if __name__ == "__main__":
     # automation.remove_stupid_videofiles()
 
 
-    # automation.save_ai_files_as_pandas()
+    automation.save_ai_files_as_pandas()
 # 

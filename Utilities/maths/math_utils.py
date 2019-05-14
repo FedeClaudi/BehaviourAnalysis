@@ -501,39 +501,7 @@ def calc_ang_velocity(angles):
 	ang_vel_rads = np.insert(np.diff(np.unwrap(angles_radis)), 0, 0)
 	return np.degrees(ang_vel_rads)
 
-def correct_tracking_data(uncorrected, M, ypad, xpad, exp_name, sess_uid):
 
-	"""[Corrects tracking data (as extracted by DLC) using a transform Matrix obtained via the CommonCoordinateBehaviour
-		toolbox. ]
-
-	Arguments:
-		uncorrected {[np.ndarray]} -- [n-by-2 or n-by-3 array where n is number of frames and the columns have X,Y and Velocity ]
-		M {[np.ndarray]} -- [2-by-3 transformation matrix: https://github.com/BrancoLab/Common-Coordinate-Behaviour]
-
-	Returns:
-		corrected {[np.ndarray]} -- [n-by-3 array with corrected X,Y tracking and Velocity data]
-	"""     
-	# Do the correction
-	m3d = np.append(M, np.zeros((1,3)),0)
-	corrected = np.zeros((uncorrected.shape[0], 3))
-	x, y = np.add(uncorrected[:, 0], xpad), np.add(uncorrected[:, 1], ypad)  # Shift all traces correctly based on how the frame was padded during alignment 
-	for framen in range(uncorrected.shape[0]): # Correct the X, Y for each frame
-		xx,yy = x[framen], y[framen]
-		corrected[framen, :2] = (np.matmul(m3d, [xx, yy, 1]))[:2]
-
-
-	# Flip the tracking on the Y axis to have the shelter on top
-	midline_distance = np.subtract(corrected[:, 1], 490)
-	corrected[:, 1] = np.subtract(490, midline_distance)
-
-	# Shift in X and Y according to how the frame was padded when creating the transform matrix
-	# also flip and shift Y otherwise it'll be upside down
-	# The values by which each experiment is shifted is specified in a yml
-	# Define translation
-	# content = load_yaml('Utilities\\video_and_plotting\\template_points.yml')
-	# translators = content['translators']
-
-	return corrected
 
 def line_smoother(y, window_size=31, order=5, deriv=0, rate=1):
 	# Apply a Savitzy-Golay filter to smooth traces

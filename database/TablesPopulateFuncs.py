@@ -27,8 +27,10 @@ from Utilities.video_and_plotting.commoncoordinatebehaviour import run as get_ma
 from Utilities.video_and_plotting.video_editing import Editor
 from Utilities.Maths.math_utils import *
 
+from Processing.tracking_stats.correct_tracking import correct_tracking_data
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 from Processing.tracking_stats.extract_velocities_from_tracking import complete_bp_with_velocity, get_body_segment_stats
+
 from database.database_fetch import *
 
 
@@ -396,11 +398,11 @@ def make_recording_table(table, key):
         table.insert1(key_copy)
 
         # Extract info from aifile and populate part table
-        ai_key = tb.extract_ai_info(key, aifile)
-        ai_key['recording_uid'] = rec_name
+        # ai_key = tb.extract_ai_info(key, aifile)
+        # ai_key['recording_uid'] = rec_name
 
-        print('Key of size: ', sys.getsizeof(ai_key))
-        table.AnalogInputs.insert1(ai_key)
+        # print('Key of size: ', sys.getsizeof(ai_key))
+        # table.AnalogInputs.insert1(ai_key)
         
         print('Succesfully inserted into mantis table')
 
@@ -414,7 +416,7 @@ def make_recording_table(table, key):
         mantis(table, key, software)
 
 
-def make_videofiles_table(table, key, recordings, videosincomplete):
+def make_videofiles_table(table, key, recordings,):
     def make_videometadata_table(filepath, key):
         # Get videometadata
         cap = cv2.VideoCapture(filepath)
@@ -428,7 +430,7 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
 
         return key
 
-    def behaviour(table, key, videosincomplete):
+    def behaviour(table, key):
         tb  = ToolBox()
         videos, metadatas = tb.get_behaviour_recording_files(key)
         
@@ -483,7 +485,7 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
 
         return vid
 
-    def mantis(table, key, videosincomplete):
+    def mantis(table, key):
         def insert_for_mantis(table, key, camera, vid, conv, met, pose):
             to_remove = ['tot_frames', 'frame_height', 'frame_width', 'frame_size',
                         'camera_offset_x', 'camera_offset_y', 'fps']
@@ -534,41 +536,6 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
             else:
                 return True
 
-        def add_videosincomplete_entry(videosincomplete, ikey, vid, converted_check, pose_check):
-            """add_videosincomplete_entry [adds entry to videos incompelte table to mark that stuff needs to be done ]
-            
-            Arguments:
-                videosincomplete {[obj]} -- [dj table]
-                key {[dict]} -- [key]
-                vid {[str]} -- [name of video]
-                converted_check {[bool]} -- [conversion needed]
-                pose_check {[bool]} -- [dlc eneeded]
-            """
-
-            tokeep = ['recording_uid', 'uid', 'session_name']
-            kk = tuple(ikey.keys())
-            for k in kk:
-                if k not in tokeep: del ikey[k]
-
-            cameras = ['overview', 'threat', 'catwalk', 'top_mirror', 'side_mirror']
-            camera = [c for c in cameras if c in vid.lower()]
-            if not camera:
-                raise ValueError('sometihngs wrong ', vid)
-            else:
-                camera = camera[0]
-            key['camera_name'] = camera
-            if converted_check:
-                ikey['conversion_needed'] = 'false'
-            else:
-                ikey['conversion_needed'] = 'true'
-            if pose_check:
-                ikey['dlc_needed'] = 'false'
-            else:
-                ikey['dlc_needed'] = 'true'
-            # try:
-            #     videosincomplete.insert1(ikey)
-            # except:
-            #     raise ValueError('Could not insert ', ikey, 'in', videosincomplete.heading)
 
         #############################################################################################
 
@@ -601,7 +568,6 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
             
             # Check if anything is missing            
             if not converted_check or not pose_check:
-                # add_videosincomplete_entry(videosincomplete, key, vid, converted_check, pose_check)
                 # ? add dummy files names which will be replaced with real ones in the future
                 if not converted_check:
                     converted = videoname+'.mp4'
@@ -632,13 +598,13 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
     if not software:
         raise ValueError()
     if software == 'behaviour':
-        videopath = behaviour(table, key, videosincomplete)
+        videopath = behaviour(table, key)
         # Insert into part table
         metadata_key = make_videometadata_table(videopath, key)
         metadata_key['camera_name'] = 'overview'
         table.Metadata.insert1(metadata_key)
     else:
-        videopath = mantis(table, key, videosincomplete)
+        videopath = mantis(table, key)
 
     
 def make_behaviourstimuli_table(table, key, recordings, videofiles):
@@ -733,7 +699,6 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
 
     if "LDR_signal_AI" in tdms_df.columns: visuals_check = True
     else: visuals_check = False
-    
 
     # ? If there is no stimuli of any sorts insert a fake place holder to speed up future analysis
     if not len(stimuli.keys()) and not visuals_check:
@@ -791,9 +756,12 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
         if not len(stimuli) == len(stim_start_times):
             raise ValueError
 
+        # Get video metadata for the recording being processed
+        vids_fps = get_videometadata_given_recuid(key['recording_uid'], just_fps=False)
+
         # Go from stim time in number of samples to number of frames
-        fps_overview = 40  # TODO make this depend on the actual framerate of the threat camera
-        fps_threat = 120
+        fps_overview = vids_fps.loc[vids_fps['camera']=='overview'].fps
+        fps_threat = vids_fps.loc[vids_fps['camera']=='threat'].fps
         overview_stimuli_frames = np.round(np.multiply(np.divide(stim_start_times, sampling_rate), fps_overview))
         threat_stimuli_frames = np.round(np.multiply(np.divide(stim_start_times, sampling_rate), fps_threat))
 
@@ -819,6 +787,10 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
     if visuals_check:
         n_audio_stimuli = len(stimuli)
         # TODO 1) extract LDR time series and identify stimuli onsets on that
+
+        ldr_singnal = tdms_df["/'LDR_signal_AI'/'0'"].values
+
+
         # TODO 2) load visual stimuli log and extract params to match on the identified LDR stimuli
         # TODO 3) populate and auxillary or PART table with stimuli log data
         # TODO 4) make sure that stim contrast is includeed
@@ -846,12 +818,12 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
     to_include = dict(bodyparts=['snout', 'neck', 'body', 'tail_base',])
 
     # Check if we have all the data necessary to continue 
-    vid = get_video_path_give_recuid(key['recording_uid'])
+    vid = get_videos_given_recuid(key['recording_uid'])
     ccm = get_ccm_given_sessuid(key['uid'])
-    if not vid:
+    if not np.any(vid):
         print('Could not find videofile for ', key['recording_uid']) 
         return
-    elif not ccm:  
+    elif not np.any(ccm):  
         print('Could not find common coordinate matrix for ', key['recording_uid']) 
         return
     else:
@@ -860,10 +832,10 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
     
     # Load the .h5 file with the tracking data 
     try:
-        if not 'pose' in os.path.split(vid['pose_filepath'])[-1]:
+        if not 'pose' in os.path.split(vid['pose_filepath'][0])[-1]:
             vid['pose_filepath'] = vid['pose_filepath'].split(".")[0]+"_pose.h5"
 
-        posedata = pd.read_hdf(vid['pose_filepath'])
+        posedata = pd.read_hdf(vid['pose_filepath'][0])
     except:
         print('Could not load pose data:', vid['pose_filepath'])
         return
@@ -887,8 +859,7 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
 
         # Get XY pose and correct with CCM matrix
         xy = posedata[scorer[0], bp].values[:, :2]
-        # TODO make this faster
-        corrected_data = correct_tracking_data(xy, ccm['correction_matrix'].values, ccm['top_pad'].values, ccm['side_pad'].values, experiment, session['uid'])
+        corrected_data = correct_tracking_data(xy, ccm['correction_matrix'][0], ccm['top_pad'][0], ccm['side_pad'][0], experiment, session['uid'])
         corrected_data = pd.DataFrame.from_dict({'x':corrected_data[:, 0], 'y':corrected_data[:, 1]})
 
         # get velocity
