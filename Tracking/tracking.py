@@ -5,10 +5,13 @@ import os
 print('Importing dlc takes a while')
 from deeplabcut import analyze_videos
 import yaml
+import pandas as pd
 
 from Utilities.file_io.files_load_save import load_yaml
 
-from database.NewTablesDefinitions import *
+computer = "spike"
+if computer == "desk":
+    from database.NewTablesDefinitions import *
 
 
 class SetUpTracking:
@@ -20,18 +23,26 @@ class SetUpTracking:
             video_folder {[str]} -- [path to video folder]
             pose_folder {[str]} -- [path to pose folder]
         """
+        # ! change this according to computer being used!!
+        # self.temp_fld = 'M:\\'  # ? on main computer
+        self.temp_fld = "D:\\Fede"
 
         self.video_folder = video_folder
         self.pose_folder = pose_folder
 
         self.dlc_models = self.get_dlc_models()
+        print(self.dlc_models)
         self.video_to_process = self.get_videos_to_process()
-
         self.process()
 
 
     def get_dlc_models(self):
-        return pd.DataFrame(DLCmodels().fetch())
+        try:
+            return pd.DataFrame(DLCmodels().fetch())
+        except:
+            models =  load_yaml("dlcmodels_spike1.yml")
+            reordered = {k:[models['overview'][k], models['overview_mantis'][k]] for k in models['overview_mantis'].keys()}
+            return pd.DataFrame.from_dict(reordered)
 
     def get_videos_to_process(self):
         # Get all the pose files and then returns a list of video files that don't have a corresponding pose file
@@ -47,7 +58,6 @@ class SetUpTracking:
             dlc analyze_video for each video file with the correct dlc model
             rename and move .h5 and .pickle file to the pose_file folder
         """
-
         def move_video(complete_path, move_video_path):
             print('Moving video over')
             try:
@@ -86,10 +96,8 @@ class SetUpTracking:
             
             if os.path.getsize(complete_path) < 2000: continue # Check that video has frames
             
-            move_video_path = os.path.join('M:\\', video)
+            move_video_path = os.path.join(self.temp_fld, video)
             if os.path.isfile(move_video_path):
-                
-
                 # Video already there, but is it complete
                 if not os.path.getsize(move_video_path) == os.path.getsize(complete_path):
                     # Nope, move it 
@@ -100,6 +108,9 @@ class SetUpTracking:
             
             # Check that moving video worked correctly
             if not os.path.getsize(complete_path) == os.path.getsize(move_video_path): raise ValueError('Smth went wrong while moving the video')
+
+            # store the path on the moved video so that we can delete it at the end of the processing
+            self.move_video_path = move_video_path
 
             try:
                 cap = cv2.VideoCapture(move_video_path)
@@ -134,8 +145,12 @@ class SetUpTracking:
             # All done, on to the next
 
 
+    def cleanup(self):
+        # Remove the video we moved over to clean up disk
+        os.remove(self.move_video_path)
+
 if __name__ == "__main__":
-    paths = load_yaml('paths.yml')
+    paths = load_yaml('paths_spike1.yml')
 
     SetUpTracking(os.path.join(paths['raw_data_folder'], paths['raw_video_folder']),  paths['tracked_data_folder'])
 

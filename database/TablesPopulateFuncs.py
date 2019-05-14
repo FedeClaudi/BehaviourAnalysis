@@ -15,9 +15,12 @@ import scipy.signal as signal
 from collections import OrderedDict
 
 if sys.platform != "darwin":
-    import datajoint as dj
-    from database.dj_config import start_connection
-    from database.NewTablesDefinitions import *
+    try:
+        import datajoint as dj
+        from database.dj_config import start_connection
+        from database.NewTablesDefinitions import *
+    except:
+        print("didn't import datajoint nor tables")
 
 from Utilities.file_io.files_load_save import load_yaml, load_tdms_from_winstore, load_feather
 from Utilities.video_and_plotting.commoncoordinatebehaviour import run as get_matrix
