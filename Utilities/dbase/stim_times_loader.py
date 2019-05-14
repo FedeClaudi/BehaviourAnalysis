@@ -1,3 +1,8 @@
+import sys
+sys.path.append('./')
+
+from Utilities.imports import *
+
 from nptdms import TdmsFile
 import os
 
@@ -34,3 +39,24 @@ def load_stimuli_from_tdms(tdmspath, software='behaviour'):
         else:
             raise ValueError('Feature not implemented yet: load stim metdata from Mantis .tdms')
         return stimuli
+
+
+def load_visual_stim_log(path):
+    if not os.path.isfile(path): raise FileExistsError("Couldnt find log file: ", path)
+    
+    try: 
+        log = load_yaml(path)
+    except:
+        raise ValueError("Could not load: ", path)
+
+    # Transform the loaded data into a dict that can be used for creating a df
+    temp_d = {k:[] for k in log[list(log.keys())[0]]}
+
+    for stim_i in sorted(log.keys()):
+        for k in temp_d.keys():
+            try:
+                val = float(log[stim_i][k])
+            except:
+                val = log[stim_i][k]
+            temp_d[k].append(val)
+    return pd.DataFrame.from_dict(temp_d).sort_values("stim_count")

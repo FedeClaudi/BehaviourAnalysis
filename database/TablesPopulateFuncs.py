@@ -1,37 +1,21 @@
 import sys
 sys.path.append('./')
 
-import time
+from Utilities.imports import *
 
 from nptdms import TdmsFile
-import pandas as pd
-import os
-from collections import namedtuple
-import numpy as np
-import cv2
-import warnings
-import matplotlib.pyplot as plt
 import scipy.signal as signal
 from collections import OrderedDict
 
-if sys.platform != "darwin":
-    try:
-        import datajoint as dj
-        from database.dj_config import start_connection
-        from database.NewTablesDefinitions import *
-    except:
-        print("didn't import datajoint nor tables")
-
-from Utilities.file_io.files_load_save import load_yaml, load_tdms_from_winstore, load_feather
 from Utilities.video_and_plotting.commoncoordinatebehaviour import run as get_matrix
-from Utilities.video_and_plotting.video_editing import Editor
-from Utilities.Maths.math_utils import *
+from Utilities.Maths.stimuli_detection import *
+from Utilities.dbase.stim_times_loader import *
 
 from Processing.tracking_stats.correct_tracking import correct_tracking_data
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 from Processing.tracking_stats.extract_velocities_from_tracking import complete_bp_with_velocity, get_body_segment_stats
 
-from database.database_fetch import *
+
 
 
 """ 
@@ -668,18 +652,25 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
     else:
         print('Populating mantis stimuli for: ', key['recording_uid'])
 
+    # ! key param
+    sampling_rate = 25000
+
     # ? Load any AUDIO stim
     # Get the feather file with the AI data and the .yml file with all the AI .tdms group names
     rec = [r for r in recordings if r['recording_uid']==key['recording_uid']][0]
+
+    vids_fps = get_videometadata_given_recuid(key['recording_uid'], just_fps=False)     # Get video metadata for the recording being processed
+
     aifile = rec['ai_file_path']
     fld, ainame = os.path.split(aifile)
     ainame = ainame.split(".")[0]
     
     feather_file = os.path.join(fld, "as_pandas", ainame+".ft")
-    groups_file = os.path.join(fld,  ainame+".yml")
+    groups_file = os.path.join(fld, "as_pandas",  ainame+"_groups.yml")
+    visual_log_file = os.path.join(fld, ainame + "visual_stimuli_log.yml")
 
     if not os.path.isfile(feather_file) or not os.path.isfile(groups_file):
-        print("Could't file feather or group file for ", ainame)
+        print("     Could't file feather or group file for ", ainame)
         # ? load the AI file directly
         # Get stimuli names from the ai file
         tb = ToolBox()
@@ -688,22 +679,25 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
         # Get stimuli
         groups = tdms_df.groups()
     else:
+        print(" ... loading feather")
         tdms_df = load_feather(feather_file)
         groups = [g.split("'/'")[0][2:] for g in load_yaml(groups_file) if "'/'" in g]
 
     if 'WAVplayer' in groups:
         stimuli_groups = tdms_df.group_channels('WAVplayer')
-    else:
+    elif 'AudioIRLED_analog' in groups:
         stimuli_groups = tdms_df.group_channels('AudioIRLED_analog')
+    else:
+        stimuli_groups = []
     stimuli = {s.path:s.data[0] for s in stimuli_groups}
 
-    if "LDR_signal_AI" in tdms_df.columns: visuals_check = True
+    if "LDR_signal_AI" in groups: visuals_check = True
     else: visuals_check = False
 
     # ? If there is no stimuli of any sorts insert a fake place holder to speed up future analysis
     if not len(stimuli.keys()) and not visuals_check:
         # There were no stimuli, let's insert a fake one to avoid loading the same files over and over again
-        print(' No stim detected, inserting fake place holder')
+        print('     No stim detected, inserting fake place holder')
         stim_key = key.copy()
         stim_key['stimulus_uid'] = stim_key['recording_uid']+'_{}'.format(0)
         stim_key['overview_frame'] = -1
@@ -728,15 +722,8 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
             audio_channel_data = tdms_df.channel_data('AudioIRLED_AI', '0')
             th = 1.5
         
-        sampling_rate = 25000
-        above_th = np.where(audio_channel_data>th)[0]
-        peak_starts = [x+1 for x in np.where(np.diff(above_th)>sampling_rate)]
-        stim_start_times = above_th[peak_starts]
-        try:
-            stim_start_times = np.insert(stim_start_times, 0, above_th[0])
-        except:
-            raise ValueError
-            return
+        # Find when the stimuli start in the AI data
+        stim_start_times = find_audio_stimuli(audio_channel_data, th, sampling_rate)
 
         # Check we found the correct number of peaks
         if not len(stimuli) == len(stim_start_times):
@@ -755,9 +742,6 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
 
         if not len(stimuli) == len(stim_start_times):
             raise ValueError
-
-        # Get video metadata for the recording being processed
-        vids_fps = get_videometadata_given_recuid(key['recording_uid'], just_fps=False)
 
         # Go from stim time in number of samples to number of frames
         fps_overview = vids_fps.loc[vids_fps['camera']=='overview'].fps
@@ -785,13 +769,18 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
 
     # ? if there are any visual stimuli, process them
     if visuals_check:
+        # Check how many audio stim were inserted to make sure that "stimulus_uid" table key is correct
         n_audio_stimuli = len(stimuli)
-        # TODO 1) extract LDR time series and identify stimuli onsets on that
 
-        ldr_singnal = tdms_df["/'LDR_signal_AI'/'0'"].values
+        # Get the stimuli start and ends from the LDR AI signal
+        ldr_signal = tdms_df["/'LDR_signal_AI'/'0'"].values
+        ldr_stimuli = find_visual_stimuli(ldr_signal, 0.24, sampling_rate)
+        
+        # Get the metadata about the stimuli from the log.yml file
+        log_stimuli = load_visual_stim_log(visual_log_file)
 
+        if len(ldr_stimuli) != len(log_stimuli): raise ValueError("Something went wrong with stimuli detection")
 
-        # TODO 2) load visual stimuli log and extract params to match on the identified LDR stimuli
         # TODO 3) populate and auxillary or PART table with stimuli log data
         # TODO 4) make sure that stim contrast is includeed
 
