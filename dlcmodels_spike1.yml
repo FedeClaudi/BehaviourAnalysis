@@ -14,5 +14,5 @@ overview:
 overview_mantis:
     model_name: 'threat_camera-Federico-2019-05-13'
     camera: 'overview_mantis'
-    cfg_file_path: 'W:\branco\Federico\raw_behaviour\maze\DLC_nets\threat_camera-Federico-2019-05-13\config.yaml'
+    cfg_file_path: 'W:\branco\Federico\raw_behaviour\maze\DLC_nets\maze_joined-Federico-2019-02-22\config.yaml'
     iteration: 0

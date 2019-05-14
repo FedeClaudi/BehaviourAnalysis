@@ -6,6 +6,7 @@ print('Importing dlc takes a while')
 from deeplabcut import analyze_videos
 import yaml
 import pandas as pd
+import cv2
 
 from Utilities.file_io.files_load_save import load_yaml
 
@@ -26,15 +27,17 @@ class SetUpTracking:
         # ! change this according to computer being used!!
         # self.temp_fld = 'M:\\'  # ? on main computer
         self.temp_fld = "D:\\Fede"
+        self.move_video = False
 
         self.video_folder = video_folder
         self.pose_folder = pose_folder
 
         self.dlc_models = self.get_dlc_models()
-        print(self.dlc_models)
         self.video_to_process = self.get_videos_to_process()
         self.process()
 
+        if self.move_video:
+            self.cleanup()
 
     def get_dlc_models(self):
         try:
@@ -74,16 +77,16 @@ class SetUpTracking:
             # Get the DLC model config path
             if 'overview' in video.lower():
                 # Check if the video was acquired using mantis
-                video_date = int(video.split('_')[0])
-                if video_date <= 181115:  # last recording with behav software
-                    camera = 'overview'
-                else:
-                    camera = 'overview_mantis'
+                # video_date = int(video.split('_')[0])
+                # if video_date <= 181115:  # last recording with behav software
+                #     camera = 'overview'
+                # else:
+                camera = 'overview_mantis'
             elif 'threat' in video.lower():
                 camera = 'threat'
                 continue
-            else:
-                camera = 'overview'  # <- behaviour software videos 
+            # else:
+            #     camera = 'overview'  # <- behaviour software videos 
 
             print('     video: {}\n     camera: {}'.format(video, camera))
             try:
@@ -96,48 +99,55 @@ class SetUpTracking:
             
             if os.path.getsize(complete_path) < 2000: continue # Check that video has frames
             
-            move_video_path = os.path.join(self.temp_fld, video)
-            if os.path.isfile(move_video_path):
-                # Video already there, but is it complete
-                if not os.path.getsize(move_video_path) == os.path.getsize(complete_path):
-                    # Nope, move it 
-                    os.remove(move_video_path)
+            if self.move_video:
+                move_video_path = os.path.join(self.temp_fld, video)
+                if os.path.isfile(move_video_path):
+                    # Video already there, but is it complete
+                    if not os.path.getsize(move_video_path) == os.path.getsize(complete_path):
+                        # Nope, move it 
+                        os.remove(move_video_path)
+                        move_video(complete_path, move_video_path)
+                else:
                     move_video(complete_path, move_video_path)
-            else:
-                move_video(complete_path, move_video_path)
-            
-            # Check that moving video worked correctly
-            if not os.path.getsize(complete_path) == os.path.getsize(move_video_path): raise ValueError('Smth went wrong while moving the video')
+                
+                # Check that moving video worked correctly
+                if not os.path.getsize(complete_path) == os.path.getsize(move_video_path): raise ValueError('Smth went wrong while moving the video')
 
-            # store the path on the moved video so that we can delete it at the end of the processing
-            self.move_video_path = move_video_path
-
+                # store the path on the moved video so that we can delete it at the end of the processing
+                self.move_video_path = move_video_path
             try:
                 cap = cv2.VideoCapture(move_video_path)
                 if not cap.isOpened(): raise ValueError
             except: 
+                print("The video was not moved, analysing the orignal on winstore")
                 cap = cv2.VideoCapture(complete_path)
-                if not cap.isOpened(): continue #  raise ValueError('Original video file might be corrupted', complete_path)
-                else: continue # raise ValueError('Smth went wrong with moving video', move_video_path)
+                if not cap.isOpened(): 
+                    raise ValueError('Original video file might be corrupted', complete_path)
+                move_video_path = complete_path # copy variable to be used below
 
             # Run DLC analysis
+            print("""
+            Video:  {}
+            Camera: {}
+            Config: {}
+            
+            """.format(move_video_path, camera, config_path))
             analyze_videos(config_path, [move_video_path], gputouse=0, save_as_csv=False)
             
             # Rename and move .h5 and .pickle
-            analysis_output = [f for f in os.listdir('M:\\') if '.pickle' in f or '.h5' in f]
+            analysis_output = [f for f in os.listdir(self.temp_fld) if '.pickle' in f or '.h5' in f]
             # if len(analysis_output) != 2:
             #     raise FileNotFoundError('Incorrect number of files after analysis: ', len(analysis_output), analysis_output)
 
             for f in analysis_output:
-                origin = os.path.join('M:\\', f)
+                origin = os.path.join(self.temp_fld, f)
                 name, ext = f.split('.')
                 correct_name = f.split('Deep')[0]+'_pose'
                 dest = os.path.join(self.pose_folder, correct_name+'.'+ext)
                 try:
                     shutil.move(origin, dest)
                 except:
-                    pass
-                    # raise FileExistsError('Could not move pose file from {} to {}'.format(origin, dest))
+                    raise FileExistsError('Could not move pose file from {} to {}'.format(origin, dest))
 
             # Remove video file moved to local harddrive
             # os.remove(move_video_path)
