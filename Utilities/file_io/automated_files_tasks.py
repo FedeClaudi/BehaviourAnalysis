@@ -22,7 +22,7 @@ import time
 from Utilities.video_and_plotting.video_editing import VideoConverter, Editor
 from Utilities.file_io.sort_behaviour_files import sort_mantis_files
 from database.TablesPopulateFuncs import ToolBox
-from Utilities.file_io.files_load_save import save_yaml
+from Utilities.file_io.files_load_save import *
 
 
 """ [Toolbox functions to automate handling of files (e.g. convert videos from .tdms to .avi...)]
@@ -33,10 +33,11 @@ class FilesAutomationToolbox:
         self.tool_box = ToolBox()
 
         # self.database = PopulateDatabase()
+        paths = load_yaml("paths_spike1.yml")
         self.videos_fld = videofolder
-        self.pose_fld = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\pose'
-        self.ai_fld = "Z:\\branco\\Federico\\raw_behaviour\\maze\\analoginputdata"
-        self.ai_dest_fld = "Z:\\branco\\Federico\\raw_behaviour\\maze\\analoginputdata\\as_pandas"
+        self.pose_fld = paths['tracked_data_folder']
+        self.ai_fld = os.path.join(paths['raw_data_folder'], paths['raw_analoginput_folder'])
+        self.ai_dest_fld = os.path.join(self.ai_fld, "to_pandas")
 
         try:
             self.video_metadata = VideoTdmsMetadata

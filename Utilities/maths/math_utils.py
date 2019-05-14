@@ -12,7 +12,10 @@ from scipy.signal import medfilt as median_filter
 from scipy.interpolate import interp1d
 from collections import namedtuple
 
-import skfmm
+try:
+	import skfmm
+except:
+	print("didnt import skfmm")
 
 
 def find_peaks_in_signal(signal, time_limit, th):

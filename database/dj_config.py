@@ -1,4 +1,7 @@
-import datajoint as dj
+try:
+    import datajoint as dj
+except:
+    pass
 
 
 def start_connection():
@@ -12,8 +15,15 @@ def start_connection():
     D:\Dropbox (UCL - SWC)\Rotation_vte\mysql-server\data\Database
 
     """
+    
+
     dbname = 'Database'    # Name of the database subfolder with data
-    dj.config['database.host'] = "127.18.0.1" 
+    try:
+        dj.config['database.host'] = "127.18.0.1" 
+    except:
+        print("Could not connect to database")
+        return None, None
+
     dj.config['database.user'] = 'root'
     dj.config['database.password'] = 'fede'
     dj.config['database.safemode'] = False
