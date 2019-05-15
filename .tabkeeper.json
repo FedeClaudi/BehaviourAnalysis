@@ -102,5 +102,23 @@
 			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Utilities\\imports.py",
 			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\database\\TablesPopulateFuncs.py.git"
 		]
+	},
+	{
+		"paths": [
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Modelling\\maze_solvers\\agent.py.git",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Digraph.gv.git",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\database\\TablesPopulateFuncs.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\database\\Populate_database.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Utilities\\Maths\\stimuli_detection.py.git",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Utilities\\file_io\\files_load_save.py.git",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Processing\\trials_analysis\\torosity.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Processing\\trials_analysis\\all_trials_loader.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Modelling\\maze_solvers\\environment.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Utilities\\Maths\\math_utils.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Modelling\\maze_solvers\\gradient_agent.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Modelling\\maze_solvers\\gradient_agent.py.git",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Modelling\\maze_solvers\\agent.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Modelling\\maze_solvers\\environment.py.git"
+		]
 	}
 ]

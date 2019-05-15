@@ -8,6 +8,7 @@ import numpy as np
 import cv2
 import seaborn as sns
 from shutil import copyfile
+from tqdm import tqdm 
 
 import matplotlib
 matplotlib.use("Qt5Agg")

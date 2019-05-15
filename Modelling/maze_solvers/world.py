@@ -16,24 +16,35 @@ import matplotlib.pyplot as plt
 
 
 class World:
-    def __init__(self):
+    def __init__(self, grid_size=None, **kwargs):
+        self.stride = 1 # by how much they can move at each step 
+
         # define variables
-        self.maze_design = "ModelBased2.png"
-        self.maze_type = "modelbased"
+        self.maze_design = "PathInt2.png"
+        self.maze_type = "asymmetric_large"
 
-        self.grid_size = 40
-
+        if grid_size is not None:
+            self.grid_size = grid_size
+        else:
+            self.grid_size = 40 # ? default value
+        
         self.randomise_start_location_during_training = False
 
-        if self.maze_type == "modelbased":
-            self.goal_location =  [20, 4] # [10, 2]  # for MBv2 like mazes
-        elif self.maze_type == "asymmetric":
-            self.goal_location = [19, 10] # [9, 5]     # for pathint2 like maze
+        if "modelbased" in self.maze_type:
+            self.goal_location =  [20, 4] 
+        elif "asymmetric" in self.maze_type:
+            self.goal_location = [19, 10] 
         else:
             raise ValueError("unrecognised maze")
             
         self.start_location = [20, 32] # [9, 14]
         self.second_start_location = [19, 17] # [9, 9]  # alternative start
+
+        # Check if other value were passed by the user
+        for k,v in kwargs.items():
+            if k == "start_loc": self.start_location = v
+            elif k == "goal_loc": self.goal_location = v
+            elif k == "stride": self.stride   = v
 
         # static vars
         self.maze_models_folder = "Modelling\maze_solvers\mazes_images"

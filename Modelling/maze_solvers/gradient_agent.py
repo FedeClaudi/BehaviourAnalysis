@@ -1,28 +1,18 @@
 import sys
 sys.path.append('./')
 
-import matplotlib
-matplotlib.use("Qt5Agg")
-import matplotlib.pyplot as plt
-import numpy as np
-import json
-import os
-from random import choice
-import pandas as pd
-import random
-from scipy.special import softmax
-from tqdm import tqdm 
-from mpl_toolkits.mplot3d import Axes3D
-import yaml
+from Utilities.imports import *
 
-from Processing.tracking_stats.math_utils import geodist
+
+from scipy.special import softmax
+from mpl_toolkits.mplot3d import Axes3D
 
 from Modelling.maze_solvers.agent import Agent
 
 
 class GradientAgent(Agent):
-	def __init__(self):
-		Agent.__init__(self)
+	def __init__(self, grid_size=None, **kwargs):
+		Agent.__init__(self, grid_size=grid_size, **kwargs)
 
 	def get_maze_options(self):
 		self._reset()
@@ -31,9 +21,19 @@ class GradientAgent(Agent):
 		if self.maze_type == "modelbased":
 			blocks = [["lambda", "beta1"], "alpha0", "alpha1", "beta0", "beta1", ["lambda", "beta0"],  ["lambda", "beta0"]]
 			options_names = ["beta0", "alpha1", "alpha0", "dup1", "dup2", "beta1", "dup3"]
+
 		elif self.maze_type == "asymmetric":
 			blocks = ["none","right",] 
 			options_names = ["right", "left"]   
+
+		if self.maze_type == "modelbased_large":
+			blocks = [["lambda_large", "beta1_large"], "alpha0_large", "alpha1_large", "beta0_large", "beta1_large", ["lambda_large", "beta0_large"],  ["lambda_large", "beta0_large"]]
+			options_names = ["beta0_large", "alpha1_large", "alpha0_large", "dup1_large", "dup2_large", "beta1_large", "dup3_large"]
+
+		elif self.maze_type == "asymmetric_large":
+			blocks = ["none","right_large",] 
+			options_names = ["right_large", "left_large"]   
+
 		else:
 			raise ValueError("unrecognised maze")
 
@@ -42,13 +42,15 @@ class GradientAgent(Agent):
 		f, axarr = plt.subplots(ncols =len(options_names))
 
 		for i, (name, block) in enumerate(zip(options_names, blocks)):
+			print("Processing option: ", i, name)
+			if "dup" in name: continue
 			self.introduce_blockage(block)
 			w = self.walk()
 			self.plot_walk(w, ax=axarr[i])
 			self._reset()
 
-			if "dup" not in name:
-				options[name] = w
+			
+			options[name] = w
 
 		with open(self.options_file, 'a') as f:
 			yaml.dump(options, f)
@@ -146,6 +148,7 @@ class GradientAgent(Agent):
 		Returns:
 			[type] -- [description]
 		"""
+		print("walking with max # steps: ", self.max_steps)
 		if walk is None: walk = []
 		if start is None:
 			curr = self.start_location.copy()
@@ -162,13 +165,15 @@ class GradientAgent(Agent):
 		# do each step
 		while curr != goal and step_n < self.max_steps:
 			step_n += 1
+			print(step_n)
+			if step_n % 100 == 0: print("Steps: ", step_n)
+
 			walk.append(curr.copy())
 
-
-			try:
-				nxt = self.step(curr, geodesic_map=geodesic_map)
-			except:
-				break
+			# try:
+			nxt = self.step(curr, geodesic_map=geodesic_map)
+			# except:
+			# 	break
 
 			# Check that nxt is a legal move
 			if nxt[0] < 0 or nxt[1] < 0 or nxt[0] > self.grid_size or nxt[1] > self.grid_size or nxt not in self.free_states:
@@ -228,7 +233,14 @@ class GradientAgent(Agent):
 		ax.scatter(self.free_states[states[0]][0], self.free_states[states[0]][1], c='g')
 		ax.scatter(self.free_states[states[1]][0], self.free_states[states[1]][1], c='r')
 		self.show()
-		a = 1
+	
+	def get_geo_to_point(self, point):
+		idx = self.get_state_index(point)
+		if not idx: return None
+		dist = self.geodist(self.maze, self.free_states[idx])
+		cleaned = [x for x in dist[~np.isnan(dist)].flatten()]
+		return cleaned
+
 
 
 
@@ -238,7 +250,7 @@ if __name__ == "__main__":
 	# agent.run()
 	# agent.get_maze_options()
 
-	agent.get_all_geo_distances()
+	# agent.get_all_geo_distances()
 
 
 	plt.show()

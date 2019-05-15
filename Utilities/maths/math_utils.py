@@ -1,5 +1,6 @@
 import sys
 sys.path.append('./')
+
 import numpy as np
 from scipy import misc, signal, stats
 import pandas as pd
@@ -113,8 +114,6 @@ def fill_nans_interpolate(y, pkind='linear'):
 			, kind=pkind)
 	return f(aindexes)
 
-
-
 def calc_prob_item_in_list(ls, it):
 	"""[Calculates the frequency of occurences of item in list]
 	
@@ -166,13 +165,6 @@ def remove_tracking_errors(tracking, debug = False):
 
 	return filtered
 
-
-# plt.figure()
-# plt.plot(tr[:, 1, 1])
-# plt.plot(remove_tracking_errors(tr[:, :, 1])[:, 1])
-# plt.show()
-
-
 def get_roi_enters_exits(roi_tracking, roi_id):
 	"""get_roi_enters_exits [Get all the timepoints in which mouse enters or exits a specific roi]
 	
@@ -187,8 +179,6 @@ def get_roi_enters_exits(roi_tracking, roi_id):
 	enter_exit = np.diff(temp)  # 1 when the mouse enters the platform an 0 otherwise
 	enters, exits = np.where(enter_exit>0)[0], np.where(enter_exit<0)[0]
 	return enters, exits
-
-
 
 def turning_points(array):
 	''' turning_points(array) -> min_indices, max_indices
@@ -327,7 +317,6 @@ def calc_distance_between_points_two_vectors_2d(v1, v2):
 		dist = [calc_distance_between_points_2d(p1, p2) for p1, p2 in zip(v1, v2)]
 	return dist
 
-
 def calc_distance_from_shelter(v, shelter):
 	"""[Calculates the euclidean distance from the shelter at each timepoint]
 	
@@ -380,7 +369,6 @@ def angle_between_points_2d_clockwise(p1, p2):
 	""" This old code below copmutes the angle within the lines that go from the origin to p1 and p2, not the angle of the line to which p1 and p2 belong to
 	"""
 
-
 def calc_angle_between_points_of_vector(v):
 	"""calc_angle_between_points_of_vector [Given one 2d array of XY coordinates as a function of T
 	calculates the angle theta between the coordintes at one time point and the next]
@@ -409,7 +397,6 @@ def calc_angle_between_points_of_vector(v):
 			else:
 				thetas[i] = 0
 	return thetas
-
 
 def calc_angle_between_vectors_of_points_2d(v1, v2):
 	'''calc_angle_between_vectors_of_points_2d [calculates the clockwise angle between each set of point for two 2d arrays of points]
@@ -517,6 +504,8 @@ def geodist(maze, shelter):
 	masked_maze = np.ma.MaskedArray(phi, mask)
 
 	masked_maze[shelter[1], shelter[0]] = 0
+	# time = skfmm.travel_time(masked_maze, speed = 3.0 * np.ones_like(masked_maze))
+
 	distance_from_shelter = np.array(skfmm.distance(masked_maze))
 
 	distance_from_shelter[distance_from_shelter == 0.] =  np.nan

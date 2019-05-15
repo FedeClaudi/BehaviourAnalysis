@@ -5,16 +5,11 @@ import matplotlib
 matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
 
-import numpy as np
-import random
-import pickle
-import pandas as pd
-from scipy.special import softmax
-from tqdm import tqdm
-import yaml
+from Utilities.imports import *
 
-from Processing.tracking_stats.math_utils import calc_distance_between_points_in_a_vector_2d as dist
-from Processing.tracking_stats.math_utils import calc_distance_between_points_2d,  get_n_colors, calc_angle_between_points_of_vector, calc_ang_velocity, line_smoother
+from scipy.special import softmax
+
+from Utilities.Maths.math_utils import calc_distance_between_points_in_a_vector_2d as dist
 
 from Modelling.maze_solvers.environment import Environment
 
@@ -24,15 +19,16 @@ class Agent(Environment):
 		Itself is a subclass of the environment class which defines the maze and so on. ]
 	"""
 	
-	def __init__(self):
-		Environment.__init__(self)
+	def __init__(self, grid_size=None, **kwargs):
+		Environment.__init__(self, grid_size=grid_size, **kwargs)
 
 		# Max number of steps when walking
-		self.max_steps = round(self.grid_size**2 / 2)
+		self.max_steps = round(self.grid_size*2)
 
 		# make a copy of free states and maze
 		self._free_states = self.free_states.copy()
 		self._maze = self.maze.copy()
+		
 		self._geodesic_distance = self.geodesic_distance.copy()
 
 		# define yaml file with save options (walks for each arm of the maze)
@@ -40,25 +36,39 @@ class Agent(Environment):
 		self.load_options()
 
 	def load_options(self):
-		with open(self.options_file, 'r') as f:
-			options = yaml.full_load(f) 
+		options = load_yaml(self.options_file)
 
 		if self.maze_type == "asymmetric":
 			bridges = self.asymmetric_bridges
 		elif self.maze_type == "modelbased":
 			bridges = self.model_based_bridges
+		elif self.maze_type == "modelbased_large":
+			bridges = self.model_based_large_bridges
+		elif self.maze_type == "asymmetric_large":
+			bridges=self.asymmetric_large_bridges
+
 		else: raise ValueError("unrecognised maze")
 
+		self.bridges = bridges
 		# make sure that only the options for the current maze design are being used
-		self.options = {k:v for k,v in options.items() if k in bridges}
+		try:
+			self.options = {k:v for k,v in options.items() if k in bridges}
+		except:
+			print("No optiosn loaded")
+			self.options=None
 
-		
+	def plot_maze_blocked(self):
+		for bridge in self.bridges:
+			self.introduce_blockage(bridge)
+		self.plot_maze(plot_free_states=False)
 
 	def plot_options(self):
 		f, axarr = plt.subplots(ncols=len(self.options))
 
 		for ax, option in zip(axarr, self.options.values()):
 			self.plot_walk(option, ax=ax)
+
+		return axarr
 
 	@staticmethod
 	def show():
@@ -92,9 +102,14 @@ class Agent(Environment):
 		else:
 			ax.set(title=title, xticks=[], yticks=[])
 
+		return ax
+
 
 	def get_state_index(self, state):
-		return [i for i,f in enumerate(self.free_states) if f == state][0]
+		try:
+			return [i for i,f in enumerate(self.free_states) if f == list(state)][0]
+		except:
+			return False
 
 	def state(self):
 		return self.curr_state

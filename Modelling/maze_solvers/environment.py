@@ -1,27 +1,21 @@
 import sys
 sys.path.append('./')
-import matplotlib.pyplot as plt
-import numpy as np
-import random
-import pickle
-import json
-import cv2
-import os
-import pandas as pd
+
+
+from Utilities.imports import *
+
 from scipy.special import softmax
-from tqdm import tqdm
 
+from Utilities.Maths.math_utils import calc_distance_between_points_in_a_vector_2d as dist
 
-from Processing.tracking_stats.math_utils import calc_distance_between_points_in_a_vector_2d as dist
-from Processing.tracking_stats.math_utils import geodist
 from Modelling.maze_solvers.world import World
 
 
 class Environment(World):
 	"""[Creates the environment an agent acts in, subclass of the world class]
 	"""
-	def __init__(self):
-		World.__init__(self)
+	def __init__(self, grid_size=None, **kwargs):
+		World.__init__(self, grid_size=grid_size, **kwargs)
 
 		# Define maze
 		self.maze, self.free_states = self.get_maze_from_image()
@@ -39,7 +33,7 @@ class Environment(World):
 		}
 		self.action_lookup = {v:k for k,v in self.actions.items()}
 		self.n_actions = len(self.actions)
-
+		
 		# Define geodesic distance from shelter at each location
 		self.geodesic_distance = geodist(self.maze, self.goal_location)
 		self.geodist = geodist
@@ -55,12 +49,23 @@ class Environment(World):
 			"lambda":  [[x, 11] for x in np.arange(16, 25)],
 			"beta0": [[x, 21] for x in np.arange(4, 10)],
 			"beta1": [[x, 21] for x in np.arange(30, 37)],
+
+			"alpha0_large": [[x, 542] for x in np.arange(344, 458)],
+			"alpha1_large":  [[x, 542] for x in np.arange(537, 650)],
+			"lambda_large":  [[x, 286] for x in np.arange(450, 550)],
+			"beta0_large": [[x, 542] for x in np.arange(125, 225)],
+			"beta1_large": [[x, 542] for x in np.arange(785, 885)],
+
 			"right": [[x, 21] for x in np.arange(24, 30)],
+			"right_large": [[x, 500] for x in np.arange(500, 900)],
+
 			"none": [],
 		}
 
 		self.model_based_bridges = ["alpha0", "alpha1", "beta0", "beta1"]
+		self.model_based_large_bridges = [a+"_large" for a in self.model_based_bridges]
 		self.asymmetric_bridges = ["right", "left"]
+		self.asymmetric_large_bridges = [a+"_large" for a in self.asymmetric_bridges]
 
 
 	def get_maze_from_image(self):
@@ -86,13 +91,18 @@ class Environment(World):
 		wh = np.where(model == 255)
 		return model, [[y, x] for x, y in zip(wh[0], wh[1])]
 
-	def plot_maze(self, ax=None, plot_free_states = False):
+	def plot_maze(self, ax=None, plot_free_states=False, start=None, goal=None):
 		if ax is None: f, axarr = plt.subplots(ncols=2)
 
 		axarr[0].imshow(self.maze, cmap="Greys_r")
 		axarr[0].scatter(self.start_location[0], self.start_location[1], c='g', s=200, alpha=.5)
 		axarr[0].scatter(self.goal_location[0], self.goal_location[1], c='r', s=200, alpha=.5)
 		axarr[0].scatter(self.curr_state[0], self.curr_state[1], c='b', s=200, alpha=1)
+
+		if start is not None:
+			axarr[0].scatter(start[0], start[1], c='g', s=200, alpha=.5)
+		if goal is not None:
+			axarr[0].scatter(goal[0], goal[1], c='m', s=200, alpha=1)
 
 		if plot_free_states:
 			axarr[0].scatter([x for x,y in self.free_states], [y for x,y in self.free_states])
@@ -106,8 +116,6 @@ class Environment(World):
 		else:
 			start_index = np.random.randint(0,len(self.free_states))
 			self.curr_state = self.free_states[start_index]
-
-
 
 	def get_available_moves(self, current = None):
 		"""[Get legal moves given the current position, i.e. moves that lead to a free cell]
@@ -126,8 +134,7 @@ class Environment(World):
 		if not legals: raise ValueError("No legal actions, thats impossible")
 		else: return legals
 
-	@staticmethod
-	def move(action, curr):
+	def move(self, action, curr):
 		"""
 			moves from current position to next position based on the action taken
 		"""
@@ -139,8 +146,8 @@ class Environment(World):
 			return [current[0] + x, current[1] + y]
 
 		# depending on the action taken, move the agent by x,y offsets
-		up, down = -1, 1
-		left, right = -1, 1
+		up, down = - self.stride, self.stride
+		left, right = - self.stride, self.stride
 
 		if action == "left":
 			nxt_state = change(curr, left, 0)
@@ -199,7 +206,6 @@ class Environment(World):
 			self.game_over = False
 
 		return self.next_state, self.reward, self.game_over 
-
 
 	def create_maze_image_from_vals(self, vals):
 		"""[creates an image with the shape of the maze and the color from vals]
