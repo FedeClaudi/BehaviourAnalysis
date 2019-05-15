@@ -12,7 +12,6 @@ from database.NewTablesDefinitions import *
 from database.database_fetch import *
 
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame, get_arm_given_rois, convert_roi_id_to_tag
-from Processing.tracking_stats.math_utils import get_roi_enters_exits, line_smoother, calc_distance_between_points_2d, remove_tracking_errors, get_n_colors
 from Utilities.video_and_plotting.video_editing import Editor 
 from Processing.modelling.bayesian.hierarchical_bayes_v2 import Modeller as Bayesian
 

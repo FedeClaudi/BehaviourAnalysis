@@ -45,13 +45,22 @@ class FilesAutomationToolbox:
             self.video_metadata = None
 
     def save_ai_files_as_pandas(self):
-        for ai in os.listdir(self.ai_fld):
-            if ".yml" in ai: continue
+        files = [f for f in os.listdir(self.ai_fld) if '.yml' not in f and "." in f and ".tdms" in f]
+        for i, ai in enumerate(files):
+            print("\n\nProcessing file {} of {}".format(i,len(files)))
+
+            date = int(ai.split("_")[0])
+            if date < 190509: continue  # when started with visuals
+
             savename = ai.split('.')[0]+".ft"
             columns_savename = ai.split('.')[0]+"_groups.yml"
             if savename in os.listdir(self.ai_dest_fld): continue
 
-            content = self.tool_box.open_temp_tdms_as_df(os.path.join(self.ai_fld, ai), move=True, skip_df=False)
+            try:
+                content = self.tool_box.open_temp_tdms_as_df(os.path.join(self.ai_fld, ai), move=True, skip_df=False)
+            except:
+                raise ValueError("Could not open: ", ai)
+
             print("         ... saving")
             content[0].to_feather(os.path.join(self.ai_dest_fld, savename))
             save_yaml(os.path.join(self.ai_dest_fld, columns_savename), content[1])
@@ -214,8 +223,8 @@ if __name__ == "__main__":
 
     # automation.convert_tdms_to_mp4()
 
-    automation.get_list_uncoverted_tdms_videos()
-    automation.get_list_not_tracked_videos()
+    # automation.get_list_uncoverted_tdms_videos()
+    # automation.get_list_not_tracked_videos()
 
     # Checks 
     # automation.extract_videotdms_metadata()

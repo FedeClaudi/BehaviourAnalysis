@@ -85,5 +85,22 @@
 			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\database\\NewTablesDefinitions.py",
 			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\database\\NewTablesDefinitions.py.git"
 		]
+	},
+	{
+		"name": "popdatb",
+		"paths": [
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Modelling\\maze_solvers\\agent.py.git",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Digraph.gv.git",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\database\\TablesPopulateFuncs.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\database\\Populate_database.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Utilities\\Maths\\stimuli_detection.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Utilities\\Maths\\stimuli_detection.py.git",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Utilities\\dbase\\stim_times_loader.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\database\\auxillary_tables.py",
+			"z:\\branco\\Federico\\raw_behaviour\\maze\\analoginputdata\\190513_CA602_1visual_stimuli_log.yml",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\database\\auxillary_tables.py.git",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Utilities\\imports.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\database\\TablesPopulateFuncs.py.git"
+		]
 	}
 ]

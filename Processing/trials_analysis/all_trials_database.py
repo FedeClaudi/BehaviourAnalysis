@@ -1,15 +1,11 @@
 import sys
 sys.path.append('./')
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
 
-from database.NewTablesDefinitions import *
-from database.database_fetch import *
+from Utilities.imports import *
 
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame, get_arm_given_rois, convert_roi_id_to_tag
-from Processing.tracking_stats.math_utils import get_roi_enters_exits, line_smoother, calc_distance_between_points_2d, remove_tracking_errors
 from Processing.tracking_stats.velocity_analysis import get_expl_speeds
+
 class analyse_all_trals:
     """ 
         get all trips data from the database
@@ -288,14 +284,8 @@ def check_arm_assignment():
 
 if __name__ == "__main__":
     # a = analyse_all_trals(erase_table=True, fill_in_table=False)
-# 
-    a = analyse_all_trals(erase_table=False, fill_in_table=True)
-                
-
-    #   check_arm_assignment()
-
-
-
+    # a = analyse_all_trals(erase_table=False, fill_in_table=True)
+    print(AllTrials())
 
 
 

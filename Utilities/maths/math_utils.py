@@ -18,31 +18,6 @@ except:
 	print("didnt import skfmm")
 
 
-def find_peaks_in_signal(signal, time_limit, th):
-    """[Function to find the start of square peaks in a time series. 
-    Useful for example to find frame starts or stim starts in analog input data]
-    
-    Arguments:
-        signal {[np.array]} -- [the time series to be analysd]
-        time_limit {[float]} -- [min time inbetween peaks]
-        th {[float]} -- [where to threshold the signal to identify the peaks]
-    
-    Returns:
-        [np.ndarray] -- [peak starts times]
-    """
-    above_th = np.where(signal>th)[0]
-    peak_starts = [x for x,d in zip(above_th, np.diff(above_th)) if d > time_limit]
-    
-    # add the first and last above_th times to make sure all frames are included
-    peak_starts.insert(0, above_th[0])
-    peak_starts.append(above_th[-1])
-    
-    # we then remove the second item because it corresponds to the end of the first peak
-    peak_starts.pop(1)
-
-    return np.array(peak_starts)
-
-
 
 def beta_distribution_params(a=None, b=None, mu=None, sigma=None, omega=None, kappa=None):
 	"""[converts parameters of beta into different formulations]
@@ -69,7 +44,6 @@ def beta_distribution_params(a=None, b=None, mu=None, sigma=None, omega=None, ka
 		return mu, omega, kappa
 	else: raise NotImplementedError
 
-
 def gamma_distribution_params(mean=None, sd=None, mode=None, shape=None, rate=None):
 	if mean is not None and sd is not None:
 		if mean < 0: raise NotImplementedError
@@ -87,8 +61,6 @@ def gamma_distribution_params(mean=None, sd=None, mode=None, shape=None, rate=No
 		return mu, sd
 	return shape, rate
 
-
-
 def get_distribution(dist, *args, n_samples=10000):
 	if dist == 'uniform':
 		return np.random.uniform(args[0], args[1], n_samples)
@@ -99,14 +71,11 @@ def get_distribution(dist, *args, n_samples=10000):
 	elif dist == 'gamma':
 		return np.random.gamma(args[0], args[1], n_samples)
 
-
-
 def median_filter_1d(x, pad=20, kernel=11):
 	half_pad = int(pad/2)
 	x_pad = np.pad(x, pad, 'edge')
 	x_filtered = median_filter(x_pad, kernel_size=kernel)[half_pad:-half_pad]
 	return x_filtered
-
 
 def mean_confidence_interval(data, confidence=0.95):
 	mean, var, std = stats.bayes_mvs(data)

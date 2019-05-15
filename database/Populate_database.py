@@ -211,7 +211,7 @@ if __name__ == '__main__':
     print(p)
 
 
-    # p.remove_table(["tracking_data"])
+    # p.remove_table(["mantisstimuli"])
     
     # p.populate_mice_table()
     # p.populate_experiments_table()
@@ -233,5 +233,5 @@ if __name__ == '__main__':
 
 
 
-    print(p.sessions)
+    print(p.tracking_data.BodyPartData())
 
