@@ -148,7 +148,7 @@ class GradientAgent(Agent):
 		Returns:
 			[type] -- [description]
 		"""
-		print("walking with max # steps: ", self.max_steps)
+		# print("walking with max # steps: ", self.max_steps)
 		if walk is None: walk = []
 		if start is None:
 			curr = self.start_location.copy()
@@ -165,15 +165,15 @@ class GradientAgent(Agent):
 		# do each step
 		while curr != goal and step_n < self.max_steps:
 			step_n += 1
-			print(step_n)
-			if step_n % 100 == 0: print("Steps: ", step_n)
+
+			# if step_n % 100 == 0: print("Steps: ", step_n)
 
 			walk.append(curr.copy())
 
-			# try:
-			nxt = self.step(curr, geodesic_map=geodesic_map)
-			# except:
-			# 	break
+			try:
+				nxt = self.step(curr, geodesic_map=geodesic_map)
+			except:
+				break
 
 			# Check that nxt is a legal move
 			if nxt[0] < 0 or nxt[1] < 0 or nxt[0] > self.grid_size or nxt[1] > self.grid_size or nxt not in self.free_states:

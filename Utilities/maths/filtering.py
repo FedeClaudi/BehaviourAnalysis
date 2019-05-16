@@ -1,9 +1,11 @@
-import numpy as np
+import sys
+sys.path.append('./')
+
+from Utilities.imports import *
+
 from scipy.signal import butter, lfilter, freqz
 
-import matplotlib
-matplotlib.use("Qt5Agg")
-import matplotlib.pyplot as plt
+
 
 
 def butter_lowpass(cutoff, fs, order=5):

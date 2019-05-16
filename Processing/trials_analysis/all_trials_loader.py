@@ -26,7 +26,7 @@ class Trials:
             self.selected_experiments.extend(self.grouped_experiments['symmetric'])
 
         # Define which items to load from the table for each entry
-        self.elems_to_load = ["tracking_data","session_uid", "experiment_name", "escape_arm", "origin_arm", "fps"]
+        self.elems_to_load = ["tracking_data","session_uid", "experiment_name", "escape_arm", "origin_arm", "fps", "is_escape"]
 
         # Load data
         self.trials = self.load()
@@ -45,7 +45,11 @@ class Trials:
         else:
             trials = []
             for exp in selected_experiments:
-                temp_df = pd.DataFrame((AllTrials & "is_escape='{}'".format(just_escapes) & "experiment_name='{}'".format(exp) ).fetch(*self.elems_to_load)).T
+                if just_escapes != "all":
+                    temp_df = pd.DataFrame((AllTrials & "is_escape='{}'".format(just_escapes) & "experiment_name='{}'".format(exp) ).fetch(*self.elems_to_load)).T
+                else:#
+                    temp_df = pd.DataFrame((AllTrials & "experiment_name='{}'".format(exp) ).fetch(*self.elems_to_load)).T
+
                 temp_df.columns = self.elems_to_load
                 trials.append(temp_df)
 

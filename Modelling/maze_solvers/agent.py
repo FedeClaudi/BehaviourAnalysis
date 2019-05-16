@@ -1,10 +1,6 @@
 import sys
 sys.path.append('./')
 
-import matplotlib
-matplotlib.use("Qt5Agg")
-import matplotlib.pyplot as plt
-
 from Utilities.imports import *
 
 from scipy.special import softmax

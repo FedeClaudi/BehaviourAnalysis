@@ -1,13 +1,7 @@
 import sys
 sys.path.append('./')
 
-import numpy as np
-from tqdm import tqdm
-import cv2 
-import os
-import matplotlib
-matplotlib.use("Qt5Agg")
-import matplotlib.pyplot as plt
+from Utilities.imports import *
 
 
 """
@@ -20,8 +14,16 @@ class World:
         self.stride = 1 # by how much they can move at each step 
 
         # define variables
-        self.maze_design = "PathInt2.png"
-        self.maze_type = "asymmetric_large"
+        if not 'maze_design' in kwargs.keys():
+            self.maze_design = "PathInt2.png"
+        else:
+            self.maze_design = kwargs['maze_design']
+
+        if not 'maze_type' in kwargs.keys():
+            self.maze_type = "asymmetric_large"
+        else:
+            self.maze_type = kwargs['maze_type']
+        
 
         if grid_size is not None:
             self.grid_size = grid_size

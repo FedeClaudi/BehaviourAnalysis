@@ -9,9 +9,12 @@ import cv2
 import seaborn as sns
 from shutil import copyfile
 from tqdm import tqdm 
+from scipy import stats
 
-import matplotlib
-matplotlib.use("Qt5Agg")
+if sys.platform == "darwin":
+    import matplotlib
+    matplotlib.use("Qt5Agg")
+    
 import matplotlib.pyplot as plt
 
 import time
