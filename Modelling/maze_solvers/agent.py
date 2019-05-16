@@ -104,7 +104,6 @@ class Agent(Environment):
 
 		return ax
 
-
 	def get_state_index(self, state):
 		try:
 			return [i for i,f in enumerate(self.free_states) if f == list(state)][0]

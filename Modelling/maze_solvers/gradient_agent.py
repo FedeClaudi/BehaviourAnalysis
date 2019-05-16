@@ -192,20 +192,19 @@ class GradientAgent(Agent):
 		self.geodesic_distance = self._geodesic_distance.copy()
 		self.free_states  = self._free_states.copy()
 
-	def introduce_blockage(self, bridge, update=True):
+	def introduce_blockage(self, bridge, update=True, geodesic_map = None):
 		blocks = self.get_blocked_states(bridge)
 
 		for block in blocks:
 			self.maze[block[1], block[0]] = 0 
 			# self.maze[block[0], block[1]] = 0 
-			self.geodesic_distance[block[1], block[0]] = np.nan # this will be overwritte if we are updating the geodesic distance
-
+			self.geodesic_distance[block[1], block[0]] = np.nan # this will be overwritten if we are updating the geodesic distance
 
 		# ? update the geodesic distance
 		if update: self.geodesic_distance = geodist(self.maze, self.goal_location)
-		
 
-		
+
+
 
 	def get_all_geo_distances(self):
 		self.all_geo = np.zeros((len(self.free_states), len(self.free_states)))
@@ -237,9 +236,17 @@ class GradientAgent(Agent):
 	def get_geo_to_point(self, point):
 		idx = self.get_state_index(point)
 		if not idx: return None
+
 		dist = self.geodist(self.maze, self.free_states[idx])
 		cleaned = [x for x in dist[~np.isnan(dist)].flatten()]
-		return cleaned
+
+		# convert into a 2d numpy array
+		arr = np.full_like(self.geodesic_distance, np.nan)
+
+		for (x,y),v in zip(self.free_states, cleaned):
+			arr[y, x] = v
+
+		return arr
 
 
 

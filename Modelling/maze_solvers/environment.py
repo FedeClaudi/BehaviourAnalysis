@@ -57,7 +57,7 @@ class Environment(World):
 			"beta1_large": [[x, 542] for x in np.arange(785, 885)],
 
 			"right": [[x, 21] for x in np.arange(24, 30)],
-			"right_large": [[x, 500] for x in np.arange(500, 900)],
+			"right_large": [[x, y] for x in np.arange(500, 900) for y in np.arange(480, 510)],
 
 			"none": [],
 		}
