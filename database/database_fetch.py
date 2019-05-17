@@ -36,8 +36,6 @@ def get_stimuli_given_sessuid(uid, stimuli=None, as_dict=True):
         else:
             return (MantisStimuli & "uid='{}'".format(uid) & "duration != 1").fetch(as_dict=as_dict)
 
-
-
 def get_stimuli_give_recuid(rec_uid):
     from database.NewTablesDefinitions import Recordings, BehaviourStimuli, MantisStimuli
     software = (Recordings & "recording_uid='{}'".format(rec_uid)).fetch("software")
@@ -140,8 +138,6 @@ def get_videos_given_recuid(recuid):
     from database.NewTablesDefinitions import VideoFiles
     return pd.DataFrame((VideoFiles & "recording_uid='{}'".format(recuid)).fetch())
 
-
-
 def get_trials_by_exp(experiment, escape, args):
     from database.NewTablesDefinitions import AllTrials
     """
@@ -162,7 +158,6 @@ def get_trials_by_exp_and_session(experiment, uid, escape, args):
 def get_sessuids_given_experiment(experiment):
     from database.NewTablesDefinitions import Sessions
     return (Sessions & "experiment_name='{}'".format(experiment)).fetch("uid")
-
 
 def get_maze_template(exp=None):
     if exp is None:
@@ -194,3 +189,11 @@ def get_maze_template(exp=None):
     maze_model = cv2.resize(maze_model, (1000, 1000))
 
     return maze_model
+
+def get_mantisstim_given_stimuid(stimuid):
+    from database.NewTablesDefinitions import MantisStimuli
+    return pd.DataFrame((MantisStimuli & "stimulus_uid='{}'".format(stimuid)).fetch())
+
+def get_mantisstim_logfilepath_given_stimud(stimuid):
+    from database.NewTablesDefinitions import MantisStimuli
+    return pd.DataFrame((MantisStimuli.VisualStimuliLogFile & "stimulus_uid='{}'".format(stimuid)).fetch())

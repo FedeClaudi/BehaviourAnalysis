@@ -237,7 +237,35 @@ else:
             make_mantistimuli_table(self, key, Recordings, VideoFiles)    
 
 
-
+    
+    @schema
+    class VisualStimuliMetadata(dj.Imported):
+        definition = """
+            -> MantisStimuli
+            ---
+            stim_type:              varchar(128)    # loom, grating...
+            modality:               varchar(128)    # linear, exponential. 
+            params_file:            varchar(128)    # name of the .yml file with the params
+            time:                   varchar(128)    # time at which the stim was delivered
+            units:                  varchar(128)    # are the params defined in degrees, cm ...
+    
+            start_size:             float       
+            end_size:               float
+            expansion_time:         float
+            on_time:                float
+            off_time:               float
+    
+            color:                  float
+            backgroun_color:        float
+            contrast:               float
+    
+            position:               blob
+            repeats:                int
+            sequence_number:        float           # sequential stim number in the session
+         """
+    
+        def make(self, key):
+            make_visual_stimuli_metadata_table(self, key, MantisStimuli)
 
     #!  ########################################################################################################################################################################################################################################################################################################################################################
     #!  ########################################################################################################################################################################################################################################################################################################################################################
@@ -338,33 +366,6 @@ else:
         """
 
 
-@schema
-class VisualStimuliMetadata(dj.Imported):
-    definition = """
-        -> MantisStimuli
-        ---
-        stim_type:              varchar(128)    # loom, grating...
-        modality:               varchar(128)    # linear, exponential. 
-        params_file:            varchar(128)    # name of the .yml file with the params
-        time:                   varchar(128)    # time at which the stim was delivered
-        units:                  varchar(128)    # are the params defined in degrees, cm ...
-
-        start_size:             float       
-        end_size:               float
-        expansion_time:         float
-        on_time:                float
-        off_time:               float
-
-        color:                  float
-        backgroun_color:        float
-        contrast:               float
-
-        position:               blob
-        repeats:                int
-        sequence_number:        float           # sequential stim number in the session
-     """
-
-    # TODO make populate method
 
 if __name__ == "__main__":
     # VideoTdmsMetadata().drop()

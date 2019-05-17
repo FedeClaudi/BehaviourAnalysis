@@ -1,6 +1,12 @@
 import sys
 sys.path.append('./')
 
+try:
+    sys.path.append("C:\\Users\\Federico\\Documents\\GitHub\\VisualStimuli")  # ? Where the contrast calculator lives
+    from Utils.contrast_calculator import Calculator
+except:
+    pass
+    
 from Utilities.imports import *
 
 from nptdms import TdmsFile
@@ -806,6 +812,59 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
 
 
 
+def make_visual_stimuli_metadata_table(table, key, MantisStimuli):
+    stim_data = get_mantisstim_given_stimuid(key['stimulus_uid']).iloc[0]
+    
+    if stim_data.stim_type == "audio": return # this is only for visualz
+
+    # Get the stim calculator
+    contrast_calculator = Calculator()
+
+    # Load the metadata
+    stim_path_data = get_mantisstim_logfilepath_given_stimud(key['stimulus_uid']).iloc[0]
+    if not os.path.isfile(stim_path_data.filepath): return
+    metadata = load_yaml(stim_path_data.filepath)
+    
+    stim_number = key["stimulus_uid"].split("_")[-1]
+    stim_metadata = metadata['Stim {}'.format(stim_number)]
+    
+    # Convert strings to numners
+    stim_meta = {}
+    for k,v in stim_metadata.items():
+        try:
+            stim_meta[k] = float(v)
+        except:
+            stim_meta[k] = v
+        
+    if 'background_luminosity' not in stim_meta.keys(): stim_meta['background_luminosity'] = 125 # ! hardcoded
+    
+    # get contrst
+    stim_meta['contrast'] = contrast_calculator.contrast_calc(stim_meta['background_luminosity'], stim_meta['color'])
+
+    # prepare key for insertion into the table
+    key['stim_type']             = stim_meta['Stim type']
+    keuy['modality']             = stim_meta['modality']
+    key['params_file']           = stim_meta['stim_path_data.filepath']
+    key['time']                  = stim_meta['stim_start']
+    key['units']                 = stim_meta['units']
+    key['start_size']            = stim_meta['start_size']
+    key['end_size']              = stim_meta['end_size']
+    key['expansion_time']        = stim_meta['expand_time']
+    key['on_time']               = stim_meta['on_time']
+    key['off_time']              = stim_meta['off_time']
+    key['color']                 = stim_meta['color']
+    key['background_color']      = stim_meta['background_luminosity']
+    key['contrast']              = stim_meta['contrast']
+    key['position']              = stim_meta['pos']
+    key['repeats']               = stim_meta['repeats']
+    key['sequence_number']       = stim_meta['stim_number']
+
+    try:
+        table.isert1(key)
+    except:
+        raise ValueError("could not insert key: ", key)
+    
+    
     
 
 

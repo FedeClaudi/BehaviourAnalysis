@@ -64,13 +64,14 @@ class PopulateDatabase:
         self.tracking_data = TrackingData()
         self.commoncoordinatematrices = CommonCoordinateMatrices()
         self.dlcmodels = DLCmodels()
+        self.visual_stimuli_metadata = VisualStimuliMetadata()
 
         self.all_tables = dict(mice=self.mice, sessions= self.sessions, experiments=self.experiments,
                                 recordings=self.recordings, behaviourstimuli = self.behaviourstimuli,
                                 mantisstimuli = self.mantisstimuli, dlcmodels = self.dlcmodels,
                                 templates=self.templates, videofiles = self.videofiles, 
                                 commoncoordinatematrices=self.commoncoordinatematrices,
-                                tracking_data = self.tracking_data)
+                                tracking_data = self.tracking_data, visual_stimuli_metadata=self.visual_stimuli_metadata,)
 
     def remove_table(self, tablename):
         """
@@ -227,11 +228,12 @@ if __name__ == '__main__':
     
     # p.behaviourstimuli.populate() 
     p.mantisstimuli.populate()
+    # p.visual_stimuli_metadata.populate()
 
     # p.tracking_data.populate()
 
 
 
 
-    print(p.tracking_data.BodyPartData())
+    # print(p.tracking_data.BodyPartData())
 

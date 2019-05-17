@@ -120,5 +120,16 @@
 			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Modelling\\maze_solvers\\agent.py",
 			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Modelling\\maze_solvers\\environment.py.git"
 		]
+	},
+	{
+		"name": "torosity",
+		"paths": [
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Processing\\trials_analysis\\torosity.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Processing\\trials_analysis\\all_trials_loader.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\database\\TablesPopulateFuncs.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Modelling\\maze_solvers\\environment.py",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Modelling\\maze_solvers\\environment.py.git",
+			"c:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Processing\\trials_analysis\\torosity.py.git"
+		]
 	}
 ]
