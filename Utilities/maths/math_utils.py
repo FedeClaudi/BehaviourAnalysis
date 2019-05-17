@@ -19,7 +19,6 @@ except:
 	print("didnt import skfmm")
 
 
-
 def beta_distribution_params(a=None, b=None, mu=None, sigma=None, omega=None, kappa=None):
 	"""[converts parameters of beta into different formulations]
 	

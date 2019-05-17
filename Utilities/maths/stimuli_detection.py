@@ -61,17 +61,27 @@ def find_visual_stimuli(data, th, sampling_rate):
     ends = find_peaks_in_signal(d_filt, 10000, 0.0003, above=True )[1:]
 
 
-    assert len(starts) == len(ends), "ops"
+    if not len(starts) == len(ends):
+        if abs(len(starts)-len(ends))>1: raise ValueError("Too large error during detection: s:{} e{}".format(len(starts), len(ends)))
+        print("Something went wrong: {} - starts and {} - ends".format(starts, ends))
 
-    # ? Fo1r debugging
-    # f, ax = plt.subplots()
-    # ax.plot(filtered, color='r')
-    # ax.plot(butter_lowpass_filter(np.diff(filtered), 75, int(sampling_rate/2)), color='g')
-    # ax.scatter(starts, [0.25 for i in starts], c='r')
-    # ax.scatter(ends, [0 for i in ends], c='k')
+        # ? Fo1r debugging
+        f, ax = plt.subplots()
+        ax.plot(filtered, color='r')
+        ax.plot(butter_lowpass_filter(np.diff(filtered), 75, int(sampling_rate/2)), color='g')
+        ax.scatter(starts, [0.25 for i in starts], c='r')
+        ax.scatter(ends, [0 for i in ends], c='k')
 
-    # plt.show()
-            
+        plt.show()
+
+        to_elim = int(input("Which one to delete "))
+        if len(starts)  > len(ends):
+            starts = np.delete(starts, to_elim)
+        else:
+            ends = np.delete(ends, to_elim)
+    
+    assert len(starts) == len(ends), "cacca"
+
     # Return as a list of named tuples
     stim = namedtuple("stim", "start end")
     stimuli =[stim(s,e) for s,e in zip(starts, ends)]

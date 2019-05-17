@@ -227,8 +227,8 @@ if __name__ == '__main__':
     # p.templates.populate()
     
     # p.behaviourstimuli.populate() 
-    p.mantisstimuli.populate()
-    # p.visual_stimuli_metadata.populate()
+    # p.mantisstimuli.populate()
+    p.visual_stimuli_metadata.populate()
 
     # p.tracking_data.populate()
 

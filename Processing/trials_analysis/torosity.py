@@ -11,10 +11,8 @@ from Modelling.maze_solvers.gradient_agent import GradientAgent
 print("\n\n\n")
 
 class Torosity(Trials):
-    def __init__(self):
+    def __init__(self, mtype):
         Trials.__init__(self, exp_1_mode=True, just_escapes="all")
-
-        mtype = "asymmetric"  # ? adsabfefgyluew
 
         self.trials = self.trials.loc[self.trials['grouped_experiment_name']==mtype]  # only keep the trials from asym exp
 
@@ -42,7 +40,7 @@ class Torosity(Trials):
         self.agent.bridges_block_states = scaled_blocks
 
         # lookup vars
-        self.results_keys = ["walk_distance", "tracking_distance", "torosity", "tracking_data", "escape_arm", "is_escape"]
+        self.results_keys = ["walk_distance", "tracking_distance", "torosity", "tracking_data", "escape_arm", "is_escape", "binned_torosity"]
 
         if mtype == "asymmetric":
             self.bridges_lookup = dict(Right_Medium="right", Left_Far="left")
@@ -50,47 +48,141 @@ class Torosity(Trials):
             self.bridges_lookup = dict(Right_Medium="right", Left_Medium="left")
 
         self.results_path = "Processing\\trials_analysis\\torosity_results_toshelter_{}.pkl".format(mtype)
+        self.plots_save_fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\plots\\torosity\\check"
+
+    """
+        #########################################################################################################################################################
+                UTILS
+        #########################################################################################################################################################
+    """
 
     def smallify_tracking(self, tracking):
         return np.multiply(tracking, self.scale_factor).astype(np.int32)
 
-    def process_one_trial(self, trial, br):
+    @staticmethod
+    def zscore_and_sort(res):
+        res['walk_distance_z'] = stats.zscore(res.walk_distance)
+        res['tracking_distance_z'] = stats.zscore(res.tracking_distance)
+        res['torosity_z'] = stats.zscore(res.torosity)
+
+        res.sort_values("torosity_z")
+
+        return res
+
+    """
+        #########################################################################################################################################################
+                PROCESSING
+        #########################################################################################################################################################
+    """
+
+    def time_binned_torosity(self, tracking, br):
+        binned_tor = namedtuple("bt", "i_start i_end torosity")
+        self.agent._reset()
+
+        window_size, window_step = 10, 5
+
+        i_start = 0
+        i_end = i_start + window_size
+
+        binned_tor_list = []
+        while i_end <= tracking.shape[0]:
+            binned_tracking = tracking[i_start:i_end, :, :]
+            i_start += window_step
+            i_end += window_step
+
+            torosity = self.process_one_trial(None, br, tracking=binned_tracking, goal=list(binned_tracking[-1, :2, 0]))
+
+            binned_tor_list.append(binned_tor(i_start, i_end, torosity))
+
+        return binned_tor_list
+
+    def process_one_trial(self, trial, br, tracking=None, goal=None):
         # Reset 
         self.agent._reset()
 
-        # scale down the tracking data
-        tracking = self.smallify_tracking(trial.tracking_data.astype(np.int16))
+        if tracking is None:
+            # scale down the tracking data
+            tracking = self.smallify_tracking(trial.tracking_data.astype(np.int16))
 
         # get the start and end of the escape
-        # self.agent.start_location, self.agent.goal_location = list(tracking[0, :2, 0]), list(tracking[-1, :2, 0])
         self.agent.start_location = list(tracking[0, :2, 0])
+        if goal is not None:
+            self.agent.goal_location = goal
+        else:
+            self.agent.goal_location = list(tracking[-1, :2, 0])
 
         # get the new geodistance to the location where the escape ends
         self.agent.geodesic_distance = self.agent.get_geo_to_point(self.agent.goal_location)
-        if self.agent.geodesic_distance is None: return None, None, None
+        if self.agent.geodesic_distance is None and goal is None: return None, None, None
+        elif self.agent.geodesic_distance is None and goal is not None: return np.nan
 
         # Introduce blocked bridge if LEFT escape
         if "left" in br.lower():
             self.agent.introduce_blockage("right_large", update =True)
-            # self.agent.plot_maze()
 
         # do a walk with the same geod
         walk = np.array(self.agent.walk())
 
-        # re sample the walk to match the n frames in th
-        # walk = resample(walk, tracking.shape[0]) # ? this causes problems when estimating the lenght
 
-        # Create results
-        results = dict(
-            walk_distance       = np.sum(calc_distance_between_points_in_a_vector_2d(walk)) ,
-            tracking_distance   = np.sum(calc_distance_between_points_in_a_vector_2d(tracking[:, :2, 0])) ,
-            torosity =(np.sum(calc_distance_between_points_in_a_vector_2d(tracking[:, :2, 0])))/ (np.sum(calc_distance_between_points_in_a_vector_2d(walk))),
-            tracking_data = tracking,
-            escape_arm = br,
-            is_escape = trial.is_escape
-        )
-        return tracking, walk, results
+        # compute stuff
+        walk_distance  = np.sum(calc_distance_between_points_in_a_vector_2d(walk)) 
 
+        # if goal is None: # ? not very elegant, but it it is to say that we check only when we are processing the whole trial
+        #     if len(walk < 10): raise ValueError("Why u not walking")
+        #     if walk_distance < 1: raise ValueError("Something went wrong with the walk distance")
+
+        tracking_distance   = np.sum(calc_distance_between_points_in_a_vector_2d(tracking[:, :2, 0])) 
+        torosity = tracking_distance/walk_distance
+
+        if (np.isnan(torosity) or np.isinf(torosity)) and goal is None: raise ValueError
+
+
+        if trial is not None:
+            # Create results
+            results = dict(
+                walk_distance       = walk_distance,
+                tracking_distance   = tracking_distance,
+                torosity = torosity,
+                tracking_data = tracking,
+                escape_arm = br,
+                is_escape = trial.is_escape
+            )
+
+            return tracking, walk, results
+        else:
+            return torosity
+
+    def analyse_all(self, plot=False, save_plots=False):
+        print("processing all trials")
+        all_res = {k:[] for k in self.results_keys}
+
+        trials = [t for i,t in self.trials.iterrows()]
+        for trial in tqdm(trials):
+            try:
+                tracking, walk, res = self.process_one_trial(trial, self.bridges_lookup[trial.escape_arm])
+            except: 
+                continue
+
+            if tracking is None: continue
+
+            res["binned_torosity"] = self.time_binned_torosity(tracking, self.bridges_lookup[trial.escape_arm])
+            if plot:
+                self.plot_time_binned_torosity(tracking, walk, res["binned_torosity"], res, save_plots=save_plots, trial_id=trial.trial_id)
+
+            if res is None: continue
+
+            for k,v in res.items(): all_res[k].append(v)
+        results = pd.DataFrame.from_dict(all_res)
+
+        # clean_up and save
+        results = results.loc[results.torosity != np.inf]
+        results.to_pickle(self.results_path)
+
+    """
+        #########################################################################################################################################################
+                PLOTTING
+        #########################################################################################################################################################
+    """
     def plot_one_escape_and_its_walk(self):  # one per arm
         f, axarr = plt.subplots(ncols=2)
         colors = get_n_colors(5)
@@ -113,23 +205,37 @@ class Torosity(Trials):
                     title = "Walk: {} - Track: {} - Tor: {}".format(round(res['walk_distance'], 2), round(res['tracking_distance'], 2), round(res['torosity'], 2))
                 )
                 
-    def analyse_all(self):
-        print("processing all trials")
-        all_res = {k:[] for k in self.results_keys}
+    def plot_time_binned_torosity(self, tracking, walk, binned_tor, res, save_plots=False, trial_id=None):
+        f, ax = plt.subplots(figsize=(16, 16))
 
-        trials = [t for i,t in self.trials.iterrows()]
-        for trial in tqdm(trials):
+        rearranged = np.zeros((len(binned_tor), 3))
+
+        for i, (i_start, i_end, tor) in enumerate(binned_tor):
+            rearranged[i, :2] = tracking[i_start, :2, 0]
             try:
-                tracking, walk, res = self.process_one_trial(trial, self.bridges_lookup[trial.escape_arm])
-            except: continue
-            if res is None: continue
+                rearranged[i, -1] = tor
+            except:
+                raise ValueError(tor)
 
-            for k,v in res.items(): all_res[k].append(v)
-        results = pd.DataFrame.from_dict(all_res)
+        self.agent.plot_walk(walk, alpha=.6,  ax=ax)
+        ax.scatter(rearranged[:, 0], rearranged[:, 1], c=rearranged[:, 2],  s=100, alpha=.8, cmap="inferno")
+        ax.set(
+            title = "Walk: {} - Track: {} - Tor: {}".format(round(res['walk_distance'], 2), round(res['tracking_distance'], 2), round(res['torosity'], 2))
+        )
+        
+        if not save_plots:
+            plt.show()
+        else:
+            f.savefig(os.path.join(self.plots_save_fld, '{}.png'.format(trial_id)))
+            plt.close(f)
 
-        # clean_up and save
-        results = results.loc[results.torosity != np.inf]
-        results.to_pickle(self.results_path)
+
+
+    """
+        #########################################################################################################################################################
+                ANALYSIS
+        #########################################################################################################################################################
+    """
 
     def results_loader(self, name, select_bridge=None, select_escapes=None):
         res = pd.read_pickle("Processing\\trials_analysis\\torosity_results_toshelter_{}.pkl".format(name))
@@ -145,17 +251,6 @@ class Torosity(Trials):
                 res = res.loc[res.is_escape == "false"]
 
         return res
-
-    @staticmethod
-    def zscore_and_sort(res):
-        res['walk_distance_z'] = stats.zscore(res.walk_distance)
-        res['tracking_distance_z'] = stats.zscore(res.tracking_distance)
-        res['torosity_z'] = stats.zscore(res.torosity)
-
-        res.sort_values("torosity_z")
-
-        return res
-
 
     def inspect_results(self):
         # Get data
@@ -206,13 +301,15 @@ class Torosity(Trials):
 
 
 if __name__ == "__main__":
-    t = Torosity()
+    mazes = ["asymmetric", "symmetric"]
+    for m in mazes:
+        t = Torosity(m)
 
-    # for i in range(10):
-    # t.plot_one_escape_and_its_walk()
+        # for i in range(10):
+        # t.plot_one_escape_and_its_walk()
 
-    # t.analyse_all()
-    t.inspect_results()
+        t.analyse_all(plot=True, save_plots=True)
+        # t.inspect_results()
 
     plt.show()
 

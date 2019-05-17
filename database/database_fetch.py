@@ -196,4 +196,4 @@ def get_mantisstim_given_stimuid(stimuid):
 
 def get_mantisstim_logfilepath_given_stimud(stimuid):
     from database.NewTablesDefinitions import MantisStimuli
-    return pd.DataFrame((MantisStimuli.VisualStimuliLogFile & "stimulus_uid='{}'".format(stimuid)).fetch())
+    return pd.DataFrame((MantisStimuli.VisualStimuliLogFile2 & "stimulus_uid='{}'".format(stimuid)).fetch())

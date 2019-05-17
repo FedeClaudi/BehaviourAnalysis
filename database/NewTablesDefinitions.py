@@ -226,7 +226,7 @@ else:
             stim_name:          varchar(128)         # name 
         """
 
-        class VisualStimuliLogFile(dj.Part):
+        class VisualStimuliLogFile2(dj.Part):
             definition = """
                 -> MantisStimuli
                 ---
@@ -239,7 +239,7 @@ else:
 
     
     @schema
-    class VisualStimuliMetadata(dj.Imported):
+    class VisualStimuliMetadata(dj.Computed):
         definition = """
             -> MantisStimuli
             ---
@@ -256,7 +256,7 @@ else:
             off_time:               float
     
             color:                  float
-            backgroun_color:        float
+            background_color:        float
             contrast:               float
     
             position:               blob
@@ -266,6 +266,7 @@ else:
     
         def make(self, key):
             make_visual_stimuli_metadata_table(self, key, MantisStimuli)
+
 
     #!  ########################################################################################################################################################################################################################################################################################################################################################
     #!  ########################################################################################################################################################################################################################################################################################################################################################
@@ -369,4 +370,5 @@ else:
 
 if __name__ == "__main__":
     # VideoTdmsMetadata().drop()
-    print(VisualStimuliMetadata())
+    # print(VisualStimuliMetadata())
+    VisualStimuliMetadata().drop()

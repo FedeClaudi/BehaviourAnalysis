@@ -1,13 +1,12 @@
 import sys
 sys.path.append('./')
 
-try:
-    sys.path.append("C:\\Users\\Federico\\Documents\\GitHub\\VisualStimuli")  # ? Where the contrast calculator lives
-    from Utils.contrast_calculator import Calculator
-except:
-    pass
-    
 from Utilities.imports import *
+
+cur_dir = os.getcwd()
+os.chdir("C:\\Users\\Federico\\Documents\\GitHub\\VisualStimuli")
+from Utils.contrast_calculator import Calculator as ContrastCalc
+os.chdir(cur_dir)
 
 from nptdms import TdmsFile
 import scipy.signal as signal
@@ -703,10 +702,8 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
         stim_key = key.copy()
         stim_key['stimulus_uid'] = stim_key['recording_uid']+'_{}'.format(0)
         stim_key['overview_frame'] = -1
-        stim_key['threat_frame'] = -1
         stim_key['duration'] = -1 
         stim_key['overview_frame_off'] =  -1
-        stim_key['threat_frame_off'] = -1
         stim_key['stim_name'] = 'nan'
         stim_key['stim_type'] = 'nan' 
 
@@ -777,7 +774,9 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
         # Get the metadata about the stimuli from the log.yml file
         log_stimuli = load_visual_stim_log(visual_log_file)
 
-        if len(ldr_stimuli) != len(log_stimuli): raise ValueError("Something went wrong with stimuli detection")
+        if len(ldr_stimuli) != len(log_stimuli): 
+            a = 1
+            # raise ValueError("Something went wrong with stimuli detection")
 
         # Add the start time (in seconds) and end time of each stim to log_stimuli df
         log_stimuli['start_time'] = [s.start/sampling_rate for s in ldr_stimuli]
@@ -792,7 +791,7 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
             stim_key['stimulus_uid'] =          stim_key['recording_uid']+'_{}'.format(stim_n + n_audio_stimuli)  # ? -> use this to collect from metadata table
             stim_key['overview_frame'] =        int(np.round(np.multiply(stim.start_time, fps_overview)))
             stim_key['duration'] =              stim.duration
-            stim_key['overview_frame_off'] =    int(overview_stimuli_frames[i]) + fps_overview*stim_key['duration'] 
+            stim_key['overview_frame_off'] =    int(stim_key['overview_frame'] + fps_overview*stim_key['duration'])
             stim_key['stim_name'] =             stim.stim_name
             stim_key['stim_type'] =             'visual' 
 
@@ -806,22 +805,28 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
                 part_key = key.copy()
                 part_key['filepath'] =       visual_log_file
                 part_key['stimulus_uid'] =   part_key['recording_uid']+'_{}'.format(stim_n + n_audio_stimuli)  # ? -> use this to collect from metadata table
-                table.VisualStimuliLogFIle.insert1(part_key)
+                table.VisualStimuliLogFile2.insert1(part_key)
             except:
-                raise ValueError('Cold not insert {} into {}'.format(stim_key, table.VisualStimuliLogFIle.heading))
+                raise ValueError('Cold not insert {} into {}'.format(stim_key, table.VisualStimuliLogFile2.heading))
 
 
 
 def make_visual_stimuli_metadata_table(table, key, MantisStimuli):
     stim_data = get_mantisstim_given_stimuid(key['stimulus_uid']).iloc[0]
-    
-    if stim_data.stim_type == "audio": return # this is only for visualz
 
-    # Get the stim calculator
-    contrast_calculator = Calculator()
+    if stim_data.stim_type == "audio": return # this is only for visualz
+    print("Populating metadata for: ", key['stimulus_uid'])
 
     # Load the metadata
-    stim_path_data = get_mantisstim_logfilepath_given_stimud(key['stimulus_uid']).iloc[0]
+    try:
+        stim_path_data = get_mantisstim_logfilepath_given_stimud(key['stimulus_uid']).iloc[0]
+    except:
+        print("     couldnt fine a stimulus log file for entry")
+        return
+
+    # Get the stim calculator
+    contrast_calculator = ContrastCalc(measurement_file="C:\\Users\\Federico\\Documents\\GitHub\\VisualStimuli\\Utils\\measurements.xlsx")
+
     if not os.path.isfile(stim_path_data.filepath): return
     metadata = load_yaml(stim_path_data.filepath)
     
@@ -843,8 +848,8 @@ def make_visual_stimuli_metadata_table(table, key, MantisStimuli):
 
     # prepare key for insertion into the table
     key['stim_type']             = stim_meta['Stim type']
-    keuy['modality']             = stim_meta['modality']
-    key['params_file']           = stim_meta['stim_path_data.filepath']
+    key['modality']              = stim_meta['modality']
+    key['params_file']           = "v" # ? useless
     key['time']                  = stim_meta['stim_start']
     key['units']                 = stim_meta['units']
     key['start_size']            = stim_meta['start_size']
@@ -857,10 +862,12 @@ def make_visual_stimuli_metadata_table(table, key, MantisStimuli):
     key['contrast']              = stim_meta['contrast']
     key['position']              = stim_meta['pos']
     key['repeats']               = stim_meta['repeats']
-    key['sequence_number']       = stim_meta['stim_number']
+    key['sequence_number']       = stim_number
 
     try:
-        table.isert1(key)
+        table.insert1(key, allow_direct_insert=True)
+        print("     ... succesfully inserted: ", key['stimulus_uid'])
+
     except:
         raise ValueError("could not insert key: ", key)
     
