@@ -188,8 +188,7 @@ else:
             """
 
         def make(self, key):
-            make_videofiles_table(self, key, Recordings, VideosIncomplete)
-
+            make_videofiles_table(self, key, Recordings)
 
     #!  ########################################################################################################################################################################################################################################################################################################################################################
     #!  ########################################################################################################################################################################################################################################################################################################################################################
@@ -218,21 +217,55 @@ else:
         definition = """
             # stores metadata regarding stimuli with Mantis software
             -> Recordings
-            stimulus_uid: varchar(128)      # uniquely identifying ID for each trial YYMMDD_MOUSEID_RECNUM_TRIALNUM
+            stimulus_uid:       varchar(128)      # uniquely identifying ID for each trial YYMMDD_MOUSEID_RECNUM_TRIALNUM
             ---
-            overview_frame: int             # frame number in overview camera (of onset)
-            threat_frame: int               # frame number in threat camera (of onset)
+            overview_frame:     int             # frame number in overview camera (of onset)
             overview_frame_off: int
-            threat_frame_off: int
-            duration: int                   # duration in seconds
-            stim_type: varchar(128)         # audio vs visual
-            stim_name: varchar(128)         # name 
+            duration:           float                   # duration in seconds
+            stim_type:          varchar(128)         # audio vs visual
+            stim_name:          varchar(128)         # name 
         """
+
+        class VisualStimuliLogFile2(dj.Part):
+            definition = """
+                -> MantisStimuli
+                ---
+                filepath:       varchar(128)
+            """
 
         def make(self, key):
             make_mantistimuli_table(self, key, Recordings, VideoFiles)    
 
 
+    
+    @schema
+    class VisualStimuliMetadata(dj.Computed):
+        definition = """
+            -> MantisStimuli
+            ---
+            stim_type:              varchar(128)    # loom, grating...
+            modality:               varchar(128)    # linear, exponential. 
+            params_file:            varchar(128)    # name of the .yml file with the params
+            time:                   varchar(128)    # time at which the stim was delivered
+            units:                  varchar(128)    # are the params defined in degrees, cm ...
+    
+            start_size:             float       
+            end_size:               float
+            expansion_time:         float
+            on_time:                float
+            off_time:               float
+    
+            color:                  float
+            background_color:        float
+            contrast:               float
+    
+            position:               blob
+            repeats:                int
+            sequence_number:        float           # sequential stim number in the session
+         """
+    
+        def make(self, key):
+            make_visual_stimuli_metadata_table(self, key, MantisStimuli)
 
 
     #!  ########################################################################################################################################################################################################################################################################################################################################################
@@ -256,7 +289,6 @@ else:
             """
 
         def make(self, key):
-            self.define_bodysegments()
             make_trackingdata_table(self, key, VideoFiles, CommonCoordinateMatrices, Templates, Sessions, fast_mode=False)
 
     @schema
@@ -336,15 +368,7 @@ else:
 
 
 
-
-
-
-# if __name__ == "__main__":
-#     import sys
-#     sys.path.append('./')
-#     from dj_config import start_connection
-    
-#     start_connection()
-
-#     ZidPhi.drop()
-
+if __name__ == "__main__":
+    # VideoTdmsMetadata().drop()
+    # print(VisualStimuliMetadata())
+    VisualStimuliMetadata().drop()

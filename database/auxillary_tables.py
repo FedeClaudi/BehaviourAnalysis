@@ -1,12 +1,14 @@
 import sys
 sys.path.append('./')
 
+from database.NewTablesDefinitions import *
 import datajoint as dj
 from database.dj_config import start_connection
-from database.NewTablesDefinitions import *
 
+dbname, _ = start_connection()
+schema = dj.schema(dbname, locals())
 
-
+# TODO WIP
 @schema
 class FrameTimes(dj.Manual):
     """[Stores the time of each frame for the overview and threat videos so that they can later be aligned]
@@ -18,7 +20,8 @@ class FrameTimes(dj.Manual):
         overview_frames_timestamps: longblob
         threat_frames_timestamps: longblob 
     """
-    
+
+
 
 
 @schema
@@ -36,4 +39,4 @@ class VideoTdmsMetadata(dj.Manual):
 
 if __name__ == "__main__":
     # VideoTdmsMetadata().drop()
-    print(VideoTdmsMetadata())
+    print(VisualStimuliMetadata())

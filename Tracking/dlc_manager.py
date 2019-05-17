@@ -234,11 +234,11 @@ if __name__ == "__main__":
 
     # manager.label_frames()
 
-    # manager.analyze_videos(videos=vids)
-    # manager.create_labeled_videos(videos=vids, trajectory=True)
+    manager.analyze_videos(videos=vids)
+    manager.create_labeled_videos(videos=vids, trajectory=True)
 
-    manager.filter_data(vids)
-    manager.create_labeled_videos(videos=vids, trajectory=False, filtered=True, dr=None)
+    # manager.filter_data(vids)
+    # manager.create_labeled_videos(videos=vids, trajectory=False, filtered=True, dr=None)
 
     # manager.extract_outliers(videos=vids)
     # manager.refine_labels() 

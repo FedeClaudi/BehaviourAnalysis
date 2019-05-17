@@ -1,36 +1,27 @@
 import sys
 sys.path.append('./')
 
-import time
+from Utilities.imports import *
+
+cur_dir = os.getcwd()
+os.chdir("C:\\Users\\Federico\\Documents\\GitHub\\VisualStimuli")
+from Utils.contrast_calculator import Calculator as ContrastCalc
+os.chdir(cur_dir)
 
 from nptdms import TdmsFile
-import pandas as pd
-import os
-from collections import namedtuple
-import numpy as np
-import cv2
-import warnings
-import matplotlib.pyplot as plt
 import scipy.signal as signal
 from collections import OrderedDict
 
-if sys.platform != "darwin":
-    try:
-        import datajoint as dj
-        from database.dj_config import start_connection
-        from database.NewTablesDefinitions import *
-    except:
-        print("didn't import datajoint nor tables")
-
-from Utilities.file_io.files_load_save import load_yaml, load_tdms_from_winstore, load_feather
 from Utilities.video_and_plotting.commoncoordinatebehaviour import run as get_matrix
-from Utilities.video_and_plotting.video_editing import Editor
-from Utilities.Maths.math_utils import *
+from Utilities.Maths.stimuli_detection import *
+from Utilities.dbase.stim_times_loader import *
 
+from Processing.tracking_stats.correct_tracking import correct_tracking_data
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 from Processing.tracking_stats.extract_velocities_from_tracking import complete_bp_with_velocity, get_body_segment_stats
-from database.database_fetch import *
 
+
+from database.auxillary_tables import *
 
 """ 
     Collection of functions used to populate the dj.Import and dj.Compute
@@ -115,7 +106,10 @@ class ToolBox:
         # Download .tdms from winstore, and open as a DataFrame
         # ? download from winstore first and then open, faster?
         if move:
-            temp_file = load_tdms_from_winstore(path)
+            try:
+                temp_file = load_tdms_from_winstore(path)
+            except:
+                raise ValueError("Could not move: ", path)
         else:
             temp_file = path
 
@@ -131,13 +125,11 @@ class ToolBox:
             return tdmsfile, None
         else:
             print("          ... opening as dataframe")
-            groups_to_keep = ["/'OverviewCameraTrigger_AI'/'0'", "/'ThreatCameraTrigger_AI'/'0'", "/'LDR_signal_AI'/'0'"]
+            groups_to_keep = ["/'OverviewCameraTrigger_AI'/'0'", "/'ThreatCameraTrigger_AI'/'0'", "/'LDR_signal_AI'/'0'", "/'AudioIRLED_analog'/'0'", "/'WAVplayer'/'0'"]
             tdms_df, cols = self.tdms_as_dataframe(tdmsfile, groups_to_keep)
             print('              ... opened as dataframe')
 
             return tdms_df, cols
-
-
 
 
     def extract_behaviour_stimuli(self, aifile):
@@ -149,13 +141,7 @@ class ToolBox:
         """
         # Get .tdms as a dataframe
         tdms_df, cols = self.open_temp_tdms_as_df(aifile, move=False)
-        # ? Print out content of the dataframe
-        # with open('behav_cols.txt', 'w+') as out:
-        #     for c in cols:
-        #         out.write(c+'\n\n')
 
-        # Loop over the dataframe columns named like : 
-        # /'Visual Stimulis'/' 20130-FC_slowloom'
         stim_cols = [c for c in cols if 'Stimulis' in c]
         stimuli = []
         stim = namedtuple('stim', 'type name frame')
@@ -396,11 +382,11 @@ def make_recording_table(table, key):
         table.insert1(key_copy)
 
         # Extract info from aifile and populate part table
-        ai_key = tb.extract_ai_info(key, aifile)
-        ai_key['recording_uid'] = rec_name
+        # ai_key = tb.extract_ai_info(key, aifile)
+        # ai_key['recording_uid'] = rec_name
 
-        print('Key of size: ', sys.getsizeof(ai_key))
-        table.AnalogInputs.insert1(ai_key)
+        # print('Key of size: ', sys.getsizeof(ai_key))
+        # table.AnalogInputs.insert1(ai_key)
         
         print('Succesfully inserted into mantis table')
 
@@ -414,7 +400,7 @@ def make_recording_table(table, key):
         mantis(table, key, software)
 
 
-def make_videofiles_table(table, key, recordings, videosincomplete):
+def make_videofiles_table(table, key, recordings,):
     def make_videometadata_table(filepath, key):
         # Get videometadata
         cap = cv2.VideoCapture(filepath)
@@ -428,7 +414,7 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
 
         return key
 
-    def behaviour(table, key, videosincomplete):
+    def behaviour(table, key):
         tb  = ToolBox()
         videos, metadatas = tb.get_behaviour_recording_files(key)
         
@@ -483,7 +469,7 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
 
         return vid
 
-    def mantis(table, key, videosincomplete):
+    def mantis(table, key):
         def insert_for_mantis(table, key, camera, vid, conv, met, pose):
             to_remove = ['tot_frames', 'frame_height', 'frame_width', 'frame_size',
                         'camera_offset_x', 'camera_offset_y', 'fps']
@@ -534,41 +520,6 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
             else:
                 return True
 
-        def add_videosincomplete_entry(videosincomplete, ikey, vid, converted_check, pose_check):
-            """add_videosincomplete_entry [adds entry to videos incompelte table to mark that stuff needs to be done ]
-            
-            Arguments:
-                videosincomplete {[obj]} -- [dj table]
-                key {[dict]} -- [key]
-                vid {[str]} -- [name of video]
-                converted_check {[bool]} -- [conversion needed]
-                pose_check {[bool]} -- [dlc eneeded]
-            """
-
-            tokeep = ['recording_uid', 'uid', 'session_name']
-            kk = tuple(ikey.keys())
-            for k in kk:
-                if k not in tokeep: del ikey[k]
-
-            cameras = ['overview', 'threat', 'catwalk', 'top_mirror', 'side_mirror']
-            camera = [c for c in cameras if c in vid.lower()]
-            if not camera:
-                raise ValueError('sometihngs wrong ', vid)
-            else:
-                camera = camera[0]
-            key['camera_name'] = camera
-            if converted_check:
-                ikey['conversion_needed'] = 'false'
-            else:
-                ikey['conversion_needed'] = 'true'
-            if pose_check:
-                ikey['dlc_needed'] = 'false'
-            else:
-                ikey['dlc_needed'] = 'true'
-            # try:
-            #     videosincomplete.insert1(ikey)
-            # except:
-            #     raise ValueError('Could not insert ', ikey, 'in', videosincomplete.heading)
 
         #############################################################################################
 
@@ -601,7 +552,6 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
             
             # Check if anything is missing            
             if not converted_check or not pose_check:
-                # add_videosincomplete_entry(videosincomplete, key, vid, converted_check, pose_check)
                 # ? add dummy files names which will be replaced with real ones in the future
                 if not converted_check:
                     converted = videoname+'.mp4'
@@ -632,13 +582,13 @@ def make_videofiles_table(table, key, recordings, videosincomplete):
     if not software:
         raise ValueError()
     if software == 'behaviour':
-        videopath = behaviour(table, key, videosincomplete)
+        videopath = behaviour(table, key)
         # Insert into part table
         metadata_key = make_videometadata_table(videopath, key)
         metadata_key['camera_name'] = 'overview'
         table.Metadata.insert1(metadata_key)
     else:
-        videopath = mantis(table, key, videosincomplete)
+        videopath = mantis(table, key)
 
     
 def make_behaviourstimuli_table(table, key, recordings, videofiles):
@@ -702,18 +652,26 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
     else:
         print('Populating mantis stimuli for: ', key['recording_uid'])
 
+    # ! key param
+    sampling_rate = 25000
+
     # ? Load any AUDIO stim
     # Get the feather file with the AI data and the .yml file with all the AI .tdms group names
     rec = [r for r in recordings if r['recording_uid']==key['recording_uid']][0]
+
+    vids_fps = get_videometadata_given_recuid(key['recording_uid'], just_fps=False)     # Get video metadata for the recording being processed
+    fps_overview = vids_fps.loc[vids_fps['camera_name']=='overview'].fps[0]
+
     aifile = rec['ai_file_path']
     fld, ainame = os.path.split(aifile)
     ainame = ainame.split(".")[0]
     
     feather_file = os.path.join(fld, "as_pandas", ainame+".ft")
-    groups_file = os.path.join(fld,  ainame+".yml")
+    groups_file = os.path.join(fld, "as_pandas",  ainame+"_groups.yml")
+    visual_log_file = os.path.join(fld, ainame + "visual_stimuli_log.yml")
 
     if not os.path.isfile(feather_file) or not os.path.isfile(groups_file):
-        print("Could't file feather or group file for ", ainame)
+        print("     Could't file feather or group file for ", ainame)
         # ? load the AI file directly
         # Get stimuli names from the ai file
         tb = ToolBox()
@@ -722,30 +680,30 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
         # Get stimuli
         groups = tdms_df.groups()
     else:
+        print(" ... loading feather")
         tdms_df = load_feather(feather_file)
         groups = [g.split("'/'")[0][2:] for g in load_yaml(groups_file) if "'/'" in g]
 
     if 'WAVplayer' in groups:
         stimuli_groups = tdms_df.group_channels('WAVplayer')
-    else:
+    elif 'AudioIRLED_analog' in groups:
         stimuli_groups = tdms_df.group_channels('AudioIRLED_analog')
+    else:
+        stimuli_groups = []
     stimuli = {s.path:s.data[0] for s in stimuli_groups}
 
-    if "LDR_signal_AI" in tdms_df.columns: visuals_check = True
+    if "LDR_signal_AI" in groups: visuals_check = True
     else: visuals_check = False
-    
 
     # ? If there is no stimuli of any sorts insert a fake place holder to speed up future analysis
     if not len(stimuli.keys()) and not visuals_check:
         # There were no stimuli, let's insert a fake one to avoid loading the same files over and over again
-        print(' No stim detected, inserting fake place holder')
+        print('     No stim detected, inserting fake place holder')
         stim_key = key.copy()
         stim_key['stimulus_uid'] = stim_key['recording_uid']+'_{}'.format(0)
         stim_key['overview_frame'] = -1
-        stim_key['threat_frame'] = -1
         stim_key['duration'] = -1 
         stim_key['overview_frame_off'] =  -1
-        stim_key['threat_frame_off'] = -1
         stim_key['stim_name'] = 'nan'
         stim_key['stim_type'] = 'nan' 
 
@@ -754,6 +712,7 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
 
     # ? If there are audio stimuli, process them 
     if len(stimuli.keys()):
+        if visuals_check: raise NotImplementedError("This wont work like this: if we got visual we got feather, if we got feather this dont work")
         # Get stim times from audio channel data
         if  'AudioFromSpeaker_AI' in groups:
             audio_channel_data = tdms_df.channel_data('AudioFromSpeaker_AI', '0')
@@ -763,15 +722,8 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
             audio_channel_data = tdms_df.channel_data('AudioIRLED_AI', '0')
             th = 1.5
         
-        sampling_rate = 25000
-        above_th = np.where(audio_channel_data>th)[0]
-        peak_starts = [x+1 for x in np.where(np.diff(above_th)>sampling_rate)]
-        stim_start_times = above_th[peak_starts]
-        try:
-            stim_start_times = np.insert(stim_start_times, 0, above_th[0])
-        except:
-            raise ValueError
-            return
+        # Find when the stimuli start in the AI data
+        stim_start_times = find_audio_stimuli(audio_channel_data, th, sampling_rate)
 
         # Check we found the correct number of peaks
         if not len(stimuli) == len(stim_start_times):
@@ -789,13 +741,10 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
                 del stimuli[list(stimuli.keys())[sel]]
 
         if not len(stimuli) == len(stim_start_times):
-            raise ValueError
+            raise ValueError("oopsies")
 
         # Go from stim time in number of samples to number of frames
-        fps_overview = 40  # TODO make this depend on the actual framerate of the threat camera
-        fps_threat = 120
         overview_stimuli_frames = np.round(np.multiply(np.divide(stim_start_times, sampling_rate), fps_overview))
-        threat_stimuli_frames = np.round(np.multiply(np.divide(stim_start_times, sampling_rate), fps_threat))
 
         
         # Instert these stimuli into the table
@@ -803,12 +752,10 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
             stim_key = key.copy()
             stim_key['stimulus_uid'] = stim_key['recording_uid']+'_{}'.format(i)
             stim_key['overview_frame'] = int(overview_stimuli_frames[i])
-            stim_key['threat_frame'] = int(threat_stimuli_frames[i])
             stim_key['duration'] = 9 # ! hardcoded
-            stim_key['overview_frame_off'] =  int(overview_stimuli_frames[i]) + fps_overview*stim_key['duration'] # ! hardcoded!
-            stim_key['threat_frame_off'] = int(threat_stimuli_frames[i]) + fps_threat*stim_key['duration'] # ! hardcoded!
+            stim_key['overview_frame_off'] =    int(overview_stimuli_frames[i]) + fps_overview*stim_key['duration'] 
             stim_key['stim_name'] = stimname
-            stim_key['stim_type'] = 'audio' # ! hardcoded
+            stim_key['stim_type'] = 'audio' 
             
             try:
                 table.insert1(stim_key)
@@ -817,13 +764,114 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
 
     # ? if there are any visual stimuli, process them
     if visuals_check:
+        # Check how many audio stim were inserted to make sure that "stimulus_uid" table key is correct
         n_audio_stimuli = len(stimuli)
-        # TODO 1) extract LDR time series and identify stimuli onsets on that
-        # TODO 2) load visual stimuli log and extract params to match on the identified LDR stimuli
-        # TODO 3) populate and auxillary or PART table with stimuli log data
-        # TODO 4) make sure that stim contrast is includeed
+
+        # Get the stimuli start and ends from the LDR AI signal
+        ldr_signal = tdms_df["/'LDR_signal_AI'/'0'"].values
+        ldr_stimuli = find_visual_stimuli(ldr_signal, 0.24, sampling_rate)
+        
+        # Get the metadata about the stimuli from the log.yml file
+        log_stimuli = load_visual_stim_log(visual_log_file)
+
+        if len(ldr_stimuli) != len(log_stimuli): 
+            a = 1
+            # raise ValueError("Something went wrong with stimuli detection")
+
+        # Add the start time (in seconds) and end time of each stim to log_stimuli df
+        log_stimuli['start_time'] = [s.start/sampling_rate for s in ldr_stimuli]
+        log_stimuli['end_time'] = [s.end/sampling_rate for s in ldr_stimuli]
+        log_stimuli['duration'] = log_stimuli['end_time'] - log_stimuli['start_time']
 
 
+
+        # Insert the stimuli into the table, these will be used to populate the metadata table separately
+        for stim_n, stim in log_stimuli.iterrows():
+            stim_key = key.copy()
+            stim_key['stimulus_uid'] =          stim_key['recording_uid']+'_{}'.format(stim_n + n_audio_stimuli)  # ? -> use this to collect from metadata table
+            stim_key['overview_frame'] =        int(np.round(np.multiply(stim.start_time, fps_overview)))
+            stim_key['duration'] =              stim.duration
+            stim_key['overview_frame_off'] =    int(stim_key['overview_frame'] + fps_overview*stim_key['duration'])
+            stim_key['stim_name'] =             stim.stim_name
+            stim_key['stim_type'] =             'visual' 
+
+            try:
+                table.insert1(stim_key)
+            except:
+                raise ValueError('Cold not insert {} into {}'.format(stim_key, table.heading))
+
+            # Keep record of the path to the log file in the part table 
+            try:
+                part_key = key.copy()
+                part_key['filepath'] =       visual_log_file
+                part_key['stimulus_uid'] =   part_key['recording_uid']+'_{}'.format(stim_n + n_audio_stimuli)  # ? -> use this to collect from metadata table
+                table.VisualStimuliLogFile2.insert1(part_key)
+            except:
+                raise ValueError('Cold not insert {} into {}'.format(stim_key, table.VisualStimuliLogFile2.heading))
+
+
+
+def make_visual_stimuli_metadata_table(table, key, MantisStimuli):
+    stim_data = get_mantisstim_given_stimuid(key['stimulus_uid']).iloc[0]
+
+    if stim_data.stim_type == "audio": return # this is only for visualz
+    print("Populating metadata for: ", key['stimulus_uid'])
+
+    # Load the metadata
+    try:
+        stim_path_data = get_mantisstim_logfilepath_given_stimud(key['stimulus_uid']).iloc[0]
+    except:
+        print("     couldnt fine a stimulus log file for entry")
+        return
+
+    # Get the stim calculator
+    contrast_calculator = ContrastCalc(measurement_file="C:\\Users\\Federico\\Documents\\GitHub\\VisualStimuli\\Utils\\measurements.xlsx")
+
+    if not os.path.isfile(stim_path_data.filepath): return
+    metadata = load_yaml(stim_path_data.filepath)
+    
+    stim_number = key["stimulus_uid"].split("_")[-1]
+    stim_metadata = metadata['Stim {}'.format(stim_number)]
+    
+    # Convert strings to numners
+    stim_meta = {}
+    for k,v in stim_metadata.items():
+        try:
+            stim_meta[k] = float(v)
+        except:
+            stim_meta[k] = v
+        
+    if 'background_luminosity' not in stim_meta.keys(): stim_meta['background_luminosity'] = 125 # ! hardcoded
+    
+    # get contrst
+    stim_meta['contrast'] = contrast_calculator.contrast_calc(stim_meta['background_luminosity'], stim_meta['color'])
+
+    # prepare key for insertion into the table
+    key['stim_type']             = stim_meta['Stim type']
+    key['modality']              = stim_meta['modality']
+    key['params_file']           = "v" # ? useless
+    key['time']                  = stim_meta['stim_start']
+    key['units']                 = stim_meta['units']
+    key['start_size']            = stim_meta['start_size']
+    key['end_size']              = stim_meta['end_size']
+    key['expansion_time']        = stim_meta['expand_time']
+    key['on_time']               = stim_meta['on_time']
+    key['off_time']              = stim_meta['off_time']
+    key['color']                 = stim_meta['color']
+    key['background_color']      = stim_meta['background_luminosity']
+    key['contrast']              = stim_meta['contrast']
+    key['position']              = stim_meta['pos']
+    key['repeats']               = stim_meta['repeats']
+    key['sequence_number']       = stim_number
+
+    try:
+        table.insert1(key, allow_direct_insert=True)
+        print("     ... succesfully inserted: ", key['stimulus_uid'])
+
+    except:
+        raise ValueError("could not insert key: ", key)
+    
+    
     
 
 
@@ -846,12 +894,12 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
     to_include = dict(bodyparts=['snout', 'neck', 'body', 'tail_base',])
 
     # Check if we have all the data necessary to continue 
-    vid = get_video_path_give_recuid(key['recording_uid'])
+    vid = get_videos_given_recuid(key['recording_uid'])
     ccm = get_ccm_given_sessuid(key['uid'])
-    if not vid:
+    if not np.any(vid):
         print('Could not find videofile for ', key['recording_uid']) 
         return
-    elif not ccm:  
+    elif not np.any(ccm):  
         print('Could not find common coordinate matrix for ', key['recording_uid']) 
         return
     else:
@@ -860,10 +908,10 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
     
     # Load the .h5 file with the tracking data 
     try:
-        if not 'pose' in os.path.split(vid['pose_filepath'])[-1]:
+        if not 'pose' in os.path.split(vid['pose_filepath'][0])[-1]:
             vid['pose_filepath'] = vid['pose_filepath'].split(".")[0]+"_pose.h5"
 
-        posedata = pd.read_hdf(vid['pose_filepath'])
+        posedata = pd.read_hdf(vid['pose_filepath'][0])
     except:
         print('Could not load pose data:', vid['pose_filepath'])
         return
@@ -887,8 +935,7 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
 
         # Get XY pose and correct with CCM matrix
         xy = posedata[scorer[0], bp].values[:, :2]
-        # TODO make this faster
-        corrected_data = correct_tracking_data(xy, ccm['correction_matrix'].values, ccm['top_pad'].values, ccm['side_pad'].values, experiment, session['uid'])
+        corrected_data = correct_tracking_data(xy, ccm['correction_matrix'][0], ccm['top_pad'][0], ccm['side_pad'][0], experiment, session['uid'])
         corrected_data = pd.DataFrame.from_dict({'x':corrected_data[:, 0], 'y':corrected_data[:, 1]})
 
         # get velocity

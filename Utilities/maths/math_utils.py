@@ -1,5 +1,6 @@
 import sys
 sys.path.append('./')
+
 import numpy as np
 from scipy import misc, signal, stats
 import pandas as pd
@@ -16,32 +17,6 @@ try:
 	import skfmm
 except:
 	print("didnt import skfmm")
-
-
-def find_peaks_in_signal(signal, time_limit, th):
-    """[Function to find the start of square peaks in a time series. 
-    Useful for example to find frame starts or stim starts in analog input data]
-    
-    Arguments:
-        signal {[np.array]} -- [the time series to be analysd]
-        time_limit {[float]} -- [min time inbetween peaks]
-        th {[float]} -- [where to threshold the signal to identify the peaks]
-    
-    Returns:
-        [np.ndarray] -- [peak starts times]
-    """
-    above_th = np.where(signal>th)[0]
-    peak_starts = [x for x,d in zip(above_th, np.diff(above_th)) if d > time_limit]
-    
-    # add the first and last above_th times to make sure all frames are included
-    peak_starts.insert(0, above_th[0])
-    peak_starts.append(above_th[-1])
-    
-    # we then remove the second item because it corresponds to the end of the first peak
-    peak_starts.pop(1)
-
-    return np.array(peak_starts)
-
 
 
 def beta_distribution_params(a=None, b=None, mu=None, sigma=None, omega=None, kappa=None):
@@ -69,7 +44,6 @@ def beta_distribution_params(a=None, b=None, mu=None, sigma=None, omega=None, ka
 		return mu, omega, kappa
 	else: raise NotImplementedError
 
-
 def gamma_distribution_params(mean=None, sd=None, mode=None, shape=None, rate=None):
 	if mean is not None and sd is not None:
 		if mean < 0: raise NotImplementedError
@@ -87,8 +61,6 @@ def gamma_distribution_params(mean=None, sd=None, mode=None, shape=None, rate=No
 		return mu, sd
 	return shape, rate
 
-
-
 def get_distribution(dist, *args, n_samples=10000):
 	if dist == 'uniform':
 		return np.random.uniform(args[0], args[1], n_samples)
@@ -99,14 +71,11 @@ def get_distribution(dist, *args, n_samples=10000):
 	elif dist == 'gamma':
 		return np.random.gamma(args[0], args[1], n_samples)
 
-
-
 def median_filter_1d(x, pad=20, kernel=11):
 	half_pad = int(pad/2)
 	x_pad = np.pad(x, pad, 'edge')
 	x_filtered = median_filter(x_pad, kernel_size=kernel)[half_pad:-half_pad]
 	return x_filtered
-
 
 def mean_confidence_interval(data, confidence=0.95):
 	mean, var, std = stats.bayes_mvs(data)
@@ -143,8 +112,6 @@ def fill_nans_interpolate(y, pkind='linear'):
 			, fill_value="extrapolate"
 			, kind=pkind)
 	return f(aindexes)
-
-
 
 def calc_prob_item_in_list(ls, it):
 	"""[Calculates the frequency of occurences of item in list]
@@ -197,13 +164,6 @@ def remove_tracking_errors(tracking, debug = False):
 
 	return filtered
 
-
-# plt.figure()
-# plt.plot(tr[:, 1, 1])
-# plt.plot(remove_tracking_errors(tr[:, :, 1])[:, 1])
-# plt.show()
-
-
 def get_roi_enters_exits(roi_tracking, roi_id):
 	"""get_roi_enters_exits [Get all the timepoints in which mouse enters or exits a specific roi]
 	
@@ -218,8 +178,6 @@ def get_roi_enters_exits(roi_tracking, roi_id):
 	enter_exit = np.diff(temp)  # 1 when the mouse enters the platform an 0 otherwise
 	enters, exits = np.where(enter_exit>0)[0], np.where(enter_exit<0)[0]
 	return enters, exits
-
-
 
 def turning_points(array):
 	''' turning_points(array) -> min_indices, max_indices
@@ -358,7 +316,6 @@ def calc_distance_between_points_two_vectors_2d(v1, v2):
 		dist = [calc_distance_between_points_2d(p1, p2) for p1, p2 in zip(v1, v2)]
 	return dist
 
-
 def calc_distance_from_shelter(v, shelter):
 	"""[Calculates the euclidean distance from the shelter at each timepoint]
 	
@@ -411,7 +368,6 @@ def angle_between_points_2d_clockwise(p1, p2):
 	""" This old code below copmutes the angle within the lines that go from the origin to p1 and p2, not the angle of the line to which p1 and p2 belong to
 	"""
 
-
 def calc_angle_between_points_of_vector(v):
 	"""calc_angle_between_points_of_vector [Given one 2d array of XY coordinates as a function of T
 	calculates the angle theta between the coordintes at one time point and the next]
@@ -440,7 +396,6 @@ def calc_angle_between_points_of_vector(v):
 			else:
 				thetas[i] = 0
 	return thetas
-
 
 def calc_angle_between_vectors_of_points_2d(v1, v2):
 	'''calc_angle_between_vectors_of_points_2d [calculates the clockwise angle between each set of point for two 2d arrays of points]
@@ -501,39 +456,7 @@ def calc_ang_velocity(angles):
 	ang_vel_rads = np.insert(np.diff(np.unwrap(angles_radis)), 0, 0)
 	return np.degrees(ang_vel_rads)
 
-def correct_tracking_data(uncorrected, M, ypad, xpad, exp_name, sess_uid):
 
-	"""[Corrects tracking data (as extracted by DLC) using a transform Matrix obtained via the CommonCoordinateBehaviour
-		toolbox. ]
-
-	Arguments:
-		uncorrected {[np.ndarray]} -- [n-by-2 or n-by-3 array where n is number of frames and the columns have X,Y and Velocity ]
-		M {[np.ndarray]} -- [2-by-3 transformation matrix: https://github.com/BrancoLab/Common-Coordinate-Behaviour]
-
-	Returns:
-		corrected {[np.ndarray]} -- [n-by-3 array with corrected X,Y tracking and Velocity data]
-	"""     
-	# Do the correction
-	m3d = np.append(M, np.zeros((1,3)),0)
-	corrected = np.zeros((uncorrected.shape[0], 3))
-	x, y = np.add(uncorrected[:, 0], xpad), np.add(uncorrected[:, 1], ypad)  # Shift all traces correctly based on how the frame was padded during alignment 
-	for framen in range(uncorrected.shape[0]): # Correct the X, Y for each frame
-		xx,yy = x[framen], y[framen]
-		corrected[framen, :2] = (np.matmul(m3d, [xx, yy, 1]))[:2]
-
-
-	# Flip the tracking on the Y axis to have the shelter on top
-	midline_distance = np.subtract(corrected[:, 1], 490)
-	corrected[:, 1] = np.subtract(490, midline_distance)
-
-	# Shift in X and Y according to how the frame was padded when creating the transform matrix
-	# also flip and shift Y otherwise it'll be upside down
-	# The values by which each experiment is shifted is specified in a yml
-	# Define translation
-	# content = load_yaml('Utilities\\video_and_plotting\\template_points.yml')
-	# translators = content['translators']
-
-	return corrected
 
 def line_smoother(y, window_size=31, order=5, deriv=0, rate=1):
 	# Apply a Savitzy-Golay filter to smooth traces
@@ -580,6 +503,8 @@ def geodist(maze, shelter):
 	masked_maze = np.ma.MaskedArray(phi, mask)
 
 	masked_maze[shelter[1], shelter[0]] = 0
+	# time = skfmm.travel_time(masked_maze, speed = 3.0 * np.ones_like(masked_maze))
+
 	distance_from_shelter = np.array(skfmm.distance(masked_maze))
 
 	distance_from_shelter[distance_from_shelter == 0.] =  np.nan

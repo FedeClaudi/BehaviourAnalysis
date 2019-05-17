@@ -33,11 +33,11 @@ class FilesAutomationToolbox:
         self.tool_box = ToolBox()
 
         # self.database = PopulateDatabase()
-        paths = load_yaml("paths_spike1.yml")
+        paths = load_yaml("paths.yml")
         self.videos_fld = videofolder
         self.pose_fld = paths['tracked_data_folder']
         self.ai_fld = os.path.join(paths['raw_data_folder'], paths['raw_analoginput_folder'])
-        self.ai_dest_fld = os.path.join(self.ai_fld, "to_pandas")
+        self.ai_dest_fld = os.path.join(self.ai_fld, "as_pandas")
 
         try:
             self.video_metadata = VideoTdmsMetadata
@@ -45,12 +45,22 @@ class FilesAutomationToolbox:
             self.video_metadata = None
 
     def save_ai_files_as_pandas(self):
-        for ai in os.listdir(self.ai_fld):
+        files = [f for f in os.listdir(self.ai_fld) if '.yml' not in f and "." in f and ".tdms" in f]
+        for i, ai in enumerate(files):
+            print("\n\nProcessing file {} of {}".format(i,len(files)))
+
+            date = int(ai.split("_")[0])
+            if date < 190509: continue  # when started with visuals
+
             savename = ai.split('.')[0]+".ft"
             columns_savename = ai.split('.')[0]+"_groups.yml"
             if savename in os.listdir(self.ai_dest_fld): continue
 
-            content = self.tool_box.open_temp_tdms_as_df(os.path.join(self.ai_fld, ai), move=True, skip_df=False)
+            try:
+                content = self.tool_box.open_temp_tdms_as_df(os.path.join(self.ai_fld, ai), move=True, skip_df=False)
+            except:
+                raise ValueError("Could not open: ", ai)
+
             print("         ... saving")
             content[0].to_feather(os.path.join(self.ai_dest_fld, savename))
             save_yaml(os.path.join(self.ai_dest_fld, columns_savename), content[1])

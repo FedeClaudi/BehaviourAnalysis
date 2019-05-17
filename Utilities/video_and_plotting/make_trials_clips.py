@@ -1,4 +1,4 @@
-import sys
+linimport sys
 sys.path.append('./') 
 
 import os 

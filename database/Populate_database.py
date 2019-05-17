@@ -64,13 +64,14 @@ class PopulateDatabase:
         self.tracking_data = TrackingData()
         self.commoncoordinatematrices = CommonCoordinateMatrices()
         self.dlcmodels = DLCmodels()
+        self.visual_stimuli_metadata = VisualStimuliMetadata()
 
         self.all_tables = dict(mice=self.mice, sessions= self.sessions, experiments=self.experiments,
                                 recordings=self.recordings, behaviourstimuli = self.behaviourstimuli,
                                 mantisstimuli = self.mantisstimuli, dlcmodels = self.dlcmodels,
                                 templates=self.templates, videofiles = self.videofiles, 
                                 commoncoordinatematrices=self.commoncoordinatematrices,
-                                tracking_data = self.tracking_data)
+                                tracking_data = self.tracking_data, visual_stimuli_metadata=self.visual_stimuli_metadata,)
 
     def remove_table(self, tablename):
         """
@@ -211,28 +212,28 @@ if __name__ == '__main__':
     print(p)
 
 
-    # p.remove_table(["dlcmodels"])
+    # p.remove_table(["mantisstimuli"])
     
     # p.populate_mice_table()
     # p.populate_experiments_table()
     # p.populate_sessions_table()
-# 
+
     # p.dlcmodels.populate()
 
     # p.recordings.populate()
-    p.videofiles.populate()
+    # p.videofiles.populate()
 
     # p.commoncoordinatematrices.populate()
     # p.templates.populate()
     
     # p.behaviourstimuli.populate() 
     # p.mantisstimuli.populate()
+    p.visual_stimuli_metadata.populate()
 
     # p.tracking_data.populate()
-    # p.tracking_data_justbody.populate()
-
-    # p.populate_armsprobs()
 
 
-    print(p.sessions)
+
+
+    # print(p.tracking_data.BodyPartData())
 
