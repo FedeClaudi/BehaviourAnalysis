@@ -63,7 +63,7 @@ def find_visual_stimuli(data, th, sampling_rate):
 
     if not len(starts) == len(ends):
         if abs(len(starts)-len(ends))>1: raise ValueError("Too large error during detection: s:{} e{}".format(len(starts), len(ends)))
-        print("Something went wrong: {} - starts and {} - ends".format(starts, ends))
+        print("Something went wrong: {} - starts and {} - ends".format(len(starts), len(ends)))
 
         # ? Fo1r debugging
         f, ax = plt.subplots()

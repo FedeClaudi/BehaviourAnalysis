@@ -775,8 +775,11 @@ def make_mantistimuli_table(table, key, recordings, videofiles):
         log_stimuli = load_visual_stim_log(visual_log_file)
 
         if len(ldr_stimuli) != len(log_stimuli): 
-            a = 1
-            # raise ValueError("Something went wrong with stimuli detection")
+            if len(ldr_stimuli) < len(log_stimuli):
+                warnings.warn("Something weird going on, ignoring some of the stims on the visual stimuli log file")
+                log_stimuli = log_stimuli.iloc[np.arange(0, len(ldr_stimuli))]
+            else:
+                raise ValueError("Something went wrong with stimuli detection")
 
         # Add the start time (in seconds) and end time of each stim to log_stimuli df
         log_stimuli['start_time'] = [s.start/sampling_rate for s in ldr_stimuli]

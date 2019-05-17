@@ -228,7 +228,7 @@ if __name__ == '__main__':
     
     # p.behaviourstimuli.populate() 
     # p.mantisstimuli.populate()
-    p.visual_stimuli_metadata.populate()
+    # p.visual_stimuli_metadata.populate()
 
     # p.tracking_data.populate()
 
