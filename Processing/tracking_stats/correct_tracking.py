@@ -1,7 +1,6 @@
 import sys
 sys.path.append("./")
 
-import cupy as cp
 import time
 
 from Utilities.imports import *

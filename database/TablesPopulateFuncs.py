@@ -3,10 +3,12 @@ sys.path.append('./')
 
 from Utilities.imports import *
 
-cur_dir = os.getcwd()
-os.chdir("C:\\Users\\Federico\\Documents\\GitHub\\VisualStimuli")
-from Utils.contrast_calculator import Calculator as ContrastCalc
-os.chdir(cur_dir)
+try:
+    cur_dir = os.getcwd()
+    os.chdir("C:\\Users\\Federico\\Documents\\GitHub\\VisualStimuli")
+    from Utils.contrast_calculator import Calculator as ContrastCalc
+    os.chdir(cur_dir)
+except: pass
 
 from nptdms import TdmsFile
 import scipy.signal as signal

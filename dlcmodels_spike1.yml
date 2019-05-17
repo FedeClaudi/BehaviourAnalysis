@@ -11,7 +11,14 @@ overview:
     cfg_file_path: 'W:\branco\Federico\raw_behaviour\maze\DLC_nets\maze_joined-Federico-2019-02-22\config.yaml'
     iteration: 3
 
-overview_mantis:
+
+overview_mantis: 
+    model_name: 'maze_joined-Federico-2019-02-22'
+    camera: 'overview'
+    cfg_file_path: 'W:\branco\Federico\raw_behaviour\maze\DLC_nets\maze_joined-Federico-2019-02-22\config.yaml'
+    iteration: 3
+
+threat:
     model_name: 'threat_camera-Federico-2019-05-13'
     camera: 'overview_mantis'
     cfg_file_path: 'W:\branco\Federico\raw_behaviour\maze\DLC_nets\maze_joined-Federico-2019-02-22\config.yaml'

@@ -76,18 +76,10 @@ class SetUpTracking:
 
             # Get the DLC model config path
             if 'overview' in video.lower():
-                # Check if the video was acquired using mantis
-                # video_date = int(video.split('_')[0])
-                # if video_date <= 181115:  # last recording with behav software
-                #     camera = 'overview'
-                # else:
                 camera = 'overview_mantis'
             elif 'threat' in video.lower():
                 camera = 'threat'
                 
-            # else:
-            #     camera = 'overview'  # <- behaviour software videos 
-
             print('     video: {}\n     camera: {}'.format(video, camera))
             try:
                 config_path = self.dlc_models.loc[self.dlc_models['camera'] == camera]['cfg_file_path'].values[0]
