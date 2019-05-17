@@ -148,6 +148,8 @@ class FilesAutomationToolbox:
         # store names to file
         store = "Utilities/file_io/files_to_convert.yml"
         with open(store, 'w') as out:
+
+
             yaml.dump([os.path.split(u)[-1] for u in unconverted], out)
 
 
@@ -156,11 +158,14 @@ class FilesAutomationToolbox:
         return unconverted
 
     def get_list_not_tracked_videos(self):
-        videos = [f.split('.')[0] for f in os.listdir(self.videos_fld) if 'tdms' not in f]
+        videos = [f.split('.')[0] for f in os.listdir(self.videos_fld) if 'tdms' not in f and "." in f]
         poses = [f.split('_')[:-1] for f in os.listdir(self.pose_fld) if 'h5' in f]
 
         not_tracked = [f for f in videos if f.split('_') not in poses] #  and 'overview'  in f.lower()]
         # not_tracked = [f for f in videos if f.split('_') not in poses]
+        # remove threat videos that are old and dont want to track
+        not_tracked = [f for f in not_tracked if int(f.split("_")[0]) > 190500]
+
         print('To track: ', not_tracked)
         print(len(not_tracked), ' files yet to track')
 

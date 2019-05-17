@@ -27,7 +27,7 @@ class SetUpTracking:
         # ! change this according to computer being used!!
         # self.temp_fld = 'M:\\'  # ? on main computer
         self.temp_fld = "D:\\Fede"
-        self.move_video = False
+        self.move_video = True
 
         self.video_folder = video_folder
         self.pose_folder = pose_folder
@@ -36,8 +36,8 @@ class SetUpTracking:
         self.video_to_process = self.get_videos_to_process()
         self.process()
 
-        if self.move_video:
-            self.cleanup()
+        # if self.move_video:
+        #     self.cleanup()
 
     def get_dlc_models(self):
         try:
@@ -84,7 +84,7 @@ class SetUpTracking:
                 camera = 'overview_mantis'
             elif 'threat' in video.lower():
                 camera = 'threat'
-                continue
+                
             # else:
             #     camera = 'overview'  # <- behaviour software videos 
 
