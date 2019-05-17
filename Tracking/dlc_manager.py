@@ -223,7 +223,7 @@ if __name__ == "__main__":
     manager = DLCManager()
 
 
-    fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\_threat_training_clips_cut"
+    fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\plots"
     # fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\threat_test"
 
 
@@ -234,7 +234,7 @@ if __name__ == "__main__":
 
     # manager.label_frames()
 
-    manager.analyze_videos(videos=vids)
+    # manager.analyze_videos(videos=vids)
     manager.create_labeled_videos(videos=vids, trajectory=True)
 
     # manager.filter_data(vids)

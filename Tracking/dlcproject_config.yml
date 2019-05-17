@@ -3,34 +3,14 @@
 # project_path -> dlc project working directory (where the project will be stored)
 # cfg_path -> path to the configure yaml file
 
-# ! old project for overview camera
-# paths-windows: 
-#   dr: Z:\branco\Federico\raw_behaviour\maze\_overview_training_clips
-#   project_path: D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets
-#   cfg_path: D:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Nets\\maze_joined-Federico-2019-02-22\\config.yaml
-
-# # DLC project NAME
-# experiment: 'maze_mantis'
-# experimenter: 'Federico'
-
-# # DLC select videos options
-# number_of_training_videos: 30   # prop of videos to use to generate the training set [roughly]
-# min_num_vids: 30                 # min number of videos to be used
-# video_format: 'mp4'
-
-# # DLC behaviour
-# extract_frames_mode: 'kmeans'    # 'uniform' vs 'kmeans'
-
-
-
-# ! new project for threat cmaera
+# ! old prgitoject for overview camera
 paths-windows: 
-  dr: D:\Dropbox (UCL - SWC)\Rotation_vte\raw_data\_threat_training_clips_cut
+  dr: Z:\branco\Federico\raw_behaviour\maze\_overview_training_clips
   project_path: D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets
-  cfg_path: D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets\threat_camera-Federico-2019-05-13\config.yaml
+  cfg_path: D:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Nets\\maze_joined-Federico-2019-02-22\\config.yaml
 
 # DLC project NAME
-experiment: 'threat_camera'
+experiment: 'maze_mantis'
 experimenter: 'Federico'
 
 # DLC select videos options
@@ -40,3 +20,23 @@ video_format: 'mp4'
 
 # DLC behaviour
 extract_frames_mode: 'kmeans'    # 'uniform' vs 'kmeans'
+
+
+
+# ! new project for threat cmaera
+# paths-windows: 
+#   dr: D:\Dropbox (UCL - SWC)\Rotation_vte\raw_data\_threat_training_clips_cut
+#   project_path: D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets
+#   cfg_path: D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets\threat_camera-Federico-2019-05-13\config.yaml
+
+# # DLC project NAME
+# experiment: 'threat_camera'
+# experimenter: 'Federico'
+
+# # DLC select videos options
+# number_of_training_videos: 30   # prop of videos to use to generate the training set [roughly]
+# min_num_vids: 30                 # min number of videos to be used
+# video_format: 'mp4'
+
+# # DLC behaviour
+# extract_frames_mode: 'kmeans'    # 'uniform' vs 'kmeans'

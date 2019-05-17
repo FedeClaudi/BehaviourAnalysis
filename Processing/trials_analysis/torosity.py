@@ -252,8 +252,7 @@ class Torosity(Trials):
 
         return res
 
-    def inspect_results(self):
-        # Get data
+    def load_all_res(self):
         res1 = self.zscore_and_sort(self.results_loader("asymmetric", select_bridge=None, select_escapes=True))
         res2 = self.zscore_and_sort(self.results_loader("symmetric", select_bridge=None, select_escapes=True))
         res = self.zscore_and_sort(pd.concat([res1, res2], axis=0))       
@@ -261,6 +260,12 @@ class Torosity(Trials):
         ares1 = self.zscore_and_sort(self.results_loader("asymmetric", select_bridge=None, select_escapes=None))
         ares2 = self.zscore_and_sort(self.results_loader("symmetric", select_bridge=None, select_escapes=None))
         ares = self.zscore_and_sort(pd.concat([ares1, ares2], axis=0))    
+
+        return res, ares, res1, ares1, res2, ares2
+
+    def inspect_results(self):
+        # Get data
+        res, ares, res1, ares1, res2, ares2 = self.load_all_res()
 
         # Focus on Torosity
         threshold = [(-1.5, -0.6), (-.025, .025), (0.8, 1.3),  (2, 10)]
@@ -297,7 +302,11 @@ class Torosity(Trials):
 
             ax.set(title='Example trajectories - th: {}'.format(th), xticks=[], yticks=[])
 
-        
+    def plot_all_timed_toros(self):
+        res, ares, res1, ares1, res2, ares2 = self.load_all_res()
+
+        a = 1
+
 
 
 if __name__ == "__main__":
@@ -308,10 +317,12 @@ if __name__ == "__main__":
         # for i in range(10):
         # t.plot_one_escape_and_its_walk()
 
-        t.analyse_all(plot=True, save_plots=True)
+        t.analyse_all(plot=False, save_plots=True)
         # t.inspect_results()
 
-    plt.show()
+        # t.plot_all_timed_toros()
+
+        plt.show()
 
 
 
