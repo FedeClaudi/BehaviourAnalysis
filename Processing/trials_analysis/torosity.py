@@ -163,23 +163,33 @@ class Torosity(Trials):
         res2 = self.zscore_and_sort(self.results_loader("symmetric", select_bridge=None, select_escapes=True))
         res = self.zscore_and_sort(pd.concat([res1, res2], axis=0))       
 
+        ares1 = self.zscore_and_sort(self.results_loader("asymmetric", select_bridge=None, select_escapes=None))
+        ares2 = self.zscore_and_sort(self.results_loader("symmetric", select_bridge=None, select_escapes=None))
+        ares = self.zscore_and_sort(pd.concat([ares1, ares2], axis=0))    
+
         # Focus on Torosity
-        threshold = [(-1.5, -0.6), (-.05, .05), (0.8, 1.3),  (2, 10)]
+        threshold = [(-1.5, -0.6), (-.025, .025), (0.8, 1.3),  (2, 10)]
         colors = ['g', 'b', 'm', 'c']
 
-        f, axarr = plt.subplots(ncols=3, nrows=2)
+        f, axarr = plt.subplots(ncols=4, nrows=2)
         axarr = axarr.flatten()
 
         tot_res, esc_res = res.torosity_z, res.loc[res.is_escape == "true"].torosity_z
         _, bins, _ = axarr[0].hist(tot_res, bins=25, color='k', alpha=.55, log=True)
-        axarr[-1].hist(res.torosity, bins=25, color='k', alpha=.55, log=True)
+
+        _, bins, _ = axarr[1].hist(ares.torosity, bins=25, color='k', alpha=.55, log=True, label='All trials')
+        axarr[1].hist(res.torosity, bins=bins, color='y', alpha=.55, log=True, label = 'escapes')
 
         axarr[0].legend()
         axarr[0].set(title="Torosity z-scored", ylabel="count", xlabel="z(torosity)")
-        axarr[-1].set(title="Torosity z-scored", ylabel="count", xlabel="torosity", xlim=[0,5])
+        axarr[1].set(title="Torosity", ylabel="count", xlabel="torosity", xlim=[0,5])
+        axarr[1].legend()
 
+        _, bins, _, = axarr[2].hist([np.mean(t[:, 2, 0]) for t in ares.tracking_data.values], color='k', alpha=.55, label='all', bins=50)
+        axarr[2].hist([np.mean(t[:, 2, 0]) for t in res.tracking_data.values], color='y', alpha=.55, label='escapes', bins=bins)
+        axarr[2].set(title='Mean speed', ylabel='count', xlabel='speed')
 
-        for th, c, ax in zip(threshold, colors, axarr[1:]):
+        for th, c, ax in zip(threshold, colors, axarr[4:]):
             axarr[0].axvline(th[0], color=c)
             axarr[0].axvline(th[1], color=c)
 
