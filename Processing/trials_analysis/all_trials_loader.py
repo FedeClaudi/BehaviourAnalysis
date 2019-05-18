@@ -26,7 +26,8 @@ class Trials:
             self.selected_experiments.extend(self.grouped_experiments['symmetric'])
 
         # Define which items to load from the table for each entry
-        self.elems_to_load = ["trial_id", "tracking_data","session_uid", "experiment_name", "escape_arm", "origin_arm", "fps", "is_escape"]
+        self.elems_to_load = ["trial_id", "tracking_data","session_uid", "experiment_name", "escape_arm", 
+                                "origin_arm", "fps", "is_escape", "time_out_of_t"]
 
         # Load data
         self.trials = self.load()

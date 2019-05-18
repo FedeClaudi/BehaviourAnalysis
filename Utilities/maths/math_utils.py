@@ -12,11 +12,36 @@ from Utilities.file_io.files_load_save import load_yaml
 from scipy.signal import medfilt as median_filter
 from scipy.interpolate import interp1d
 from collections import namedtuple
+from sklearn import  linear_model
 
 try:
 	import skfmm
 except:
 	print("didnt import skfmm")
+
+
+def linear_regression(X,Y, split_per=None):
+    if split_per is not None: raise NotImplementedError("Fix dataset splitting") # TODO spplit dataset
+    # remove NANs
+    remove_idx = [i for i,(x,y) in enumerate(zip(X,Y)) if np.isnan(x) or np.isnan(y)]
+
+    X = np.delete(X, remove_idx)
+    Y = np.delete(Y, remove_idx)
+
+    X = X.reshape(-1, 1)
+    Y = Y.reshape(-1, 1)
+
+    # Create linear regression object
+    regr = linear_model.LinearRegression()
+
+    # Train the model using the training sets
+    regr.fit(X, Y)
+
+    # Predict
+    prediction = regr.predict(X)
+
+    return X, prediction
+
 
 
 def beta_distribution_params(a=None, b=None, mu=None, sigma=None, omega=None, kappa=None):
