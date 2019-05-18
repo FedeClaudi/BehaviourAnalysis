@@ -12,9 +12,11 @@ print("\n\n\n")
 
 class Torosity(Trials):
     def __init__(self, mtype):
-        Trials.__init__(self, exp_1_mode=True, just_escapes="true")
+        if sys.platform != "darwin": 
+            
+            Trials.__init__(self, exp_1_mode=True, just_escapes="true", load=load)
 
-        self.trials = self.trials.loc[self.trials['grouped_experiment_name']==mtype]  # only keep the trials from asym exp
+            self.trials = self.trials.loc[self.trials['grouped_experiment_name']==mtype]  # only keep the trials from asym exp
 
         # Create scaled agent
         self.scale_factor = 0.25
@@ -48,7 +50,7 @@ class Torosity(Trials):
         else:
             self.bridges_lookup = dict(Right_Medium="right", Left_Medium="left")
 
-        self.results_path = "Processing\\trials_analysis\\torosity_results_toshelter_{}.pkl".format(mtype)
+        self.results_path = "Processing/trials_analysis/torosity_results_toshelter_{}.pkl".format(mtype)
         self.plots_save_fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\plots\\torosity\\check"
 
     """
@@ -255,7 +257,7 @@ class Torosity(Trials):
     """
 
     def results_loader(self, name, select_bridge=None, select_escapes=None):
-        res = pd.read_pickle("Processing\\trials_analysis\\torosity_results_toshelter_{}.pkl".format(name))
+        res = pd.read_pickle("Processing/trials_analysis/torosity_results_toshelter_{}.pkl".format(name))
         res['experiment'] = [name for i in range(len(res))]
 
         if select_bridge is not None:
@@ -314,17 +316,25 @@ class Torosity(Trials):
         # axarr[2].set(title='Mean speed', ylabel='count', xlabel='speed')
 
         # Correlation between overall torosity and threat torosity
-        x, y_pred = linear_regression(res.torosity.values, res.threat_torosity.values)
-        axarr[2].scatter(res.torosity, res.threat_torosity, c='g', s=150, alpha=.6)
-        axarr[2].plot(x, y_pred, color='r', linewidth=2)
+        sns.regplot(res.torosity.values, res.threat_torosity.values, ax=axarr[2], robust=True, n_boot=10, 
+                        line_kws={"color":"red", "linewidth":2}, 
+                        scatter_kws={"color":"green", "alpha":.4, "s":150})
+
+        x, intercept, slope = linear_regression(res.torosity.values, res.threat_torosity.values)
+        axarr[2].plot(x, intercept + slope*x, color="blue")
 
         # plot mean vel vs torosity
         mean_speeds = [np.mean(t.tracking_data[:, 2, 0]) for i,t in res.iterrows()]
-        axarr[3].scatter(mean_speeds, res.threat_torosity, color='k', s=150, alpha=.6)
+        # axarr[3].scatter(mean_speeds, res.threat_torosity, color='k', s=150, alpha=.6)
+        sns.regplot(mean_speeds, res.threat_torosity.values, ax=axarr[3], robust=True, n_boot=100, truncate=True,
+                line_kws={"color":"red", "linewidth":2}, 
+                scatter_kws={"color":"black", "alpha":.4, "s":150})
+
 
         # Plot RIGHT vs LEFT escape for ASYM maze as a function of threat toro
         asym_data = res.loc[res.experiment == "asymmetric"].sort_values("threat_torosity")
-        axarr[1].plot(asym_data.threat_torosity, [1 if e =="right" else 0 for e in asym_data.escape_arm], color='r', linewidth=4, alpha=.3)
+        axarr[1].plot(asym_data.threat_torosity, [1 if e =="right" else 0 for e in asym_data.escape_arm], 'o', color='r', linewidth=4, alpha=.3)
+        # sns.regplot(asym_data.threat_torosity, [1 if e =="right" else 0 for e in asym_data.escape_arm], ax=axarr[1],  n_boot=10, logistic=True)
 
         # Plot examples of traces with different torosities
         for th, c, ax, cmap in zip(threshold, colors, axarr[4:], colormaps):
@@ -359,7 +369,7 @@ class Torosity(Trials):
         axarr[0].set(title="{} z-scored".format(use_tor), ylabel="count", xlabel="z(torosity)")
         axarr[1].set(title="Escape arm vs Torosity", xlabel="threat_torosity", yticks=[0,1], yticklabels=["left", "right"])
         axarr[1].legend()
-        axarr[2].set(title='Total vs Threat Torosity', xlabel='overall', ylabel='threat')
+        axarr[2].set(title='Total vs Threat Torosity', xlabel='overall', ylabel='threat',)
         axarr[3].set(xlabel='mean speed', ylabel='torosity')
 
 

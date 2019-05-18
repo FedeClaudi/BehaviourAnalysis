@@ -4,7 +4,8 @@ sys.path.append('./')
 from Utilities.imports import *
 
 
-from scipy.special import softmax
+try: from scipy.special import softmax
+except: pass
 from mpl_toolkits.mplot3d import Axes3D
 
 from Modelling.maze_solvers.agent import Agent

@@ -21,6 +21,9 @@ except:
 
 
 def linear_regression(X,Y, split_per=None):
+    import statsmodels.api as sm
+
+    # ! sns.regplot much better
     if split_per is not None: raise NotImplementedError("Fix dataset splitting") # TODO spplit dataset
     # remove NANs
     remove_idx = [i for i,(x,y) in enumerate(zip(X,Y)) if np.isnan(x) or np.isnan(y)]
@@ -28,19 +31,18 @@ def linear_regression(X,Y, split_per=None):
     X = np.delete(X, remove_idx)
     Y = np.delete(Y, remove_idx)
 
-    X = X.reshape(-1, 1)
-    Y = Y.reshape(-1, 1)
+    # # lowess will return our "smoothed" data with a y value for at every x-value
+    # lowess = sm.nonparametric.lowess(Y, X, frac=.999)
 
-    # Create linear regression object
-    regr = linear_model.LinearRegression()
+    # Regression with Robust Linear Model
+    X = sm.add_constant(X)
 
-    # Train the model using the training sets
-    regr.fit(X, Y)
+    res = sm.RLM(Y, X, missing="drop").fit()
+    # raise ValueError(res.params)
+    
+    return X, res.params[0], res.params[1]
 
-    # Predict
-    prediction = regr.predict(X)
 
-    return X, prediction
 
 
 

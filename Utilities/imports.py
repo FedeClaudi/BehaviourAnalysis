@@ -6,7 +6,6 @@ import os
 from collections import namedtuple
 import numpy as np
 import cv2
-import seaborn as sns
 from shutil import copyfile
 from tqdm import tqdm 
 from scipy import stats
@@ -16,6 +15,7 @@ if sys.platform == "darwin":
     matplotlib.use("Qt5Agg")
     
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 import time
 import random
@@ -31,6 +31,6 @@ if sys.platform != "darwin":
 from Utilities.file_io.files_load_save import *
 from Utilities.video_and_plotting.video_editing import Editor
 
-from Utilities.Maths.math_utils import *
+from Utilities.maths.math_utils import *
 
 

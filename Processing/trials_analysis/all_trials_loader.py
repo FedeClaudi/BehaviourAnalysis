@@ -9,7 +9,9 @@ from Utilities.imports import *
 """
 
 class Trials:
-    def __init__(self, selected_experiments = None, just_escapes=True, exp_1_mode=False):
+    def __init__(self, selected_experiments = None, just_escapes=True, exp_1_mode=False, load=True):
+        if not load: return
+            
         self.selected_experiments = selected_experiments
         self.just_escapes = just_escapes
 

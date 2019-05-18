@@ -49,7 +49,7 @@ class World:
             elif k == "stride": self.stride   = v
 
         # static vars
-        self.maze_models_folder = "Modelling\maze_solvers\mazes_images"
+        self.maze_models_folder = "Modelling/maze_solvers/mazes_images"
 
         
 
