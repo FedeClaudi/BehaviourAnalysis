@@ -13,12 +13,29 @@ from scipy.signal import medfilt as median_filter
 from scipy.interpolate import interp1d
 from collections import namedtuple
 from sklearn import  linear_model
+from sklearn import preprocessing
 
 try:
 	import skfmm
 except:
 	print("didnt import skfmm")
 
+def remove_nan_1d_arr(arr):
+    nan_idxs = [i for i,x in enumerate(arr) if np.isnan(x)]
+    return np.delete(arr, nan_idxs)
+    
+def normalise_to_val_at_idx(arr, idx):
+    arr = remove_nan_1d_arr(arr)
+    val = arr[idx]
+    return arr / arr[idx]
+
+def normalise_1d(arr):
+    arr = np.array(arr)
+    nan_idxs = [i for i,x in enumerate(arr) if np.isnan(x)]
+    arr = np.delete(arr, nan_idxs)
+    min_max_scaler = preprocessing.MinMaxScaler()
+    normed = min_max_scaler.fit_transform(arr.reshape(-1, 1))
+    return normed
 
 def linear_regression(X,Y, split_per=None):
     import statsmodels.api as sm
