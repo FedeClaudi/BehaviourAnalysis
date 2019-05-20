@@ -19,9 +19,8 @@ class analyse_all_trals:
 
         
 
-        self.naughty_experiments = ['Lambda Maze', ]
-        self.good_experiments = ['PathInt', 'PathInt2', 'Square Maze', 'TwoAndahalf Maze', 'PathInt', 'FlipFlop Maze', 'FlipFlop2 Maze',
-                                    "PathInt2 D", "PathInt2 DL", "PathInt2 L", 'PathInt2-L', 'TwoArmsLong Maze', "FourArms Maze"]
+        self.naughty_experiments = ['Lambda Maze', 'PathInt','PathInt', 'FlipFlop Maze', 'FlipFlop2 Maze',  "PathInt2 D", "PathInt2 DL", 'TwoArmsLong Maze', "FourArms Maze"]
+        self.good_experiments = [ 'PathInt2', 'Square Maze', 'TwoAndahalf Maze', "PathInt2 L", 'PathInt2-L', ]
 
 
         if fill_in_table:  # Get tracking data
@@ -29,13 +28,11 @@ class analyse_all_trals:
             self.fill()
 
     def define_duration_limits(self):
-
         """
             Speed limits not duration limits. A trial is considered an escape if themean of the velocity during the trial
             is bigger than the 95th percentile of the velocity during the exploration on an experiment by experiment basis
         """
         _, self.escape_speed_thresholds, _, _ = get_expl_speeds()
-
 
 
     def erase_table(self):
@@ -62,16 +59,14 @@ class analyse_all_trals:
         sessions_in_table = [int(s) for s in (AllTrials).fetch("session_uid")]
 
 
-        for n, (uid, sess_name, exp) in enumerate(sorted(zip(sessions, session_names, experiments))):
-
-            # if 'model based' not in exp.lower(): 
-            #     print('skipped experiment')
-            #    continue # ! wfbaefbEWYLBFLbfWLIUBLWEBVKJEBVLJHREAB
-            
+        for n, (uid, sess_name, exp) in enumerate(sorted(zip(sessions, session_names, experiments))):           
             print(' Processing session {} of {} - {}'.format(n, len(sessions), sess_name))
 
-            if uid in sessions_in_table: continue
+            if exp not in self.good_experiments: 
+                print("     not processing experiment -- ", exp)
+                continue
 
+            if uid in sessions_in_table: continue
             session_trials = []
 
             session_stims = get_stimuli_given_sessuid(uid, as_dict=True)
@@ -82,12 +77,12 @@ class analyse_all_trals:
             number_of_stimuli = len(session_stims)
 
             # Def get the tracking for each recording
-            bps = ['body', 'snout', 'left_ear', 'right_ear', 'neck', 'tail_base']
+            bps = ['body', 'snout',  'neck', 'tail_base']
             recordings = set([s['recording_uid'] for s in session_stims])
             recs_trackins = {}
             try:
                 for r in recordings:
-                    rec_tracking = {bp: get_tracking_given_recuid(r, just_body=False, bp=bp, just_trackin_data=True)[0] for bp in bps}
+                    rec_tracking = {bp: get_tracking_given_recuid(r, bp=bp, just_trackin_data=True)[0] for bp in bps}
                     recs_trackins[r] = rec_tracking
             except:
                 print("Smth went wrong while getting tracking data, maybe there is no data there, maybe smth else is wrong")
@@ -97,8 +92,7 @@ class analyse_all_trals:
             for stim_n, stim in enumerate(session_stims):
                 print(' ... stim {} of {}'.format(stim_n+1, number_of_stimuli))
 
-                # Get the tracking data for the stimulus recordings
-                
+                # Get the tracking data for the stimulus recordings        
                 rec_tracking = recs_trackins[stim['recording_uid']]
 
                 # Get video FPS
@@ -136,8 +130,8 @@ class analyse_all_trals:
                     stop = rec_tracking['body'].shape[0]
 
                 # Now we have the max possible length for the trial
-                # But check if the mouse got to the shelter first or if 30s elapsed
-                if stop - start > 20*fps:  # max duration > 30s
+                # But check if the mouse got to the shelter first or if 20s elapsed
+                if stop - start > 20*fps:  # max duration > 20s
                     stop = start + 20*fps
 
                 # Okay get the tracking data between provisory start and stop
@@ -178,6 +172,7 @@ class analyse_all_trals:
                 out_trip_tracking = rec_tracking['body'][:start, :]
                 out_shelter_enters, out_shelter_exits = get_roi_enters_exits(out_trip_tracking[:, -1], 0)
                 out_trip_tracking = out_trip_tracking[out_shelter_exits[-1]:, :]
+                # TODO add all bps to out trip tracking ?
 
                 # Get arm of origin
                 origin_rois = convert_roi_id_to_tag(out_trip_tracking[:, -1])
@@ -187,13 +182,7 @@ class analyse_all_trals:
 
                 # Check if the trial can be considered an escape
                 if escape_arm is not None:
-
                     trial_duration = trial_tracking['body'].shape[0]/fps
-                    # if trial_duration <= self.duration_lims[escape_arm] and check_got_at_shelt:
-                    #     is_escape = 'true'
-                    # else:
-                    #     is_escape = 'false'
-
                     trial_speed = correct_speed(trial_tracking['body'][:, 2])
                     if np.mean(trial_speed)>self.escape_speed_thresholds[exp] and check_got_at_shelt:
                         is_escape = "true"
@@ -221,6 +210,7 @@ class analyse_all_trals:
                     recording_uid = stim['recording_uid'],
                     experiment_name = exp,
                     tracking_data = insert_tracking,
+                    outward_tracking_data = out_trip_tracking, 
                     stim_frame = start,
                     stim_type = stim['stim_type'],
                     stim_duration = stim_duration,
@@ -284,8 +274,8 @@ def check_arm_assignment():
 
 if __name__ == "__main__":
     # a = analyse_all_trals(erase_table=True, fill_in_table=False)
-    # a = analyse_all_trals(erase_table=False, fill_in_table=True)
-    print(AllTrials())
+    a = analyse_all_trals(erase_table=False, fill_in_table=True)
+    # print(AllTrials())
 
 
 

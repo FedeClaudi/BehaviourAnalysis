@@ -2,7 +2,7 @@
 import sys
 sys.path.append('./')
 
-from Utilities.Maths.math_utils import *
+from Utilities.maths.math_utils import *
 from Processing.tracking_stats.extract_velocities_from_tracking import complete_bp_with_velocity, get_body_segment_stats
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 from Utilities.file_io.files_load_save import load_yaml
@@ -349,6 +349,8 @@ else:
             recording_uid: varchar(128)
             experiment_name: varchar(128)
             tracking_data: longblob
+            outward_tracking_data: longblob
+
             stim_frame: int
             stim_type: enum('audio', 'visual')
             stim_duration: int
@@ -357,8 +359,8 @@ else:
             trial_number: int
 
             is_escape: enum('true', 'false')
-            escape_arm: enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'Right2', 'Left2', 'nan') 
-            origin_arm:  enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'Right2', 'Left2', 'nan')         
+            escape_arm: enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'Right2', 'Left2', 'nan', 'alpha0', 'alpha1', 'beta0', 'beta1', 'lambda') 
+            origin_arm:  enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'Right2', 'Left2', 'nan', 'alpha0', 'alpha1', 'beta0', 'beta1', 'lambda')         
             time_out_of_t: float
             fps: int
             escape_duration: int        # duration in seconds
@@ -371,4 +373,4 @@ else:
 if __name__ == "__main__":
     # VideoTdmsMetadata().drop()
     # print(VisualStimuliMetadata())
-    VisualStimuliMetadata().drop()
+    print(AllTrials())

@@ -13,8 +13,7 @@ print("\n\n\n")
 class Torosity(Trials):
 	def __init__(self, mtype):
 		if sys.platform != "darwin": 
-			
-			Trials.__init__(self, exp_1_mode=True, just_escapes="true", load=load)
+			Trials.__init__(self, exp_1_mode=True, just_escapes="all")
 
 			self.trials = self.trials.loc[self.trials['grouped_experiment_name']==mtype]  # only keep the trials from asym exp
 
@@ -43,15 +42,17 @@ class Torosity(Trials):
 
 		# lookup vars
 		self.results_keys = ["walk_distance", "tracking_distance", "torosity", "tracking_data", "escape_arm", "is_escape", "binned_torosity",
-							"time_out_of_t", "threat_torosity"]
+							"time_out_of_t", "threat_torosity", "outward_tracking"]
 
 		if mtype == "asymmetric":
 			self.bridges_lookup = dict(Right_Medium="right", Left_Far="left")
 		else:
 			self.bridges_lookup = dict(Right_Medium="right", Left_Medium="left")
 
-		self.results_path = "Processing/trials_analysis/torosity_results_toshelter_{}.pkl".format(mtype)
 		self.plots_save_fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\plots\\torosity\\check"
+		self.results_fld = "Processing/trials_analysis/"
+		self.results_name = "torosity"
+		self.mtype = mtype
 
 	"""
 		#########################################################################################################################################################
@@ -107,6 +108,7 @@ class Torosity(Trials):
 		if tracking is None:
 			# scale down the tracking data
 			tracking = self.smallify_tracking(trial.tracking_data.astype(np.int16))
+			outward_tracking = self.smallify_tracking(trial.outward_tracking_data.astype(np.int16))
 
 		# get the start and end of the escape
 		self.agent.start_location = list(tracking[0, :2, 0])
@@ -129,16 +131,8 @@ class Torosity(Trials):
 
 		# compute stuff
 		walk_distance  = np.sum(calc_distance_between_points_in_a_vector_2d(walk)) 
-
-		# if goal is None: # ? not very elegant, but it it is to say that we check only when we are processing the whole trial
-		#     if len(walk < 10): raise ValueError("Why u not walking")
-		#     if walk_distance < 1: raise ValueError("Something went wrong with the walk distance")
-
 		tracking_distance   = np.sum(calc_distance_between_points_in_a_vector_2d(tracking[:, :2, 0])) 
 		torosity = tracking_distance/walk_distance
-
-		# if (np.isnan(torosity) or np.isinf(torosity)) and goal is None: raise ValueError
-
 
 		if trial is not None:
 			# Create results
@@ -147,6 +141,7 @@ class Torosity(Trials):
 				tracking_distance   = tracking_distance,
 				torosity = torosity,
 				tracking_data = tracking,
+				outward_tracking = outward_tracking, 
 				escape_arm = br,
 				is_escape = trial.is_escape
 			)
@@ -194,7 +189,7 @@ class Torosity(Trials):
 
 		# clean_up and save
 		results = results.loc[results.torosity != np.inf]
-		results.to_pickle(self.results_path)
+		results.to_pickle(os.path.join(self.results_fld, self.results_name + "_{}.pkl".format(self.mtype)))
 
 	"""
 		#########################################################################################################################################################
@@ -256,7 +251,7 @@ class Torosity(Trials):
 	"""
 
 	def results_loader(self, name, select_bridge=None, select_escapes=None):
-		res = pd.read_pickle("Processing/trials_analysis/torosity_results_toshelter_{}.pkl".format(name))
+		res = pd.read_pickle(os.path.join(self.results_fld, self.results_name + "_{}.pkl".format(name)))
 		res['experiment'] = [name for i in range(len(res))]
 
 		if select_bridge is not None:
@@ -367,6 +362,7 @@ class Torosity(Trials):
 
 
 	def plot_binned_threat_torosity(self):
+		# ? get binned torosity
 		# res, ares, res1, ares1, res2, ares2 = self.load_all_res()
 
 		# f, ax = plt.subplots()
@@ -412,13 +408,13 @@ class Torosity(Trials):
 
 
 if __name__ == "__main__":
-	mazes = ["symmetric"]
+	mazes = ["asymmetric",  "symmetric"]
 	for m in mazes:
 		t = Torosity(m)
 
-		# t.analyse_all(bined_tor=False, threat_tor=True, plot=False, save_plots=True)
+		t.analyse_all(bined_tor=False, threat_tor=True, plot=False, save_plots=True)
 
-		t.inspect_results()
+		# t.inspect_results()
 
 		# t.plot_binned_threat_torosity()
 

@@ -2,7 +2,7 @@ import sys
 sys.path.append('./')
 
 from Utilities.imports import *
-from Utilities.Maths.filtering import *
+from Utilities.maths.filtering import *
 
 """
     Collection of functions that analyse AI time series data to find the start and end of stimuli delivered through Mantis

@@ -49,21 +49,16 @@ def get_tracking_given_bp(bp):
     fetched = pd.DataFrame((TrackingData.BodyPartData & 'bpname = "{}"'.format(bp)).fetch())
     return fetched.loc[fetched['bpname'] == bp]
 
-def get_tracking_given_recuid(ruid, tracking=None, just_body=False, bp=None, just_trackin_data=True):
-    from database.NewTablesDefinitions import TrackingData, TrackingDataJustBody
-    if tracking is not None:
-        return tracking.loc[tracking['recording_uid']==ruid]
-    else:
-        if just_body:
-            return (TrackingDataJustBody.BodyPartData & "recording_uid='{}'".format(ruid)).fetch()
-        else:
-            recs_in_table = list(TrackingData.fetch("recording_uid"))
-            if not ruid in recs_in_table: warnings.warn("did not find any recording data, returning empty")
+def get_tracking_given_recuid(ruid, tracking=None, bp=None, just_trackin_data=True, cam = "overview"):
+    from database.NewTablesDefinitions import TrackingData
 
-            if not just_trackin_data:
-                return (TrackingData.BodyPartData & "recording_uid='{}'".format(ruid) & "camera_name='overview'" & "bpname='{}'".format(bp)).fetch()
-            else:
-                return (TrackingData.BodyPartData & "recording_uid='{}'".format(ruid) & "camera_name='overview'" & "bpname='{}'".format(bp)).fetch('tracking_data')
+    recs_in_table = list(TrackingData.fetch("recording_uid"))
+    if not ruid in recs_in_table: warnings.warn("did not find any recording data, returning empty")
+
+    if not just_trackin_data:
+        return (TrackingData.BodyPartData & "recording_uid='{}'".format(ruid) & "camera_name='{}'".format(cam) & "bpname='{}'".format(bp)).fetch()
+    else:
+        return (TrackingData.BodyPartData & "recording_uid='{}'".format(ruid) & "camera_name='{}'".format(cam) & "bpname='{}'".format(bp)).fetch('tracking_data')
 
 def get_tracking_given_recuid_and_bp(recuid, bp):
     from database.NewTablesDefinitions import TrackingData

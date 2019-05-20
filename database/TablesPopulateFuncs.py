@@ -13,7 +13,7 @@ import scipy.signal as signal
 from collections import OrderedDict
 
 from Utilities.video_and_plotting.commoncoordinatebehaviour import run as get_matrix
-from Utilities.Maths.stimuli_detection import *
+from Utilities.maths.stimuli_detection import *
 from Utilities.dbase.stim_times_loader import *
 
 from Processing.tracking_stats.correct_tracking import correct_tracking_data

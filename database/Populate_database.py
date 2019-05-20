@@ -233,7 +233,3 @@ if __name__ == '__main__':
     # p.tracking_data.populate()
 
 
-
-
-    # print(p.tracking_data.BodyPartData())
-
