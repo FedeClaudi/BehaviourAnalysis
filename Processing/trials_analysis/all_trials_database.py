@@ -19,8 +19,8 @@ class analyse_all_trals:
 
         
 
-        self.naughty_experiments = ['Lambda Maze', 'PathInt','PathInt', 'FlipFlop Maze', 'FlipFlop2 Maze',  "PathInt2 D", "PathInt2 DL", 'TwoArmsLong Maze', "FourArms Maze"]
-        self.good_experiments = [ 'PathInt2', 'Square Maze', 'TwoAndahalf Maze', "PathInt2 L", 'PathInt2-L', ]
+        self.naughty_experiments = ['Lambda Maze',  'FlipFlop Maze', 'FlipFlop2 Maze',  "PathInt2 D", "PathInt2 DL", 'TwoArmsLong Maze', "FourArms Maze"]
+        self.good_experiments = [  'FlipFlop Maze', 'FlipFlop2 Maze', 'PathInt', 'PathInt2', 'Square Maze', 'TwoAndahalf Maze', "PathInt2 L", 'PathInt2-L', ]
 
 
         if fill_in_table:  # Get tracking data

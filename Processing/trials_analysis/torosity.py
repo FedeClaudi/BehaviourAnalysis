@@ -11,16 +11,21 @@ from Modelling.maze_solvers.gradient_agent import GradientAgent
 print("\n\n\n")
 
 class Torosity(Trials):
-	def __init__(self, mtype):
+	def __init__(self, mtype, just_esc):
 		if sys.platform != "darwin": 
-			Trials.__init__(self, exp_1_mode=True, just_escapes="all")
+			if mtype != "all":
+				Trials.__init__(self, exp_1_mode=True, just_escapes=just_esc)
+				self.trials = self.trials.loc[self.trials['grouped_experiment_name']==mtype]  # only keep the trials from asym exp
 
-			self.trials = self.trials.loc[self.trials['grouped_experiment_name']==mtype]  # only keep the trials from asym exp
+			else:
+				good_experiments = [  'FlipFlop Maze', 'FlipFlop2 Maze', 'PathInt', 'PathInt2', 'Square Maze', 'TwoAndahalf Maze', "PathInt2 L", 'PathInt2-L', ]
+				Trials.__init__(self, exp_1_mode=False, just_escapes=just_esc, selected_experiments=good_experiments)
+
 
 		# Create scaled agent
 		self.scale_factor = 0.25
 
-		if mtype == "asymmetric":
+		if mtype == "asymmetric" or mtype=="all":
 			self.agent = GradientAgent(
 										maze_type = "asymmetric_large",
 										maze_design = "PathInt2.png",
@@ -42,12 +47,15 @@ class Torosity(Trials):
 
 		# lookup vars
 		self.results_keys = ["walk_distance", "tracking_distance", "torosity", "tracking_data", "escape_arm", "is_escape", "binned_torosity",
-							"time_out_of_t", "threat_torosity", "outward_tracking"]
+							"time_out_of_t", "threat_torosity", "outward_tracking", "origin_torosity"]
 
 		if mtype == "asymmetric":
 			self.bridges_lookup = dict(Right_Medium="right", Left_Far="left")
-		else:
+		elif mtype == "symmetric":
 			self.bridges_lookup = dict(Right_Medium="right", Left_Medium="left")
+		else:
+			self.bridges_lookup = dict(Right_Medium="right", Left_Medium="left", Left_Far="left", Right_Far="right", Central="centre", Centre="centre")
+		
 
 		self.plots_save_fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\plots\\torosity\\check"
 		self.results_fld = "Processing/trials_analysis/"
@@ -83,6 +91,9 @@ class Torosity(Trials):
 		tracking = tracking[:out_of_t, :, :]
 		return self.process_one_trial(None, br, tracking=tracking, goal=list(tracking[-1, :2, 0]))
 
+	def origin_torosity(self, outward_tracking, br):
+		return self.process_one_trial(None, br, tracking=outward_tracking, goal=list(outward_tracking[-1, :2]))
+
 	def time_binned_torosity(self, tracking, br):
 		window_size, window_step = 10, 5
 
@@ -109,6 +120,9 @@ class Torosity(Trials):
 			# scale down the tracking data
 			tracking = self.smallify_tracking(trial.tracking_data.astype(np.int16))
 			outward_tracking = self.smallify_tracking(trial.outward_tracking_data.astype(np.int16))
+		else:
+			if len(tracking.shape) == 2:
+				tracking = tracking[:, :, np.newaxis]
 
 		# get the start and end of the escape
 		self.agent.start_location = list(tracking[0, :2, 0])
@@ -119,6 +133,7 @@ class Torosity(Trials):
 
 		# get the new geodistance to the location where the escape ends
 		self.agent.geodesic_distance = self.agent.get_geo_to_point(self.agent.goal_location)
+
 		if self.agent.geodesic_distance is None and goal is None: return None, None, None
 		elif self.agent.geodesic_distance is None and goal is not None: return np.nan
 
@@ -159,13 +174,17 @@ class Torosity(Trials):
 			# Get the escape bridge
 			try:
 				bridge = self.bridges_lookup[trial.escape_arm]
+				origin_bridge = self.bridges_lookup[trial.origin_arm.values[0]]
 				time_out_of_t = int(trial.time_out_of_t * trial.fps)
 			except: 
+				print("		could not get bridge and time out of T")
 				continue
 
 			# Process whole trial
 			tracking, walk, res = self.process_one_trial(trial, bridge)
-			if tracking is None: continue
+			if tracking is None: 
+				print("		something went wrong with trial processing")
+				continue
 			
 			# Binned torosity
 			if bined_tor:
@@ -182,6 +201,9 @@ class Torosity(Trials):
 			else:
 				res['threat_torosity'] = None
 			res['time_out_of_t'] = time_out_of_t
+
+			# origin torosity
+			res['origin_torosity'] = self.origin_torosity(res['outward_tracking'], origin_bridge)
 			
 			# Put all results into main dict
 			for k,v in res.items(): all_res[k].append(v)
@@ -274,16 +296,21 @@ class Torosity(Trials):
 		ares2 = self.zscore_and_sort(self.results_loader("symmetric", select_bridge=None, select_escapes=None))
 		ares = self.zscore_and_sort(pd.concat([ares1, ares2], axis=0))    
 
-		return res, ares, res1, ares1, res2, ares2
+		# res = self.zscore_and_sort(self.results_loader("all", select_bridge=None, select_escapes=True))
+		# ares = self.zscore_and_sort(self.results_loader("all", select_bridge=None, select_escapes=None))
+
+		return res, ares # ! , res1, ares1, res2, ares2
 
 	def inspect_results(self):
 		use_tor = "threat_torosity"
 
 		# Get data
-		res, ares, res1, ares1, res2, ares2 = self.load_all_res()
+		res, ares, = self.load_all_res()
 		tot_res = [x for x in res[use_tor] if not np.isnan(x)],
 		esc_res =  [x for x in res.loc[res.is_escape == "true"][use_tor] if not np.isnan(x)]
 		atot_res = [x for x in ares[use_tor] if not np.isnan(x)]
+
+		print("\nTot trials: ", len(ares))
 
 		# Focus on Torosity
 		if use_tor == "threat_torosity":
@@ -298,10 +325,11 @@ class Torosity(Trials):
 		axarr = axarr.flatten()
 
 		# Plot escapes torosity
-		_, bins, _ = axarr[0].hist(tot_res, bins=25, color='k', alpha=.55, log=True)
+		_, bins, _ = axarr[0].hist(atot_res, bins=45, color='k', alpha=.55, log=True, label='all')
+		_, bins, _ = axarr[0].hist(tot_res, bins=bins, color='yellow', alpha=.55, log=True, label='escapes')
 
 		# Correlation between overall torosity and threat torosity
-		sns.regplot(res.torosity.values, res.threat_torosity.values, ax=axarr[2], robust=True, n_boot=10, ci=None, 
+		sns.regplot(res.torosity.values, res.threat_torosity.values, ax=axarr[2], robust=True, n_boot=10, ci=None, truncate=True,
 						line_kws={"color":"red", "linewidth":2,  "label":"Robust lin. reg."}, 
 						scatter_kws={"color":"green", "alpha":.4, "s":150})
 		sns.regplot(res.torosity.values, res.threat_torosity.values, ax=axarr[2], robust=False, n_boot=100, truncate=True, scatter=False, ci=None, 
@@ -320,15 +348,19 @@ class Torosity(Trials):
 		sns.regplot(mean_speeds, res.threat_torosity.values, ax=axarr[3], robust=False, n_boot=100, truncate=True, scatter=False, ci=None,
 				line_kws={"color":"blue", "linewidth":2,  "label":"lin. reg."}, )
 
-		# Plot RIGHT vs LEFT escape for ASYM maze as a function of threat toro
-		asym_data = res.loc[res.experiment == "asymmetric"].sort_values("threat_torosity")
-		axarr[1].plot(asym_data.threat_torosity, [1 if e =="right" else 0 for e in asym_data.escape_arm], 'o', color='r', linewidth=4, alpha=.3)
-		# sns.regplot(asym_data.threat_torosity, [1 if e =="right" else 0 for e in asym_data.escape_arm], ax=axarr[1],  n_boot=10, logistic=True)
+		# Plot ORIGIN vs ESCAPe torosity
+		# ori_threat = remove_nan_1d_arr(res.origin_torosity.values)
+		sns.regplot(np.nan_to_num(res.origin_torosity.values), res.threat_torosity.values, ax=axarr[1], robust=True, n_boot=100, truncate=True, ci=None, 
+				line_kws={"color":"red", "linewidth":2,  "label":"Robust lin. reg."}, 
+				scatter_kws={"color":"purple", "alpha":.4, "s":150})
+		sns.regplot(np.nan_to_num(res.origin_torosity.values), res.threat_torosity.values, ax=axarr[1], robust=False, n_boot=100, truncate=True, scatter=False, ci=None,
+				line_kws={"color":"blue", "linewidth":2,  "label":"lin. reg."}, )
+
 
 		# Plot examples of traces with different torosities
 		for th, c, ax, cmap in zip(threshold, colors, axarr[4:], colormaps):
-			axarr[0].axvline(th[0], color=c)
-			axarr[0].axvline(th[1], color=c)
+			axarr[0].axvline(th[0], color=c, alpha=.5)
+			axarr[0].axvline(th[1], color=c, alpha=.5)
 
 			img = np.ones_like(self.agent.maze)*100
 			img[0, 0] = 0
@@ -351,14 +383,13 @@ class Torosity(Trials):
 				ax.set(title='Example trajectories - th: {}'.format(th), xticks=[], yticks=[])
 
 		# Set axes
-		axarr[0].set(title="{} z-scored".format(use_tor), ylabel="count", xlabel="z(torosity)")
+		axarr[0].set(title="{}".format(use_tor), ylabel="count", xlabel="torosity")
 		axarr[1].set(title="Escape arm vs Torosity", xlabel="threat_torosity", yticks=[0,1], yticklabels=["left", "right"])
-		axarr[2].set(title='Total vs Threat Torosity', xlabel='overall', ylabel='threat',)
-		axarr[3].set(xlabel='mean speed', ylabel='torosity')
+		axarr[2].set(title='Total vs Threat Torosity', xlabel='overall', ylabel='threat', xlim=[0.75, 5], ylim=[0.75, 5])
+		axarr[3].set(title='torosity vs speed', xlabel='mean speed', ylabel='torosity', xlim=[0, 4], ylim=[0, 4])
 
 		for ax in axarr[:4]:
 			ax.legend()
-		f.tight_layout()
 
 
 	def plot_binned_threat_torosity(self):
@@ -408,19 +439,21 @@ class Torosity(Trials):
 
 
 if __name__ == "__main__":
-	mazes = ["asymmetric",  "symmetric"]
+	mazes = ["asymmetric", "symmetric"]
 	for m in mazes:
-		t = Torosity(m)
+		t = Torosity(m, "all")
 
-		t.analyse_all(bined_tor=False, threat_tor=True, plot=False, save_plots=True)
+		# t.analyse_all(bined_tor=False, threat_tor=True, plot=False, save_plots=True)
 
-		# t.inspect_results()
+		t.inspect_results()
 
 		# t.plot_binned_threat_torosity()
 
+		break
 
 
-		plt.show()
+
+	plt.show()
 
 
 

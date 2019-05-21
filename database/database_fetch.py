@@ -192,3 +192,8 @@ def get_mantisstim_given_stimuid(stimuid):
 def get_mantisstim_logfilepath_given_stimud(stimuid):
     from database.NewTablesDefinitions import MantisStimuli
     return pd.DataFrame((MantisStimuli.VisualStimuliLogFile2 & "stimulus_uid='{}'".format(stimuid)).fetch())
+
+def get_rec_aifilepath_given_recuid(recuid):
+    from database.NewTablesDefinitions import Recordings
+
+    return (Recordings & "recording_uid='{}'".format(recuid)).fetch("ai_file_path")

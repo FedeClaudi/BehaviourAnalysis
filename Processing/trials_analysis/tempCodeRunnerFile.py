@@ -1,1 +1,2 @@
-scatter
+
+            self.table = AllTrials()
