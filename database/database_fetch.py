@@ -4,6 +4,7 @@ from database.NewTablesDefinitions import *
 import cv2
 import os
 import warnings
+import pandas as pd
 
 
 """Bunch of functions to facilitate retrieving filtered data from the database tables
@@ -56,17 +57,14 @@ def get_tracking_given_recuid(ruid, tracking=None, bp=None, just_trackin_data=Tr
     if not ruid in recs_in_table: warnings.warn("did not find any recording data, returning empty")
 
     if not just_trackin_data:
-        return (TrackingData.BodyPartData & "recording_uid='{}'".format(ruid) & "camera_name='{}'".format(cam) & "bpname='{}'".format(bp)).fetch()
+        return pd.DataFrame((TrackingData.BodyPartData & "recording_uid='{}'".format(ruid) & "camera_name='{}'".format(cam)).fetch())
     else:
-        return (TrackingData.BodyPartData & "recording_uid='{}'".format(ruid) & "camera_name='{}'".format(cam) & "bpname='{}'".format(bp)).fetch('tracking_data')
+        return (TrackingData.BodyPartData & "recording_uid='{}'".format(ruid) & "camera_name='{}'".format(cam)).fetch('tracking_data')
 
 def get_tracking_given_recuid_and_bp(recuid, bp):
     from database.NewTablesDefinitions import TrackingData
     fetched = pd.DataFrame((TrackingData.BodyPartData & 'bpname = "{}"'.format(bp) & 'recording_uid = "{}"'.format(recuid)).fetch())
     return fetched
-
-def get_videometadata_given_sessuid(uid, videometadata):
-    return videometadata.loc[videometadata['uid'] == uid]
 
 def get_sessuid_given_recuid(recuid, sessions):
     r = recuid.split('_')
@@ -105,6 +103,7 @@ def get_sessname_given_sessuid(uid):
 
 def get_videometadata_given_recuid(rec, just_fps=True):
     from database.NewTablesDefinitions import VideoFiles
+    import pandas as pd
     if not just_fps:
         return pd.DataFrame((VideoFiles.Metadata & "recording_uid='{}'".format(rec)).fetch())
     else:

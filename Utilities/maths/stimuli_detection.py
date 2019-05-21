@@ -25,6 +25,7 @@ def find_peaks_in_signal(signal, time_limit, th, above=True):
         above_th = np.where(signal>th)[0]
     else:
         above_th = np.where(signal<th)[0]
+    if not np.any(above_th): return np.array([])
 
     peak_starts = [x for x,d in zip(above_th, np.diff(above_th)) if d > time_limit]
     

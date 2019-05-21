@@ -50,7 +50,7 @@ class FilesAutomationToolbox:
             print("\n\nProcessing file {} of {}".format(i,len(files)))
 
             date = int(ai.split("_")[0])
-            if date < 190509: continue  # when started with visuals
+            if date < 190328: continue  # when started with visuals
 
             savename = ai.split('.')[0]+".ft"
             columns_savename = ai.split('.')[0]+"_groups.yml"
@@ -228,8 +228,8 @@ if __name__ == "__main__":
 
     # automation.convert_tdms_to_mp4()
 
-    automation.get_list_uncoverted_tdms_videos()
-    automation.get_list_not_tracked_videos()
+    # automation.get_list_uncoverted_tdms_videos()
+    # automation.get_list_not_tracked_videos()
 
     # Checks 
     # automation.extract_videotdms_metadata()
@@ -237,5 +237,5 @@ if __name__ == "__main__":
     # automation.remove_stupid_videofiles()
 
 
-    # automation.save_ai_files_as_pandas()
+    automation.save_ai_files_as_pandas()
 # 

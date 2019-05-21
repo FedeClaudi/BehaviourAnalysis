@@ -884,7 +884,9 @@ def make_visual_stimuli_metadata_table(table, key, MantisStimuli):
 
 def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessions, fast_mode=False):
     if key['camera_name'] != 'overview': 
-        print("     WE ARE NOT PROCESSING THREAT VIDEOS HERE")
+        # ! threat video
+        # TODO process threat vids
+        # print("     WE ARE NOT PROCESSING THREAT VIDEOS HERE")
         return
 
     # Get the name of the experiment the video belongs to
@@ -906,17 +908,19 @@ def make_trackingdata_table(table, key, videofiles, ccm_table, templates, sessio
         print('Could not find common coordinate matrix for ', key['recording_uid']) 
         return
     else:
-        print('Processing tracking data for : ', key['recording_uid'])
+        print('\n\nProcessing tracking data for : ', key['recording_uid'])
     
     
     # Load the .h5 file with the tracking data 
     try:
-        if not 'pose' in os.path.split(vid['pose_filepath'][0])[-1]:
-            vid['pose_filepath'] = vid['pose_filepath'].split(".")[0]+"_pose.h5"
-
-        posedata = pd.read_hdf(vid['pose_filepath'][0])
+        if os.path.isfile(vid['pose_filepath'][0]):
+            posefile = vid['pose_filepath'][0]
+        else:
+            posefile = vid['pose_filepath'][0].split(".")[0]+"_pose.h5"
+        posedata = pd.read_hdf(posefile)
     except:
-        print('Could not load pose data:', vid['pose_filepath'])
+        print('Could not load pose data:', vid['pose_filepath'][0])
+        a =1 
         return
 
     # Insert entry into MAIN CLASS for this videofile

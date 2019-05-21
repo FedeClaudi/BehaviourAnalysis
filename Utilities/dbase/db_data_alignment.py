@@ -117,19 +117,21 @@ class ThreatDataProcessing:
         # Create an array with 3 columns -> frame IDX, Overview Frame timestamp, zeros
         aligned_frames = np.vstack([np.arange(len(self.frame_times['overview'])), self.frame_times['overview'], np.zeros_like(self.frame_times['overview'])]).T.astype(np.float32)
 
-        # avg time between threat frames
-        avg_IFI = np.mean(np.diff(aligned_frames[:, 1]))
+        if np.any(self.frame_times['threat']):
+            # avg time between threat frames
+            avg_IFI = np.mean(np.diff(aligned_frames[:, 1]))
 
-        # for each overview frame match the closest threat frame
-        for i in np.arange(aligned_frames.shape[0]):
-            closest_threat_frame = self.frame_times['threat'][np.argmin(self.frame_times['threat']-aligned_frames[i, 1])]
-            delta = abs(closest_threat_frame - aligned_frames[i, 1])
-            if delta > avg_IFI:
-                aligned_frames[i, -1] = np.nan
-            else:
-                aligned_frames[i, -1] = closest_threat_frame
+            # for each overview frame match the closest threat frame
+            for i in np.arange(aligned_frames.shape[0]):
+                closest_threat_frame = self.frame_times['threat'][np.argmin(self.frame_times['threat']-aligned_frames[i, 1])]
+                delta = abs(closest_threat_frame - aligned_frames[i, 1])
+                if delta > avg_IFI:
+                    aligned_frames[i, -1] = np.nan
+                else:
+                    aligned_frames[i, -1] = closest_threat_frame
 
         self.frame_times['aligned'] = aligned_frames
+            
 
     def insert_in_table(self):
         # add stuff to key

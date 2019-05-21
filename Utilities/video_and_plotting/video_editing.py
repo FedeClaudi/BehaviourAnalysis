@@ -18,7 +18,7 @@ import shutil
 import matplotlib.pyplot as plt
 import time
 
-from Utilities.file_io.files_load_save import load_yaml, load_tdms_from_winstore
+from Utilities.file_io.files_load_save import *
 
 
 class VideoConverter:
@@ -250,6 +250,8 @@ class VideoConverter:
         print('Converted {} frames in {}s\n\n'.format(tot_frames, round(end-start)))
 
 class Editor:
+    def __init__(self):
+        self.paths = load_yaml('./paths.yml')
 
     @staticmethod
     def save_clip(clip, folder, name, format, fps):
