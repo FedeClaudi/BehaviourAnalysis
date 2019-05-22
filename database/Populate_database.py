@@ -1,21 +1,7 @@
 import sys
 sys.path.append('./')   # <- necessary to import packages from other directories within the project
 
-# from database.dj_config import start_connection
-# start_connection()
-
-import os
-import warnings
-from shutil import copyfile
-import cv2
-import datajoint as dj
-import pandas as pd
-import pyexcel
-import yaml
-from tqdm import tqdm
-from collections import namedtuple
-
-from database.NewTablesDefinitions import *
+from database.TablesDefinitionsV4 import *
 
 from Utilities.video_and_plotting.video_editing import *
 from Utilities.dbase.stim_times_loader import *
@@ -39,8 +25,26 @@ class PopulateDatabase:
         with open('paths.yml', 'r') as f:
             paths = yaml.load(f)
 
-        self.paths = paths
+        self.define_paths(paths)
+        
+        self.define_tables([Mouse(),
+                            Session(),
+                            MazeComponents(),
+                            CCM(),
+                            Recording(),
+                            ])
 
+
+    def define_tables(self, tables):
+        self.all_tables = {}
+        for table in tables:
+            name = table.table_name.replace("_", "")
+            self.__setattr__(name, table)
+            self.all_tables[name] = table
+
+
+    def define_paths(self, paths):
+        self.paths = paths
         self.mice_records = paths['mice_records']
         self.exp_records = paths['exp_records']
 
@@ -48,112 +52,18 @@ class PopulateDatabase:
         self.raw_to_sort = os.path.join(self.raw_data_folder, paths['raw_to_sort'])
         self.raw_metadata_folder = os.path.join(self.raw_data_folder, paths['raw_metadata_folder'])
         self.raw_video_folder = os.path.join(self.raw_data_folder, paths['raw_video_folder'])
+        self.raw_pose_folder =  paths['tracked_data_folder']
+        self.raw_ai_folder = paths["raw_ai_folder"]
 
         self.trials_clips = os.path.join(self.raw_data_folder, paths['trials_clips'])
         self.tracked_data_folder = paths['tracked_data_folder']
 
-        # Load tables definitions
-        self.mice = Mice()
-        self.experiments = Experiments()
-        self.templates = Templates()
-        self.sessions = Sessions()
-        self.recordings = Recordings()
-        self.videofiles = VideoFiles()
-        self.behaviourstimuli = BehaviourStimuli()
-        self.mantisstimuli = MantisStimuli()
-        self.tracking_data = TrackingData()
-        self.commoncoordinatematrices = CommonCoordinateMatrices()
-        self.dlcmodels = DLCmodels()
-        self.visual_stimuli_metadata = VisualStimuliMetadata()
-        self.frame_times = FrameTimes()
-
-        self.all_tables = dict(mice=self.mice, sessions= self.sessions, experiments=self.experiments,
-                                recordings=self.recordings, behaviourstimuli = self.behaviourstimuli,
-                                mantisstimuli = self.mantisstimuli, dlcmodels = self.dlcmodels,
-                                templates=self.templates, videofiles = self.videofiles, 
-                                commoncoordinatematrices=self.commoncoordinatematrices,
-                                tracking_data = self.tracking_data, visual_stimuli_metadata=self.visual_stimuli_metadata,
-                                frame_times = self.frame_times)
-
-    def remove_table(self, tablename):
-        """
-        removes a single table from the database
-        """
-        if isinstance(tablename, str):
-            tablename = [tablename]
-        for table in tablename:
-            tb = self.all_tables[table]
-            tb.drop()
-        sys.exit()
-
-
-    def populate_mice_table(self):
-        """ Populates the Mice() table from the database"""
-        table = self.mice
-        loaded_excel = pyexcel.get_records(file_name=self.mice_records)
-
-        for m in loaded_excel:
-            if not m['']: continue
-
-            mouse_data = dict(
-                mouse_id = m[''],
-                strain = m['Strain'],
-                dob = str(m['DOB']).strip(),
-                sex = 'M',
-                single_housed = 'Y',
-                enriched_cage = 'Y'
-            )
-            self.insert_entry_in_table(mouse_data['mouse_id'], 'mouse_id', mouse_data, table)
-
-    def populate_experiments_table(self):
-        table = self.experiments
-
-        exp_names = [d for d in os.listdir(self.paths['maze_templates']) if d != 'ignored']
-
-        for exp in exp_names:
-            data_to_input = dict(
-                experiment_name=exp,
-                templates_folder = os.path.join(self.paths['maze_templates'], exp)
-            )
-            self.insert_entry_in_table(data_to_input['experiment_name'], 'experiment_name', data_to_input, table)
-
-    def populate_sessions_table(self):
-        """  Populates the sessions table """
-        table = self.sessions
-        mice = self.mice.fetch(as_dict=True)
-        loaded_excel = pyexcel.get_records(file_name=self.exp_records)
-
-        for session in loaded_excel:
-            # Get mouse name
-            mouse_id = session['MouseID']
-            for mouse in mice:
-                idd = mouse['mouse_id']
-                original_idd = mouse['mouse_id']
-                idd = idd.replace('_', '')
-                idd = idd.replace('.', '')
-                if idd.lower() == mouse_id.lower():
-                    break
-
-            # Get session name
-            session_name = '{}_{}'.format(session['Date'], session['MouseID'])
-            session_date = '20'+str(session['Date'])
-
-            # Get experiment name
-            experiment_name = session['Experiment']
-
-            # Insert into table
-            session_data = dict(
-                uid = str(session['Sess.ID']), 
-                session_name=session_name,
-                mouse_id=original_idd,
-                date=session_date,
-                experiment_name = experiment_name
-            )
-            self.insert_entry_in_table(session_data['session_name'], 'session_name', session_data, table)
-        
-    def populate_armsprobs(self):
-        populate_ArmsProbs()
-
+    """
+        ###################################################################################################################
+        ###################################################################################################################
+        ###################################################################################################################
+        ###################################################################################################################
+    """
 
     @staticmethod
     def insert_entry_in_table(dataname, checktag, data, table, overwrite=False):
@@ -182,6 +92,89 @@ class PopulateDatabase:
 
 
 
+
+    def remove_table(self, tablename):
+        """
+        removes a single table from the database
+        """
+        if isinstance(tablename, str):
+            tablename = [tablename]
+        for table in tablename:
+            tb = self.all_tables[table]
+            tb.drop()
+        sys.exit()
+
+    def show_progress(self, tablename):
+        try:
+            print(self.all_tables[tablename].progress())
+        except:
+            print("Cannot show progress for ", tablename)
+
+    """
+        ###################################################################################################################
+        ###################################################################################################################
+        ###################################################################################################################
+        ###################################################################################################################
+    """
+
+    def populate_mice_table(self):
+        """ Populates the Mice() table from the database"""
+        table = self.mouse
+        loaded_excel = pyexcel.get_records(file_name=self.mice_records)
+
+        for m in loaded_excel:
+            if not m['']: continue
+
+            mouse_data = dict(
+                mouse_id = m[''],
+                strain = m['Strain'],
+                sex = 'M',
+            )
+            self.insert_entry_in_table(mouse_data['mouse_id'], 'mouse_id', mouse_data, table)
+
+    def populate_sessions_table(self):
+        """  Populates the sessions table """
+        mice = self.mouse.fetch(as_dict=True)
+        loaded_excel = pyexcel.get_records(file_name=self.exp_records)
+
+        for session in loaded_excel:
+            # Get mouse name
+            mouse_id = session['MouseID']
+            for mouse in mice:
+                idd = mouse['mouse_id']
+                original_idd = mouse['mouse_id']
+                idd = idd.replace('_', '')
+                idd = idd.replace('.', '')
+                if idd.lower() == mouse_id.lower():
+                    break
+
+            # Get session name
+            session_name = '{}_{}'.format(session['Date'], session['MouseID'])
+            session_date = '20'+str(session['Date'])
+
+            # Get experiment name
+            experiment_name = session['Experiment']
+
+            # Insert into table
+            session_data = dict(
+                uid = str(session['Sess.ID']), 
+                session_name=session_name,
+                mouse_id=original_idd,
+                date=session_date,
+                experiment_name = experiment_name
+            )
+            self.insert_entry_in_table(session_data['session_name'], 'session_name', session_data, self.session)
+        
+
+
+    """
+        ###################################################################################################################
+        ###################################################################################################################
+        ###################################################################################################################
+        ###################################################################################################################
+    """
+
+
     def __str__(self):
         self.__repr__()
         return ''
@@ -205,35 +198,54 @@ class PopulateDatabase:
         sumdf.columns = ['NumOfEntries']
         print(sumdf)
         return ''
+    """
+        ###################################################################################################################
+        ###################################################################################################################
+        ###################################################################################################################
+        ###################################################################################################################
+    """
 
 
 if __name__ == '__main__':
     disable_pandas_warnings()
     p = PopulateDatabase()
 
-    print(p)
+    # print(p)
 
 
     # p.remove_table(["mantisstimuli"])
-    
+    # p.show_progress("recording")
+        
+    # ? These tables population is fast and largely automated
     # p.populate_mice_table()
-    # p.populate_experiments_table()
     # p.populate_sessions_table()
+    p.recording.populate(display_progress=True)
+    p.recording.make_paths(p) # TODO video files not being found
 
-    # p.dlcmodels.populate()
+    # p.ccm.populate(display_progress=True)  # TODO WIP
+    # p.mazecomponents.populate(display_progress=True)
 
     # p.recordings.populate()
     # p.videofiles.populate()
 
-    # p.commoncoordinatematrices.populate()
-    # p.templates.populate()
+
     
     # p.behaviourstimuli.populate() 
     # p.mantisstimuli.populate()
     # p.visual_stimuli_metadata.populate()
 
-    p.frame_times.populate()
+    # p.frame_times.populate()
 
     # p.tracking_data.populate()
 
+    # print(p.templates)
 
+
+    print(p)
+
+
+    print([print(a) for a in p.recording.FilePaths()])
+
+
+
+# TODO find way to display progress of part table

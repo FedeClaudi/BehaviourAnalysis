@@ -163,10 +163,16 @@ class TrialClipsMaker(Editor):
                 self.threat_cap = cv2.VideoCapture(threat_video_path)
                 self.threat_params = vparams(*self.get_video_params(self.threat_cap))
 
-                # if we are placing the two vids side by side, we need to scale the overview video to be as tall as the threat video
-                self.height_ratio = self.threat_params.height / self.overview_params.height
+                if self.threat_params.fps < 1:    # ? smth went wrong when opening the threat cap - likely video has no frames
+                    self.add_threat_video = False
+                    self.frame_shape = [int(self.overview_params.height), int(self.overview_params.width)]
+                else:
+                    # if we are placing the two vids side by side, we need to scale the overview video to be as tall as the threat video
+                    self.height_ratio = self.threat_params.height / self.overview_params.height
 
-                self.frame_shape = [int(self.threat_params.height), int(self.overview_params.width * self.height_ratio + self.threat_params.width)]
+                    if self.height_ratio < 1: raise ValueError("Error calculating scaling factor.")
+
+                    self.frame_shape = [int(self.threat_params.height), int(self.overview_params.width * self.height_ratio + self.threat_params.width)]
         else:
             self.frame_shape = [int(self.overview_params.height), int(self.overview_params.width)]
 
@@ -228,15 +234,16 @@ class TrialClipsMaker(Editor):
 
         print("     creating videoclip")
         for stim_number, stim in self.stimuli.iterrows():
+            if stim.overview_frame == -1: continue   # ? it was a place holder entry in the table, there were no stims for that session
             # Loop over each stimulus and add the corresponding section of the video to the main video
             print('           ... adding new trial to the clip')
 
             # Get start and stop frames for the overview video
             # ? The corresponding threat videos need to be pulled by the aligned frame time table
-            clip_start = int(stim.overview_frame - self.video_decoration_params['pre_stim_interval'])
-            clip_end = int(stim.overview_frame + (stim.duration*self.overview_params.fps) + self.video_decoration_params['pre_stim_interval'])
+            clip_start = int(stim.overview_frame - self.video_decoration_params['pre_stim_interval']*self.overview_params.fps)
+            clip_end = int(stim.overview_frame + (stim.duration*self.overview_params.fps) + self.video_decoration_params['post_stim_interval']*self.overview_params.fps)
             clip_number_of_frames = int(clip_end - clip_start)
-            
+
             # move overview cap to the frame at the start of this clip
             _ = self.get_selected_frame(self.overview_cap, clip_start-1)
 
@@ -261,7 +268,6 @@ class TrialClipsMaker(Editor):
                     warning.warn("not implemented overlay tracking on frame")
 
                 # ? Combine overview and threat frames
-                if self.add_threat_video:
                     # rescale overview frame
                     frame = cv2.resize(frame, None, fx = self.height_ratio, fy = self.height_ratio, interpolation = cv2.INTER_CUBIC)
 

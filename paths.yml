@@ -1,23 +1,20 @@
 mice_records: 'D:\Dropbox (UCL - SWC)\Rotation_vte\FC_animals_records.xlsx'
 exp_records: 'D:\Dropbox (UCL - SWC)\Rotation_vte\datalog.xlsx'
 
-maze_model_templates: D:\Dropbox (UCL - SWC)\Rotation_vte\Maze_templates\UserSelectedMazeModelTemplates.yml
-maze_templates_per_experiment: D:\Dropbox (UCL - SWC)\Rotation_vte\Maze_templates\Maze_templates_per_experiment.yml
 
-maze_templates: D:\Dropbox (UCL - SWC)\Rotation_vte\Maze_templates
-templates_matched: D:\Dropbox (UCL - SWC)\Rotation_vte\Maze_templates\ignored\Matched
 
 raw_data_folder: Z:\branco\Federico\raw_behaviour\maze
 raw_metadata_folder: 'metadata'   # appended to raw data folder
 raw_video_folder: 'video'   # appended to raw data folder
 raw_to_sort: 'to_sort'   # appended to raw data folder
 raw_analoginput_folder: 'analoginputdata'
+tracked_data_folder: Z:\branco\Federico\raw_behaviour\maze\pose
+raw_ai_folder: Z:\branco\Federico\raw_behaviour\maze\analoginputdata
 
 # trials_clips: 'Z:\branco\Federico\raw_behaviour\maze\trials_clips'   # appended to raw data folder
 trials_clips: Z:\branco\Federico\raw_behaviour\maze\test_clips
 
 
-tracked_data_folder: Z:\branco\Federico\raw_behaviour\maze\pose
 
 dlc_config: D:\Dropbox (UCL - SWC)\Rotation_vte\DLC_nets\Nets\Maze-Federico-2018-11-24\config.yaml
 
