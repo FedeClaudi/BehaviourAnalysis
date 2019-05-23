@@ -32,6 +32,7 @@ class PopulateDatabase:
                             MazeComponents(),
                             CCM(),
                             Recording(),
+                            TrackingData(),
                             ])
 
 
@@ -219,33 +220,25 @@ if __name__ == '__main__':
     # ? These tables population is fast and largely automated
     # p.populate_mice_table()
     # p.populate_sessions_table()
-    p.recording.populate(display_progress=True)
-    p.recording.make_paths(p) # TODO video files not being found
-
-    # p.ccm.populate(display_progress=True)  # TODO WIP
+    # p.recording.populate(display_progress=True, max_calls =20)  # ! max xalls
+    # p.recording.make_paths(p) # TODO 190510_CA556 missing
     # p.mazecomponents.populate(display_progress=True)
 
-    # p.recordings.populate()
-    # p.videofiles.populate()
+    # ? This slower and will require some input
+    # p.ccm.populate(display_progress=True)  
 
+    # ? this is considerably slower but should be automated
+    errors = p.trackingdata.populate(display_progress=True, suppress_errors=True, return_exception_objects =True)
 
-    
-    # p.behaviourstimuli.populate() 
-    # p.mantisstimuli.populate()
-    # p.visual_stimuli_metadata.populate()
+    if errors: raise ValueError()
 
-    # p.frame_times.populate()
-
-    # p.tracking_data.populate()
-
-    # print(p.templates)
+        
+    print(p.trackingdata)
 
 
     print(p)
 
 
-    print([print(a) for a in p.recording.FilePaths()])
 
 
 
-# TODO find way to display progress of part table

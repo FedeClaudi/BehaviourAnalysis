@@ -19,7 +19,7 @@ def correct_image_fisheye(img):
     return cv2.remap(img, fmap[:, :, 0:2], fmap[:, :, 2], interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
 
 
-def run(videopath, maze_model=None):
+def run(videopath, maze_model=None, old_mode=False):
     if maze_model is None:
         # Get the maze model template
         maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel.png')
@@ -28,12 +28,13 @@ def run(videopath, maze_model=None):
 
     # Define points to be used for alignemt
     # ? Old points for smaller maze model
-    # points = np.array([[435, 290], [565, 290], [500, 250],
-    #                 [435, 710], [565, 710], [500, 620]])
-
-    points = np.array([ [435, 395], [565, 395], 
-                        [435, 130], [565, 130],
-                        [500, 616]])
+    if old_mode:
+        points = np.array([[435, 290], [565, 290], [500, 250],
+                        [435, 710], [565, 710], [500, 620]])
+    else:
+        points = np.array([ [435, 395], [565, 395], 
+                            [435, 130], [565, 130],
+                            [500, 616]])
 
     # Get the background (first frame) of the video being processed
     try:

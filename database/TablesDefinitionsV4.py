@@ -177,9 +177,14 @@ class Stimuli(dj.Imported):
 
 @schema
 class TrackingData(dj.Imported):
+	experiments_to_skip = ["lambda, FlipFlop", "FlipFlop2"]
+	bodyparts = ['snout', 'neck', 'body', 'tail_base',]
+
 	definition = """
 		# store dlc data for bodyparts and body segments
 		-> Recording
+		camera: 		varchar(32)
+		---
 	"""
 
 	class BodyPartData(dj.Part):
@@ -190,10 +195,19 @@ class TrackingData(dj.Imported):
 			---
 			tracking_data: longblob     # pandas dataframe with X,Y,Velocity, MazeComponent ... 
 		"""
+	def make(self, key):
+		make_trackingdata_table(self, key)
+
+
+
+
+
+
+
+
 
 
 if __name__ == "__main__":
 	Recording.drop()
-	# print(str(Stimuli))
-	# print_erd()
+	print_erd()
 	plt.show()
