@@ -433,6 +433,9 @@ class Editor:
 
     @staticmethod
     def get_video_params(cap):
+        if isinstance(cap, str):
+            cap = cv2.VideoCapture(cap)
+            
         nframes = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))

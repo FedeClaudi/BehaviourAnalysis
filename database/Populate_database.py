@@ -32,6 +32,7 @@ class PopulateDatabase:
                             MazeComponents(),
                             CCM(),
                             Recording(),
+                            Stimuli(),
                             TrackingData(),
                             ])
 
@@ -105,11 +106,22 @@ class PopulateDatabase:
             tb.drop()
         sys.exit()
 
-    def show_progress(self, tablename):
-        try:
-            print(self.all_tables[tablename].progress())
-        except:
-            print("Cannot show progress for ", tablename)
+    def show_progress(self, tablename=None):
+        print("\n\nDatabase update progress")
+        if tablename:
+            try:
+                print(self.all_tables[tablename].progress())
+            except:
+                print("Cannot show progress for ", tablename)
+        else:
+            for table in self.all_tables.values():
+                try:
+                    progr = table.progress(display=False)
+                    completed = progr[1] - progr[0]
+                    name = table.table_name[1:] + " "*(15-len(table.table_name[1:]))
+                    print(name, "  ---  Completed {} of {} ({}%)".format(completed, progr[1], round(completed/progr[1] * 100, 2)))
+                except:
+                    pass
 
     """
         ###################################################################################################################
@@ -213,6 +225,7 @@ if __name__ == '__main__':
 
     # print(p)
 
+    errors = []
 
     # p.remove_table(["mantisstimuli"])
     # p.show_progress("recording")
@@ -220,7 +233,7 @@ if __name__ == '__main__':
     # ? These tables population is fast and largely automated
     # p.populate_mice_table()
     # p.populate_sessions_table()
-    # p.recording.populate(display_progress=True, max_calls =20)  # ! max xalls
+    # p.recording.populate(display_progress=True) 
     # p.recording.make_paths(p) # TODO 190510_CA556 missing
     # p.mazecomponents.populate(display_progress=True)
 
@@ -228,15 +241,16 @@ if __name__ == '__main__':
     # p.ccm.populate(display_progress=True)  
 
     # ? this is considerably slower but should be automated
-    errors = p.trackingdata.populate(display_progress=True, suppress_errors=True, return_exception_objects =True)
+    # errors = p.trackingdata.populate(display_progress=True, suppress_errors=True, return_exception_objects =True)
+
+    # errors = p.stimuli.populate(display_progress=True, suppress_errors=True, return_exception_objects =True) # , max_calls =10)  # ! max_calls 
+    # p.stimuli.make_metadata()
 
     if errors: raise ValueError()
 
-        
-    print(p.trackingdata)
-
 
     print(p)
+    p.show_progress()
 
 
 

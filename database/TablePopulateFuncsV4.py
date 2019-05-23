@@ -4,7 +4,18 @@ sys.path.append('./')
 from Utilities.imports import *
 from database.database_toolbox import ToolBox
 from database.TablesDefinitionsV4 import *
+
+cur_dir = os.getcwd()
+os.chdir("C:\\Users\\Federico\\Documents\\GitHub\\VisualStimuli")
+from Utils.contrast_calculator import Calculator as ContrastCalc
+os.chdir(cur_dir)
+
+import scipy.signal as signal
+from collections import OrderedDict
+
 from Utilities.video_and_plotting.commoncoordinatebehaviour import run as get_matrix
+from Utilities.maths.stimuli_detection import *
+from Utilities.dbase.stim_times_loader import *
 
 from Processing.tracking_stats.correct_tracking import correct_tracking_data
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
@@ -136,6 +147,23 @@ def fill_in_recording_paths(recordings, populator):
 		del key["software"]
 		recordings.FilePaths.insert1(key, allow_direct_insert=True)
 
+def fill_in_aligned_frames(recordings):
+	from Utilities.dbase.db_data_alignment import ThreatDataProcessing
+
+	recs_in_part_table = recordings.FilePaths.fetch("recording_uid")
+	for rec in tqdm(recordings):
+		key = dict(rec)
+		if key["recording_uid"] in recs_in_part_table: continue  # ? its already in table
+
+		tdp = ThreatDataProcessing(self, key)
+		if tdp.feather_file is not None:
+			tdp.load_a_feather()
+			tdp.process_channel(tdp.threat_ch, "threat")
+			tdp.process_channel(tdp.overview_ch, "overview")
+			tdp.align_frames()
+
+			tdp.insert_in_table()
+
 
 
 
@@ -192,6 +220,242 @@ def make_commoncoordinatematrices_table(table, key):
 	key['side_pad'] 			= side_pad
 	key['camera'] 				= "overview" # TODO make this work
 	table.insert1(key)
+
+
+"""
+			! STIMULI
+"""
+def make_stimuli_table(table, key):
+	from database.TablesDefinitionsV4 import Recording, Session
+	from Utilities.video_and_plotting.video_editing import Editor
+	tb = ToolBox()
+
+	def make_behaviourstimuli(table, key):
+		# Get file paths    
+		tdms_path = (Recording.FilePaths & key).fetch1("ai_file_path")
+		videopath = (Recording.FilePaths & key).fetch1("overview_video")
+
+		# Get stimuli
+		stimuli = tb.extract_behaviour_stimuli(tdms_path)
+
+		# If no sti add empty entry to table to avoid re-loading everyt time pop method called
+		if not stimuli:
+			table.insert_placeholder(key)
+			return
+		else:
+			# Add in table
+			for i, stim in enumerate(stimuli):
+				stim_key = key.copy()
+				stim_key['stimulus_uid'] = key['recording_uid']+'_{}'.format(i)
+
+				if 'audio' in stim.name: stim_key['duration'] = 9 # ! hardcoded
+				else: stim_key['duration']  = 5
+				
+				stim_key['stim_type'] = stim.type
+				stim_key['overview_frame'] = stim.frame
+				stim_key['overview_frame_off'] = int(stim.frame + stim_key['duration']*30)  # !hardcoded
+				stim_key['stim_name'] = stim.name
+				table.insert1(stim_key)
+
+
+	def make_mantisstimuli(table, key):
+		def plot_signals(audio_channel_data, stim_start_times, overview=False, threat=False):
+			f, ax = plt.subplots()
+			ax.plot(audio_channel_data)
+			ax.plot(stim_start_times, audio_channel_data[stim_start_times], 'x', linewidth=.4, label='audio')
+			if overview:
+				ax.plot(audio_channel_data, label='overview')
+			if threat:
+				ax.plot(audio_channel_data, label='threat')
+			ax.legend()
+			ax.set(xlim=[stim_start_times[0]-5000, stim_start_times[0]+5000])
+
+		# Get the FPS for the overview video
+		videofile = (Recording.FilePaths & key).fetch1("overview_video")
+		nframes, width, height, fps = Editor.get_video_params(videofile)
+
+		# Get feather file 
+		aifile =(Recording.FilePaths & key).fetch1("ai_file_path")
+		fld, ainame = os.path.split(aifile)
+		ainame = ainame.split(".")[0]
+		feather_file = os.path.join(fld, "as_pandas", ainame+".ft")
+		groups_file = os.path.join(fld, "as_pandas",  ainame+"_groups.yml")
+		visual_log_file = os.path.join(fld, ainame + "visual_stimuli_log.yml")
+
+		if not os.path.isfile(feather_file) or not os.path.isfile(groups_file):
+			# ? load the AI file directly
+			# Get stimuli names from the ai file and then stimuli
+			tdms_df, cols = tb.open_temp_tdms_as_df(aifile, move=True, skip_df=True)
+			groups = tdms_df.groups()
+		else:
+			# load feather and extract info
+			tdms_df = load_feather(feather_file)
+			groups = [g.split("'/'")[0][2:] for g in load_yaml(groups_file) if "'/'" in g]
+
+		# Get which stimuli are in the data loaded
+		if 'WAVplayer' in groups:
+			stimuli_groups = tdms_df.group_channels('WAVplayer')
+		elif 'AudioIRLED_analog' in groups:
+			stimuli_groups = tdms_df.group_channels('AudioIRLED_analog')
+		else:
+			stimuli_groups = []
+		stimuli = {s.path:s.data[0] for s in stimuli_groups}
+
+		# See if there are visual stimuli
+		if "LDR_signal_AI" in groups: visuals_check = True
+		else: visuals_check = False
+
+		# ? If there is no stimuli of any sorts insert a fake place holder to speed up future analysis
+		if not len(stimuli.keys()) and not visuals_check:
+			# There were no stimuli, let's insert a fake one to avoid loading the same files over and over again
+			table.insert_placeholder(key)
+			return
+
+		# ? If there are audio stimuli, process them 
+		if len(stimuli.keys()):
+			if visuals_check: raise NotImplementedError("This wont work like this: if we got visual we got feather, if we got feather this dont work")
+			# Get stim times from audio channel data
+			if  'AudioFromSpeaker_AI' in groups:
+				audio_channel_data = tdms_df.channel_data('AudioFromSpeaker_AI', '0')
+				th = 1
+			else:
+				# First recordings with mantis had different params
+				audio_channel_data = tdms_df.channel_data('AudioIRLED_AI', '0')
+				th = 1.5
+			
+			# Find when the stimuli start in the AI data
+			stim_start_times = find_audio_stimuli(audio_channel_data, th, table.sampling_rate)
+
+			# Check we found the correct number of peaks
+			if not len(stimuli) == len(stim_start_times):
+				print('Names - times: ', len(stimuli), len(stim_start_times),stimuli.keys(), stim_start_times)
+				sel = input('Which to discard? ["n" if youd rather look at the plot]')
+				if not 'n' in sel:
+					sel = int(sel)
+				else:
+					plot_signals(audio_channel_data, stim_start_times)
+					plt.show()
+					sel = input('Which to discard? ')
+				if len(stim_start_times) > len(stimuli):
+					np.delete(stim_start_times, int(sel))
+				else:
+					del stimuli[list(stimuli.keys())[sel]]
+
+			if not len(stimuli) == len(stim_start_times):
+				raise ValueError("oopsies")
+
+			# Go from stim time in number of samples to number of frames
+			overview_stimuli_frames = np.round(np.multiply(np.divide(stim_start_times, table.sampling_rate), fps))
+			
+			# Instert these stimuli into the table
+			for i, (stimname, stim_protocol) in enumerate(stimuli.items()):
+				stim_key = key.copy()
+				stim_key['stimulus_uid'] = stim_key['recording_uid']+'_{}'.format(i)
+				stim_key['overview_frame'] = int(overview_stimuli_frames[i])
+				stim_key['duration'] = 9 # ! hardcoded
+				stim_key['overview_frame_off'] =    int(overview_stimuli_frames[i]) + fps*stim_key['duration'] 
+				stim_key['stim_name'] = stimname
+				stim_key['stim_type'] = 'audio' 
+				table.insert1(stim_key)
+			
+
+		# ? if there are any visual stimuli, process them
+		if visuals_check:
+			# Check how many audio stim were inserted to make sure that "stimulus_uid" table key is correct
+			n_audio_stimuli = len(stimuli)
+
+			# Get the stimuli start and ends from the LDR AI signal
+			ldr_signal = tdms_df["/'LDR_signal_AI'/'0'"].values
+			ldr_stimuli = find_visual_stimuli(ldr_signal, 0.24, table.sampling_rate)
+			
+			# Get the metadata about the stimuli from the log.yml file
+			log_stimuli = load_visual_stim_log(visual_log_file)
+
+			if len(ldr_stimuli) != len(log_stimuli): 
+				if len(ldr_stimuli) < len(log_stimuli):
+					warnings.warn("Something weird going on, ignoring some of the stims on the visual stimuli log file")
+					log_stimuli = log_stimuli.iloc[np.arange(0, len(ldr_stimuli))]
+				else:
+					raise ValueError("Something went wrong with stimuli detection")
+
+			# Add the start time (in seconds) and end time of each stim to log_stimuli df
+			log_stimuli['start_time'] = [s.start/table.sampling_rate for s in ldr_stimuli]
+			log_stimuli['end_time'] = [s.end/table.sampling_rate for s in ldr_stimuli]
+			log_stimuli['duration'] = log_stimuli['end_time'] - log_stimuli['start_time']
+
+			# Insert the stimuli into the table, these will be used to populate the metadata table separately
+			for stim_n, stim in log_stimuli.iterrows():
+				stim_key = key.copy()
+				stim_key['stimulus_uid'] =          stim_key['recording_uid']+'_{}'.format(stim_n + n_audio_stimuli)  
+				stim_key['overview_frame'] =        int(np.round(np.multiply(stim.start_time, fps)))
+				stim_key['duration'] =              stim.duration
+				stim_key['overview_frame_off'] =    int(stim_key['overview_frame'] + fps*stim_key['duration'])
+				stim_key['stim_name'] =             stim.stim_name
+				stim_key['stim_type'] =             'visual' 
+				table.insert1(stim_key)
+
+				# Keep record of the path to the log file in the part table 
+				part_key = key.copy()
+				part_key['filepath'] =       visual_log_file
+				part_key['stimulus_uid'] =   stim_key['stimulus_uid']
+				table.VisualStimuliLogFile2.insert1(part_key)
+
+	if int(key["uid"])  < 184: make_behaviourstimuli(table,key)
+	else: make_mantisstimuli(table, key)
+
+
+def make_visual_stimuli_metadata(table):
+	stims_already_in_table = table.VisualStimuliMetadata.fetch("stimulus_uid")
+
+	for stim in tqdm(table):
+		key = dict(stim)
+		if key['stimulus_uid'] in stims_already_in_table: continue # ? dont process it agian you fool
+
+		stim_type = (table & key).fetch1("stim_type")
+
+		if stim_type == "audio": return # this is only for visualz
+
+		# Load the metadata
+		metadata = load_yaml((table.VisualStimuliLogFile & key).fetch1("filepath"))
+
+		# Get the stim calculator
+		contrast_calculator = ContrastCalc(measurement_file="C:\\Users\\Federico\\Documents\\GitHub\\VisualStimuli\\Utils\\measurements.xlsx")
+		
+		stim_number = key["stimulus_uid"].split("_")[-1]
+		stim_metadata = metadata['Stim {}'.format(stim_number)]
+		
+		# Convert strings to numners
+		stim_meta = {}
+		for k,v in stim_metadata.items():
+			try:
+				stim_meta[k] = float(v)
+			except:
+				stim_meta[k] = v
+			
+		if 'background_luminosity' not in stim_meta.keys(): stim_meta['background_luminosity'] = 125 # ! hardcoded
+		
+		# get contrst
+		stim_meta['contrast'] = contrast_calculator.contrast_calc(stim_meta['background_luminosity'], stim_meta['color'])
+
+		# prepare key for insertion into the table
+		key['stim_type']             = stim_meta['Stim type']
+		key['modality']              = stim_meta['modality']
+		key['time']                  = stim_meta['stim_start']
+		key['units']                 = stim_meta['units']
+		key['start_size']            = stim_meta['start_size']
+		key['end_size']              = stim_meta['end_size']
+		key['expansion_time']        = stim_meta['expand_time']
+		key['on_time']               = stim_meta['on_time']
+		key['off_time']              = stim_meta['off_time']
+		key['color']                 = stim_meta['color']
+		key['background_color']      = stim_meta['background_luminosity']
+		key['contrast']              = stim_meta['contrast']
+		key['position']              = stim_meta['pos']
+		key['repeats']               = stim_meta['repeats']
+		key['sequence_number']       = stim_number
+
+		table.insert1(key, allow_direct_insert=True)
+
 
 
 

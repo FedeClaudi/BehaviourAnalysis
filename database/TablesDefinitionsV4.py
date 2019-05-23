@@ -128,6 +128,9 @@ class Recording(dj.Imported):
 			aligned_frame_timestamps:       longblob
 		"""
 
+	def make_aligned_frames(self):
+		fill_in_aligned_frames(self)
+
 @schema
 class Stimuli(dj.Imported):
 	definition = """
@@ -142,20 +145,21 @@ class Stimuli(dj.Imported):
 		stim_name:          varchar(128)         # name 
 	"""
 
-	class VisualStimuliLogFile(dj.Part):
+	sampling_rate = 25000
+
+	class VisualStimuliLogFile(dj.Part): # ? This is populated in the make method
 		definition = """
 			-> Stimuli
 			---
 			filepath:       varchar(128)
 		"""
 
-	class VisualStimuliMetadata(dj.Part):
+	class VisualStimuliMetadata(dj.Part):  # ? This is populated separately
 		definition = """
 			-> Stimuli
 			---
 			stim_type:              varchar(128)    # loom, grating...
 			modality:               varchar(128)    # linear, exponential. 
-			params_file:            varchar(128)    # name of the .yml file with the params
 			time:                   varchar(128)    # time at which the stim was delivered
 			units:                  varchar(128)    # are the params defined in degrees, cm ...
 	
@@ -173,6 +177,24 @@ class Stimuli(dj.Imported):
 			repeats:                int
 			sequence_number:        float           # sequential stim number in the session
 		 """
+
+	def insert_placeholder(self, key):
+		key['stimulus_uid'] 		= key['recording_uid']+'_0'
+		key['duration']  			= -1
+		key['stim_type'] 			= 'nan'
+		key['overview_frame'] 		= -1
+		key['overview_frame_off'] 	= -1
+		key['stim_name'] 			= "nan"
+		self.insert1(key)
+
+	def make(self, key):
+		make_stimuli_table(self, key)
+
+	def make_metadata(self):
+		make_visual_stimuli_metadata(self)	
+			
+
+
 
 
 @schema
@@ -208,6 +230,6 @@ class TrackingData(dj.Imported):
 
 
 if __name__ == "__main__":
-	Recording.drop()
+	# Recording.drop()
 	print_erd()
 	plt.show()
