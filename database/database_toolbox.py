@@ -144,7 +144,10 @@ class ToolBox:
             try:
                 stim_frame = int(c.split("'/' ")[-1].split('-')[0])
             except:
-                stim_frame = int(c.split("'/'")[-1].split('-')[0])
+                try:
+                    stim_frame = int(c.split("'/'")[-1].split('-')[0])
+                except:
+                    continue
             stimuli.append(stim(stim_type, stim_name, stim_frame))
         return stimuli
 

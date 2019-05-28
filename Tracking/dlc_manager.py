@@ -223,8 +223,7 @@ if __name__ == "__main__":
     manager = DLCManager()
 
 
-    fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\plots"
-    # fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\threat_test"
+    fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\ants"
 
 
     vids = manager.sel_videos_in_folder(all=True, min_n=3, dr=fld)
@@ -235,7 +234,7 @@ if __name__ == "__main__":
     # manager.label_frames()
 
     # manager.analyze_videos(videos=vids)
-    manager.create_labeled_videos(videos=vids, trajectory=True)
+    # manager.create_labeled_videos(videos=vids, trajectory=True)
 
     # manager.filter_data(vids)
     # manager.create_labeled_videos(videos=vids, trajectory=False, filtered=True, dr=None)
@@ -248,6 +247,6 @@ if __name__ == "__main__":
     # manager.check_labels()
 #
     # manager.create_training_dataset()
-    # manager.train_network()
+    manager.train_network()
 
     plt.show()

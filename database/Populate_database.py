@@ -183,8 +183,6 @@ class PopulateDatabase:
     """
         ###################################################################################################################
         ###################################################################################################################
-        ###################################################################################################################
-        ###################################################################################################################
     """
 
 
@@ -214,8 +212,6 @@ class PopulateDatabase:
     """
         ###################################################################################################################
         ###################################################################################################################
-        ###################################################################################################################
-        ###################################################################################################################
     """
 
 
@@ -227,28 +223,33 @@ if __name__ == '__main__':
 
     errors = []
 
-    # p.remove_table(["mantisstimuli"])
-    # p.show_progress("recording")
+
+    # ? drop tables
+    # p.remove_table(["trackingdata"])
         
     # ? These tables population is fast and largely automated
-    # p.populate_mice_table()
+    # p.populate_mice_table()   # ! mice recordings, components... 
     # p.populate_sessions_table()
+
     # p.recording.populate(display_progress=True) 
     # p.recording.make_paths(p) # TODO 190510_CA556 missing
-    # p.mazecomponents.populate(display_progress=True)
+    # p.recording.make_aligned_frames() 
+    
+    # p.mazecomponents.populate(display_progress=True)  # ? this will require input for new experiments
 
     # ? This slower and will require some input
-    # p.ccm.populate(display_progress=True)  
+    # p.ccm.populate(display_progress=True)  # ! ccm
 
     # ? this is considerably slower but should be automated
-    # errors = p.trackingdata.populate(display_progress=True, suppress_errors=True, return_exception_objects =True)
+    # errors = p.trackingdata.populate(display_progress=True, suppress_errors=False, return_exception_objects =True) # ! tracking data
 
-    # errors = p.stimuli.populate(display_progress=True, suppress_errors=True, return_exception_objects =True) # , max_calls =10)  # ! max_calls 
+    # errors = p.stimuli.populate(display_progress=True, suppress_errors=True, return_exception_objects=True) # , max_calls =10)  # ! stimuli
     # p.stimuli.make_metadata()
 
-    if errors: raise ValueError()
 
+    if errors: raise ValueError([print("\n\n", e) for e in errors])
 
+    # ? Show database content and progress
     print(p)
     p.show_progress()
 

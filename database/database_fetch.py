@@ -1,6 +1,6 @@
 import sys
 sys.path.append('./')
-from database.NewTablesDefinitions import *
+# from database.NewTablesDefinitions import *
 import cv2
 import os
 import warnings
@@ -174,7 +174,7 @@ def get_maze_template(exp=None):
         elif 'fourarms' in exp:
             maze_model = cv2.imread('Utilities\\Maze_templates\\FourArms Maze.png')
             maze_model = np.array(maze_model[:, ::-1])
-        elif 'model based' in exp.lower():
+        elif 'model based' == exp.lower():
             maze_model = cv2.imread('Utilities\\Maze_templates\\Modelbased.png')
         else:
             maze_model = cv2.imread('Utilities\\Maze_templates\\mazemodel.png')

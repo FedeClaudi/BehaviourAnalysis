@@ -194,12 +194,9 @@ class Stimuli(dj.Imported):
 		make_visual_stimuli_metadata(self)	
 			
 
-
-
-
 @schema
 class TrackingData(dj.Imported):
-	experiments_to_skip = ["lambda, FlipFlop", "FlipFlop2"]
+	experiments_to_skip = ["lambda", "FlipFlop", "FlipFlop2"]
 	bodyparts = ['snout', 'neck', 'body', 'tail_base',]
 
 	definition = """
@@ -222,6 +219,51 @@ class TrackingData(dj.Imported):
 
 
 
+@schema
+class AllExplorations(dj.Manual):
+	definition = """
+		exploration_id: int
+		---
+		session_uid: int
+		experiment_name: varchar(128)
+		tracking_data: longblob
+		total_travel: float               # Total distance covered by the mouse
+		tot_time_in_shelter: float        # Number of seconds spent in the shelter
+		tot_time_on_threat: float         # Number of seconds spent on threat platf
+		duration: float                   # Total duration of the exploration in seconds
+		median_vel: float                  # median velocity in px/s 
+		session_number_trials: int      # Number of trials in the session following the expl
+		exploration_start: int              # frame start exploration
+	"""
+
+
+@schema
+class AllTrials(dj.Manual):
+	definition = """
+		trial_id: int
+		---
+		session_uid: int
+		recording_uid: varchar(128)
+		experiment_name: varchar(128)
+		tracking_data: longblob
+		outward_tracking_data: longblob
+
+		stim_frame: int
+		stim_type: enum('audio', 'visual')
+		stim_duration: int
+
+		number_of_trials: int
+		trial_number: int
+
+		is_escape: enum('true', 'false')
+		escape_arm: enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'Right2', 'Left2', 'nan', 'alpha0', 'alpha1', 'beta0', 'beta1', 'lambda') 
+		origin_arm:  enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'Right2', 'Left2', 'nan', 'alpha0', 'alpha1', 'beta0', 'beta1', 'lambda')         
+		time_out_of_t: float
+		fps: int
+		escape_duration: int        # duration in seconds
+
+		threat_exits: longblob
+	"""
 
 
 

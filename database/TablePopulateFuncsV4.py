@@ -150,23 +150,18 @@ def fill_in_recording_paths(recordings, populator):
 def fill_in_aligned_frames(recordings):
 	from Utilities.dbase.db_data_alignment import ThreatDataProcessing
 
-	recs_in_part_table = recordings.FilePaths.fetch("recording_uid")
+	recs_in_part_table = recordings.AlignedFrames.fetch("recording_uid")
 	for rec in tqdm(recordings):
 		key = dict(rec)
 		if key["recording_uid"] in recs_in_part_table: continue  # ? its already in table
 
-		tdp = ThreatDataProcessing(self, key)
+		tdp = ThreatDataProcessing(recordings.AlignedFrames, key)
 		if tdp.feather_file is not None:
 			tdp.load_a_feather()
 			tdp.process_channel(tdp.threat_ch, "threat")
 			tdp.process_channel(tdp.overview_ch, "overview")
 			tdp.align_frames()
-
 			tdp.insert_in_table()
-
-
-
-
 
 
 """
@@ -293,13 +288,17 @@ def make_stimuli_table(table, key):
 			groups = [g.split("'/'")[0][2:] for g in load_yaml(groups_file) if "'/'" in g]
 
 		# Get which stimuli are in the data loaded
-		if 'WAVplayer' in groups:
-			stimuli_groups = tdms_df.group_channels('WAVplayer')
-		elif 'AudioIRLED_analog' in groups:
-			stimuli_groups = tdms_df.group_channels('AudioIRLED_analog')
+		if not isinstance(tdms_df, pd.DataFrame):
+			if 'WAVplayer' in groups:
+				stimuli_groups = tdms_df.group_channels('WAVplayer')
+			elif 'AudioIRLED_analog' in groups:
+				stimuli_groups = tdms_df.group_channels('AudioIRLED_analog')
+			else:
+				stimuli_groups = []
+			stimuli = {s.path:s.data[0] for s in stimuli_groups}
 		else:
-			stimuli_groups = []
-		stimuli = {s.path:s.data[0] for s in stimuli_groups}
+			# stimuli = {g+str(i):0 for i,g in enumerate(groups) if "WAV" in g}
+			stimuli = {}
 
 		# See if there are visual stimuli
 		if "LDR_signal_AI" in groups: visuals_check = True
@@ -337,7 +336,7 @@ def make_stimuli_table(table, key):
 					plt.show()
 					sel = input('Which to discard? ')
 				if len(stim_start_times) > len(stimuli):
-					np.delete(stim_start_times, int(sel))
+					stim_start_times = np.delete(stim_start_times, int(sel))
 				else:
 					del stimuli[list(stimuli.keys())[sel]]
 
@@ -398,7 +397,7 @@ def make_stimuli_table(table, key):
 				part_key = key.copy()
 				part_key['filepath'] =       visual_log_file
 				part_key['stimulus_uid'] =   stim_key['stimulus_uid']
-				table.VisualStimuliLogFile2.insert1(part_key)
+				table.VisualStimuliLogFile.insert1(part_key)
 
 	if int(key["uid"])  < 184: make_behaviourstimuli(table,key)
 	else: make_mantisstimuli(table, key)
@@ -481,7 +480,6 @@ def make_trackingdata_table(table, key):
 	# Insert entry into MAIN CLASS for this videofile
 	key['camera'] = 'overview' # TODO
 	table.insert1(key)
-	del key['camera']
 
 	# Get the scorer name and the name of the bodyparts
 	first_frame = posedata.iloc[0]
@@ -524,10 +522,9 @@ def make_trackingdata_table(table, key):
 		bpkey = key.copy()
 		bpkey['bpname'] = bp
 		bpkey['tracking_data'] = corrected_data.values 
-		try:
-			table.BodyPartData.insert1(bpkey)
-		except:
-			pass
+
+		table.BodyPartData.insert1(bpkey)
+
 
 
 

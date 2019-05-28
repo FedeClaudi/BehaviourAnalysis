@@ -29,14 +29,9 @@ if sys.platform != "darwin":
         dj.__version__
     except:
         import datajoint as dj
-        from database.dj_config import start_connection
-        
-        dbname, _ = start_connection()
-        
+        from database.dj_config import start_connection 
+        dbname, _ = start_connection()    
         from database.TablesDefinitionsV4 import *
-        # from database.NewTablesDefinitions import *
-        # from database.auxillary_tables import *
-        # from database.database_fetch import *
 
 from Utilities.file_io.files_load_save import *
 from Utilities.video_and_plotting.video_editing import Editor

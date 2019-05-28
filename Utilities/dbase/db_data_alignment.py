@@ -13,7 +13,12 @@ from Utilities.file_io.files_load_save import *
 
 class ThreatDataProcessing:
     def __init__(self, table, key, test_mode=False):
-        print("Processing rec: ", key['recording_uid'])
+        from database.TablesDefinitionsV4 import Session, Recording
+        self.recording = Recording()
+
+        self.feather_file = None
+
+        # print("Processing rec: ", key['recording_uid'])
         self.feathers_folder = "Z:\\branco\\Federico\\raw_behaviour\\maze\\analoginputdata\\as_pandas"
 
         self.set_params()
@@ -47,20 +52,23 @@ class ThreatDataProcessing:
         self.peaks_min_iti = 6
         self.peaks_th = 4
 
-        self.start_time = int( 0.2 * 10**8)  # ? when testing don't process whole data, make things faster
+        self.start_time = int(0.2 * 10**8)  # ? when testing don't process whole data, make things faster
         self.end_time = int(0.4 * 10**8)
     
     def fetch_files(self):
-        # get video file for recording
-        videos = get_videos_given_recuid(self.key["recording_uid"])
-        if len(videos) == 1:
-            print("     only one video for this rec, skipping")
-            self.feather_file = None
-        else:
-            aifilepath = get_rec_aifilepath_given_recuid(self.key['recording_uid'])[0]
+        # get video file for recording 
+        videos = (self.recording.FilePaths & "recording_uid='{}'".format(self.key['recording_uid'])).fetch("overview_video", "threat_video")
+        
+        if self.key['uid'] < 184:
+            return # ? skip pre-mantis sessions
 
+        if len(videos[1]) == 0: #? No threat videos
+            return
+        elif len(videos[0]) == 0:
+            warnings.warn("Couldnt find any video files for {}".format(self.key['recording_uid']))
+        else:
             # look for a feather file
-            fld, file_name = os.path.split(aifilepath)
+            fld, file_name = os.path.split(self.key['ai_file_path'])
 
             feathers = os.listdir(os.path.join(fld, "as_pandas"))
 
@@ -68,7 +76,8 @@ class ThreatDataProcessing:
             if feather:
                 self.feather_file = os.path.join(fld, "as_pandas", feather[0])
             else:
-                print("     no feather found")
+                # ? no feather fonud
+                # print("     no feather found")
                 self.feather_file = None
 
 
@@ -87,7 +96,6 @@ class ThreatDataProcessing:
             print("\n\nLoading: ", self.test_file)
             self.data = load_feather(os.path.join(self.test_folder, self.test_file))[self.start_time: self.end_time]
         else:
-            print("     loading data")
             self.data = load_feather(self.feather_file)
 
     def process_channel(self, ch, key):
@@ -134,6 +142,9 @@ class ThreatDataProcessing:
             
 
     def insert_in_table(self):
+        if "software" in self.key.keys(): del self.key['software']
+        if "ai_file_path" in self.key.keys(): del self.key['ai_file_path']
+
         # add stuff to key
         self.key['overview_frames_timestamps']  = self.frame_times['overview']
         self.key['threat_frames_timestamps']    = self.frame_times['threat']
