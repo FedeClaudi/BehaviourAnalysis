@@ -196,7 +196,11 @@ class Stimuli(dj.Imported):
 
 @schema
 class TrackingData(dj.Imported):
-	experiments_to_skip = ["lambda", "FlipFlop", "FlipFlop2"]
+	experiments_to_skip = ['FlipFlop Maze', 'FlipFlop2 Maze', 'FourArms Maze', 'Lambda Maze', 
+                            'Model Based', 'PathInt',
+                            'PathInt2', 'PathInt2 Close', 'PathInt2-D', 'PathInt2-DL', 'PathInt2-L', 
+                            'Square Maze', 'TwoAndahalf Maze', 'TwoArmsLong Maze']
+
 	bodyparts = ['snout', 'neck', 'body', 'tail_base',]
 
 	definition = """

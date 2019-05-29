@@ -20,6 +20,20 @@ try:
 except:
 	print("didnt import skfmm")
 
+
+def interpolate_nans(A):
+    nan = np.nan
+    ok = ~np.isnan(A)
+    xp = ok.ravel().nonzero()[0]
+    fp = A[~np.isnan(A)]
+    x  = np.isnan(A).ravel().nonzero()[0]
+
+    A[np.isnan(A)] = np.interp(x, xp, fp)
+
+    return A
+
+
+
 def remove_nan_1d_arr(arr):
     nan_idxs = [i for i,x in enumerate(arr) if np.isnan(x)]
     return np.delete(arr, nan_idxs)

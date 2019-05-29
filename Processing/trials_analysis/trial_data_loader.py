@@ -74,10 +74,10 @@ class TrialsLoader:
 
         filtered[tracking[:, 2] > 1] = np.nan
 
-        f, ax = plt.subplots()
-        self.plot_tracking(tracking, color='k', ax=ax, with_time=False, scatter=False)
-        self.plot_tracking(filtered, color='r', ax=ax, with_time=False, scatter=False)
-        plt.show()
+        # f, ax = plt.subplots()
+        # self.plot_tracking(tracking, color='k', ax=ax, with_time=False, scatter=True)
+        # self.plot_tracking(filtered, color='r', ax=ax, with_time=False, scatter=True)
+        # plt.show()
 
         return filtered
         

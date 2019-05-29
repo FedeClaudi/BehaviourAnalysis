@@ -471,6 +471,7 @@ def make_trackingdata_table(table, key):
 
 	# Get videos and CCM
 	vid = (Recording.FilePaths & key).fetch1("overview_video")
+
 	ccm = (CCM & key).fetch(format="frame")
 
 	# load pose data
@@ -492,13 +493,20 @@ def make_trackingdata_table(table, key):
 	bp_data = {}
 	for bp in bodyparts:
 		if bp not in table.bodyparts: continue  # skip unwanted body parts
-		# print('     ... body part: ', bp)
+		# ? plt.plot(corrected_data.x, corrected_data.y)
+		# ? plt.scatter(corrected_data.x, corrected_data.y, c=like)
 
 		# Get XY pose and correct with CCM matrix
 		xy = posedata[scorer[0], bp].values[:, :2]
 		corrected_data = correct_tracking_data(xy, ccm['correction_matrix'][0], ccm['top_pad'][0], ccm['side_pad'][0], experiment, key['uid'])
 		corrected_data = pd.DataFrame.from_dict({'x':corrected_data[:, 0], 'y':corrected_data[:, 1]})
 
+		# Correct the data
+		like = posedata[scorer[0], bp].values[:, 2]
+		corrected_data[like < .99999] = np.nan
+		corrected_data.x = interpolate_nans(corrected_data.x.values)
+		corrected_data.y = interpolate_nans(corrected_data.y.values)
+		
 		# get velocity
 		vel = calc_distance_between_points_in_a_vector_2d(corrected_data.values)
 

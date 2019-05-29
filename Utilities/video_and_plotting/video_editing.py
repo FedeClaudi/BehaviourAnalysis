@@ -546,9 +546,6 @@ class Editor:
             save_name = os.path.split(videopath)[-1].split('.')[0] + '_compressed' + '.mp4'
             save_path = os.path.split(videopath)
             save_path = os.path.join(list(save_path))
-        else:
-            save_dir, extension = save_path.split(".")
-            save_path = save_dir+"_mod."+extension
 
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         videowriter = self.open_cvwriter(save_path, w=resized_width, h=resized_height, framerate=fps, format='.mp4', iscolor=False)
@@ -781,7 +778,6 @@ class Editor:
 
                 writer.write(frame)
         writer.release()
-
 
     def brighten_video(self, videopath, save_path, add_value=100):
         cap = cv2.VideoCapture(videopath)
