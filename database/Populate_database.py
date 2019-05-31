@@ -123,6 +123,10 @@ class PopulateDatabase:
                 except:
                     pass
 
+    def delete_placeholders_from_stim_table(self):
+        (self.stimuli & "duration=-1").delete_quick()
+
+
     """
         ###################################################################################################################
         ###################################################################################################################
@@ -226,6 +230,9 @@ if __name__ == '__main__':
 
     # ? drop tables
     # p.remove_table(["trackingdata"])
+
+    # ? Remove stuff from tables
+    # p.delete_placeholders_from_stim_table()
         
     # ? These tables population is fast and largely automated
     # p.populate_mice_table()   # ! mice recordings, components... 
@@ -241,16 +248,16 @@ if __name__ == '__main__':
     # p.ccm.populate(display_progress=True)  # ! ccm
 
     # ? this is considerably slower but should be automated
-    errors = p.trackingdata.populate(display_progress=True, suppress_errors=True, return_exception_objects =True) # ! tracking data
+    # errors = p.trackingdata.populate(display_progress=True, suppress_errors=True, return_exception_objects =True) # ! tracking data
 
-    # errors = p.stimuli.populate(display_progress=True, suppress_errors=True, return_exception_objects=True) # , max_calls =10)  # ! stimuli
+    errors = p.stimuli.populate(display_progress=True, suppress_errors=False, return_exception_objects=True) # , max_calls =10)  # ! stimuli
     # p.stimuli.make_metadata()
 
 
     if errors: raise ValueError([print("\n\n", e) for e in errors])
 
     # ? Show database content and progress
-    print(p)
+    print(p.stimuli.VisualStimuliLogFile())
     p.show_progress()
 
 

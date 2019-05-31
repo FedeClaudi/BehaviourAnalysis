@@ -22,56 +22,56 @@ except:
 
 
 def interpolate_nans(A):
-    nan = np.nan
-    ok = ~np.isnan(A)
-    xp = ok.ravel().nonzero()[0]
-    fp = A[~np.isnan(A)]
-    x  = np.isnan(A).ravel().nonzero()[0]
+	nan = np.nan
+	ok = ~np.isnan(A)
+	xp = ok.ravel().nonzero()[0]
+	fp = A[~np.isnan(A)]
+	x  = np.isnan(A).ravel().nonzero()[0]
 
-    A[np.isnan(A)] = np.interp(x, xp, fp)
+	A[np.isnan(A)] = np.interp(x, xp, fp)
 
-    return A
+	return A
 
 
 
 def remove_nan_1d_arr(arr):
-    nan_idxs = [i for i,x in enumerate(arr) if np.isnan(x)]
-    return np.delete(arr, nan_idxs)
-    
+	nan_idxs = [i for i,x in enumerate(arr) if np.isnan(x)]
+	return np.delete(arr, nan_idxs)
+	
 def normalise_to_val_at_idx(arr, idx):
-    arr = remove_nan_1d_arr(arr)
-    val = arr[idx]
-    return arr / arr[idx]
+	arr = remove_nan_1d_arr(arr)
+	val = arr[idx]
+	return arr / arr[idx]
 
 def normalise_1d(arr):
-    arr = np.array(arr)
-    nan_idxs = [i for i,x in enumerate(arr) if np.isnan(x)]
-    arr = np.delete(arr, nan_idxs)
-    min_max_scaler = preprocessing.MinMaxScaler()
-    normed = min_max_scaler.fit_transform(arr.reshape(-1, 1))
-    return normed
+	arr = np.array(arr)
+	nan_idxs = [i for i,x in enumerate(arr) if np.isnan(x)]
+	arr = np.delete(arr, nan_idxs)
+	min_max_scaler = preprocessing.MinMaxScaler()
+	normed = min_max_scaler.fit_transform(arr.reshape(-1, 1))
+	return normed
 
 def linear_regression(X,Y, split_per=None):
-    import statsmodels.api as sm
+	import statsmodels.api as sm
 
-    # ! sns.regplot much better
-    if split_per is not None: raise NotImplementedError("Fix dataset splitting") # TODO spplit dataset
-    # remove NANs
-    remove_idx = [i for i,(x,y) in enumerate(zip(X,Y)) if np.isnan(x) or np.isnan(y)]
+	# ! sns.regplot much better
+	if split_per is not None: raise NotImplementedError("Fix dataset splitting") # TODO spplit dataset
+	# remove NANs
+	remove_idx = [i for i,(x,y) in enumerate(zip(X,Y)) if np.isnan(x) or np.isnan(y)]
 
-    X = np.delete(X, remove_idx)
-    Y = np.delete(Y, remove_idx)
+	X = np.delete(X, remove_idx)
+	Y = np.delete(Y, remove_idx)
 
-    # # lowess will return our "smoothed" data with a y value for at every x-value
-    # lowess = sm.nonparametric.lowess(Y, X, frac=.999)
+	# # lowess will return our "smoothed" data with a y value for at every x-value
+	# lowess = sm.nonparametric.lowess(Y, X, frac=.999)
 
-    # Regression with Robust Linear Model
-    X = sm.add_constant(X)
+	# Regression with Robust Linear Model
+	X = sm.add_constant(X)
 
-    res = sm.RLM(Y, X, missing="drop").fit()
-    # raise ValueError(res.params)
-    
-    return X, res.params[0], res.params[1]
+	res = sm.RLM(Y, X, missing="drop").fit()
+	# raise ValueError(res.params)
+	
+	return X, res.params[0], res.params[1]
 
 
 
@@ -146,8 +146,9 @@ def percentile_range(data, low=5, high=95):
 
 	lowp = np.percentile(data, low)
 	highp = np.percentile(data, high)
-	res = namedtuple("percentile", "low high")
-	return res(lowp, highp)
+	median = np.median(data)
+	res = namedtuple("percentile", "low median high")
+	return res(lowp, median, highp)
 
 def fill_nans_interpolate(y, pkind='linear'):
 	"""

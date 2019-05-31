@@ -797,7 +797,13 @@ class Editor:
             videowriter.write(gray)
         videowriter.release()
 
-
+    @staticmethod
+    def get_selected_frame(cap, show_frame):
+            cap.set(1, show_frame)
+            ret, frame = cap.read() # read the first frame
+            
+            if not ret: return None
+            else: return frame
 
 if __name__ == '__main__':
     

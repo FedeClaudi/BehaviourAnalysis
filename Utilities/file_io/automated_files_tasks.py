@@ -12,8 +12,7 @@ except:
 
 try:
     from database.Populate_database import PopulateDatabase
-    from database.NewTablesDefinitions import *
-    from database.auxillary_tables import VideoTdmsMetadata
+    from database.TablesDefinitionsV4 import *
 except:
     pass
 
@@ -21,7 +20,7 @@ import time
 
 from Utilities.video_and_plotting.video_editing import VideoConverter, Editor
 from Utilities.file_io.sort_behaviour_files import sort_mantis_files
-from database.TablesPopulateFuncs import ToolBox
+from database.database_toolbox import ToolBox
 from Utilities.file_io.files_load_save import *
 
 
@@ -228,8 +227,8 @@ if __name__ == "__main__":
 
     # automation.convert_tdms_to_mp4()
 
-    # automation.get_list_uncoverted_tdms_videos()
-    # automation.get_list_not_tracked_videos()
+    automation.get_list_uncoverted_tdms_videos()
+    automation.get_list_not_tracked_videos()
 
     # Checks 
     # automation.extract_videotdms_metadata()
@@ -237,5 +236,5 @@ if __name__ == "__main__":
     # automation.remove_stupid_videofiles()
 
 
-    automation.save_ai_files_as_pandas()
+    # automation.save_ai_files_as_pandas()
 # 

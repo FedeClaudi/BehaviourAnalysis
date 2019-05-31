@@ -218,7 +218,7 @@ def make_commoncoordinatematrices_table(table, key):
 
 
 """
-			! STIMULI
+                     # ! STIMULI
 """
 def make_stimuli_table(table, key):
 	from database.TablesDefinitionsV4 import Recording, Session
@@ -471,7 +471,6 @@ def make_trackingdata_table(table, key):
 
 	# Get videos and CCM
 	vid = (Recording.FilePaths & key).fetch1("overview_video")
-
 	ccm = (CCM & key).fetch(format="frame")
 
 	# load pose data

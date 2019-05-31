@@ -10,10 +10,48 @@ from shutil import copyfile
 from tqdm import tqdm 
 from scipy import stats
 
+import matplotlib as mpl
 if sys.platform == "darwin":
-    import matplotlib
-    matplotlib.use("Qt5Agg")
-    
+    mpl.use("Qt5Agg")
+
+# Set up matplotlib
+mpl.rcParams['text.color'] = "white"
+
+mpl.rcParams['figure.figsize'] = [20, 16]
+mpl.rcParams['figure.facecolor'] = [.1, .1, .1]
+mpl.rcParams['figure.autolayout'] = True
+mpl.rcParams['figure.dpi'] = 80
+mpl.rcParams['savefig.dpi'] = 100
+mpl.rcParams['savefig.facecolor'] = [.1, .1, .1]
+
+mpl.rcParams['figure.subplot.left'] = .05
+mpl.rcParams['figure.subplot.right'] = .95
+mpl.rcParams['figure.subplot.bottom'] = .1
+mpl.rcParams['figure.subplot.top'] = .95
+mpl.rcParams['figure.subplot.wspace'] = .1
+mpl.rcParams['figure.subplot.hspace'] = .1
+
+
+mpl.rcParams['font.size'] = 12
+mpl.rcParams['legend.fontsize'] = 'large'
+mpl.rcParams['figure.titlesize'] = 'medium'
+
+mpl.rcParams['lines.linewidth'] = 2.0
+
+mpl.rcParams['legend.fancybox'] = True
+mpl.rcParams['legend.loc'] = 'upper right'
+mpl.rcParams['legend.numpoints'] = 2
+mpl.rcParams['legend.fontsize'] = 'medium'
+mpl.rcParams['legend.framealpha'] = .5
+mpl.rcParams['legend.scatterpoints'] = 3
+mpl.rcParams['legend.edgecolor'] = 'inherit'
+
+mpl.rcParams['axes.facecolor'] = [.4, .4, .4]
+mpl.rcParams['axes.edgecolor'] = "white"
+
+mpl.rcParams['image.aspect'] = "auto"
+
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 

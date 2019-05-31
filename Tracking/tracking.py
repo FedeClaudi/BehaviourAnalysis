@@ -10,9 +10,12 @@ import cv2
 
 from Utilities.file_io.files_load_save import load_yaml
 
-computer = "spike"
+computer = "desk"
 if computer == "desk":
-    from database.NewTablesDefinitions import *
+    from database.TablesDefinitionsV4 import *
+
+
+warnings.warn("\n\n\nCOMPUTER IS: {}\n\n\n".format(computer))
 
 
 class SetUpTracking:
@@ -24,28 +27,20 @@ class SetUpTracking:
             video_folder {[str]} -- [path to video folder]
             pose_folder {[str]} -- [path to pose folder]
         """
-        # ! change this according to computer being used!!
-        # self.temp_fld = 'M:\\'  # ? on main computer
-        self.temp_fld = "D:\\Fede"
+
+        if computer == "desk":
+            self.temp_fld = 'M:\\'  # ? on main computer
+        else:
+            self.temp_fld = "D:\\Fede"
         self.move_video = True
 
         self.video_folder = video_folder
         self.pose_folder = pose_folder
 
-        self.dlc_models = self.get_dlc_models()
         self.video_to_process = self.get_videos_to_process()
         self.process()
 
-        # if self.move_video:
-        #     self.cleanup()
 
-    def get_dlc_models(self):
-        try:
-            return pd.DataFrame(DLCmodels().fetch())
-        except:
-            models =  load_yaml("dlcmodels_spike1.yml")
-            reordered = {k:[models['overview'][k], models['overview_mantis'][k]] for k in models['overview_mantis'].keys()}
-            return pd.DataFrame.from_dict(reordered)
 
     def get_videos_to_process(self):
         # Get all the pose files and then returns a list of video files that don't have a corresponding pose file
@@ -76,24 +71,12 @@ class SetUpTracking:
 
             # Get the DLC model config path
             if 'overview' in video.lower():
-                # Check if the video was acquired using mantis
-                # video_date = int(video.split('_')[0])
-                # if video_date <= 181115:  # last recording with behav software
-                #     camera = 'overview'
-                # else:
-                camera = 'overview_mantis'
+                camera = 'overview'
+                config_path = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Nets\\maze_joined-Federico-2019-02-22\\config.yml"
             elif 'threat' in video.lower():
                 camera = 'threat'
+                config_path = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\DLC_nets\\Nets\\threat_camera-Federico-2019-05-13\\config.yml"
                 
-            # else:
-            #     camera = 'overview'  # <- behaviour software videos 
-
-            print('     video: {}\n     camera: {}'.format(video, camera))
-            try:
-                config_path = self.dlc_models.loc[self.dlc_models['camera'] == camera]['cfg_file_path'].values[0]
-            except:
-                raise ValueError("Could not find DLC model for camera: ", camera)
-
             # Move video to local HD: otherwise analysis breaks if internet connection is unstable
             complete_path = os.path.join(self.video_folder, video)
             
@@ -160,7 +143,11 @@ class SetUpTracking:
         os.remove(self.move_video_path)
 
 if __name__ == "__main__":
-    paths = load_yaml('paths_spike1.yml')
+    if computer != "desk":
+        paths = load_yaml('paths_spike1.yml')
+    else:
+        paths = load_yaml('paths.yml')
+
 
     SetUpTracking(os.path.join(paths['raw_data_folder'], paths['raw_video_folder']),  paths['tracked_data_folder'])
 
