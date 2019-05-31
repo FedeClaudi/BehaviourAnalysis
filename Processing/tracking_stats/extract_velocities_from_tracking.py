@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from itertools import combinations
 
-from Utilities.Maths.math_utils import *
+from Utilities.maths.math_utils import *
 
 """
 Gets a dataframe correspondings to the tracking for one session in the shape of:

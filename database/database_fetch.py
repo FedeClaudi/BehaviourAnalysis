@@ -1,9 +1,10 @@
 import sys
 sys.path.append('./')
-from database.NewTablesDefinitions import *
+# from database.NewTablesDefinitions import *
 import cv2
 import os
 import warnings
+import pandas as pd
 
 
 """Bunch of functions to facilitate retrieving filtered data from the database tables
@@ -49,29 +50,21 @@ def get_tracking_given_bp(bp):
     fetched = pd.DataFrame((TrackingData.BodyPartData & 'bpname = "{}"'.format(bp)).fetch())
     return fetched.loc[fetched['bpname'] == bp]
 
-def get_tracking_given_recuid(ruid, tracking=None, just_body=False, bp=None, just_trackin_data=True):
-    from database.NewTablesDefinitions import TrackingData, TrackingDataJustBody
-    if tracking is not None:
-        return tracking.loc[tracking['recording_uid']==ruid]
-    else:
-        if just_body:
-            return (TrackingDataJustBody.BodyPartData & "recording_uid='{}'".format(ruid)).fetch()
-        else:
-            recs_in_table = list(TrackingData.fetch("recording_uid"))
-            if not ruid in recs_in_table: warnings.warn("did not find any recording data, returning empty")
+def get_tracking_given_recuid(ruid, tracking=None, bp=None, just_trackin_data=True, cam = "overview"):
+    from database.NewTablesDefinitions import TrackingData
 
-            if not just_trackin_data:
-                return (TrackingData.BodyPartData & "recording_uid='{}'".format(ruid) & "camera_name='overview'" & "bpname='{}'".format(bp)).fetch()
-            else:
-                return (TrackingData.BodyPartData & "recording_uid='{}'".format(ruid) & "camera_name='overview'" & "bpname='{}'".format(bp)).fetch('tracking_data')
+    recs_in_table = list(TrackingData.fetch("recording_uid"))
+    if not ruid in recs_in_table: warnings.warn("did not find any recording data, returning empty")
+
+    if not just_trackin_data:
+        return pd.DataFrame((TrackingData.BodyPartData & "recording_uid='{}'".format(ruid) & "camera_name='{}'".format(cam)).fetch())
+    else:
+        return (TrackingData.BodyPartData & "recording_uid='{}'".format(ruid) & "camera_name='{}'".format(cam)).fetch('tracking_data')
 
 def get_tracking_given_recuid_and_bp(recuid, bp):
     from database.NewTablesDefinitions import TrackingData
     fetched = pd.DataFrame((TrackingData.BodyPartData & 'bpname = "{}"'.format(bp) & 'recording_uid = "{}"'.format(recuid)).fetch())
     return fetched
-
-def get_videometadata_given_sessuid(uid, videometadata):
-    return videometadata.loc[videometadata['uid'] == uid]
 
 def get_sessuid_given_recuid(recuid, sessions):
     r = recuid.split('_')
@@ -110,6 +103,7 @@ def get_sessname_given_sessuid(uid):
 
 def get_videometadata_given_recuid(rec, just_fps=True):
     from database.NewTablesDefinitions import VideoFiles
+    import pandas as pd
     if not just_fps:
         return pd.DataFrame((VideoFiles.Metadata & "recording_uid='{}'".format(rec)).fetch())
     else:
@@ -180,7 +174,7 @@ def get_maze_template(exp=None):
         elif 'fourarms' in exp:
             maze_model = cv2.imread('Utilities\\Maze_templates\\FourArms Maze.png')
             maze_model = np.array(maze_model[:, ::-1])
-        elif 'model based' in exp.lower():
+        elif 'model based' == exp.lower():
             maze_model = cv2.imread('Utilities\\Maze_templates\\Modelbased.png')
         else:
             maze_model = cv2.imread('Utilities\\Maze_templates\\mazemodel.png')
@@ -197,3 +191,8 @@ def get_mantisstim_given_stimuid(stimuid):
 def get_mantisstim_logfilepath_given_stimud(stimuid):
     from database.NewTablesDefinitions import MantisStimuli
     return pd.DataFrame((MantisStimuli.VisualStimuliLogFile2 & "stimulus_uid='{}'".format(stimuid)).fetch())
+
+def get_rec_aifilepath_given_recuid(recuid):
+    from database.NewTablesDefinitions import Recordings
+
+    return (Recordings & "recording_uid='{}'".format(recuid)).fetch("ai_file_path")

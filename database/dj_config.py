@@ -17,20 +17,21 @@ def start_connection():
     """
     
 
-    dbname = 'Database'    # Name of the database subfolder with data
-    try:
-        dj.config['database.host'] = "127.18.0.1" 
-    except:
-        print("Could not connect to database")
-        return None, None
+    dbname = 'DatabaseV4'    # Name of the database subfolder with data
+    if dj.config['database.user'] != "root":
+        try:
+            dj.config['database.host'] = "127.18.0.1" 
+        except:
+            print("Could not connect to database")
+            return None, None
 
-    dj.config['database.user'] = 'root'
-    dj.config['database.password'] = 'fede'
-    dj.config['database.safemode'] = False
-    schema = dj.schema(dbname, locals())
+        dj.config['database.user'] = 'root'
+        dj.config['database.password'] = 'fede'
+        dj.config['database.safemode'] = False
 
-    print('Connecting to server')
-    dj.conn()
+        dj.conn()
+
+    schema = dj.schema(dbname)
     return dbname, schema
 
     """

@@ -4,9 +4,9 @@ sys.path.append('./')
 
 from Utilities.imports import *
 
-from scipy.special import softmax
-
-from Utilities.Maths.math_utils import calc_distance_between_points_in_a_vector_2d as dist
+try: from scipy.special import softmax
+except: pass
+from Utilities.maths.math_utils import calc_distance_between_points_in_a_vector_2d as dist
 
 from Modelling.maze_solvers.world import World
 

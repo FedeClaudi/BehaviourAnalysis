@@ -223,8 +223,7 @@ if __name__ == "__main__":
     manager = DLCManager()
 
 
-    fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\plots"
-    # fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\raw_data\\threat_test"
+    fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\ants\\dlc_vids_edited"
 
 
     vids = manager.sel_videos_in_folder(all=True, min_n=3, dr=fld)
@@ -246,7 +245,7 @@ if __name__ == "__main__":
     # manager.update_training_video_list()
     # manager.merge_datasets()
     # manager.check_labels()
-#
+
     # manager.create_training_dataset()
     # manager.train_network()
 

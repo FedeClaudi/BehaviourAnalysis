@@ -18,7 +18,7 @@ import shutil
 import matplotlib.pyplot as plt
 import time
 
-from Utilities.file_io.files_load_save import load_yaml, load_tdms_from_winstore
+from Utilities.file_io.files_load_save import *
 
 
 class VideoConverter:
@@ -250,6 +250,8 @@ class VideoConverter:
         print('Converted {} frames in {}s\n\n'.format(tot_frames, round(end-start)))
 
 class Editor:
+    def __init__(self):
+        self.paths = load_yaml('./paths.yml')
 
     @staticmethod
     def save_clip(clip, folder, name, format, fps):
@@ -431,6 +433,9 @@ class Editor:
 
     @staticmethod
     def get_video_params(cap):
+        if isinstance(cap, str):
+            cap = cv2.VideoCapture(cap)
+            
         nframes = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -541,9 +546,6 @@ class Editor:
             save_name = os.path.split(videopath)[-1].split('.')[0] + '_compressed' + '.mp4'
             save_path = os.path.split(videopath)
             save_path = os.path.join(list(save_path))
-        else:
-            save_dir, extension = save_path.split(".")
-            save_path = save_dir+"_mod."+extension
 
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         videowriter = self.open_cvwriter(save_path, w=resized_width, h=resized_height, framerate=fps, format='.mp4', iscolor=False)
@@ -777,7 +779,6 @@ class Editor:
                 writer.write(frame)
         writer.release()
 
-
     def brighten_video(self, videopath, save_path, add_value=100):
         cap = cv2.VideoCapture(videopath)
         nframes, width, height, fps = self.get_video_params(cap)
@@ -796,7 +797,13 @@ class Editor:
             videowriter.write(gray)
         videowriter.release()
 
-
+    @staticmethod
+    def get_selected_frame(cap, show_frame):
+            cap.set(1, show_frame)
+            ret, frame = cap.read() # read the first frame
+            
+            if not ret: return None
+            else: return frame
 
 if __name__ == '__main__':
     

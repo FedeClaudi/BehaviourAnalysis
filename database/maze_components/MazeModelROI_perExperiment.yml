@@ -1,0 +1,21 @@
+FlipFlop Maze: ['p1', 'b1', 's', 'b2', 'p4', 'b4', 'p2', 'b5', 'b10', 't', 'b11', 'p5', 'b6', 'b7']
+FlipFlop2 Maze: ['p1', 'b1', 's', 'b2', 'p4', 'b4', 'p2', 'b5', 'b10', 't', 'b11', 'p5', 'b6', 'b7']
+
+FourArms Maze: ['p1', 'b1', 'b4', 'p2', 'b9', 'p3', 'b13', 'b10', 's', 't', 'b11', 'p5', 'b6', 'b2', 'p4', 'b8', 'p6', 'b14']
+
+Lambda Maze: []
+
+PathInt: ['s', 't', 'p1', 'b1', 'b4', 'b10', 'b11', 'p5', 'b6', 'b15']
+PathInt2: ['s', 't', 'p1', 'b1', 'b4', 'b10', 'b11', 'p5', 'b6']
+PathInt2-D: ['s', 't', 'p1', 'b1', 'b4', 'b10', 'b11', 'p5', 'b6']
+PathInt2-DL: ['s', 't', 'p1', 'b1', 'b4', 'b10', 'b11', 'p5', 'b6']
+PathInt2-L: ['s', 't', 'p1', 'b1', 'b4', 'b10', 'b11', 'p5', 'b6']
+PathInt2-Close: ['s', 't', 'p1', 'b1', 'b4', 'b10', 'b11', 'p5', 'b6']
+PathInt2 Close: ['s', 't', 'p1', 'b1', 'b4', 'b10', 'b11', 'p5', 'b6']
+
+Square Maze: ['s', 't', 'b5', 'p2', 'b10', 'b11', 'p5', 'b6']
+TwoAndahalf Maze: ['s', 't', 'b5', 'p2', 'b10', 'b11', 'p5', 'b6', 'b15']
+TwoArmsLong Maze: ['s', 't', 'b1', 'p1', 'b3', 'p3', 'b13', 'b14', 'p6', 'b8', 'p4', 'b2']
+
+Model Based: ['s', 't', 'b15', 'b14', 'p5', 'b6', 'b1', 'p1', 'b4', 'b10']
+Model Based V2: ['s', 't', 'b15', 'b14', 'p5', 'b6', 'b1', 'p1', 'b4', 'b10']

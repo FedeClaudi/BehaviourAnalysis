@@ -10,6 +10,7 @@ from Utilities.imports import *
 
 class Trials:
     def __init__(self, selected_experiments = None, just_escapes=True, exp_1_mode=False):
+         
         self.selected_experiments = selected_experiments
         self.just_escapes = just_escapes
 
@@ -26,7 +27,8 @@ class Trials:
             self.selected_experiments.extend(self.grouped_experiments['symmetric'])
 
         # Define which items to load from the table for each entry
-        self.elems_to_load = ["trial_id", "tracking_data","session_uid", "experiment_name", "escape_arm", "origin_arm", "fps", "is_escape"]
+        self.elems_to_load = ["trial_id", "tracking_data","session_uid", "experiment_name", "escape_arm", 
+                                "origin_arm", "fps", "is_escape", "time_out_of_t", "outward_tracking_data", "origin_arm"]
 
         # Load data
         self.trials = self.load()

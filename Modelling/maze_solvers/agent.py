@@ -3,9 +3,9 @@ sys.path.append('./')
 
 from Utilities.imports import *
 
-from scipy.special import softmax
-
-from Utilities.Maths.math_utils import calc_distance_between_points_in_a_vector_2d as dist
+try: from scipy.special import softmax
+except: pass
+from Utilities.maths.math_utils import calc_distance_between_points_in_a_vector_2d as dist
 
 from Modelling.maze_solvers.environment import Environment
 
@@ -28,12 +28,10 @@ class Agent(Environment):
 		self._geodesic_distance = self.geodesic_distance.copy()
 
 		# define yaml file with save options (walks for each arm of the maze)
-		self.options_file = "Modelling\maze_solvers\options.yml"
+		self.options_file = "Modelling/maze_solvers/options.yml"
 		self.load_options()
 
 	def load_options(self):
-		options = load_yaml(self.options_file)
-
 		if self.maze_type == "asymmetric":
 			bridges = self.asymmetric_bridges
 		elif self.maze_type == "modelbased":
@@ -46,12 +44,18 @@ class Agent(Environment):
 		else: raise ValueError("unrecognised maze")
 
 		self.bridges = bridges
-		# make sure that only the options for the current maze design are being used
+
 		try:
-			self.options = {k:v for k,v in options.items() if k in bridges}
-		except:
-			print("No optiosn loaded")
-			self.options=None
+			options = load_yaml(self.options_file)
+		except: 
+			pass
+		else:
+			# make sure that only the options for the current maze design are being used
+			try:
+				self.options = {k:v for k,v in options.items() if k in bridges}
+			except:
+				print("No optiosn loaded")
+				self.options=None
 
 	def plot_maze_blocked(self):
 		for bridge in self.bridges:

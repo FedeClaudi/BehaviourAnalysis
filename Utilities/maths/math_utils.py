@@ -12,11 +12,75 @@ from Utilities.file_io.files_load_save import load_yaml
 from scipy.signal import medfilt as median_filter
 from scipy.interpolate import interp1d
 from collections import namedtuple
+from sklearn import  linear_model
+from sklearn import preprocessing
 
 try:
 	import skfmm
 except:
 	print("didnt import skfmm")
+
+def moving_average(arr, window_size):
+    # window = np.ones(int(window_size))/float(window_size)
+    # return np.convolve(arr, window, 'same')
+    cumsum_vec = np.cumsum(np.insert(arr, 0, 0)) 
+    return (cumsum_vec[window_size:] - cumsum_vec[:-window_size]) / window_size
+
+
+def interpolate_nans(A):
+	nan = np.nan
+	ok = ~np.isnan(A)
+	xp = ok.ravel().nonzero()[0]
+	fp = A[~np.isnan(A)]
+	x  = np.isnan(A).ravel().nonzero()[0]
+
+	A[np.isnan(A)] = np.interp(x, xp, fp)
+
+	return A
+
+
+
+def remove_nan_1d_arr(arr):
+	nan_idxs = [i for i,x in enumerate(arr) if np.isnan(x)]
+	return np.delete(arr, nan_idxs)
+	
+def normalise_to_val_at_idx(arr, idx):
+	arr = remove_nan_1d_arr(arr)
+	val = arr[idx]
+	return arr / arr[idx]
+
+def normalise_1d(arr):
+	arr = np.array(arr)
+	nan_idxs = [i for i,x in enumerate(arr) if np.isnan(x)]
+	arr = np.delete(arr, nan_idxs)
+	min_max_scaler = preprocessing.MinMaxScaler()
+	normed = min_max_scaler.fit_transform(arr.reshape(-1, 1))
+	return normed
+
+def linear_regression(X,Y, split_per=None):
+	import statsmodels.api as sm
+
+	# ! sns.regplot much better
+	if split_per is not None: raise NotImplementedError("Fix dataset splitting") # TODO spplit dataset
+	# remove NANs
+	remove_idx = [i for i,(x,y) in enumerate(zip(X,Y)) if np.isnan(x) or np.isnan(y)]
+
+	X = np.delete(X, remove_idx)
+	Y = np.delete(Y, remove_idx)
+
+	# # lowess will return our "smoothed" data with a y value for at every x-value
+	# lowess = sm.nonparametric.lowess(Y, X, frac=.999)
+
+	# Regression with Robust Linear Model
+	X = sm.add_constant(X)
+
+	res = sm.RLM(Y, X, missing="drop").fit()
+	# raise ValueError(res.params)
+	
+	return X, res.params[0], res.params[1]
+
+
+
 
 
 def beta_distribution_params(a=None, b=None, mu=None, sigma=None, omega=None, kappa=None):
@@ -88,8 +152,9 @@ def percentile_range(data, low=5, high=95):
 
 	lowp = np.percentile(data, low)
 	highp = np.percentile(data, high)
-	res = namedtuple("percentile", "low high")
-	return res(lowp, highp)
+	median = np.median(data)
+	res = namedtuple("percentile", "low median high")
+	return res(lowp, median, highp)
 
 def fill_nans_interpolate(y, pkind='linear'):
 	"""

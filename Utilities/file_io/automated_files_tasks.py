@@ -12,8 +12,7 @@ except:
 
 try:
     from database.Populate_database import PopulateDatabase
-    from database.NewTablesDefinitions import *
-    from database.auxillary_tables import VideoTdmsMetadata
+    from database.TablesDefinitionsV4 import *
 except:
     pass
 
@@ -21,7 +20,7 @@ import time
 
 from Utilities.video_and_plotting.video_editing import VideoConverter, Editor
 from Utilities.file_io.sort_behaviour_files import sort_mantis_files
-from database.TablesPopulateFuncs import ToolBox
+from database.database_toolbox import ToolBox
 from Utilities.file_io.files_load_save import *
 
 
@@ -50,7 +49,7 @@ class FilesAutomationToolbox:
             print("\n\nProcessing file {} of {}".format(i,len(files)))
 
             date = int(ai.split("_")[0])
-            if date < 190509: continue  # when started with visuals
+            if date < 190328: continue  # when started with visuals
 
             savename = ai.split('.')[0]+".ft"
             columns_savename = ai.split('.')[0]+"_groups.yml"
@@ -161,7 +160,7 @@ class FilesAutomationToolbox:
         videos = [f.split('.')[0] for f in os.listdir(self.videos_fld) if 'tdms' not in f and "." in f]
         poses = [f.split('_')[:-1] for f in os.listdir(self.pose_fld) if 'h5' in f]
 
-        not_tracked = [f for f in videos if f.split('_') not in poses] #  and 'overview'  in f.lower()]
+        not_tracked = [f for f in videos if f.split('_') not in poses and os.path.getsize(os.path.join(self.videos_fld, f+".mp4")) > 10000] #  and 'overview'  in f.lower()]
         # not_tracked = [f for f in videos if f.split('_') not in poses]
         # remove threat videos that are old and dont want to track
         not_tracked = [f for f in not_tracked if int(f.split("_")[0]) > 190500]
