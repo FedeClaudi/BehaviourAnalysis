@@ -20,6 +20,12 @@ try:
 except:
 	print("didnt import skfmm")
 
+def moving_average(arr, window_size):
+    # window = np.ones(int(window_size))/float(window_size)
+    # return np.convolve(arr, window, 'same')
+    cumsum_vec = np.cumsum(np.insert(arr, 0, 0)) 
+    return (cumsum_vec[window_size:] - cumsum_vec[:-window_size]) / window_size
+
 
 def interpolate_nans(A):
 	nan = np.nan

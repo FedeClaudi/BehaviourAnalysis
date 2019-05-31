@@ -128,19 +128,19 @@ class Analyser(TrialsLoader):
             cap = self.get_opened_video(rec['recording_uid'])
 
             # ? get time binned p(L)
-on_l = np.zeros((len(tracking[1]),1))
-# good_idx = np.where((400 > tracking[1][:, 0]) & (tracking[1][:, 0] < 600) & (tracking[1][:, 1] > 640) & (tracking[1][:, 1] < 780))[0]
-good_idx = np.where((tracking[1][:, 0] < 400) & (tracking[1][:, 0] > 600))
-on_l[good_idx] = 1
-test = tracking[1].copy()
-test[good_idx, :] = np.nan
-self.plot_tracking(test, mode="time")
-plt.show()
+            on_l = tracking[1].copy()
+            on_l[(on_l[:, 0]>400)&(on_l[:, 0]<600)&(on_l[:, 1]>640)&(on_l[:, 1]<780)] = np.nan
+            mask = (np.isnan(on_l))
+            on_l = tracking[1].copy()
+            on_l[~mask] = 0
+            on_l[mask] = 1
+            on_l = on_l[:, 0]
+            on_l_avg = moving_average(on_l, 600*self.fps)
+
 
             # Get the exploration tracking data and plot
             exploration_tracking = self.get_tracking_between_frames(tracking[1], self.skip_cage_time, data.overview_frame[0])
             # self.plot_exploration(exploration_tracking, template, rec['recording_uid'])
-            
 
             # Loop over each stimulus
             end_prev_trial = 0
@@ -186,7 +186,6 @@ plt.show()
                                 transform=axarr[1].transAxes, color='white', fontsize=10)
    
 
-
                 # ? Get frame at start of trial
                 frame = self.get_average_frames(cap, stim['overview_frame'], 30)
                 if frame is not None:
@@ -207,8 +206,13 @@ plt.show()
                                 color="r", ax=axarr[3], linewidth=8,
                                 title="Trial - {}".format(n+1))
 
-                for ax in axarr[4:6]: # ? Plot 3 body parts
+                for ax in axarr[6:8]: # ? Plot 3 body parts
                     self.plot_tracking_3bp(escape_tracking[0],escape_tracking[1],escape_tracking[2], ax=ax, background=template, )
+
+
+                # ? Plot p(L)
+                axarr[5].plot(on_l_avg, color="r", linewidth=5, label="$Time windowed Lambda occupancy$")
+
 
 
                 # ? stuff
@@ -216,10 +220,10 @@ plt.show()
                 end_prev_trial = trial_end
      
                 # Edit axes
-                axarr[4].set(title="Threat Platform", xlim=[420, 600], ylim=[90, 425])
-                axarr[5].set(title="Intermediate Platform", xlim=[420, 600], ylim=[500, 670])
+                axarr[6].set(title="Threat Platform", xlim=[420, 600], ylim=[90, 425])
+                axarr[7].set(title="Intermediate Platform", xlim=[420, 600], ylim=[500, 670])
 
-                # plt.show()
+                plt.show()
 
                 # save fig
                 self.save_figure(f, "Trial-{}".format(n+1))

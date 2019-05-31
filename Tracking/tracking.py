@@ -72,10 +72,10 @@ class SetUpTracking:
             # Get the DLC model config path
             if 'overview' in video.lower():
                 camera = 'overview'
-                config_path = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Nets\\maze_joined-Federico-2019-02-22\\config.yml"
+                config_path = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Nets\\maze_joined-Federico-2019-02-22\\config.yaml"
             elif 'threat' in video.lower():
                 camera = 'threat'
-                config_path = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\DLC_nets\\Nets\\threat_camera-Federico-2019-05-13\\config.yml"
+                config_path = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\DLC_nets\\Nets\\threat_camera-Federico-2019-05-13\\config.yaml"
                 
             # Move video to local HD: otherwise analysis breaks if internet connection is unstable
             complete_path = os.path.join(self.video_folder, video)
@@ -115,12 +115,13 @@ class SetUpTracking:
             Config: {}
             
             """.format(move_video_path, camera, config_path))
+
+
             analyze_videos(config_path, [move_video_path], gputouse=0, save_as_csv=False)
             
             # Rename and move .h5 and .pickle
             analysis_output = [f for f in os.listdir(self.temp_fld) if '.pickle' in f or '.h5' in f]
-            # if len(analysis_output) != 2:
-            #     raise FileNotFoundError('Incorrect number of files after analysis: ', len(analysis_output), analysis_output)
+
 
             for f in analysis_output:
                 origin = os.path.join(self.temp_fld, f)
