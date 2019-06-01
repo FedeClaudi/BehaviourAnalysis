@@ -6,10 +6,6 @@ import os
 from collections import namedtuple
 import numpy as np
 import cv2
-<<<<<<< HEAD
-
-=======
->>>>>>> 73e8c3b9e154dbfea99730a9503071dcd7c0148d
 from shutil import copyfile
 from tqdm import tqdm 
 from scipy import stats
@@ -71,34 +67,22 @@ from shutil import copyfile
 import pyexcel
 import yaml
 
-<<<<<<< HEAD
-=======
 if sys.platform != "darwin":
     try:
         dj.__version__
     except:
-        import datajoint as dj
-        from database.dj_config import start_connection 
-        dbname, _ = start_connection()    
-        from database.TablesDefinitionsV4 import *
+        try:
+            import datajoint as dj
+            from database.dj_config import start_connection 
+            dbname, _ = start_connection()    
+            from database.TablesDefinitionsV4 import *
+        except:
+            pass
 
->>>>>>> 73e8c3b9e154dbfea99730a9503071dcd7c0148d
 from Utilities.file_io.files_load_save import *
 from Utilities.video_and_plotting.video_editing import Editor
-
 from Utilities.maths.math_utils import *
 
-try:
-    import seaborn as sns
 
-    
-    if sys.platform != "darwin":
-        import datajoint as dj
-        from database.dj_config import start_connection
-        from database.NewTablesDefinitions import *
-        from database.auxillary_tables import *
-        from database.database_fetch import *
-
-except: pass
 
 

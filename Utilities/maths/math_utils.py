@@ -12,8 +12,10 @@ from Utilities.file_io.files_load_save import load_yaml
 from scipy.signal import medfilt as median_filter
 from scipy.interpolate import interp1d
 from collections import namedtuple
-from sklearn import  linear_model
-from sklearn import preprocessing
+try:
+	from sklearn import  linear_model
+	from sklearn import preprocessing
+except: pass
 
 try:
 	import skfmm

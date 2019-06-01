@@ -7,10 +7,12 @@ from deeplabcut import analyze_videos
 import yaml
 import pandas as pd
 import cv2
+import warnings
+import os
 
 from Utilities.file_io.files_load_save import load_yaml
 
-computer = "desk"
+computer = "spike"
 if computer == "desk":
     from database.TablesDefinitionsV4 import *
 
@@ -30,8 +32,10 @@ class SetUpTracking:
 
         if computer == "desk":
             self.temp_fld = 'M:\\'  # ? on main computer
+            self.nets_folder = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Nets"
         else:
             self.temp_fld = "D:\\Fede"
+            self.nets_folder = "W:\\branco\\Federico\\raw_behaviour\\maze\\DLC_nets"
         self.move_video = True
 
         self.video_folder = video_folder
@@ -71,25 +75,13 @@ class SetUpTracking:
 
             # Get the DLC model config path
             if 'overview' in video.lower():
-<<<<<<< HEAD
-                camera = 'overview_mantis'
-=======
                 camera = 'overview'
-                config_path = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Nets\\maze_joined-Federico-2019-02-22\\config.yaml"
->>>>>>> 73e8c3b9e154dbfea99730a9503071dcd7c0148d
+                config_path = os.path.join(self.nets_folder, "maze_joined-Federico-2019-02-22\\config.yaml")
+                    
             elif 'threat' in video.lower():
                 camera = 'threat'
-                config_path = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\DLC_nets\\Nets\\threat_camera-Federico-2019-05-13\\config.yaml"
+                config_path = os.path.join(self.nets_folder, "threat_camera-Federico-2019-05-13\\config.yaml")
                 
-<<<<<<< HEAD
-            print('     video: {}\n     camera: {}'.format(video, camera))
-            try:
-                config_path = self.dlc_models.loc[self.dlc_models['camera'] == camera]['cfg_file_path'].values[0]
-            except:
-                raise ValueError("Could not find DLC model for camera: ", camera)
-
-=======
->>>>>>> 73e8c3b9e154dbfea99730a9503071dcd7c0148d
             # Move video to local HD: otherwise analysis breaks if internet connection is unstable
             complete_path = os.path.join(self.video_folder, video)
             
