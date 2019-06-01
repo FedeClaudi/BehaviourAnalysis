@@ -161,10 +161,7 @@ class FilesAutomationToolbox:
         poses = [f.split('_')[:-1] for f in os.listdir(self.pose_fld) if 'h5' in f]
 
         not_tracked = [f for f in videos if f.split('_') not in poses and os.path.getsize(os.path.join(self.videos_fld, f+".mp4")) > 10000] #  and 'overview'  in f.lower()]
-        # not_tracked = [f for f in videos if f.split('_') not in poses]
-        # remove threat videos that are old and dont want to track
-        not_tracked = [f for f in not_tracked if int(f.split("_")[0]) > 190500]
-
+        not_tracked = [f for f in not_tracked] 
         print('To track: ', not_tracked)
         print(len(not_tracked), ' files yet to track')
 

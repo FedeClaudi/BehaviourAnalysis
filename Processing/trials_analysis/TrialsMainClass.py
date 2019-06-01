@@ -9,7 +9,7 @@ from scipy import signal
 class TrialsLoader:
     def __init__(self):
         # Load all the stimul with the recording and session information
-        self.data = (Recording * Session * Stimuli)
+        self.data = (Recording * Session * Stimuli * TrackingData.BodyPartData)
         self.recordings = (Recording * Session)
 
         self.get_experiments()
@@ -69,7 +69,6 @@ class TrialsLoader:
             ax.set(title=title)
         ax.set(xticks=[], yticks=[])
 
-
     @staticmethod
     def plot_tracking_3bp(t1, t2, t3, interval = 10, background=None, ax=None, c1=None, c2=None, title="", **kwargs):
         if c1 is None: c1 =  'red'
@@ -100,7 +99,6 @@ class TrialsLoader:
         ax.plot([t1[0:-1:interval, 0], t2[0:-1:interval, 0]], [t1[0:-1:interval, 1], t2[0:-1:interval, 1]], color="blue", alpha=.8, linewidth=3)
         ax.plot(t1[:, 0], t1[:, 1], color="red", linewidth=6, alpha=.6)
         ax.plot(t2[:, 0], t2[:, 1], color="green", linewidth=4, alpha=.6)
-
 
     def filter_tracking(self, tracking, window_len=31):
         filtered = np.vstack([signal.medfilt(tracking[:, i], window_len) for i in range(tracking.shape[1])]).T
@@ -149,6 +147,10 @@ class TrialsLoader:
             res = cv2.convertScaleAbs(avg)
 
         return res
+
+    def save_data_as_df(self, savepath):
+        pd.DataFrame(self.data.fetch()).to_pickle(savepath)
+        
 
 if __name__ == "__main__":
     TrialsLoader()
