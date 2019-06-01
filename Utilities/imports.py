@@ -73,14 +73,18 @@ if sys.platform != "darwin":
     try:
         dj.__version__
     except:
-        import datajoint as dj
-        from database.dj_config import start_connection 
-        dbname, _ = start_connection()    
-        from database.TablesDefinitionsV4 import *
+        try:
+            import datajoint as dj
+            from database.dj_config import start_connection 
+            dbname, _ = start_connection()    
+            from database.TablesDefinitionsV4 import *
+        except:
+            pass
 
 from Utilities.file_io.files_load_save import *
 from Utilities.video_and_plotting.video_editing import Editor
-
 from Utilities.maths.math_utils import *
+
+
 
 

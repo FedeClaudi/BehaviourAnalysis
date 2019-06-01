@@ -32,7 +32,7 @@ class FilesAutomationToolbox:
         self.tool_box = ToolBox()
 
         # self.database = PopulateDatabase()
-        paths = load_yaml("paths.yml")
+        paths = load_yaml("paths_spike1.yml")
         self.videos_fld = videofolder
         self.pose_fld = paths['tracked_data_folder']
         self.ai_fld = os.path.join(paths['raw_data_folder'], paths['raw_analoginput_folder'])

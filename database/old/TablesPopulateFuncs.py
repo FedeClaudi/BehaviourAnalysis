@@ -2,7 +2,32 @@ import sys
 sys.path.append('./')
 
 from Utilities.imports import *
+<<<<<<< HEAD:database/TablesPopulateFuncs.py
+
+try:
+    cur_dir = os.getcwd()
+    os.chdir("C:\\Users\\Federico\\Documents\\GitHub\\VisualStimuli")
+    from Utils.contrast_calculator import Calculator as ContrastCalc
+    os.chdir(cur_dir)
+except: pass
+
+from nptdms import TdmsFile
+import scipy.signal as signal
+from collections import OrderedDict
+
+from Utilities.video_and_plotting.commoncoordinatebehaviour import run as get_matrix
+from Utilities.Maths.stimuli_detection import *
+from Utilities.dbase.stim_times_loader import *
+
+from Processing.tracking_stats.correct_tracking import correct_tracking_data
+from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
+from Processing.tracking_stats.extract_velocities_from_tracking import complete_bp_with_velocity, get_body_segment_stats
+
+
+from database.auxillary_tables import *
+=======
 from database.database_toolbox import ToolBox
+>>>>>>> 73e8c3b9e154dbfea99730a9503071dcd7c0148d:database/old/TablesPopulateFuncs.py
 
 """ 
     Collection of functions used to populate the dj.Import and dj.Compute
