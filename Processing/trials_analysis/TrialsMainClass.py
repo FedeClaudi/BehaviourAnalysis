@@ -89,6 +89,18 @@ class TrialsLoader:
         ax.plot([t1[0:-1:interval, 0], t2[0:-1:interval, 0]], [t1[0:-1:interval, 1], t2[0:-1:interval, 1]], color=c1, alpha=.8, linewidth=5)
         ax.plot([t2[0:-1:interval, 0], t3[0:-1:interval, 0]], [t2[0:-1:interval, 1], t3[0:-1:interval, 1]], color=c2, alpha=.8, linewidth=4)
 
+    @staticmethod
+    def plot_tracking_2bp(t1, t2, interval=10, background=None, ax=None, title=None):
+        if ax is None:
+            f, ax = plt.subplots()
+        if background is not None:
+            ax.imshow(background, cmap="Greys", origin="lower")
+        if title: ax.set(title=title)
+
+        ax.plot([t1[0:-1:interval, 0], t2[0:-1:interval, 0]], [t1[0:-1:interval, 1], t2[0:-1:interval, 1]], color="blue", alpha=.8, linewidth=3)
+        ax.plot(t1[:, 0], t1[:, 1], color="red", linewidth=6, alpha=.6)
+        ax.plot(t2[:, 0], t2[:, 1], color="green", linewidth=4, alpha=.6)
+
 
     def filter_tracking(self, tracking, window_len=31):
         filtered = np.vstack([signal.medfilt(tracking[:, i], window_len) for i in range(tracking.shape[1])]).T

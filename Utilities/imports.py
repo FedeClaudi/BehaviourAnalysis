@@ -40,12 +40,14 @@ mpl.rcParams['figure.titlesize'] = 'medium'
 mpl.rcParams['lines.linewidth'] = 2.0
 
 mpl.rcParams['legend.fancybox'] = True
-mpl.rcParams['legend.loc'] = 'upper right'
+mpl.rcParams['legend.loc'] = 'best'
 mpl.rcParams['legend.numpoints'] = 2
 mpl.rcParams['legend.fontsize'] = 'medium'
-mpl.rcParams['legend.framealpha'] = .5
+mpl.rcParams['legend.framealpha'] = .8
 mpl.rcParams['legend.scatterpoints'] = 3
-mpl.rcParams['legend.edgecolor'] = 'inherit'
+mpl.rcParams['legend.edgecolor'] = 'red'
+mpl.rcParams['legend.facecolor'] = [.2, .2, .2]
+
 
 mpl.rcParams['axes.facecolor'] = [.4, .4, .4]
 mpl.rcParams['axes.edgecolor'] = "white"
