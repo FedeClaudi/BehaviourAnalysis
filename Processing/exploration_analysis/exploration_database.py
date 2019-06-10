@@ -1,18 +1,12 @@
 import sys
 sys.path.append('./')
-import numpy as np
-import matplotlib.pyplot as plt
+
+from Utilities.imports import *
+
 import matplotlib.patches as patches
-import pandas as pd
-from pandas.plotting import scatter_matrix
-from collections import namedtuple
 from itertools import combinations
+from pandas.plotting import scatter_matrix
 
-from database.NewTablesDefinitions import *
-from database.dj_config import start_connection
-
-from Processing.tracking_stats.math_utils import line_smoother
-from Utilities.file_io.files_load_save import load_yaml
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 
 from database.database_fetch import *
@@ -34,7 +28,7 @@ class AllExplorationsPopulate:
             self.populate()
     
     def populate(self):
-        sessions, session_names, experiments = (Sessions).fetch("uid","session_name", "experiment_name")
+        sessions, session_names, experiments = (Session).fetch("uid","session_name", "experiment_name")
         sessions_in_table = [int(s) for s in (AllExplorations).fetch("session_uid")]
 
         for n, (uid, sess_name, exp) in enumerate(sorted(zip(sessions, session_names, experiments))):

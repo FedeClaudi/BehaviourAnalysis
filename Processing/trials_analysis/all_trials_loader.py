@@ -6,10 +6,11 @@ from Utilities.imports import *
 
 """
     Loads all the trials from the table and organises them in a database that can be easily handled
+    # ! Works with ALLTRIALS table
 """
 
 class Trials:
-    def __init__(self, selected_experiments = None, just_escapes=True, exp_1_mode=False):
+    def __init__(self, selected_experiments=None, just_escapes=True, exp_1_mode=False):
          
         self.selected_experiments = selected_experiments
         self.just_escapes = just_escapes
@@ -43,7 +44,7 @@ class Trials:
 
         # load as dataframe
         if selected_experiments is None: # load all
-            trials =  pd.DataFrame((AllTrials& "is_escape='{}'".format(just_escapes) ).fetch(*self.elems_to_load)).T
+            trials =  pd.DataFrame((AllTrials & "is_escape='{}'".format(just_escapes) ).fetch(*self.elems_to_load)).T
         else:
             trials = []
             for exp in selected_experiments:

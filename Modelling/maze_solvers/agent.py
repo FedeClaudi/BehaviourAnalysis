@@ -80,7 +80,8 @@ class Agent(Environment):
 		for walk in walks:
 			ax.scatter(np.vstack(walk)[:, 0], np.vstack(walk)[:, 1], alpha=.3,  s=150)
 
-	def plot_walk(self, walk, ax=None, background=True, multiple=False, title=None, blocked=None, background_image=None, color=None, alpha=1, walk_cmap='viridis'):
+	def plot_walk(self, walk, ax=None, background=True, multiple=False, title=None, 
+                    blocked=None, background_image=None, color=None, alpha=1, walk_cmap='viridis', **kwargs):
 		if ax is None:
 			f,ax = plt.subplots()
 
@@ -93,9 +94,9 @@ class Agent(Environment):
 
 		if not multiple:
 			if color is None: color = np.arange(len(walk))
-			ax.scatter(np.vstack(walk)[:, 0], np.vstack(walk)[:, 1], c = color, s=75, alpha=alpha, cmap=walk_cmap)
+			ax.scatter(np.vstack(walk)[:, 0], np.vstack(walk)[:, 1], s=75, alpha=alpha)
 		else:
-			ax.scatter(np.vstack(walk)[:, 0], np.vstack(walk)[:, 1], alpha=.4, s=100)
+			ax.scatter(np.vstack(walk)[:, 0], np.vstack(walk)[:, 1], alpha=.4, s=100, **kwargs)
 
 		if title is None:
 			ax.set(xticks=[], yticks=[])

@@ -1,19 +1,13 @@
 import sys
 sys.path.append('./')
-import numpy as np
-import matplotlib
-matplotlib.use("Qt5Agg")
-import matplotlib.pyplot as plt
-import pandas as pd
-import seaborn as sns
+
 from shutil import copyfile
 
-from database.NewTablesDefinitions import *
-from database.database_fetch import *
+from Utilities.imports import *
 
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame, get_arm_given_rois, convert_roi_id_to_tag
 from Utilities.video_and_plotting.video_editing import Editor 
-from Processing.modelling.bayesian.hierarchical_bayes_v2 import Modeller as Bayesian
+# from Modelling.bayesian.hierarchical_bayes_v2 import Modeller as Bayesian
 
 
 traces_fld = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Presentations\\ThesisCommitte\\HB traces'
@@ -318,7 +312,7 @@ def plot_hierarchical_bayes_posteriors():
 
 
 def mbv2_behav_plots(plot=False, baseline = True):
-    trials_data = "Processing\\trials_analysis\\mbv2_trials.yml"
+    trials_data = "Processing\\trials_analysis\\data\\mbv2_trials.yml"
     data = load_yaml(trials_data)
 
     sessions = list(data.keys())
@@ -328,7 +322,9 @@ def mbv2_behav_plots(plot=False, baseline = True):
 
     for session in sessions:
         if len(data[session][0]) != len(data[session][1]): raise ValueError(session, len(data[session][0]), len(data[session][1]))
-        for arm, maze_state in zip(*data[session]):
+        if session not in data.keys(): continue
+        arms, maze_states = data[session][:2]
+        for arm, maze_state in zip(arms, maze_states):
             if arm.lower() == "n": continue
 
             if baseline:
@@ -464,15 +460,23 @@ def  mbv2_make_cool_vids():
                                         start_frame=start, stop_frame=end)
         
             
+def mbv2_delta_probs_before_after():
+    baseline = mbv2_behav_plots(plot=False, baseline=True)
+    post = mbv2_behav_plots(plot=False, baseline=False)
 
+    delta = {k:post[k]-v for k,v in baseline.items()}
 
-        
+f, ax = plt.subplots()
+ax.bar([0, 1, 2, 3], delta.values())
+ax.set(ylim=[-0.5, 0.5])
+plt.show()
 
 if __name__ == "__main__":
-    # mbv2_behav_plots(plot=False, baseline=False)
-    mbv2_closes_plots()
+    # mbv2_behav_plots(plot=True, baseline=True)
+    # mbv2_closes_plots()
     # mbv2_make_videos()
     # mbv2_make_cool_vids()
+    mbv2_delta_probs_before_after()
     # pr_sym_vs_asmy_get_traces()
     plt.show()
 

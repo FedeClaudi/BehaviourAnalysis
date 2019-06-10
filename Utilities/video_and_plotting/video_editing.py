@@ -824,11 +824,12 @@ if __name__ == '__main__':
 
     # ? add some light to em
         # ? squeeze em
-    for v in tqdm(os.listdir(fld2)):
-        vv = v.split(".")[0]+"_light.mp4"
-        editor.brighten_video(os.path.join(fld2, v), os.path.join(fld2, vv), 25)
+    # for v in tqdm(os.listdir(fld2)):
+        # vv = v.split(".")[0]+"_light.mp4"
+        # editor.brighten_video(os.path.join(fld2, v), os.path.join(fld2, vv), 25)
 
 
 
+    Editor().manual_video_inspect(r"O:\testDeepCut_resnet50_APA_trackingEgzonaJune3shuffle1_390000_labeled.mp4")
 
-
+    # Editor().compress_clip(r"O:\M_1L.avi", .6, save_path=r"O:\test.mp4")

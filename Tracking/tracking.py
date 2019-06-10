@@ -12,13 +12,13 @@ import os
 
 from Utilities.file_io.files_load_save import load_yaml
 
-computer = "spike"
+computer = "desk"
 if computer == "desk":
     from database.TablesDefinitionsV4 import *
 
 
 warnings.warn("\n\n\nCOMPUTER IS: {}\n\n\n".format(computer))
-
+ 
 
 class SetUpTracking:
     def __init__(self, video_folder, pose_folder):
@@ -70,7 +70,7 @@ class SetUpTracking:
                 print('     file moved correctly')
 
 
-        for i, video in enumerate(self.video_to_process):
+        for i, video in enumerate(self.video_to_process[::-1]):
             print('Processing video {} of {}'.format(i+1, len(self.video_to_process)))
 
             # Get the DLC model config path

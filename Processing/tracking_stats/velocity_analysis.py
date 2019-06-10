@@ -21,7 +21,7 @@ mpl.rcParams['xtick.color'] = 'k'
 mpl.rcParams['ytick.color'] = 'k'
 mpl.rcParams['axes.labelcolor'] = 'k'
 
-from database.NewTablesDefinitions import *
+from database.TablesDefinitionsV4 import *
 
 from Utilities.maths.math_utils import *
 from Utilities.file_io.files_load_save import load_yaml

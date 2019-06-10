@@ -250,6 +250,8 @@ if __name__ == '__main__':
     # ? this is considerably slower but should be automated
     errors = p.trackingdata.populate(display_progress=True, suppress_errors=True, return_exception_objects =True) # ! tracking data
 
+
+
     # errors = p.stimuli.populate(display_progress=True, suppress_errors=False, return_exception_objects=True) # , max_calls =10)  # ! stimuli
     # p.stimuli.make_metadata()
 

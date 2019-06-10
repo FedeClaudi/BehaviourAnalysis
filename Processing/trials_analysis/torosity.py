@@ -12,14 +12,14 @@ print("\n\n\n")
 
 class Torosity(Trials):
 	def __init__(self, mtype, just_esc):
-		if sys.platform != "darwin": 
-			if mtype != "all":
-				Trials.__init__(self, exp_1_mode=True, just_escapes=just_esc)
-				self.trials = self.trials.loc[self.trials['grouped_experiment_name']==mtype]  # only keep the trials from asym exp
+		# if sys.platform != "darwin": 
+			# if mtype != "all":
+			# 	Trials.__init__(self, exp_1_mode=True, just_escapes=just_esc)
+			# 	self.trials = self.trials.loc[self.trials['grouped_experiment_name']==mtype]  # only keep the trials from asym exp
 
-			else:
-				good_experiments = [  'FlipFlop Maze', 'FlipFlop2 Maze', 'PathInt', 'PathInt2', 'Square Maze', 'TwoAndahalf Maze', "PathInt2 L", 'PathInt2-L', ]
-				Trials.__init__(self, exp_1_mode=False, just_escapes=just_esc, selected_experiments=good_experiments)
+			# else:
+			# 	good_experiments = [  'FlipFlop Maze', 'FlipFlop2 Maze', 'PathInt', 'PathInt2', 'Square Maze', 'TwoAndahalf Maze', "PathInt2 L", 'PathInt2-L', ]
+			# 	Trials.__init__(self, exp_1_mode=False, just_escapes=just_esc, selected_experiments=good_experiments)
 
 
 		# Create scaled agent
@@ -30,7 +30,7 @@ class Torosity(Trials):
 										maze_type = "asymmetric_large",
 										maze_design = "PathInt2.png",
 										grid_size = int(1000*self.scale_factor), 
-										start_loc= [int(500*self.scale_factor), int(800*self.scale_factor)], 
+										start_loc= [int(500*self.scale_factor), int(700*self.scale_factor)], 
 										goal_loc = [int(500*self.scale_factor), int(260*self.scale_factor)], stride=1)
 		else:
 			self.agent = GradientAgent(
