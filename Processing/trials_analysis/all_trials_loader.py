@@ -61,7 +61,7 @@ class Trials:
 
         # change the experiment name for those who need to be grouped
         grouped_exp_names = []
-        for e in trials.experiment_name.values:
+        for e in trials['experiment_name'].values:
             check = False
             for k, names in self.grouped_experiments.items():
                 if e in names:
@@ -76,8 +76,8 @@ class Trials:
         fixed_tracking = []
         for trial in trials.tracking_data.values:
             new = trial.copy()
-            diff = np.subtract(500, trial[:, 1, :])
-            new[:, 1, :] = np.subtract(diff, 500)+1000
+            diff = np.subtract(500, trial[:, 1])
+            new[:, 1] = np.subtract(diff, 500)+1000
             fixed_tracking.append(new)
         trials['tracking_data'] = fixed_tracking
 
@@ -91,7 +91,7 @@ class Trials:
     def plot_one(self):
         f, ax = plt.subplots()
         trial = self.trials.iloc[np.random.randint(0, len(self.trials))]
-        ax.scatter(trial.tracking_data[:, 0, 0], trial.tracking_data[:, 0, 1])
+        ax.scatter(trial.tracking_data[:, 0], trial.tracking_data[:,  1])
 
 
 if __name__ == "__main__":

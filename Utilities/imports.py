@@ -15,7 +15,7 @@ if sys.platform == "darwin":
     mpl.use("Qt5Agg")
 
 # Set up matplotlib
-mpl.rcParams['text.color'] = "white"
+mpl.rcParams['text.color'] = "black"
 
 mpl.rcParams['figure.figsize'] = [20, 16]
 mpl.rcParams['figure.facecolor'] = [.8, .8, .8]
