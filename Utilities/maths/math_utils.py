@@ -68,16 +68,10 @@ def linear_regression(X,Y, split_per=None):
 
 	X = np.delete(X, remove_idx)
 	Y = np.delete(Y, remove_idx)
-
-	# # lowess will return our "smoothed" data with a y value for at every x-value
-	# lowess = sm.nonparametric.lowess(Y, X, frac=.999)
-
 	# Regression with Robust Linear Model
 	X = sm.add_constant(X)
-
 	res = sm.RLM(Y, X, missing="drop").fit()
 	# raise ValueError(res.params)
-	
 	return X, res.params[0], res.params[1]
 
 

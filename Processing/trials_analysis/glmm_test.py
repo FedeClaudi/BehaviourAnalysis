@@ -12,28 +12,62 @@ from sklearn.preprocessing import RobustScaler as Scaler
 from Processing.trials_analysis.all_trials_loader import Trials
 from statsmodels.graphics.api import abline_plot
 
+%matplotlib inline
 
 # Controllers
 load_file = True
 inspect_data = False
 
+logistic_th = .7
+
 # %%
 # ? plotting func
-def plotter(y, exog, predictions):
+def plotter(y, exog, predictions, plot=True):
     cols = exog.columns[1:]
-    f,axarr= plt.subplots(figsize=(16, 10), ncols=len(cols)+1)
+    if plot: f,axarr= plt.subplots(figsize=(16, 10), ncols=len(cols)+1)
 
-    for ax,col in zip(axarr, cols):
-        ax.plot(exog[col].values, y,'o',color='r', label = 'Obs', alpha=.25)
-        # ax.hist(exog[col].values*y, density=True, color=[.4, .4, .4], alpha=.3, bins=4)
-        ax.plot(exog[col].values, predictions,'o',color='g', label = 'Pred', alpha=.25)
+    bin_prediction = np.zeros_like(predictions) + .1
+    bin_prediction[predictions > logistic_th] = .9
 
-        sns.regplot(exog[col].values, predictions, logistic=True, truncate=True, scatter=False, ax=ax)
+    correct_bin = np.zeros_like(predictions) + .4
+    correct_bin[(predictions > logistic_th) & (y > logistic_th)] = 0.6
 
-        ax.legend()
-        ax.set(title=col, ylabel="escape_arm", xlabel=col, yticks=[0,1], yticklabels=["left", "right"], ylim=[-.1, 1.1])
+    if plot:
+        for ax,col in zip(axarr, cols):
+            ax.plot(exog[col].values, y,'o',color='r', label = 'Obs', alpha=.25)
 
-    trials.head()
+            ax.plot(exog[col].values, predictions,'o',color='g', label = 'Pred', alpha=.25)
+            ax.plot(exog[col].values, bin_prediction,'o',color='b', label = 'Pred - binary', alpha=.25)
+            ax.plot(exog[col].values, correct_bin,'o',color='k', label = 'Correctly pred', alpha=.25)
+
+            ax.axhline(logistic_th, color="k")
+
+            sns.regplot(exog[col].values, predictions, logistic=True, truncate=True, scatter=False, ax=ax)
+
+            ax.legend()
+            ax.set(title=col, ylabel="escape_arm", xlabel=col, yticks=[0,1], yticklabels=["left", "right"], ylim=[-.1, 1.1])
+
+    axarr[-1].plot(y,'o',color='r', label = 'Obs', alpha=.25)
+    axarr[-1].plot(predictions,'o',color='g', label = 'Pred', alpha=.25)
+
+    n_corr = (correct_bin > logistic_th).sum()
+    return "Correctly predicted: {} of {} - {}%".format(n_corr, len(correct_bin), round(n_corr/len(correct_bin)*100, 2))
+
+def plotter2(y, predictions):
+    x = np.arange(len(predictions))
+    # fit = np.poly1d(np.polyfit(x, predictions, 2))
+    # fitted = [fit(xx) for xx in x]
+
+    sort_idxs = np.argsort(y)
+
+    f, ax = plt.subplots(figsize=(9, 8),)
+    ax.plot(y[sort_idxs],'o',color='r', label = 'Obs', alpha=.25)
+    ax.plot(predictions[sort_idxs],'o',color='g', label = 'Pred', alpha=.25)
+    sns.regplot(x, predictions[sort_idxs], logistic=True, 
+                                truncate=True, scatter=False, ax=ax)
+    ax.set(ylabel="escape_arm", xlabel="trials", yticks=[0,1], yticklabels=["left", "right"])
+
+
 
 # %%
 ############################################################################################################################################################################################################################################################
@@ -42,8 +76,15 @@ def plotter(y, exog, predictions):
 
 # %%
 # ! Load the data
-file_path = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis_metadata\\saved_dataframes\\glm_data.pkl"
+if sys.platform != "darwin":
+    file_path = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis_metadata\\saved_dataframes\\glm_data.pkl"
+    parfile = None
+else:
+    parfile = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/analysis_metadata/maze/escape_paths_features.yml"
+    file_path = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/analysis_metadata/saved_dataframes/glm_data.pkl"
 
+
+#%%
 if not load_file:
     # load and clean
     trial_data = Trials(exp_1_mode=True)
@@ -74,6 +115,7 @@ if not load_file:
     trials["time_out_of_t"] = np.array(trials['time_out_of_t'].values, np.float64)
 
     # Fix arms categoricals
+    # TODO check origin
     trials["origin_arm_clean"] = ["right" if "Right" in arm else "left" for arm in trials['origin_arm'].values]
     trials["escape_arm_clean"] = ["right" if "Right" in arm else "left" for arm in trials['escape_arm'].values]
 
@@ -81,12 +123,12 @@ if not load_file:
                                     prefix=["escape", "origin", "experiment"])
 else:
     trials = pd.read_pickle(file_path)
+    trials = trials.drop("origin_left", axis=1)
+    trials["origin_arm_clean"] = ["right" if "Right" in arm[0] else "left" for arm in trials['origin_arm'].values]
+    trials = pd.get_dummies(trials, columns=["origin_arm_clean"], prefix=["origin"])
 
 #%%
-# ! Get the maze data
-
 # ? get the maze params
-parfile = "Processing/trials_analysis/params.yml"
 params = load_yaml(parfile)
 
 # convert them to df
@@ -112,8 +154,27 @@ params = pd.DataFrame.from_dict(temp)
 
 
 # %% 
-# TODO merge the two to use maze stuff as predictors
+# ? merge the two datasets
+agent_len, theta_start, theta_tot = [], [], []
+for i, trial in trials.iterrows():
+    if trial.experiment_asymmetric:
+        if "Left" in trial.escape_arm:
+            arm_data = params.iloc[0]
+        else:
+            arm_data = params.iloc[1]
+    else:
+        if "Left" in trial.escape_arm:
+            arm_data = params.iloc[6]
+        else:
+            arm_data = params.iloc[7]
 
+    agent_len.append(arm_data.rLen)
+    theta_start.append(arm_data.theta_start)
+    theta_tot.append(arm_data.theta_tot)
+
+trials["agent_len"] = agent_len
+trials["theta_start"] = theta_start
+trials["theta_tot"] = theta_tot
 
 
 # %% 
@@ -123,8 +184,8 @@ if inspect_data:
 
     right_trials = trials.loc[trials.escape_arm == "Right_Medium"]
     left_trials = trials.loc[(trials.escape_arm == "Left_Medium") | (trials.escape_arm == "Left_Far")]
-    asym_trials = trials.loc[trials.grouped_experiment_name == "asymmetric"]
-    sym_trials = trials.loc[trials.grouped_experiment_name == "symmetric"]
+    asym_trials = trials.loc[trials.experiment_asymmetric == 1]
+    sym_trials = trials.loc[trials.experiment_asymmetric == 0]
 
     f, axarr = plt.subplots(ncols=3)
 
@@ -147,17 +208,22 @@ if inspect_data:
 
 
 # %%
+# ! drop part of the data
+trials = trials.loc[trials.experiment_asymmetric == 1]
+
+# %%
 ############################################################################################################################################################################################################################################################
 ##########################################                              # ! GLM
 ############################################################################################################################################################################################################################################################
 # %%
 # ! GLM with stats model
+# TODO add position at trials onset to predicting vars
 
 # standardise the variables  and get the data
 scaler = Scaler()
 
 endog = trials.escape_right # ? to predict
-exog = trials[["escape_duration", "mean_speed", "time_out_of_t"]] #, "mean_speed", "total_angular_displacement"]]
+exog = trials[[ "escape_duration", "time_out_of_t" , "total_angular_displacement", "mean_speed", "max_speed"]] 
 for c in exog.columns:
     if "arm" not in c:
         exog[c] = scaler.fit_transform(exog[c].values.reshape(-1, 1))
@@ -170,28 +236,29 @@ print(res.summary())
 
 # ? plot the fitted model's results
 y = endog.ravel()
-sort_idx = np.argsort(y)
-nobs = res.nobs
 predictions = gamma_model.predict(res.params)
+plotter2(y,  predictions)
 
-plotter(y, exog, predictions)
 # %%
 ############################################################################################################################################################################################################################################################
 ##########################################                              # ! Logistic regression
 ############################################################################################################################################################################################################################################################
 # %%
-
+"""
+    If the model always predict Right as escape the % of corrects would be 68%
+"""
+# TODO normalise data
 # ! try multivariate logistic regression
-model = smf.logit(formula="escape_right ~ mean_speed + escape_duration + time_out_of_t", data=trials).fit()
+model = smf.logit(formula="escape_right ~  np.log(mean_speed) ", data=trials).fit()
 print(model.summary())
 
 predictions = model.predict()
 
-plotter(y, trials[["escape_arm", "escape_duration", "time_out_of_t", "mean_speed"]], predictions)
+plotter2(y, predictions, )
 
+print(correct)
 
-
-
+cols = trials.columns
 
 
 
