@@ -27,12 +27,13 @@ class Plotter(TrialsLoader):
     mb_post_col = "#ec407a"
 
 
-    def __init__(self):
-        TrialsLoader.__init__(self)
-        
-        self.data = (self.data & "bpname='body'")
+    def __init__(self, run=False):
+        if run:
+            TrialsLoader.__init__(self)
+            
+            self.data = (self.data & "bpname='body'")
 
-        self.mb_trials_metadata = load_yaml("Processing/trials_analysis/data/mbv2_trials.yml")
+            self.mb_trials_metadata = load_yaml("Processing/trials_analysis/data/mbv2_trials.yml")
 
     @staticmethod
     def look_at_trial_in_detail(tracking):
@@ -42,8 +43,6 @@ class Plotter(TrialsLoader):
         except:
             return None, None
         mean_speed = np.nanmean(tracking[:out_of_t, 2])
-
-
 
         # Look at outcomes devided by arm
         try: 

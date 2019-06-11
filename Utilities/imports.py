@@ -18,16 +18,16 @@ if sys.platform == "darwin":
 mpl.rcParams['text.color'] = "white"
 
 mpl.rcParams['figure.figsize'] = [20, 16]
-mpl.rcParams['figure.facecolor'] = [.1, .1, .1]
+mpl.rcParams['figure.facecolor'] = [.8, .8, .8]
 mpl.rcParams['figure.autolayout'] = True
 mpl.rcParams['figure.dpi'] = 80
 mpl.rcParams['savefig.dpi'] = 100
 mpl.rcParams['savefig.facecolor'] = [.1, .1, .1]
 
-mpl.rcParams['figure.subplot.left'] = .05
-mpl.rcParams['figure.subplot.right'] = .95
-mpl.rcParams['figure.subplot.bottom'] = .1
-mpl.rcParams['figure.subplot.top'] = .95
+mpl.rcParams['figure.subplot.left'] = .1
+mpl.rcParams['figure.subplot.right'] = .9
+mpl.rcParams['figure.subplot.bottom'] = .2
+mpl.rcParams['figure.subplot.top'] = .9
 mpl.rcParams['figure.subplot.wspace'] = .1
 mpl.rcParams['figure.subplot.hspace'] = .1
 
@@ -46,14 +46,14 @@ mpl.rcParams['legend.fontsize'] = 'medium'
 mpl.rcParams['legend.framealpha'] = .8
 mpl.rcParams['legend.scatterpoints'] = 3
 mpl.rcParams['legend.edgecolor'] = 'red'
-mpl.rcParams['legend.facecolor'] = [.2, .2, .2]
+# mpl.rcParams['legend.facecolor'] = [.2, .2, .2]
 
 
-mpl.rcParams['axes.facecolor'] = [.4, .4, .4]
-mpl.rcParams['axes.edgecolor'] = "white"
-mpl.rcParams['axes.labelcolor'] = "white"
+mpl.rcParams['axes.facecolor'] = "white"
+mpl.rcParams['axes.edgecolor'] = "black"
+mpl.rcParams['axes.labelcolor'] = "black"
 
-mpl.rcParams['text.color'] = "white"
+mpl.rcParams['text.color'] = "black"
 
 
 mpl.rcParams['image.aspect'] = "auto"
@@ -77,9 +77,11 @@ if sys.platform != "darwin":
             import datajoint as dj
             from database.dj_config import start_connection 
             dbname, _ = start_connection()    
-            from database.TablesDefinitionsV4 import *
         except:
             pass
+        else:
+            print("Importing tables")
+            from database.TablesDefinitionsV4 import *
 
 from Utilities.file_io.files_load_save import *
 from Utilities.video_and_plotting.video_editing import Editor

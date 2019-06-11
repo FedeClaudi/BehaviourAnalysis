@@ -15,7 +15,7 @@ class GradientAgent(Agent):
 	def __init__(self, grid_size=None, **kwargs):
 		Agent.__init__(self, grid_size=grid_size, **kwargs)
 
-	def get_maze_options(self):
+	def get_maze_options(self, plot=False, save=False):
 		self._reset()
 		options = {}
 	
@@ -23,41 +23,44 @@ class GradientAgent(Agent):
 			blocks = [["lambda", "beta1"], "alpha0", "alpha1", "beta0", "beta1", ["lambda", "beta0"],  ["lambda", "beta0"]]
 			options_names = ["beta0", "alpha1", "alpha0", "dup1", "dup2", "beta1", "dup3"]
 
-		elif self.maze_type == "asymmetric":
+		elif self.maze_type == "asymmetric" or self.maze_type=="symmetric":
 			blocks = ["none","right",] 
 			options_names = ["right", "left"]   
 
-		if self.maze_type == "modelbased_large":
+		elif self.maze_type == "modelbased_large":
 			blocks = [["lambda_large", "beta1_large"], "alpha0_large", "alpha1_large", "beta0_large", "beta1_large", ["lambda_large", "beta0_large"],  ["lambda_large", "beta0_large"]]
 			options_names = ["beta0_large", "alpha1_large", "alpha0_large", "dup1_large", "dup2_large", "beta1_large", "dup3_large"]
 
 		elif self.maze_type == "asymmetric_large":
 			blocks = ["none","right_large",] 
-			options_names = ["right_large", "left_large"]   
+			options_names = ["right_large", "left_large"] 
+
+    
 
 		else:
 			raise ValueError("unrecognised maze")
 
 		
-		
-		f, axarr = plt.subplots(ncols =len(options_names))
+		if plot:
+			f, axarr = plt.subplots(ncols =len(options_names))
 
 		for i, (name, block) in enumerate(zip(options_names, blocks)):
 			print("Processing option: ", i, name)
 			if "dup" in name: continue
 			self.introduce_blockage(block)
 			w = self.walk()
-			self.plot_walk(w, ax=axarr[i])
+			if plot:
+				self.plot_walk(w, ax=axarr[i])
 			self._reset()
 
-			
 			options[name] = w
-
-		with open(self.options_file, 'a') as f:
-			yaml.dump(options, f)
-
 			
+		if save:
+			with open(self.options_file, 'a') as f:
+				yaml.dump(options, f)
+		else: return options
 
+		
 	def run(self):
 		# prep figure
 		f, axarr =  plt.subplots(ncols=6)
@@ -121,7 +124,6 @@ class GradientAgent(Agent):
 		
 		surroundings = geodesic_map[self.curr_state[1]-1:self.curr_state[1]+2, self.curr_state[0]-1:self.curr_state[0]+2]
 		return np.nanargmin(surroundings.flatten()), surroundings
-
 		
 	def step(self, current, geodesic_map = None):
 		# Select which action to perform
@@ -134,7 +136,6 @@ class GradientAgent(Agent):
 
 		# Move the agent accordingly
 		return self.move(action, current)
-
 
 	def walk(self, start=None, walk=None, geodesic_map=None, goal=None):
 		"""[Creates a "gradient descent" walk between the starting point and the goal point, by default the goal]
@@ -186,7 +187,6 @@ class GradientAgent(Agent):
 
 		walk.append(curr)
 		return walk
-
 
 	def _reset(self):
 		self.maze = self._maze.copy()

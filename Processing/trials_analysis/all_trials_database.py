@@ -20,8 +20,8 @@ class analyse_all_trals:
         
 
         self.naughty_experiments = ['Lambda Maze',  'FlipFlop Maze', 'FlipFlop2 Maze',  "PathInt2 D", "PathInt2 DL", 'TwoArmsLong Maze', "FourArms Maze"]
-        self.good_experiments = [  'FlipFlop Maze', 'FlipFlop2 Maze', 'PathInt', 'PathInt2', 'Square Maze', 'TwoAndahalf Maze', "PathInt2 L", 'PathInt2-L', ]
-
+        # self.good_experiments = [  'FlipFlop Maze', 'FlipFlop2 Maze', 'PathInt', 'PathInt2', 'Square Maze', 'TwoAndahalf Maze', "PathInt2 L", 'PathInt2-L', ]
+        self.good_experiments = ["PathInt2", "PathInt2-L", "PathInt2 L", "Square Maze", "TwoAndahalf Maze"]
 
         if fill_in_table:  # Get tracking data
             self.table = AllTrials()
@@ -55,7 +55,7 @@ class analyse_all_trals:
         # Define the min requirements on speed for trials to be escapes
         self.define_duration_limits()
 
-        sessions, session_names, experiments = (Sessions).fetch("uid","session_name", "experiment_name")
+        sessions, session_names, experiments = (Session).fetch("uid","session_name", "experiment_name")
         sessions_in_table = [int(s) for s in (AllTrials).fetch("session_uid")]
 
 
@@ -69,8 +69,8 @@ class analyse_all_trals:
             if uid in sessions_in_table: continue
             session_trials = []
 
-            session_stims = get_stimuli_given_sessuid(uid, as_dict=True)
-            if session_stims is None:
+            session_stims = (Stimuli & "session_name='{}'".format(sess_name)).fetch(as_dict=True)
+            if  not len(session_stims):
                 print('No stimuli found for session')
                 continue
 
@@ -82,8 +82,7 @@ class analyse_all_trals:
             recs_trackins = {}
             try:
                 for r in recordings:
-                    rec_tracking = {bp: get_tracking_given_recuid(r, bp=bp, just_trackin_data=True)[0] for bp in bps}
-                    recs_trackins[r] = rec_tracking
+                    recs_trackins[r] = (TrackingData.BodyPartData & "bpname='body'" & "recording_uid='{}'".format(r)).fetch1("tracking_data")
             except:
                 print("Smth went wrong while getting tracking data, maybe there is no data there, maybe smth else is wrong")
                 continue
@@ -96,38 +95,31 @@ class analyse_all_trals:
                 rec_tracking = recs_trackins[stim['recording_uid']]
 
                 # Get video FPS
-                fps = get_videometadata_given_recuid(stim['recording_uid'])
-                if fps == 0: fps = 40  # ? dabsigebrlgb`kj
+                if uid < 184: fps = 30
+                else: fps = 40 # !hardcoded fps
 
                 # Get frame at which stim start
-                if 'stim_start' in stim.keys():
-                    start = stim['stim_start']
-                else:
-                    start = stim['overview_frame']
+                start = stim['overview_frame']
 
                 # Get stim duration
-                if 'stim_duration' in stim.keys():
-                    stim_duration = stim['stim_duration']
-                else:
-                    stim_duration = stim['duration']
+                stim_duration = stim['duration']
 
                 if start == -1 or stim_duration == .1:
                     continue  # ? placeholder stim entry%R
 
                 # Get either the frame at which the next stim starts of the recording ends
                 if stim_n < number_of_stimuli-1:
-                    next_stim = session_stims[stim_n+1]
-                    if 'stim_start' in next_stim.keys():
-                        temp_stop = next_stim['stim_start']
-                    else:
-                        temp_stop = next_stim['overview_frame']
+                    next_stim = session_stims[stim_n+1]                        
+                    temp_stop = next_stim['overview_frame']
 
                     if temp_stop > start: 
                         stop = temp_stop   # ? if next stim is in next recording it will have a low frame number and that ields
                     else:
-                        stop = rec_tracking['body'].shape[0]
+                        stop = rec_tracking.shape[0]
                 else:
-                    stop = rec_tracking['body'].shape[0]
+                    stop = rec_tracking.shape[0]
+
+                if stop < start: raise ValueError
 
                 # Now we have the max possible length for the trial
                 # But check if the mouse got to the shelter first or if 20s elapsed
@@ -135,19 +127,19 @@ class analyse_all_trals:
                     stop = start + 20*fps
 
                 # Okay get the tracking data between provisory start and stop
-                trial_tracking = {bp:remove_tracking_errors(tr[start:stop, :]) for bp,tr in rec_tracking.items()}
+                trial_tracking = remove_tracking_errors(rec_tracking[start:stop, :]) 
 
                 # Now get shelter enters-exits from that tracking
-                shelter_enters, shelter_exits = get_roi_enters_exits(trial_tracking['body'][:, -1], 0)
+                shelter_enters, shelter_exits = get_roi_enters_exits(trial_tracking[:, -1], 0)
 
                 check_got_at_shelt = False
                 if np.any(shelter_enters): # if we have an enter, crop the tracking accordingly
                     check_got_at_shelt = True
                     shelter_enter = shelter_enters[0]
-                    trial_tracking = {bp:tr[:shelter_enter, :] for bp,tr in trial_tracking.items()}
+                    trial_tracking = trial_tracking[:shelter_enter, :] 
 
                 # Get threat enters and exits
-                threat_enters, threat_exits = get_roi_enters_exits(trial_tracking['body'][:, -1], 1)
+                threat_enters, threat_exits = get_roi_enters_exits(trial_tracking[:, -1], 1)
 
                 # Get arm of escape
                 if not np.any(threat_exits):
@@ -155,7 +147,7 @@ class analyse_all_trals:
                 else:
                     t = threat_exits[-1]
  
-                escape_rois = convert_roi_id_to_tag(trial_tracking['body'][t:, -1]) # ? only look at arm taken since last departure from T
+                escape_rois = convert_roi_id_to_tag(trial_tracking[t:, -1]) # ? only look at arm taken since last departure from T
 
                 if not  escape_rois: 
                     raise ValueError
@@ -169,7 +161,7 @@ class analyse_all_trals:
 
 
                 # Get the tracking data up to the stim frame so that we can extract arm of origin
-                out_trip_tracking = rec_tracking['body'][:start, :]
+                out_trip_tracking = rec_tracking[:start, :]
                 out_shelter_enters, out_shelter_exits = get_roi_enters_exits(out_trip_tracking[:, -1], 0)
                 out_trip_tracking = out_trip_tracking[out_shelter_exits[-1]:, :]
                 # TODO add all bps to out trip tracking ?
@@ -182,8 +174,8 @@ class analyse_all_trals:
 
                 # Check if the trial can be considered an escape
                 if escape_arm is not None:
-                    trial_duration = trial_tracking['body'].shape[0]/fps
-                    trial_speed = correct_speed(trial_tracking['body'][:, 2])
+                    trial_duration = trial_tracking.shape[0]/fps
+                    trial_speed = correct_speed(trial_tracking[:, 2])
                     if np.mean(trial_speed)>self.escape_speed_thresholds[exp] and check_got_at_shelt:
                         is_escape = "true"
                     else:
@@ -193,11 +185,11 @@ class analyse_all_trals:
                     trial_duration = -1
 
                 # Create multidimensionsal np.array for tracking data
-                useful_dims = [0, 1, 2, -1]
-                insert_tracking = np.zeros((trial_tracking['body'].shape[0], len(useful_dims), len(trial_tracking.keys())))
+                # useful_dims = [0, 1, 2, -1] # ? obsolete
+                # insert_tracking = np.zeros((trial_tracking['body'].shape[0], len(useful_dims), len(trial_tracking.keys())))
                 
-                for i, bp in enumerate(bps):
-                    insert_tracking[:, :, i] = trial_tracking[bp][:, useful_dims]
+                # for i, bp in enumerate(bps):
+                #     insert_tracking[:, :, i] = trial_tracking[bp][:, useful_dims]
 
                 if escape_arm is None:
                     escape_arm = 'nan'
@@ -209,7 +201,7 @@ class analyse_all_trals:
                     session_uid = uid,
                     recording_uid = stim['recording_uid'],
                     experiment_name = exp,
-                    tracking_data = insert_tracking,
+                    tracking_data = trial_tracking,
                     outward_tracking_data = out_trip_tracking, 
                     stim_frame = start,
                     stim_type = stim['stim_type'],
@@ -275,7 +267,7 @@ def check_arm_assignment():
 if __name__ == "__main__":
     # a = analyse_all_trals(erase_table=True, fill_in_table=False)
     a = analyse_all_trals(erase_table=False, fill_in_table=True)
-    # print(AllTrials())
+    print(AllTrials())
 
 
 

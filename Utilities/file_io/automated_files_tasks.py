@@ -147,8 +147,6 @@ class FilesAutomationToolbox:
         # store names to file
         store = "Utilities/file_io/files_to_convert.yml"
         with open(store, 'w') as out:
-
-
             yaml.dump([os.path.split(u)[-1] for u in unconverted], out)
 
 
@@ -161,7 +159,6 @@ class FilesAutomationToolbox:
         poses = [f.split('_')[:-1] for f in os.listdir(self.pose_fld) if 'h5' in f]
 
         not_tracked = [f for f in videos if f.split('_') not in poses and os.path.getsize(os.path.join(self.videos_fld, f+".mp4")) > 10000] #  and 'overview'  in f.lower()]
-        not_tracked = [f for f in not_tracked] 
         print('To track: ', not_tracked)
         print(len(not_tracked), ' files yet to track')
 

@@ -42,7 +42,6 @@ class Environment(World):
 		self.reset()
 
 		# define the location of bridges to block in the model based v2 experiment
-
 		self.bridges_block_states = {
 			"alpha0": [[x, 21] for x in np.arange(12, 20)],
 			"alpha1":  [[x, 21] for x in np.arange(20, 25)],

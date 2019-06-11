@@ -32,16 +32,20 @@ class World:
         
         self.randomise_start_location_during_training = False
 
-        if "modelbased" in self.maze_type:
-            self.goal_location =  [20, 4] 
-        elif "asymmetric" in self.maze_type:
-            self.goal_location = [19, 10] 
-        else:
-            raise ValueError("unrecognised maze")
-            
+
         self.start_location = [20, 32] # [9, 14]
         self.second_start_location = [19, 17] # [9, 9]  # alternative start
 
+        if "modelbased" in self.maze_type:
+            self.goal_location =  [20, 5] 
+        elif "asymmetric" in self.maze_type:
+            self.goal_location = [19, 10] 
+        elif "symmetric" in self.maze_type:
+            self.goal_location = [19, 10]
+            self.start_location = [19, 28]
+        else:
+            raise ValueError("unrecognised maze")
+            
         # Check if other value were passed by the user
         for k,v in kwargs.items():
             if k == "start_loc": self.start_location = v

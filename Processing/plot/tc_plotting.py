@@ -7,7 +7,7 @@ from Utilities.imports import *
 
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame, get_arm_given_rois, convert_roi_id_to_tag
 from Utilities.video_and_plotting.video_editing import Editor 
-# from Modelling.bayesian.hierarchical_bayes_v2 import Modeller as Bayesian
+from Modelling.bayesian.hierarchical_bayes_v2 import Modeller as Bayesian
 
 
 traces_fld = 'D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Presentations\\ThesisCommitte\\HB traces'
@@ -267,7 +267,7 @@ def plot_expl_asym_vs_sym():
 
 def plot_hierarchical_bayes_posteriors():
     bayes = Bayesian()
-    trace = bayes.load_trace("Processing\\modelling\\bayesian\\hierarchical_v2.pkl")
+    trace = bayes.load_trace("Modelling/bayesian/hierarchical_v2.pkl")
 
     f, axarr = plt.subplots(ncols=5)
 
@@ -459,24 +459,27 @@ def  mbv2_make_cool_vids():
                     editor.trim_clip(video, savename, frame_mode = True,
                                         start_frame=start, stop_frame=end)
         
-            
 def mbv2_delta_probs_before_after():
     baseline = mbv2_behav_plots(plot=False, baseline=True)
     post = mbv2_behav_plots(plot=False, baseline=False)
 
     delta = {k:post[k]-v for k,v in baseline.items()}
 
-f, ax = plt.subplots()
-ax.bar([0, 1, 2, 3], delta.values())
-ax.set(ylim=[-0.5, 0.5])
-plt.show()
+    f, ax = plt.subplots()
+    ax.bar([0, 1, 2, 3], delta.values())
+    ax.set(ylim=[-0.5, 0.5])
+    plt.show()
 
 if __name__ == "__main__":
-    # mbv2_behav_plots(plot=True, baseline=True)
+    mbv2_behav_plots(plot=True, baseline=True)
+    mbv2_behav_plots(plot=True, baseline=False)
+
     # mbv2_closes_plots()
     # mbv2_make_videos()
     # mbv2_make_cool_vids()
-    mbv2_delta_probs_before_after()
+    # mbv2_delta_probs_before_after()
     # pr_sym_vs_asmy_get_traces()
+
+    # plot_hierarchical_bayes_posteriors()
     plt.show()
 

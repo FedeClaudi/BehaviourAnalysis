@@ -1,32 +1,19 @@
-import PyQt5
-
-import matplotlib
-matplotlib.use("Qt5Agg")
-import matplotlib.pyplot as plt
-
-import numpy as np
-import scipy.stats as stats
-import pymc3 as pm
-import pandas as pd
-from collections import defaultdict
-import theano.tensor as tt
-import yaml
-import pickle 
-import seaborn as sns
-import random
-from scipy.stats import ks_2samp as KS_test
-from scipy import stats
-plt.style.use('seaborn-darkgrid')
 
 import sys
 sys.path.append('./')
-if sys.platform != 'darwin':
-    from database.NewTablesDefinitions import *
-    from database.database_fetch import *
+
+from Utilities.imports import *
+
+import scipy.stats as stats
+import pymc3 as pm
+from collections import defaultdict
+import theano.tensor as tt
+from scipy.stats import ks_2samp as KS_test
+from scipy import stats
+import PyQt5
+import pickle
 
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame, get_arm_given_rois, convert_roi_id_to_tag
-from Processing.tracking_stats.math_utils import *
-# from Processing.trials_analysis.tc_plotting import plot_two_dists_kde
 
 class Modeller:
     def __init__(self):
@@ -266,10 +253,11 @@ class Modeller:
 
     def load_trace(self, savename=None):
         if savename is None:
-            savename = 'Processing/modelling/bayesian/hb_trace.pkl'
+            savename = 'Processing/modelling/bayesian/data/hb_trace.pkl'
+        trace = pd.read_pickle(savename)
 
-        with open(savename, 'rb') as dataload:
-            trace = pickle.load(dataload)
+        # with open(savename, 'rb') as dataload:
+        #     trace = pickle.load(dataload)
 
         return trace
 

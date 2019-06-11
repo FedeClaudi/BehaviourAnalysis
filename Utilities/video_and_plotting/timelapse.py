@@ -20,7 +20,7 @@ def stitch(fld):
 
 if __name__ == "__main__":
     main_fld = "D:\\Dropbox (UCL - SWC)\\Apps\\ants_uploader\\timelapses"
-    sub_fld = "190530_timelapse"
+    sub_fld = "190606_timelapse"
 
     stitch(os.path.join(main_fld, sub_fld))
 

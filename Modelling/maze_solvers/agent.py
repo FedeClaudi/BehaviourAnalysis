@@ -34,6 +34,8 @@ class Agent(Environment):
 	def load_options(self):
 		if self.maze_type == "asymmetric":
 			bridges = self.asymmetric_bridges
+		elif self.maze_type == "symmetric":
+			bridges = self.asymmetric_bridges
 		elif self.maze_type == "modelbased":
 			bridges = self.model_based_bridges
 		elif self.maze_type == "modelbased_large":
@@ -48,6 +50,7 @@ class Agent(Environment):
 		try:
 			options = load_yaml(self.options_file)
 		except: 
+			warnings.warn("Could not load options")
 			pass
 		else:
 			# make sure that only the options for the current maze design are being used
@@ -81,7 +84,7 @@ class Agent(Environment):
 			ax.scatter(np.vstack(walk)[:, 0], np.vstack(walk)[:, 1], alpha=.3,  s=150)
 
 	def plot_walk(self, walk, ax=None, background=True, multiple=False, title=None, 
-                    blocked=None, background_image=None, color=None, alpha=1, walk_cmap='viridis', **kwargs):
+					blocked=None, background_image=None, color=None, alpha=1, walk_cmap='viridis', **kwargs):
 		if ax is None:
 			f,ax = plt.subplots()
 

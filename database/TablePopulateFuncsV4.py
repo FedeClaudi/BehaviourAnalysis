@@ -118,13 +118,23 @@ def fill_in_recording_paths(recordings, populator):
 				vids = [v for v in videos if key['recording_uid'][:-2] in v and "Threat" not in v and "tdms" not in v]
 				if vids:
 					key['overview_video'] = vids[0]
-					key['overview_pose'] = [v for v in poses if key['recording_uid'][:-2] in v and "_pose" in v and ".h5" in v][0]
+					try:
+						key['overview_pose'] = [v for v in poses if key['recording_uid'][-2:] in v and "_pose" in v and ".h5" in v and key["session_name"] in v][0]
+					except:
+						print("No pose file found for rec: --> ", key["recording_uid"])
+						continue
 				else:
 					continue  # ! remove this
 					raise FileNotFoundError(key["recording_uid"])
 			else:
 				continue  # ! remove this
 				raise FileNotFoundError(key["recording_uid"])
+
+		if "Overview" not in key['overview_pose']:
+			if key["recording_uid"][-1] != key["overview_pose"].split("_pose")[0][-1]: 
+				print("Something went wrong: ", key)
+				continue # ! re,pve this
+				raise ValueError(key)
 
 		threat_vids = [v for v in videos if key['recording_uid'] in v and "Overview" in v and "mp4" in v]
 		if not threat_vids:
@@ -145,6 +155,7 @@ def fill_in_recording_paths(recordings, populator):
 			key['visual_stimuli_log'] = [0]
 
 		del key["software"]
+
 		recordings.FilePaths.insert1(key, allow_direct_insert=True)
 
 def fill_in_aligned_frames(recordings):
@@ -218,7 +229,7 @@ def make_commoncoordinatematrices_table(table, key):
 
 
 """
-                     # ! STIMULI
+					 # ! STIMULI
 """
 def make_stimuli_table(table, key):
 	from database.TablesDefinitionsV4 import Recording, Session
