@@ -4,19 +4,23 @@ from Modelling.glm.glm_data_loader import GLMdata
 
 # %% 
 # get data
-GLM = GLMdata(load_trials_from_file=True)
-data = GLM.trials
+glm = GLMdata(load_trials_from_file=True)
+data = glm.trials
 features = sorted(data.columns)
 data_descr = data.dtypes
+
+demo = glm.trials[["experiment_asymmetric", "escape_right", "iTheta", "rLen",]]
+
+
 #%%
 # fit the glm
 eq = "escape_right ~  iTheta*rLen + median_vel "
-model, res, y, predictions = GLM.run_glm(GLM.trials, eq)
+model, res, y, predictions = glm.run_glm(GLM.trials, eq)
 
 
 # plot the results
 color_label = data.experiment_asymmetric.values+1
-GLM.plotter(y, predictions, color_label, logistic=False)
+glm.plotter(y, predictions, color_label, logistic=False)
 
 #%%
 """
