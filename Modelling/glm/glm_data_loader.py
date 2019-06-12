@@ -129,18 +129,12 @@ class GLMdata:
 
         for i, trial in self.trials.iterrows():
             if trial.experiment_asymmetric:
-                if trial.escape_right:
-                    arm = self.maze_params.iloc[1]
-                else:
-                    arm = self.maze_params.iloc[0]
+                rLen.append(0.728378)
+                iTheta.append(180)
             else:
-                if trial.escape_right:
-                    arm = self.maze_params.iloc[7]
-                else:
-                    arm = self.maze_params.iloc[6]
+                rLen.append(1.0)
+                iTheta.append(135)
 
-            rLen.append(arm.rLen)
-            iTheta.append(arm.theta_tot)
 
         self.trials['rLen'] = rLen
         self.trials['iTheta'] = iTheta
@@ -203,4 +197,3 @@ class GLMdata:
 
 if __name__ == "__main__":
     l = GLMdata()
-
