@@ -17,7 +17,7 @@ class Trials:
 
         # Some sessions have different experiment names but can be grouped
         self.grouped_experiments = dict(
-            asymmetric = ["PathInt2", "PathInt2 - L"],
+            asymmetric = ["PathInt2", "PathInt2-L"],
             symmetric = ["Square Maze", "TwoAndahalf Maze"]
         )
 

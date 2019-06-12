@@ -31,8 +31,6 @@ mpl.rcParams['figure.subplot.top'] = .9
 mpl.rcParams['figure.subplot.wspace'] = .1
 mpl.rcParams['figure.subplot.hspace'] = .1
 
-
-
 mpl.rcParams['font.size'] = 12
 mpl.rcParams['legend.fontsize'] = 'large'
 mpl.rcParams['figure.titlesize'] = 'medium'
@@ -48,13 +46,11 @@ mpl.rcParams['legend.scatterpoints'] = 3
 mpl.rcParams['legend.edgecolor'] = 'red'
 # mpl.rcParams['legend.facecolor'] = [.2, .2, .2]
 
-
 mpl.rcParams['axes.facecolor'] = "white"
 mpl.rcParams['axes.edgecolor'] = "black"
 mpl.rcParams['axes.labelcolor'] = "black"
 
 mpl.rcParams['text.color'] = "black"
-
 
 mpl.rcParams['image.aspect'] = "auto"
 
