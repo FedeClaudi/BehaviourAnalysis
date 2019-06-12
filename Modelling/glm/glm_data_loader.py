@@ -129,17 +129,9 @@ class GLMdata:
 
         for i, trial in self.trials.iterrows():
             if trial.experiment_asymmetric:
-<<<<<<< HEAD
-                rLen.append(0.728378)
-                iTheta.append(180)
-            else:
-                rLen.append(1.0)
-                iTheta.append(135)
-=======
                 arm = self.maze_params.iloc[1]
             else:                
                     arm = self.maze_params.iloc[7]
->>>>>>> 3e113b98323ff7033056311e81006c36abecc155
 
 
         self.trials['rLen'] = rLen
@@ -159,27 +151,26 @@ class GLMdata:
 
     @staticmethod
     def plotter(y, predictions, label, logistic=False):
-        x = np.arange(len(predictions))
-        sort_idxs_p = np.argsort(predictions)
-        sort_idxs_y = np.argsort(y)
+            x = np.arange(len(predictions))
+            sort_idxs_p = np.argsort(predictions)
+            sort_idxs_y = np.argsort(y)
 
-        yy = np.zeros_like(y)-.1
-        yy[y > 0] = 1.1
+            yy = np.zeros_like(y)-.1
+            yy[y > 0] = 1.1
 
-        f, axarr = plt.subplots(figsize=(9, 8), ncols=2)
+            f, axarr = plt.subplots(figsize=(9, 8), ncols=2)
 
-        for ax, sort_idxs, title in zip(axarr, [sort_idxs_y, sort_idxs_p], ["sort Y", "sort Pred"]):
-            ax.scatter(x, y[sort_idxs], c=label[sort_idxs], cmap="Reds", label = 'Obs', alpha=.5, vmin=0)
-            ax.scatter(x, yy[sort_idxs], c=label[sort_idxs], cmap="Reds", label = 'Obs', alpha=.5, vmin=0)
+            for ax, sort_idxs, title in zip(axarr, [sort_idxs_y, sort_idxs_p], ["sort Y", "sort Pred"]):
+                ax.scatter(x, y[sort_idxs], c=label[sort_idxs], cmap="Reds", label = 'Obs', alpha=.5, vmin=0)
 
-            ax.scatter(x, predictions[sort_idxs],  c=label[sort_idxs], cmap="Greens", label = 'Pred', alpha=.75, vmin=0)
+                ax.scatter(x, predictions[sort_idxs],  c=label[sort_idxs], cmap="Greens", label = 'Pred', alpha=.75, vmin=0)
 
-            if logistic:
-                sns.regplot(x, predictions[sort_idxs], logistic=True, 
-                                            truncate=True, scatter=False, ax=ax)
+                if logistic:
+                    sns.regplot(x, predictions[sort_idxs], logistic=True, 
+                                                truncate=True, scatter=False, ax=ax)
 
-            ax.set(title = title, ylabel="escape_arm", xlabel="trials", yticks=[0,1], yticklabels=["left", "right"])
-            ax.legend()
+                ax.set(title = title, ylabel="escape_arm", xlabel="trials", yticks=[0,1], yticklabels=["left", "right"])
+                ax.legend()
 
     # ! MODELS
     def run_glm(self, data, eq):

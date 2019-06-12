@@ -1,6 +1,9 @@
 # %%
 from Utilities.imports import *
 from Modelling.glm.glm_data_loader import GLMdata
+%matplotlib inline  
+
+
 #%%
 """
 ['duration',
@@ -45,14 +48,18 @@ features = sorted(data.columns)
 data_descr = data.dtypes
 #%%
 # fit the glm
-eq = "escape_right ~ x_pos + y_pos + tot_time_in_shelter + iTheta + rLen + median_vel +  max_speed + origin_right + session_number_trials + speed + time_out_of_t"
+eq = "escape_right ~ x_pos + y_pos + median_vel +  max_speed + origin_right + session_number_trials"
+# eq = "escape_right ~ x_pos + y_pos + tot_time_in_shelter + iTheta + rLen + median_vel +  max_speed + origin_right + session_number_trials + speed + time_out_of_t"
+# 
+
 glm.results = {}
 for name, dd in zip(["all", "asym", "sym"], [glm.trials, glm.asym_trials, glm.sym_trials]):
     model, res, y, predictions = glm.run_glm(dd, eq)
-    glm.results[name] = res
-    # plot the results
-    color_label = dd.experiment_asymmetric.values+1
-    plotter(y, predictions, color_label, logistic=False)
+    glm.results[name] = (res, y, predictions, dd.experiment_asymmetric.values)
+
+    # ? plot the results
+    # color_label = dd.experiment_asymmetric.values+1
+    # plotter(y, predictions, color_label, logistic=False)
 
     print(res.summary())
 
@@ -68,33 +75,34 @@ for i in range(10000):
 print("Correct estimates: - mean: {} out of {} +- {}".format(np.round(np.mean(correct), 2), len(y), round(np.std(correct), 2)))
 
 
+#%%
+for exp, (res, y, pred, exp_label) in glm.results.items():
+    plotter2(y, pred, exp, exp_label)
+    break
 
 #%%
-def plotter(y, predictions, label, logistic=False):
-        x = np.arange(len(predictions))
-        sort_idxs_p = np.argsort(predictions)
-        sort_idxs_y = np.argsort(y)
+# print results summary
 
-        yy = np.zeros_like(y)-.1
-        yy[y > 0] = 1.1
+for exp, (res, y, pred) in glm.results.items():
+    # print("\nExp: ", exp)
+    # print(res.summary())
+    if exp == "all":
+        summary = pd.DataFrame(res.params, columns=["all"])
+    else:
+        summary[exp] = res.params
+summary
+#%%
+# ! plotting functions
 
-        f, axarr = plt.subplots(figsize=(9, 8), ncols=2)
-
-        for ax, sort_idxs, title in zip(axarr, [sort_idxs_y, sort_idxs_p], ["sort Y", "sort Pred"]):
-            ax.scatter(x, y[sort_idxs], c=label[sort_idxs], cmap="Reds", label = 'Obs', alpha=.5, vmin=0)
-
-            ax.scatter(x, predictions[sort_idxs],  c=label[sort_idxs], cmap="Greens", label = 'Pred', alpha=.75, vmin=0)
-
-            if logistic:
-                sns.regplot(x, predictions[sort_idxs], logistic=True, 
-                                            truncate=True, scatter=False, ax=ax)
-
-            ax.set(title = title, ylabel="escape_arm", xlabel="trials", yticks=[0,1], yticklabels=["left", "right"])
-            ax.legend()
 
 
 #%%
-def plotter2(y, predictions, n_iters=100):
+def plotter2(y, predictions, title, exp_label, n_iters=400):
+    def convolve(a):
+        padded = np.pad(a, (int(np.ceil(ww/2))+4), 'constant', constant_values=(0))[5:-5]
+        convolved = np.convolve(padded, np.ones(ww,dtype=int),'valid')/ww
+        return convolved
+
     x = np.arange(len(predictions))
     sort_idxs = np.argsort(predictions)
 
@@ -104,73 +112,41 @@ def plotter2(y, predictions, n_iters=100):
     p = predictions[sort_idxs]
 
     n_obs = len(p)
-    f, axarr = plt.subplots(figsize=(12, 8), ncols=3, facecolor=[.12, .12, .14])
-    
+    f, axarr = plt.subplots(figsize=(12, 8), ncols=2, facecolor=[.12, .12, .14])
+
     sim_pred, sim_pred_arr = [], np.zeros((n_iters, n_obs))
 
     for i, pp in enumerate(p):
         xx = np.ones((n_iters))*i
         sp = np.random.binomial(1, pp, size=n_iters)
-        axarr[0].scatter(xx, sp, color='k', alpha=0.01 )
+        # axarr[0].scatter(xx, sp, color='k', alpha=0.01 )
         sim_pred.append(np.mean(sp))
         sim_pred_arr[:, i] = sp
 
-    axarr[0].scatter(x, yy, color="r", alpha=.5, label="obs")
-    axarr[0].scatter(x, p, color="g", alpha=.8, label="pred")
+    axarr[0].scatter(x, np.sort(y), c=exp_label[sort_idxs], cmap="Purples", alpha=.5, label="obs", vmin=-1)
+    axarr[0].scatter(x, yy, c=exp_label[sort_idxs], cmap="Reds", alpha=.5, label="obs", vmin=-1)
+    axarr[0].scatter(x, p, c=exp_label[sort_idxs], cmap="Greens", alpha=.8, label="pred", vmin=-1)
     axarr[0].legend()
+    axarr[0].set(title="title")
 
-    sns.regplot(x, y, logistic=True, color="r", label="obs", ax=axarr[1])
-    sns.regplot(x, sim_pred_arr, logistic=True, color="k", label="pred", ax=axarr[1])
-    axarr[1].legend()
+    # TODO         make padded convolve work
 
-    ww = 21
-    for i in range(100):
-        axarr[2].plot(np.convolve(np.random.binomial(1, p).ravel(), np.ones(ww,dtype=int),'valid'), color="g", alpha=.15,  label="pred")
+    ww = 31
+    for i in range(1000):
+        axarr[1].plot(np.convolve(np.random.binomial(1, p).ravel(), np.ones(ww,dtype=int),'valid')/ww, color="k", alpha=.1,  label="pred")
 
-    axarr[2].plot(np.convolve(y,np.ones(ww,dtype=int),'valid'), color="r")
-    axarr[2].set(title="Windows sum- window: {}".format(ww), facecolor=[.05, .05, .05])
+    axarr[1].plot(np.convolve(y, np.ones(ww,dtype=int),'valid')/ww, lw=5, alpha=1, color="r")
+    axarr[1].plot(np.convolve(np.sort(y[np.argsort(exp_label)]), np.ones(ww,dtype=int),'valid')/ww, lw=5, color="m", alpha=0.8)
+
+    axarr[1].set(title="Windows sum- window: {}".format(ww))
+
+    for ax in axarr:
+        ax.set(ylabel="escape_arm", xlabel="trials", yticks=[0,1], yticklabels=["left", "right"])
 
 
-plotter2(y, predictions)
+# plotter2(y, predictions, "")
 
-#%%
 
-#%%
-x = np.arange(len(predictions))
-sort_idxs = np.argsort(predictions)
-
-y = y[sort_idxs]
-yy = np.zeros_like(y)-.05
-yy[y > 0] = 1.05
-p = predictions[sort_idxs]
-
-n_obs = len(p)
-f, axarr = plt.subplots(figsize=(12, 8), ncols=3, facecolor=[.12, .12, .14])
-
-sim_pred, sim_pred_arr = [], np.zeros((n_iters, n_obs))
-
-for i, pp in enumerate(p):
-    xx = np.ones((n_iters))*i
-    sp = np.random.binomial(1, pp, size=n_iters)
-    axarr[0].scatter(xx, sp, color='k', alpha=0.01 )
-    sim_pred.append(np.mean(sp))
-    sim_pred_arr[:, i] = sp
-
-axarr[0].scatter(x, yy, color="r", alpha=.5, label="obs")
-axarr[0].scatter(x, p, color="g", alpha=.8, label="pred")
-axarr[0].legend()
-
-sns.regplot(x, y, logistic=True, color="r", label="obs", ax=axarr[1])
-xx = np.tile(x, n_iters).reshape(n_iters, n_obs)
-sns.regplot(xx, sim_pred_arr, logistic=True, color="k", label="pred", ax=axarr[1])
-axarr[1].legend()
-
-ww = 21
-for i in range(100):
-    axarr[2].plot(np.convolve(np.random.binomial(1, p).ravel(), np.ones(ww,dtype=int),'valid'), color="g", alpha=.15,  label="pred")
-
-axarr[2].plot(np.convolve(y,np.ones(ww,dtype=int),'valid'), color="r")
-axarr[2].set(title="Windows sum- window: {}".format(ww), facecolor=[.05, .05, .05])
 
 
 #%%
