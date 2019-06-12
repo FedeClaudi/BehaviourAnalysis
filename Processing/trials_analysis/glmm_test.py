@@ -11,6 +11,8 @@ from sklearn.preprocessing import RobustScaler as Scaler
 
 from Processing.trials_analysis.all_trials_loader import Trials
 from statsmodels.graphics.api import abline_plot
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
 
 %matplotlib inline
 
@@ -63,9 +65,9 @@ def plotter2(y, predictions):
     f, ax = plt.subplots(figsize=(9, 8),)
     ax.plot(y[sort_idxs],'o',color='r', label = 'Obs', alpha=.25)
     ax.plot(predictions[sort_idxs],'o',color='g', label = 'Pred', alpha=.25)
-    sns.regplot(x, predictions[sort_idxs], logistic=True, 
-                                truncate=True, scatter=False, ax=ax)
-    ax.set(ylabel="escape_arm", xlabel="trials", yticks=[0,1], yticklabels=["left", "right"])
+    # sns.regplot(x, predictions[sort_idxs], logistic=True, 
+    #                             truncate=True, scatter=False, ax=ax)
+    ax.set(ylabel="escape_arm", xlabel="trials") #, yticks=[0,1], yticklabels=["left", "right"])
 
 
 
@@ -209,7 +211,15 @@ if inspect_data:
 
 # %%
 # ! drop part of the data
-trials = trials.loc[trials.experiment_asymmetric == 1]
+# trials = trials.loc[trials.experiment_asymmetric == 1]
+
+# Split training and test
+
+train, test = train_test_split(trials, test_size=0.2)
+
+# ? apply transforms
+test["log_escape_duration"] = np.log(test["escape_duration"])
+
 
 # %%
 ############################################################################################################################################################################################################################################################
@@ -218,26 +228,30 @@ trials = trials.loc[trials.experiment_asymmetric == 1]
 # %%
 # ! GLM with stats model
 # TODO add position at trials onset to predicting vars
-
-# standardise the variables  and get the data
 scaler = Scaler()
-
-endog = trials.escape_right # ? to predict
-exog = trials[[ "escape_duration", "time_out_of_t" , "total_angular_displacement", "mean_speed", "max_speed"]] 
+# TODO look at p(R) for HIGH and LOW ToT trials
+exog = test[["log_escape_duration", ]]
 for c in exog.columns:
-    if "arm" not in c:
-        exog[c] = scaler.fit_transform(exog[c].values.reshape(-1, 1))
-exog = sm.add_constant(exog) # add for intercept
+    # exog[c] = scaler.fit_transform(exog[c].values.reshape(-1, 1))
+    exog[c] = exog[c].values.reshape(-1, 1)
+
+exog = sm.add_constant(exog)
 
 # Define and fit the model
-gamma_model = sm.GLM(endog, exog, family=sm.families.Binomial(link=sm.families.links.logit))
-res = gamma_model.fit()
-print(res.summary())
+# gamma_model = sm.GLM(endog, exog, family=sm.families.Binomial(link=sm.families.links.logit))
+
+gamma_model = smf.glm(formula = "time_out_of_t ~  np.log(escape_duration) ", data=train,
+                    family=sm.families.Gamma(link=sm.families.links.log))
+res = gamma_model.fit_regularized()
+print(res.params)
 
 # ? plot the fitted model's results
-y = endog.ravel()
-predictions = gamma_model.predict(res.params)
+y = test.time_out_of_t.ravel()
+predictions = gamma_model.predict(res.params, exog)
 plotter2(y,  predictions)
+
+mse = mean_squared_error(y, predictions)
+print("\nMSE: ", round(mse, 2))
 
 # %%
 ############################################################################################################################################################################################################################################################
