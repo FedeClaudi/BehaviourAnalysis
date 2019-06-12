@@ -154,6 +154,6 @@ class AllExplorationsPopulate:
 
 if __name__ == "__main__":
 	# print(AllExplorations())
-	# AllExplorationsPopulate(erase_table=False, fill_in_table=True)
+	AllExplorationsPopulate(erase_table=False, fill_in_table=True)
 
 	print(AllExplorations())

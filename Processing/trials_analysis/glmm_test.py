@@ -16,8 +16,9 @@ from sklearn.metrics import mean_squared_error
 
 %matplotlib inline
 
+# %%
 # Controllers
-load_file = True
+load_file = False
 inspect_data = False
 
 logistic_th = .7
@@ -63,11 +64,12 @@ def plotter2(y, predictions):
     sort_idxs = np.argsort(y)
 
     f, ax = plt.subplots(figsize=(9, 8),)
-    ax.plot(y[sort_idxs],'o',color='r', label = 'Obs', alpha=.25)
-    ax.plot(predictions[sort_idxs],'o',color='g', label = 'Pred', alpha=.25)
+    ax.plot(y[sort_idxs],'o',color='r', label = 'Obs', alpha=.5)
+    ax.plot(predictions[sort_idxs],'o',color='g', label = 'Pred', alpha=.5)
     # sns.regplot(x, predictions[sort_idxs], logistic=True, 
     #                             truncate=True, scatter=False, ax=ax)
     ax.set(ylabel="escape_arm", xlabel="trials") #, yticks=[0,1], yticklabels=["left", "right"])
+    ax.legend()
 
 
 
@@ -80,7 +82,7 @@ def plotter2(y, predictions):
 # ! Load the data
 if sys.platform != "darwin":
     file_path = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis_metadata\\saved_dataframes\\glm_data.pkl"
-    parfile = None
+    parfile = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis_metadata\\maze\\escape_paths_features.yml"
 else:
     parfile = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/analysis_metadata/maze/escape_paths_features.yml"
     file_path = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/analysis_metadata/saved_dataframes/glm_data.pkl"
@@ -117,8 +119,7 @@ if not load_file:
     trials["time_out_of_t"] = np.array(trials['time_out_of_t'].values, np.float64)
 
     # Fix arms categoricals
-    # TODO check origin
-    trials["origin_arm_clean"] = ["right" if "Right" in arm else "left" for arm in trials['origin_arm'].values]
+    trials["origin_arm_clean"] = ["right" if "Right" in arm[0] else "left" for arm in trials['origin_arm'].values]
     trials["escape_arm_clean"] = ["right" if "Right" in arm else "left" for arm in trials['escape_arm'].values]
 
     trials = pd.get_dummies(trials, columns=["escape_arm_clean", "origin_arm_clean", "grouped_experiment_name"], 
@@ -128,6 +129,10 @@ else:
     trials = trials.drop("origin_left", axis=1)
     trials["origin_arm_clean"] = ["right" if "Right" in arm[0] else "left" for arm in trials['origin_arm'].values]
     trials = pd.get_dummies(trials, columns=["origin_arm_clean"], prefix=["origin"])
+
+# %%
+#  save trials
+trials.to_pickle(file_path)
 
 #%%
 # ? get the maze params
@@ -211,11 +216,11 @@ if inspect_data:
 
 # %%
 # ! drop part of the data
-# trials = trials.loc[trials.experiment_asymmetric == 1]
+trials = trials.loc[trials.experiment_asymmetric == 1]
 
 # Split training and test
 
-train, test = train_test_split(trials, test_size=0.2)
+train, test = train_test_split(trials, test_size=0.5)
 
 # ? apply transforms
 test["log_escape_duration"] = np.log(test["escape_duration"])
@@ -230,24 +235,19 @@ test["log_escape_duration"] = np.log(test["escape_duration"])
 # TODO add position at trials onset to predicting vars
 scaler = Scaler()
 # TODO look at p(R) for HIGH and LOW ToT trials
-exog = test[["log_escape_duration", ]]
+exog = test[["time_out_of_t" ]]
 for c in exog.columns:
-    # exog[c] = scaler.fit_transform(exog[c].values.reshape(-1, 1))
-    exog[c] = exog[c].values.reshape(-1, 1)
+    exog[c] = scaler.fit_transform(exog[c].values.reshape(-1, 1))
 
 exog = sm.add_constant(exog)
-
-# Define and fit the model
-# gamma_model = sm.GLM(endog, exog, family=sm.families.Binomial(link=sm.families.links.logit))
-
-gamma_model = smf.glm(formula = "time_out_of_t ~  np.log(escape_duration) ", data=train,
-                    family=sm.families.Gamma(link=sm.families.links.log))
-res = gamma_model.fit_regularized()
+model = smf.glm(formula = "escape_right ~   time_out_of_t", data=train,
+                    family=sm.families.Binomial(link=sm.families.links.logit))
+res = model.fit_regularized()
 print(res.params)
 
 # ? plot the fitted model's results
-y = test.time_out_of_t.ravel()
-predictions = gamma_model.predict(res.params, exog)
+y = test.escape_right.ravel()
+predictions = model.predict(res.params, exog)
 plotter2(y,  predictions)
 
 mse = mean_squared_error(y, predictions)
