@@ -18,7 +18,7 @@ if sys.platform == "darwin":
 mpl.rcParams['text.color'] = "black"
 
 mpl.rcParams['figure.figsize'] = [20, 16]
-mpl.rcParams['figure.facecolor'] = [.8, .8, .8]
+mpl.rcParams['figure.facecolor'] = [.2, .2, .2]
 mpl.rcParams['figure.autolayout'] = True
 mpl.rcParams['figure.dpi'] = 80
 mpl.rcParams['savefig.dpi'] = 100

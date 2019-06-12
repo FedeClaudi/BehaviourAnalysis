@@ -104,23 +104,73 @@ def plotter2(y, predictions, n_iters=100):
     p = predictions[sort_idxs]
 
     n_obs = len(p)
-    f, axarr = plt.subplots(figsize=(12, 8), ncols=2)
+    f, axarr = plt.subplots(figsize=(12, 8), ncols=3, facecolor=[.12, .12, .14])
     
-    sim_pred = []
+    sim_pred, sim_pred_arr = [], np.zeros((n_iters, n_obs))
+
     for i, pp in enumerate(p):
         xx = np.ones((n_iters))*i
         sp = np.random.binomial(1, pp, size=n_iters)
         axarr[0].scatter(xx, sp, color='k', alpha=0.01 )
         sim_pred.append(np.mean(sp))
+        sim_pred_arr[:, i] = sp
 
-    axarr[0].scatter(x, yy, color="r", alpha=.5)
-    axarr[0].scatter(x, p, color="g", alpha=.8)
+    axarr[0].scatter(x, yy, color="r", alpha=.5, label="obs")
+    axarr[0].scatter(x, p, color="g", alpha=.8, label="pred")
+    axarr[0].legend()
 
-    axarr[1].plot(np.cumsum(y), color="r")
-    axarr[1].plot(np.cumsum(sim_pred), color="g")
+    sns.regplot(x, y, logistic=True, color="r", label="obs", ax=axarr[1])
+    sns.regplot(x, sim_pred_arr, logistic=True, color="k", label="pred", ax=axarr[1])
+    axarr[1].legend()
+
+    ww = 21
+    for i in range(100):
+        axarr[2].plot(np.convolve(np.random.binomial(1, p).ravel(), np.ones(ww,dtype=int),'valid'), color="g", alpha=.15,  label="pred")
+
+    axarr[2].plot(np.convolve(y,np.ones(ww,dtype=int),'valid'), color="r")
+    axarr[2].set(title="Windows sum- window: {}".format(ww), facecolor=[.05, .05, .05])
+
 
 plotter2(y, predictions)
 
 #%%
+
+#%%
+x = np.arange(len(predictions))
+sort_idxs = np.argsort(predictions)
+
+y = y[sort_idxs]
+yy = np.zeros_like(y)-.05
+yy[y > 0] = 1.05
+p = predictions[sort_idxs]
+
+n_obs = len(p)
+f, axarr = plt.subplots(figsize=(12, 8), ncols=3, facecolor=[.12, .12, .14])
+
+sim_pred, sim_pred_arr = [], np.zeros((n_iters, n_obs))
+
+for i, pp in enumerate(p):
+    xx = np.ones((n_iters))*i
+    sp = np.random.binomial(1, pp, size=n_iters)
+    axarr[0].scatter(xx, sp, color='k', alpha=0.01 )
+    sim_pred.append(np.mean(sp))
+    sim_pred_arr[:, i] = sp
+
+axarr[0].scatter(x, yy, color="r", alpha=.5, label="obs")
+axarr[0].scatter(x, p, color="g", alpha=.8, label="pred")
+axarr[0].legend()
+
+sns.regplot(x, y, logistic=True, color="r", label="obs", ax=axarr[1])
+xx = np.tile(x, n_iters).reshape(n_iters, n_obs)
+sns.regplot(xx, sim_pred_arr, logistic=True, color="k", label="pred", ax=axarr[1])
+axarr[1].legend()
+
+ww = 21
+for i in range(100):
+    axarr[2].plot(np.convolve(np.random.binomial(1, p).ravel(), np.ones(ww,dtype=int),'valid'), color="g", alpha=.15,  label="pred")
+
+axarr[2].plot(np.convolve(y,np.ones(ww,dtype=int),'valid'), color="r")
+axarr[2].set(title="Windows sum- window: {}".format(ww), facecolor=[.05, .05, .05])
+
 
 #%%
