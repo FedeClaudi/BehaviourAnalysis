@@ -42,13 +42,14 @@ for k,v in data._asdict().items():
     v["correct_rel_time_on_right"] = v.rel_time_on_right.values / v.rLen.values
 
 
+# %%
 # split 
-train, test = train_test_split(glm.trials, test_size=.3)
+train, test = train_test_split(data.sym, test_size=.3)
 
 
 #%%
 # Fit and plot
-eq = "escape_right ~   rLen + time_on_right_exp + mean_expl_speed + x_pos" 
+eq = "escape_right ~ time_on_right_exp + mean_expl_speed + x_pos + mean_expl_speed" 
 model, res, y, predictions = glm.run_glm(train, eq)
 print(res.summary())
 
