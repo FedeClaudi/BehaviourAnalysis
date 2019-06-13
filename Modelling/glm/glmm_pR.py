@@ -67,18 +67,23 @@ eq = "escape_right ~   rLen + correct_rel_time_on_right + iTheta + mean_expl_spe
 eq = "escape_right ~   rLen + correct_rel_time_on_right + iTheta + mean_expl_speed  + speed + tot_time_on_threat + tot_time_in_shelter + total_travel + x_pos + y_pos" 
 
 """
-eq = "escape_right ~   rLen + correct_rel_time_on_right + mean_expl_speed + x_pos" 
+eq = "escape_right ~   rLen + correct_rel_time_on_right + duration + iTheta + mean_expl_speed + session_uid + speed + time_out_of_t" 
 model, res, y, predictions = glmm.run_glm(train, eq)
 print(res.summary())
 
 # predict test
 y_test = test.escape_right.values.ravel()
-predictions_test = res.predict(test).values
+# predictions_test = res.predict(test).values
 
 plotter2(y, predictions, "train", train.experiment_asymmetric.values)
 
-plotter2(y_test, predictions_test, "test", test.experiment_asymmetric.values)
-
+# plotter2(y_test, predictions_test, "test", test.experiment_asymmetric.values)
+correct = []
+for i in range(10000):
+        p = np.random.binomial(1, predictions)
+        correct.append(np.sum((p ==y)))
+c, n = np.round(np.mean(correct), 2),  len(y)
+print("Correct estimates: {} - mean: {} of {} +- {} - {}% correct".format("f", c,n, round(np.std(correct), 2), np.round(c/n, 2)*100))
 
 
 # %%

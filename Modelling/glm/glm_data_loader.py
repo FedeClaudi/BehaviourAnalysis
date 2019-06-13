@@ -88,7 +88,7 @@ class GLMdata:
 
     def reload_trials_data(self):
         trial_data = Trials(exp_1_mode=True)
-        trials = trial_data.trials.drop(["is_escape", "experiment_name", "outward_tracking_data"], axis=1)
+        trials = trial_data.trials.drop(["is_escape", "experiment_name"], axis=1)
 
         # Get some extra metrics
         mean_escape_speed, max_escape_speed, escape_path_len, total_angular_displacement  = [],[],[],[],
@@ -130,8 +130,13 @@ class GLMdata:
         for i, trial in self.trials.iterrows():
             if trial.experiment_asymmetric:
                 arm = self.maze_params.iloc[1]
+                iTheta.append(135)            
+
             else:                
-                    arm = self.maze_params.iloc[7]
+                arm = self.maze_params.iloc[7]
+                iTheta.append(180)            
+
+            rLen.append(arm.rLen)
 
 
         self.trials['rLen'] = rLen
@@ -173,18 +178,21 @@ class GLMdata:
                 ax.legend()
 
     # ! MODELS
-    def run_glm(self, data, eq):
+    def run_glm(self, data, eq, regularized=False):
         model = smf.glm(formula = eq, 
                         data = data,
                         family = sm.families.Binomial(link=sm.families.links.logit))
-        res = model.fit()
+        if not regularized:
+            res = model.fit()
+        else:
+            res = model.fit_regularized()
 
         y = data.escape_right.ravel()
         predictions = model.predict(res.params)
 
-        print(res.params)
-        self.print_mre(y, predictions)
-        print("\n\n")
+        # print(res.params)
+        # self.print_mre(y, predictions)
+        # print("\n\n")
 
         return model, res, y, predictions
 
@@ -193,4 +201,4 @@ class GLMdata:
         # TODO make this work with exog predictions
 
 if __name__ == "__main__":
-    l = GLMdata()
+    l = GLMdata(load_trials_from_file=False)
