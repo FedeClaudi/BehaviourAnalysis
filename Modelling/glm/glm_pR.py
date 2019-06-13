@@ -46,9 +46,16 @@ glm = GLMdata(load_trials_from_file=True)
 data = glm.trials
 features = sorted(data.columns)
 data_descr = data.dtypes
+
+# %% 
+# Get mean speed during exploration
+for d in [glm.trials, glm.asym_trials, glm.sym_trials]:
+    d["mean_expl_speed"] = [np.nanmean(dd.tracking_data_exploration[:, 2]) for i, dd in d.iterrows()]
+
 #%%
 # fit the glm
-eq = "escape_right ~ x_pos + y_pos + median_vel +  max_speed + origin_right + session_number_trials"
+eq = "escape_right ~ rLen*iTheta*mean_expl_speed"
+# eq = "escape_right ~ rLen -1"
 # eq = "escape_right ~ x_pos + y_pos + tot_time_in_shelter + iTheta + rLen + median_vel +  max_speed + origin_right + session_number_trials + speed + time_out_of_t"
 # 
 
@@ -63,27 +70,21 @@ for name, dd in zip(["all", "asym", "sym"], [glm.trials, glm.asym_trials, glm.sy
 
     print(res.summary())
 
-# %% quantify results
-# TODO make this work for all experiments
-
-# iterate N time, get the number of correct predictions at ever iter given our predictions
-correct = []
-for i in range(10000):
-    pp = np.random.binomial(1, predictions)
-    correct.append(np.sum((pp == y)))
-
-print("Correct estimates: - mean: {} out of {} +- {}".format(np.round(np.mean(correct), 2), len(y), round(np.std(correct), 2)))
-
-
-#%%
+# ! plot results
 for exp, (res, y, pred, exp_label) in glm.results.items():
+    correct = []
+    for i in range(10000):
+        pp = np.random.binomial(1, pred)
+        correct.append(np.sum((pp == y)))
+    print("Correct estimates: {} - mean: {} out of {} +- {}".format(exp, np.round(np.mean(correct), 2), len(y), round(np.std(correct), 2)))
+
     plotter2(y, pred, exp, exp_label)
-    break
+    break 
 
 #%%
 # print results summary
 
-for exp, (res, y, pred) in glm.results.items():
+for exp, (res, y, pred, _) in glm.results.items():
     # print("\nExp: ", exp)
     # print(res.summary())
     if exp == "all":
