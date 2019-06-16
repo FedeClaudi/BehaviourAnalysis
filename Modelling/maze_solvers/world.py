@@ -32,7 +32,7 @@ class World:
         
         self.randomise_start_location_during_training = False
 
-
+        
         self.start_location = [20, 32] # [9, 14]
         self.second_start_location = [19, 17] # [9, 9]  # alternative start
 
@@ -48,12 +48,15 @@ class World:
             
         # Check if other value were passed by the user
         for k,v in kwargs.items():
-            if k == "start_loc": self.start_location = v
-            elif k == "goal_loc": self.goal_location = v
+            if k == "start_location": self.start_location = v
+            elif k == "goal_location": self.goal_location = v
             elif k == "stride": self.stride   = v
 
         # static vars
-        self.maze_models_folder = "Modelling/maze_solvers/mazes_images"
+        if sys.platform == "darwin":
+            self.maze_models_folder = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/analysis_metadata/maze_solvers/mazes_images"
+        else:
+            raise NotImplementedError
 
         
 

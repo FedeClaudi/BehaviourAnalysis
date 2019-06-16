@@ -67,14 +67,16 @@ class Environment(World):
 		self.asymmetric_large_bridges = [a+"_large" for a in self.asymmetric_bridges]
 
 
-	def get_maze_from_image(self):
+	def get_maze_from_image(self, model_path=None, kernel_size=25):
 		"""[Extract a drawing of a maze and turns it into a gridworld representation of the maze itself]
 		"""
 
-		model = cv2.imread(os.path.join(self.maze_models_folder, self.maze_design))
-
+		if model_path is None:
+			model = cv2.imread(os.path.join(self.maze_models_folder, self.maze_design))
+		else:
+			model = cv2.imread(model_path)
+			
 		# blur to remove imperfections
-		kernel_size = 21
 		model = cv2.blur(model, (kernel_size, kernel_size))
 
 		# resize and change color space
@@ -126,12 +128,18 @@ class Environment(World):
 		if current is None: current = self.curr_state
 
 		surroundings = self.maze[current[1]-1:current[1]+2, current[0]-1:current[0]+2]
+		if not np.any(surroundings):
+			return None, None
 
 		actions = ["up-left", "up", "up-right", "left", "still", "right", "down-left", "down", "down-right"] # ! dont delete still from this list
 
-		legals = [a for i, a in enumerate(actions) if surroundings.flatten()[i] and a != "still"]
+		try:
+			legals = [a for i, a in enumerate(actions) if surroundings.flatten()[i] and a != "still"]
+		except:
+			return None, None
+
 		if not legals: raise ValueError("No legal actions, thats impossible")
-		else: return legals
+		else: return legals, surroundings
 
 	def move(self, action, curr):
 		"""
