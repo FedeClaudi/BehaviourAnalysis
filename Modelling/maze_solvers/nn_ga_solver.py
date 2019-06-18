@@ -62,20 +62,18 @@ a1, a2 = nn.forward(data)
 class NNGa(Agent):
 	def __init__(self):
 		grid_size = 40
-		x = int(grid_size/2)
+		x = int(grid_size/2)-2
 		ys, yt = int(grid_size/4)+2, int(grid_size/2)+int(grid_size/5)
 		Agent.__init__(self, grid_size=grid_size, goal_location=[x, ys], start_location=[x, yt])
 
-		# self.plot_maze()
-
 		# ? params
-		self.pop_size = 20
+		self.pop_size = 50
 		self.max_n_steps = grid_size*10
-		self.n_generations = 75
-		self.keep_best_n = 4
+		self.n_generations = 50
+		self.keep_best_n = 6
 		self.mutation_rates = [.5, .25, .1, .05] # probability of a gene mutating
 		self.mutation_rate = self.mutation_rates[0]
-		self.learning_steps = [0, 10, 30, 40]
+		self.learning_steps = [0, 25, 100, 180]
 		self.randomise_start_location = True
 
 		# ? Deterministic actions
@@ -83,19 +81,16 @@ class NNGa(Agent):
 		if self.deterministic:
 			self.repeat_gen = 1
 		else:
-			self.repeat_gen = 3
+			self.repeat_gen = 4
 
 		# ? maze design
 		self.get_maze_designs()
-		self.multiple_mazes = False
-		if self.multiple_mazes: raise NotImplementedError
-		else: 
-			img = self.images["Square Maze"]
-			self.maze, self.free_states = self.get_maze_from_image(img)
+		self.multiple_mazes = True
+		img = self.images["mazemodel"]
+		self.maze, self.free_states = self.get_maze_from_image(img)
+		# self.plot_maze()
 
 		self.weights_max = 1.0 # max val for NN weights
-
-
 
 		# ? Keep the best agent
 		self.best_fitness = 0
@@ -141,6 +136,12 @@ class NNGa(Agent):
 			# letagents do their things
 			repeat_rewards, repeat_distance, repeat_walks_steps = [], [], []
 			for i in range(self.repeat_gen): # run each gen multiple times because of probabilistic agent
+				# Choose a random maze
+				if self.multiple_mazes:
+					img = random.choice(list(self.images.values()))
+					self.maze, self.free_states = self.get_maze_from_image(img)
+
+				
 				walks, rewards, shelter_distance, walks_n_steps = self.run_generation(reward_modifier=reward_modifier)
 				repeat_rewards.append(rewards)
 				repeat_distance.append(shelter_distance)
@@ -151,7 +152,7 @@ class NNGa(Agent):
 			walks_n_steps = np.mean(np.vstack(repeat_walks_steps), 0)
 
 			fitness = np.array([r-d-l for r,d,l in zip(rewards, shelter_distance, walks_n_steps)])  # ! fitness
-			# fitness = np.array([r-d-l for r,d,l in zip(rewards, shelter_distance, walks_n_steps)])  # ! fitness
+			# fitness = np.array([r-d-l**2 for r,d,l in zip(rewards, shelter_distance, walks_n_steps)])  # ! fitness
 
 			fitness = fitness.ravel()
 			# fitness = rewards.copy()
@@ -303,6 +304,8 @@ class NNGaAnalyser(NNGa):
 
 	def plot_agent_walk(self, agent_n, restore_maze=False):
 		f, ax = plt.subplots()
+
+		walk_lengths = []
 		for n in range(self.n_walks):
 			self.reset()
 			
@@ -311,6 +314,9 @@ class NNGaAnalyser(NNGa):
 
 			walk, _ = self.walk_agent(self.agents[agent_n], 0, stop=True)
 			self.plot_walk(walk, ax=ax, alpha=0.5)
+			walk_lengths.append(len(walk))
+
+		print("mean length: ", np.mean(walk_lengths))
 
 	def test_agent_on_arenas(self, agent_n, arena_type="open", maze=None):
 		# copy
@@ -324,7 +330,7 @@ class NNGaAnalyser(NNGa):
 
 		elif arena_type == "barrier":
 			self.maze = np.ones((self.grid_size, self.grid_size))
-			self.maze[int(self.grid_size/2):int(self.grid_size/2)+2, 
+			self.maze[int(self.grid_size/2):int(self.grid_size/2)+4, 
 						int(self.grid_size/3): int(self.grid_size - self.grid_size/3)] = 0
 			self.free_states = [[i, j] for i in np.arange(self.grid_size) for j in np.arange(self.grid_size) if self.maze[i, j]==1]
 
@@ -360,13 +366,21 @@ class NNGaAnalyser(NNGa):
 		ax.imshow(img)
 
 
-if 1 == 1:
+if 1 == 0:
 	nnga = NNGaAnalyser()
-	nnga.randomise_start_location = False
+	nnga.max_n_steps = 50
+	nnga.n_walks= 10
+	nnga.start_location = [19, 28]
+
+
+	# ? Visualize agents
+	# nnga.randomise_start_location = True
 	# nnga.plot_all_agents_walks()
+	# nnga.plot_agent_walk(-1)
+	# nnga.test_agent_on_arenas(-1, arena_type="maze", maze="Square Maze")
 
 	# ? test
-	# nnga.randomise_start_location = True
+	# nnga.randomise_start_location = False
 	# nnga.test_agent_on_arenas(-1, arena_type="open")
 	# nnga.test_agent_on_arenas(-1, arena_type="corridor")
 	# nnga.test_agent_on_arenas(-1, arena_type="barrier")
@@ -376,10 +390,8 @@ if 1 == 1:
 	nnga.test_agent_on_arenas(-1, arena_type="maze", maze="PathInt2")
 	nnga.test_agent_on_arenas(-1, arena_type="maze", maze="Square Maze")
 	nnga.test_agent_on_arenas(-1, arena_type="maze", maze="leftfar")
+	nnga.test_agent_on_arenas(-1, arena_type="maze", maze="mazemodel")
 
-
-
-	
 
 
 # %%

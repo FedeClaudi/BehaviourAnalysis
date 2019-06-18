@@ -9,7 +9,7 @@ data = pd.read_excel(filepath)
 # data = data.sort_values("naive")[::-1]
 data
 
-data = data.loc[data.version == 2]
+# data = data.loc[data.version == 2]
 
 
 #%%
