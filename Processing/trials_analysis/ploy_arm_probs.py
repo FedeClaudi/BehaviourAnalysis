@@ -1,17 +1,11 @@
 import sys
 sys.path.append('./')
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
-import seaborn as sns
 
-from database.NewTablesDefinitions import *
-from database.database_fetch import *
+from Utilities.imports import *
 
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame, get_arm_given_rois, convert_roi_id_to_tag
-from Processing.tracking_stats.math_utils import get_roi_enters_exits, line_smoother, calc_distance_between_points_2d, remove_tracking_errors, get_n_colors
 
-from Processing.modelling.bayesian.hierarchical_bayes_v2 import Modeller as Bayesian
+from Modelling.bayesian.hierarchical_bayes_v2 import Modeller as Bayesian
 
 
 class Plotter:
@@ -31,7 +25,6 @@ class Plotter:
         for exp in sorted(self.experiments):           
             escape = get_trials_by_exp(exp, 'true', ['escape_arm'])
             escapes[exp] = self.calc_arm_p(escape, target)
-
 
         x = np.arange(self.n_experiments)
 
@@ -141,10 +134,10 @@ class Plotter:
 
 if __name__ == "__main__":
     p = Plotter()
-    # p.pr_sym_vs_asmy()
+    p.pr_sym_vs_asym()
 
 
-    p.plot_pR_individuals_by_exp()
+    # p.plot_pR_individuals_by_exp()
     # p.plot_p_same_origin_and_escape_by_exp()
 
     # p.plot_pR_by_exp()

@@ -56,8 +56,7 @@ class World:
         if sys.platform == "darwin":
             self.maze_models_folder = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/analysis_metadata/maze_solvers/mazes_images"
         else:
-            raise NotImplementedError
-
+            self.maze_models_folder = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis_metadata\\maze_solvers\\mazes_images"
         
 
 if __name__ == "__main__":

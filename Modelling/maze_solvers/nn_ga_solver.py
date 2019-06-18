@@ -66,18 +66,22 @@ class NNGa(Agent):
 		ys, yt = int(grid_size/4)+2, int(grid_size/2)+int(grid_size/5)
 		Agent.__init__(self, grid_size=grid_size, goal_location=[x, ys], start_location=[x, yt])
 
+		# ? frequently used params
+		self.multiple_mazes = False
+		self.randomise_start_location = True
+		self.deterministic = True
+
+
 		# ? params
 		self.pop_size = 50
-		self.max_n_steps = grid_size*10
-		self.n_generations = 50
-		self.keep_best_n = 6
-		self.mutation_rates = [.5, .25, .1, .05] # probability of a gene mutating
+		self.max_n_steps = 100 # grid_size*10
+		self.n_generations = 300
+		self.keep_best_n = 10
+		self.mutation_rates = [.4, .25, .01, .01] # probability of a gene mutating
 		self.mutation_rate = self.mutation_rates[0]
-		self.learning_steps = [0, 25, 100, 180]
-		self.randomise_start_location = True
+		self.learning_steps = [0, 20, 45, 70]
 
 		# ? Deterministic actions
-		self.deterministic = False
 		if self.deterministic:
 			self.repeat_gen = 1
 		else:
@@ -85,18 +89,18 @@ class NNGa(Agent):
 
 		# ? maze design
 		self.get_maze_designs()
-		self.multiple_mazes = True
 		img = self.images["mazemodel"]
 		self.maze, self.free_states = self.get_maze_from_image(img)
-		# self.plot_maze()
-
 		self.weights_max = 1.0 # max val for NN weights
 
 		# ? Keep the best agent
 		self.best_fitness = 0
 		self.best_agent, self.best_genome = None, []
 
-		self.save_fld = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/analysis_metadata/maze_solvers"
+		if sys.platform == "darwin":
+			self.save_fld = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/analysis_metadata/maze_solvers"
+		else:
+			self.save_fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis_metadata\\maze_solvers"
 
 	def get_maze_designs(self):
 		self.images = {f.split(".")[0]: os.path.join(self.maze_models_folder, f) for f in os.listdir(self.maze_models_folder) if "png" in f}
@@ -151,7 +155,7 @@ class NNGa(Agent):
 			shelter_distance = np.mean(np.hstack(repeat_distance), 1)
 			walks_n_steps = np.mean(np.vstack(repeat_walks_steps), 0)
 
-			fitness = np.array([r-d-l for r,d,l in zip(rewards, shelter_distance, walks_n_steps)])  # ! fitness
+			fitness = np.array([r-d**2-l for r,d,l in zip(rewards, shelter_distance, walks_n_steps)])  # ! fitness
 			# fitness = np.array([r-d-l**2 for r,d,l in zip(rewards, shelter_distance, walks_n_steps)])  # ! fitness
 
 			fitness = fitness.ravel()
@@ -181,11 +185,13 @@ class NNGa(Agent):
 				self.best_genome.append(self.genomes[0])
 
 			# ? print
-			print(iter_n, "- f:", round(fitness[0], 2), "- lr:", self.mutation_rate)
+			print(iter_n, "- f:", round(fitness[0], 2), "- lr:", self.mutation_rate, " - n steps: ", len(walks[0]))
 			if fitness[0] != np.max(fitness): raise ValueError
 
 		# save the best genome and plot
-		save_yaml(os.path.join(self.save_fld, "best_genome.yml"), self.best_genome)
+		# save_yaml(os.path.join(self.save_fld, "best_genome2.yml"), self.best_genome[-1])
+		genome = pd.DataFrame(self.genomes[-1], index=["w1", "w2", "b1", "b2"]).T
+		genome.to_pickle(os.path.join(self.save_fld, "best_genome.pkl"))
 		self.plot_rewards_history(best_rewards, max_steps, min_dist)
 
 	def run_generation(self, reward_modifier = 0):
@@ -194,7 +200,7 @@ class NNGa(Agent):
 			self.reset()
 
 			# walk
-			walk, com_rew = self.walk_agent(agent, reward_modifier)
+			walk, com_rew = self.walk_agent(agent, reward_modifier, stop_wall=True, stop=True) # ! stop wall!!
 
 			# extract metrics
 			walks_n_steps.append(len(walk))
@@ -203,7 +209,7 @@ class NNGa(Agent):
 			rewards.append(com_rew)
 		return walks, rewards, shelter_distance, walks_n_steps
 
-	def walk_agent(self, agent, reward_modifier, stop=True):
+	def walk_agent(self, agent, reward_modifier, stop=True, stop_wall=False):
 		keep_states = [x for x in np.arange(9) if x != 4]
 		# initialise walk
 		if self.randomise_start_location:
@@ -225,7 +231,10 @@ class NNGa(Agent):
 			_, action_values = agent.forward(surroundings)
 			
 			if not self.deterministic:
-				action = choices(list(self.actions.keys()), weights=action_values.T, k=1)[0]
+				try:
+					action = choices(list(self.actions.keys()), weights=action_values.T, k=1)[0]
+				except: break
+
 			else:
 				action = list(self.actions.keys())[np.argmax(action_values)]
 
@@ -243,6 +252,10 @@ class NNGa(Agent):
 					break
 				elif reward > 100:
 					break
+
+			if stop_wall and reward < 0: 
+				a = 1
+				break
 
 		return walk, com_rew
 
@@ -292,9 +305,11 @@ class NNGa(Agent):
 class NNGaAnalyser(NNGa):
 	def __init__(self):
 		NNGa.__init__(self)
-		self.genomes = load_yaml(os.path.join(self.save_fld, "best_genome.yml"))
+		genome = pd.read_pickle(os.path.join(self.save_fld, "good_genome.pkl"))
+
+		self.genomes = [[genome.values[:n, i] for i, n in zip(range(4), [64, 64, 8, 8])]]
+ 
 		self.initialise_agents()
-		self.n_walks = 5   # repeat each walk n times
 
 	def plot_all_agents_walks(self):
 		for agent in self.agents:
@@ -303,7 +318,7 @@ class NNGaAnalyser(NNGa):
 			self.plot_walk(walk)
 
 	def plot_agent_walk(self, agent_n, restore_maze=False):
-		f, ax = plt.subplots()
+		f, ax = plt.subplots(figsize=(8, 8))
 
 		walk_lengths = []
 		for n in range(self.n_walks):
@@ -313,8 +328,13 @@ class NNGaAnalyser(NNGa):
 				self.maze, self.free_states = self._maze, self._free_states
 
 			walk, _ = self.walk_agent(self.agents[agent_n], 0, stop=True)
-			self.plot_walk(walk, ax=ax, alpha=0.5)
+			self.plot_walk(walk, ax=ax, alpha=0.85)
 			walk_lengths.append(len(walk))
+
+			ax.scatter(walk[0][0], walk[0][1], color="b", s=200)
+
+		ax.scatter(self.goal_location[0], self.goal_location[1], color="r", s=200)
+		
 
 		print("mean length: ", np.mean(walk_lengths))
 
@@ -366,10 +386,10 @@ class NNGaAnalyser(NNGa):
 		ax.imshow(img)
 
 
-if 1 == 0:
+if 1 == 1:
 	nnga = NNGaAnalyser()
 	nnga.max_n_steps = 50
-	nnga.n_walks= 10
+	nnga.n_walks= 5
 	nnga.start_location = [19, 28]
 
 
@@ -380,16 +400,16 @@ if 1 == 0:
 	# nnga.test_agent_on_arenas(-1, arena_type="maze", maze="Square Maze")
 
 	# ? test
-	# nnga.randomise_start_location = False
+	nnga.randomise_start_location = False
 	# nnga.test_agent_on_arenas(-1, arena_type="open")
 	# nnga.test_agent_on_arenas(-1, arena_type="corridor")
 	# nnga.test_agent_on_arenas(-1, arena_type="barrier")
 
 	# ? test on mazes
-	nnga.randomise_start_location = False
-	nnga.test_agent_on_arenas(-1, arena_type="maze", maze="PathInt2")
-	nnga.test_agent_on_arenas(-1, arena_type="maze", maze="Square Maze")
-	nnga.test_agent_on_arenas(-1, arena_type="maze", maze="leftfar")
+	nnga.randomise_start_location = True
+	# nnga.test_agent_on_arenas(-1, arena_type="maze", maze="PathInt2")
+	# nnga.test_agent_on_arenas(-1, arena_type="maze", maze="Square Maze")
+	# nnga.test_agent_on_arenas(-1, arena_type="maze", maze="leftfar")
 	nnga.test_agent_on_arenas(-1, arena_type="maze", maze="mazemodel")
 
 

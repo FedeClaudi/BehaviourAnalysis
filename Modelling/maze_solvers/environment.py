@@ -187,8 +187,8 @@ class Environment(World):
 			wall_reward = -1
 			goal_reward = 1
 		elif mode == "genetic":
-			move_reward = 0
-			wall_reward = -1
+			move_reward = 2
+			wall_reward = -10
 			goal_reward = 200
 
 		# Move
