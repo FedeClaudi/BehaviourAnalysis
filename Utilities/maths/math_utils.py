@@ -27,7 +27,6 @@ def moving_average(arr, window_size):
     cumsum_vec = np.cumsum(np.insert(arr, 0, 0)) 
     return (cumsum_vec[window_size:] - cumsum_vec[:-window_size]) / window_size
 
-
 def interpolate_nans(A):
 	nan = np.nan
 	ok = ~np.isnan(A)
@@ -38,8 +37,6 @@ def interpolate_nans(A):
 	A[np.isnan(A)] = np.interp(x, xp, fp)
 
 	return A
-
-
 
 def remove_nan_1d_arr(arr):
 	nan_idxs = [i for i,x in enumerate(arr) if np.isnan(x)]
@@ -73,10 +70,6 @@ def linear_regression(X,Y, split_per=None):
 	res = sm.RLM(Y, X, missing="drop").fit()
 	# raise ValueError(res.params)
 	return X, res.params[0], res.params[1]
-
-
-
-
 
 def beta_distribution_params(a=None, b=None, mu=None, sigma=None, omega=None, kappa=None):
 	"""[converts parameters of beta into different formulations]
