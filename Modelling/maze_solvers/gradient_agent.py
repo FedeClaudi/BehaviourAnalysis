@@ -59,7 +59,6 @@ class GradientAgent(Agent):
 			with open(self.options_file, 'a') as f:
 				yaml.dump(options, f)
 		else: return options
-
 		
 	def run(self):
 		# prep figure
@@ -109,7 +108,6 @@ class GradientAgent(Agent):
 			self.plot_walk(walk, background_image=self.geodesic_distance, color='r', ax=axarr[1])
 		else:
 			raise ValueError("unrecognised maze")
-
 
 	def plot_geodesic_distance(self):
 		f, ax = plt.subplots()
@@ -203,9 +201,6 @@ class GradientAgent(Agent):
 
 		# ? update the geodesic distance
 		if update: self.geodesic_distance = geodist(self.maze, self.goal_location)
-
-
-
 
 	def get_all_geo_distances(self):
 		self.all_geo = np.zeros((len(self.free_states), len(self.free_states)))
