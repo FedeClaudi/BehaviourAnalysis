@@ -69,7 +69,7 @@ def linear_regression(X,Y, split_per=None):
 	X = sm.add_constant(X)
 	res = sm.RLM(Y, X, missing="drop").fit()
 	# raise ValueError(res.params)
-	return X, res.params[0], res.params[1]
+	return X, res.params[0], res.params[1], res
 
 def beta_distribution_params(a=None, b=None, mu=None, sigma=None, omega=None, kappa=None):
 	"""[converts parameters of beta into different formulations]
