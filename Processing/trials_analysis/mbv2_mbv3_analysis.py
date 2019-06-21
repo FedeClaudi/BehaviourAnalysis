@@ -3,7 +3,10 @@ from Utilities.imports import *
 %matplotlib inline  
 
 # %%
-filepath = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/analysis_metadata/MBV2_MBV3_trials.xlsx"
+if sys.platform == "darwin":
+    filepath = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/analysis_metadata/MBV2_MBV3_trials.xlsx"
+else:
+    filepath = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis_metadata\\MBV2_MBV3_trials.xlsx"
 
 data = pd.read_excel(filepath)
 # data = data.sort_values("naive")[::-1]

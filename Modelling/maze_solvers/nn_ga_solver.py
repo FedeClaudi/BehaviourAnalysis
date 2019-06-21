@@ -73,13 +73,13 @@ class NNGa(Agent):
 
 
 		# ? params
-		self.pop_size = 50
+		self.pop_size = 100
 		self.max_n_steps = 100 # grid_size*10
-		self.n_generations = 300
+		self.n_generations = 100
 		self.keep_best_n = 10
 		self.mutation_rates = [.4, .25, .01, .01] # probability of a gene mutating
 		self.mutation_rate = self.mutation_rates[0]
-		self.learning_steps = [0, 20, 45, 70]
+		self.learning_steps = [0, 40, 45, 70]
 
 		# ? Deterministic actions
 		if self.deterministic:
@@ -269,9 +269,13 @@ class NNGa(Agent):
 			# recombine them genomes
 			children_genomes = [[], []]
 			for chrom_1, chrom_2 in zip(*parents):
-				split_point = np.random.randint(0, len(chrom_1), 1)[0]
-				c1 = np.hstack([chrom_1[:split_point], chrom_2[split_point:]])
-				c2 = np.hstack([chrom_2[:split_point], chrom_1[split_point:]])
+				# split_point = np.random.randint(0, len(chrom_1), 1)[0]
+				# c1 = np.hstack([chrom_1[:split_point], chrom_2[split_point:]])
+				# c2 = np.hstack([chrom_2[:split_point], chrom_1[split_point:]])
+
+				# ! no recombination
+				c1 = chrom_1.copy()
+				c2 = chrom_2.copy()
 
 				# mutate a few genes
 				n_mutated_genes = np.int(len(c1)*self.mutation_rate)
