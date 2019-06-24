@@ -1,21 +1,17 @@
 # %%
 from Utilities.imports import *
-%matplotlib inline  
+# %matplotlib inline  
 from Modelling.glm.glm_data_loader import GLMdata
 
 
 
-# . %% Get data
-# glm = GLMdata(load_trials_from_file=True)
-# params = glm.load_maze_params()
-# params.index = params.name
+# %% Get data
+glm = GLMdata(load_trials_from_file=True)
+arms_params = glm.load_maze_params()
+arms_params.index = arms_params.name
 
-# # TODO get arms measurements in CM
-# # need to convert the lengths from the two expeirments to be on the same scale
-# conv_fact = 28.368  # ratio of asym.right.len and sym right len in the params df
-# params["adjusted_length"] = np.divide(params.length.values, conv_fact) # ! this wont be correct for all experiments
-
-# params
+arms_to_keep = ["asym_left", "asym_right"]
+# ? inspect arms in more detail
 
 
 #%%
@@ -25,7 +21,7 @@ folder = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/analysis_metada
 
 agent = GeoAgent(grid_size=500, start_location=[255, 100], goal_location=[255, 345])
 
-arms_data = dict(name=[], n_steps=[], distance=[], iTheta=[])
+arms_data = dict(name=[], n_steps=[], distance=[], iTheta=[], torosity=[])
 for arm in os.listdir(folder):
     if not "jpg" in arm: continue
     # ? get maze, geodesic and walk
@@ -44,6 +40,8 @@ for arm in os.listdir(folder):
     # arms_data["iTheta"].append(np.sum(np.abs(calc_ang_velocity(calc_angle_between_points_of_vector(np.array(walk))[1:]))))
     arms_data["iTheta"].append(int(arm.split("_")[0]))    
 
+    threat_shelter_dist = calc_distance_between_points_2d(agent.start_location, agent.goal_location)
+    arms_data["torosity"].append(np.sum(calc_distance_between_points_in_a_vector_2d(np.array(walk))) / threat_shelter_dist)
 
 params = pd.DataFrame(arms_data)
 params["cost"] = params.distance.values * params.iTheta.values
@@ -86,7 +84,7 @@ def x_power_it(l=None, t=None, x=None, y=None, k=None, power=3):
     elif x is not None and y is not None:
         return np.power(x, power)*y.T
 
-def plotter_dataframe(func, x_max=50, y_max=50, xvar="distance", yvar="n_steps"):
+def plotter_dataframe(func, params, x_max=50, y_max=50, xvar="distance", yvar="n_steps"):
     # Get equilibria values
     arms_points = {arm:[l, t] for arm, l, t in zip(params.name, params[xvar], params[yvar])}
     arms_equilibria = {arm:func(l=l, t=t) for arm, l, t in zip(params.name, params[xvar], params[yvar])} # l*t
@@ -184,8 +182,12 @@ def plotter(func, shaded=False, x_max=50):
 
     return f, ax, arms_equilibria
 #%%
-f, ax, arms_equilibria = plotter_dataframe(constant_product, x_max=500, y_max=900, 
-                                            xvar="distance", yvar="distance")
+
+arms = ["central", "rightmedium", "leftfar", "largebracket"]
+good_arms = params.loc[params.name.isin(arms)]
+
+f, ax, arms_equilibria = plotter_dataframe(constant_product, good_arms, x_max=500, y_max=5, 
+                                            xvar="distance", yvar="torosity")
 f.savefig(os.path.join(folder, "utilityspace.png"))
 # arms_equilibria= plotter(constant_product, x_max=50)
 
