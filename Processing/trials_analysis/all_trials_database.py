@@ -20,8 +20,8 @@ class analyse_all_trals:
         
 
         self.naughty_experiments = ['Lambda Maze',  'FlipFlop Maze', 'FlipFlop2 Maze',  "PathInt2 D", "PathInt2 DL", 'TwoArmsLong Maze', "FourArms Maze"]
-        # self.good_experiments = [  'FlipFlop Maze', 'FlipFlop2 Maze', 'PathInt', 'PathInt2', 'Square Maze', 'TwoAndahalf Maze', "PathInt2 L", 'PathInt2-L', ]
-        self.good_experiments = ["PathInt2", "PathInt2-L", "PathInt2 L", "Square Maze", "TwoAndahalf Maze"]
+
+        self.good_experiments = ["PathInt2", "PathInt2-L", "PathInt2 L", "Square Maze", "TwoAndahalf Maze", "PathInt"]
 
         if fill_in_table:  # Get tracking data
             self.table = AllTrials()
@@ -106,6 +106,11 @@ class analyse_all_trals:
 
                 if start == -1 or stim_duration == .1:
                     continue  # ? placeholder stim entry%R
+                
+                if start > rec_tracking.shape[0]: 
+                    # print("something went wrong, sitm is too late")
+                    # break
+                    raise ValueError("stim start is too late")
 
                 # Get either the frame at which the next stim starts of the recording ends
                 if stim_n < number_of_stimuli-1:
@@ -150,7 +155,7 @@ class analyse_all_trals:
                 escape_rois = convert_roi_id_to_tag(trial_tracking[t:, -1]) # ? only look at arm taken since last departure from T
 
                 if not  escape_rois: 
-                    raise ValueError
+                    raise ValueError("No escape rois detected", t)
                 
                 escape_arm = get_arm_given_rois(escape_rois, 'in')
 
@@ -176,10 +181,14 @@ class analyse_all_trals:
                 if escape_arm is not None:
                     trial_duration = trial_tracking.shape[0]/fps
                     trial_speed = correct_speed(trial_tracking[:, 2])
-                    if np.mean(trial_speed)>self.escape_speed_thresholds[exp] and check_got_at_shelt:
-                        is_escape = "true"
-                    else:
-                        is_escape = "false"
+                    try:
+                        if np.mean(trial_speed)>self.escape_speed_thresholds[exp] and check_got_at_shelt:
+                            is_escape = "true"
+                        else:
+                            is_escape = "false"
+                    except KeyError:
+                        raise warning.warn("you need to populate exploration tables first dummy")
+                    
                 else:
                     is_escape = 'false'
                     trial_duration = -1

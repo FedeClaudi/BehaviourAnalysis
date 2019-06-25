@@ -12,7 +12,7 @@ from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 
 
 class AllExplorationsPopulate:
-	experiments_to_include = ["PathInt2", "PathInt2-L", "Square Maze", "TwoAndahalf Maze"]
+	experiments_to_include = ["PathInt2", "PathInt2-L", "Square Maze", "TwoAndahalf Maze", "PathInt"]
 
 	def __init__(self, erase_table=False, fill_in_table=False):
 		from database.TablesDefinitionsV4 import AllExplorations

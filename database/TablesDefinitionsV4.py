@@ -198,9 +198,9 @@ class Stimuli(dj.Imported):
 @schema
 class TrackingData(dj.Imported):
 	experiments_to_skip = ['FlipFlop Maze', 'FlipFlop2 Maze', 'FourArms Maze', 'Lambda Maze', 
-                            'Model Based', 'PathInt',
-                            'PathInt2 Close', 'PathInt2-D', 'PathInt2-DL', 
-                            'TwoArmsLong Maze']
+							'Model Based', 
+							'PathInt2 Close', 'PathInt2-D', 'PathInt2-DL', 
+							'TwoArmsLong Maze']
 
 	bodyparts = ['snout', 'neck', 'body', 'tail_base',]
 
@@ -223,6 +223,8 @@ class TrackingData(dj.Imported):
 		make_trackingdata_table(self, key)
 
 
+	def get_experiments_in_table(self):
+		return set((TrackingData() * Recording() * Session()).fetch("experiment_name"))
 
 @schema
 class AllExplorations(dj.Manual):

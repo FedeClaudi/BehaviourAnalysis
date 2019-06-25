@@ -248,7 +248,7 @@ if __name__ == '__main__':
     # p.ccm.populate(display_progress=True)  # ! ccm
 
     # ? this is considerably slower but should be automated
-    # errors = p.trackingdata.populate(display_progress=True, suppress_errors=False, return_exception_objects =True) # ! tracking data
+    errors = p.trackingdata.populate(display_progress=True, suppress_errors=False, return_exception_objects =True) # ! tracking data
 
 
 

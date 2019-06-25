@@ -9,11 +9,7 @@ import statsmodels.api as sm
 
 from Processing.trials_analysis.all_trials_loader import Trials
 
-# ! GLM to predict arm of escape
-# TODO add metrics of exploration: mean speed, time on each arm
-# TODO add sessions metrics: number of trials per mouse
-# TODO add mouse id? -> maybe need a GLMM for this
-# TODO add time to trave to shelter based on different paths and velocity distribution of the mosue
+# TODO check that iTheta calculations for 3 arms maze are correct
 
 class GLMdata:
     def __init__(self, load_trials_from_file=False):
@@ -29,7 +25,9 @@ class GLMdata:
 
         # Get trials data
         if not load_trials_from_file:
+            # ? Load trials
             self.trials = self.reload_trials_data()
+
             # Get maze desgin params
             self.maze_params = self.load_maze_params()
 
@@ -37,8 +35,7 @@ class GLMdata:
             self.bayes_pR = self.load_bayes_posteriors()
 
             # Get exploration data
-            if not load_trials_from_file:
-                self.trials = self.reload_explorations_data()
+            self.trials = self.reload_explorations_data()
 
             #  Merge dataframes
             self.merge_trial_and_maze_dataframes()
@@ -87,8 +84,11 @@ class GLMdata:
         return pd.read_pickle(self.trials_file)
 
     def reload_trials_data(self):
-        trial_data = Trials(exp_1_mode=True)
-        trials = trial_data.trials.drop(["is_escape", "experiment_name"], axis=1)
+        trial_data = Trials(exp_mode=0)
+
+
+        trials = trial_data.trials.drop(["is_escape"], axis=1)
+        trials = trials.copy() # to defues those pesky pandas warnings
 
         # Get some extra metrics
         mean_escape_speed, max_escape_speed, escape_path_len, total_angular_displacement  = [],[],[],[],
@@ -202,3 +202,5 @@ class GLMdata:
 
 if __name__ == "__main__":
     l = GLMdata(load_trials_from_file=False)
+    # TODO check that iTheta calculations for 3 arms maze are correct
+    a = 1
