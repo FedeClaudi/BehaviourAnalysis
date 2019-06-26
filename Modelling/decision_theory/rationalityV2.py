@@ -295,8 +295,10 @@ trial_data.plot_parm_experiment()
 # plot p(R) for simulations
 f,axarr = plt.subplots(figsize=(10, 8), ncols=3, sharey=True)
 
-a.pathlength_noise_factor = 2
+a.pathlength_noise_factor = 10
 a.speed_noise_param =  1.75
+
+a.get_pathlength_estimates(plot=True)
 
 for ax, exp in zip(axarr, a.experiments_names):
 	a.keep_trials_experiment(exp)
