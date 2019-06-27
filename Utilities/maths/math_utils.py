@@ -22,6 +22,23 @@ try:
 except:
 	print("didnt import skfmm")
 
+def polyfit(order, x, y):
+	#  calculate polynomial
+	z = np.polyfit(x, y, order)
+	f = np.poly1d(z)
+	return f
+
+def sigmoid(x, x0, k):
+	# fit a sigmoid
+	y = 1 / (1 + np.exp(-k*(x-x0)))
+	return y
+
+def half_sigmoid(x, x0, k, ):
+	# TODO Fit a sigmoid in range chance-1
+	chance = .5
+	y = chance + (1-chance) / (1 + np.exp(-k*(x-x0)))
+	return y
+
 def moving_average(arr, window_size):
 
     cumsum_vec = np.cumsum(np.insert(arr, 0, 0)) 
@@ -178,7 +195,6 @@ def calc_prob_item_in_list(ls, it):
 	n_occurrences = len([x for x in ls if x == it])
 	return n_occurrences/n_items
 
-
 def get_n_colors(n):
 	return [plt.get_cmap("tab20")(i) for i in np.arange(n)]
 
@@ -195,7 +211,6 @@ def calc_IdPhi(phi):
 
 def calc_LogIdPhi(phi):
 	return math.log(calc_IdPhi(phi))
-
 
 def remove_tracking_errors(tracking, debug = False):
 	"""
@@ -508,8 +523,6 @@ def calc_ang_velocity(angles):
 	angles_radis = np.radians(angles) # <- to unwrap
 	ang_vel_rads = np.insert(np.diff(np.unwrap(angles_radis)), 0, 0)
 	return np.degrees(ang_vel_rads)
-
-
 
 def line_smoother(y, window_size=31, order=5, deriv=0, rate=1):
 	# Apply a Savitzy-Golay filter to smooth traces
