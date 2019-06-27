@@ -239,7 +239,7 @@ class Analyzer(GLMdata):
 		# model distance distributions
 		durations = {a:[] for a in self.arms_names}
 		speeds = {a:[] for a in self.arms_names}
-		distances = self.get_pathlength_estimates()
+		_, distances = self.get_pathlength_estimates()
 
 		# estimate duration
 		for i, arm in self.arms_params.iterrows():
@@ -273,7 +273,7 @@ class Analyzer(GLMdata):
 
 		# get distances distribution
 		if distances is None:
-			distances = self.get_pathlength_estimates()
+			_, distances = self.get_pathlength_estimates()
 
 		if self.experiment_name == "symmetric":
 			exp_distances = [distances["rightmedium"], distances["rightmedium"]]
@@ -386,36 +386,43 @@ class Analyzer(GLMdata):
 		probs=[]
 		for dist in means:
 			test_dists = dict(rightmedium=distances["rightmedium"], leftfar=stats.norm(loc=dist, scale=math.sqrt(dist)*self.pathlength_noise_factor))
-			res = self.simulate_trials(plot=False, n_trials=1000, distances=test_dists)
+			res = self.simulate_trials(plot=False, n_trials=10000, distances=test_dists)
 			probs.append(res["right_medium"])
 
 		# Fit sigmoid and poly curve + plot
-		popt, pcov = curve_fit(half_sigmoid, means, probs)
+		popt, pcov = curve_fit(sigmoid, means, probs, method='dogbox', p0=[1000, 0.001]) # TODO make this work  , 
 		fitted = polyfit(3, means, probs)
 
 		x = np.linspace(means[0], means[-1], 100)
 		fitted_sigmoid = sigmoid(x, *popt)
 
-		ax = self.plot_psychometric(x, fitted, means, probs, label="p(R) over len(L)", sigmoid=fitted_sigmoid)
-		ax.axvline(distances["rightmedium"].mean(), color="g")
+		ax = self.plot_psychometric(x, means, probs, label="p(R) over len(L)", sigmoid=fitted_sigmoid)
 		ax.set(xlim=[0, 2*distances["rightmedium"].mean()], xlabel="path length")
 
-	def plot_psychometric(self, x, ployfit,  x_data, y_data, sigmoid=None, label=None):
-		# curve
-		f, ax = plt.subplots()
-		ax.scatter(x_data, y_data, color="r", label=label)
+		real_probs = self.simulate_trials(plot=False)
 
-		ax.plot(x, ployfit(x), color="k", label="fitted")
-		if sigmoid is not None: ax.plot(x, sigmoid, color="b")
+		for arm, d in moments.items():
+			ax.axvline(d[0], color=self.colors[arm])
+		
+		return means, probs 
+	
+
+	def plot_psychometric(self, x, x_data, y_data, sigmoid=None, label=None, ployfit=None):
+		# curve
+		f, ax = plt.subplots(figsize=(8, 8))
+		ax.scatter(x_data, y_data, color="white", label=label)
+
+		if ployfit is not None: ax.plot(x, ployfit(x), color="k", label="fitted")
+		if sigmoid is not None: ax.plot(x, sigmoid, color="k", label="fitted")
 
 		for xx in x_data:
-			ax.axvline(xx, color="w", lw=.5, alpha=.3)
+			ax.axvline(xx, color="w", lw=.5, alpha=.1)
 		for yy in y_data:
-			ax.axhline(yy, color="w", lw=.5, alpha=.3)
+			ax.axhline(yy, color="w", lw=.5, alpha=.1)
 
-		ax.axhline(.5, color="g", lw=2, alpha=.5)
+		# ax.axhline(.5, color="g", lw=2, alpha=.5)
 
-		ax.set(ylim=[0, 1.1], facecolor=[.2, .2, .2], ylabel="p")
+		ax.set(ylim=[-0.01, 1.01], facecolor=[.2, .2, .2], ylabel="p")
 		ax.legend()
 		return ax
 
@@ -425,7 +432,7 @@ class Analyzer(GLMdata):
 a = Analyzer("asymmetric")
 
 # %%
-a.psychometric_curve_distances()
+means, probs = a.psychometric_curve_distances()
 
 # %%
 # run stuff
@@ -448,8 +455,27 @@ a.simulate_trials(n_trials=10000)
 
 
 #%%
-# plot p(R) for simulations
+# test
+def sigmoid(x, x0, k):
+	 y = 1 / (1 + np.exp(-k*(x-x0)))
+	 return y
+
+# xdata = np.array([0.0,   1.0,  3.0, 4.3, 7.0,   8.0,   8.5, 10.0, 12.0])
+# ydata = np.array([0.01, 0.02, 0.04, 0.11, 0.43,  0.7, 0.89, 0.95, 0.99])
+xdata = means
+ydata = probs
 
 
+popt, pcov = curve_fit(sigmoid, xdata, ydata, p0=[1000, 0.001], )
+print(popt)
+
+x = np.linspace(-1, 15, 50)
+y = sigmoid(x, *popt)
+
+plt.plot(xdata, ydata, 'o', label='data', color="r")
+plt.plot(x,y, label='fit', color="k")
+plt.ylim(0, 1.05)
+plt.legend(loc='best')
+plt.show()
 
 #%%

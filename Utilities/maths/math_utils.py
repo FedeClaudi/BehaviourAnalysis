@@ -33,7 +33,7 @@ def sigmoid(x, x0, k):
 	y = 1 / (1 + np.exp(-k*(x-x0)))
 	return y
 
-def half_sigmoid(x, x0, k, ):
+def half_sigmoid(x, x0, k):
 	# TODO Fit a sigmoid in range chance-1
 	chance = .5
 	y = chance + (1-chance) / (1 + np.exp(-k*(x-x0)))
