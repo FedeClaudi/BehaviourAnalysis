@@ -199,7 +199,7 @@ class Stimuli(dj.Imported):
 class TrackingData(dj.Imported):
 	experiments_to_skip = ['FlipFlop Maze', 'FlipFlop2 Maze', 'FourArms Maze', 'Lambda Maze', 
 							'Model Based', 
-							'PathInt2 Close', 'PathInt2-D', 'PathInt2-DL', 
+							'PathInt2 Close', 
 							'TwoArmsLong Maze']
 
 	bodyparts = ['snout', 'neck', 'body', 'tail_base',]

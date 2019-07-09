@@ -76,3 +76,10 @@ def show(): plt.show()
 
 def ticksrange(start, stop, step):
     return np.arange(start, stop + step, step)
+
+
+def save_figure(f, path):
+    f.savefig(path)
+
+def close_figure(f):
+    plt.close(f)

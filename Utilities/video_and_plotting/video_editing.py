@@ -669,8 +669,6 @@ class Editor:
         def get_selected_frame(cap, show_frame):
                 cap.set(1, show_frame)
                 ret, frame = cap.read() # read the first frame
-                
-                
                 return frame
 
         import cv2   # import opencv
@@ -702,7 +700,7 @@ class Editor:
         while True:
                 cv2.imshow('frame', frame)
 
-                k = cv2.waitKey(10)
+                k = cv2.waitKey(25)
 
                 if k == ord('d'):
                         # Display next frame
@@ -830,6 +828,6 @@ if __name__ == '__main__':
 
 
 
-    Editor().manual_video_inspect(r"O:\testDeepCut_resnet50_APA_trackingEgzonaJune3shuffle1_390000_labeled.mp4")
+    Editor().manual_video_inspect(r"C:\Users\Federico\Documents\GitHub\composite.mp4")
 
     # Editor().compress_clip(r"O:\M_1L.avi", .6, save_path=r"O:\test.mp4")

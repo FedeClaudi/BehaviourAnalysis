@@ -46,6 +46,7 @@ class Analyzer(GLMdata):
 
 		# other
 		self.get_speed_distributions()
+		self.get_speed_modelled()
 
 	def keep_trials_experiment(self, experiment):
 		self.experiment_name = experiment
@@ -79,16 +80,41 @@ class Analyzer(GLMdata):
 
 		self.exploration_speeds, self.trials_speeds, self.all_speeds = expl_speeds, trials_speeds, speeds
 
-	def get_speed_modelled(self):
-		self.speed_modelled = stats.norm(loc = np.mean(self.trials.mean_escape), scale=np.std(self.trials.mean_escape))
+	def get_speed_modelled(self, trials=False):
+		# if trials is true get the modelled distribution of mean speed during escape
+		# Otherwise get the modelled distribution of global speeds during exploration
+		if trials:
+			self.speed_modelled = stats.norm(loc = np.mean(self.trials_speeds), scale=np.std(self.trials_speeds)/2)
+		else:
+			self.speed_modelled = stats.gamma(1.25, loc=0.1, scale=0.5)
 
-	def plot_speeds(self):
-		self.get_speed_modelled()
-		x = np.linspace(self.speed_modelled.ppf(.01), self.speed_modelled.ppf(.99), 100)
 
-		f, ax = plt.subplots()
+
+	def plot_speeds(self, ax=None):
+		# Get modelled speeds
+		self.get_speed_modelled(trials=True)
+		trials_modelled = self.speed_modelled
+		tx = np.linspace(self.speed_modelled.ppf(.0000001), self.speed_modelled.ppf(.9999999), 100)
+
+		self.get_speed_modelled(trials=False)
+		global_modelled = self.speed_modelled
+		gx = np.linspace(self.speed_modelled.ppf(.000001), self.speed_modelled.ppf(.9999999), 100)
+
+
+		if ax is None: f, ax = plt.subplots()
+		# Loop over each session and get the tracking data to get the speeds distribution
+		sessions = set(sorted(self.trials.session_uid.values))
+		for uid in sessions:
+			# Get speed during the whole session
+			speeds = np.vstack((TrackingData.BodyPartData & "bpname='body'" & "uid={}".format(uid)).fetch("tracking_data"))[:, 2]
+			ax.hist(speeds, density=True, bins=200, alpha=.25, color="g")
+
+		# Plot mean escape speed distribution
 		ax.hist(self.trials.mean_speed, density=True, color="w", alpha=.3, label="mean trials speed")
-		ax.plot(x, self.speed_modelled.pdf(x), color="orange", label="escape speed distribution")
+
+		# Plot modelled distributions
+		ax.plot(tx, trials_modelled.pdf(tx), color="orange", label="escape mean speed distribution")
+		ax.plot(gx, global_modelled.pdf(gx), color="red", label="global speed distribution")
 
 		ax.set(xlim=[0, 8], facecolor=[.2, .2, .2], xlabel="speed (a.u.)", ylabel="p")
 		ax.legend()
@@ -154,14 +180,14 @@ class Analyzer(GLMdata):
 		conv_fact = mean_right_dist / self.arms_params.loc[self.arms_params["name"] == "rightmedium"].distance.values[0]
 		self.arms_params["distance"] = [d*conv_factors[n] for d,n in zip(self.arms_params["distance"], self.arms_params["name"])]
 
-	def get_pathlength_estimates(self, plot=False):
+	def get_pathlength_estimates(self, plot=False, ax=None):
 		moments = {arm["name"]:(arm.distance, math.sqrt(arm.distance)*self.pathlength_noise_factor) for i,arm in self.arms_params.iterrows()}
 		distances = {arm["name"]:stats.norm(loc=arm.distance, scale=math.sqrt(arm.distance)*self.pathlength_noise_factor) for i,arm in self.arms_params.iterrows()}
 
 		if plot:
-			f, ax = plt.subplots()
+			if ax is None: f, ax = plt.subplots()
 			for a, d in distances.items():
-				x = np.linspace(d.ppf(0.01), d.ppf(0.99), 100)
+				x = np.linspace(d.ppf(0.000001), d.ppf(0.99999), 100)
 				ax.plot(x, d.pdf(x), color=self.colors[a], label=a, lw=3)
 			ax.set(facecolor=[.2, .2, .2], xlabel="length (a.u.)", ylabel="p")
 			ax.legend()
@@ -200,16 +226,22 @@ class Analyzer(GLMdata):
 		trial_data = Trials(exp_mode=0)
 		trial_data.plot_parm_experiment()
 
-	def plot_pr_simulations(self):
+	def plot_pr_simulations(self, d_noise, v_noise, steps=10000):
 		f,axarr = plt.subplots(figsize=(10, 8), ncols=3, sharey=True)
-		a.pathlength_noise_factor = 10
-		a.speed_noise_param =  1.75
+		self.pathlength_noise_factor = d_noise
+		self.speed_noise_param =  v_noise
 
-		a.get_pathlength_estimates(plot=True)
+		f2, axarr2 = plt.subplots(figsize=(10, 8), ncols=2)
+		self.get_pathlength_estimates(plot=True, ax=axarr2[0])
 
-		for ax, exp in zip(axarr, a.experiments_names):
-			a.keep_trials_experiment(exp)
-			a.simulate_trials(ax=ax, n_trials=10000)
+		# Get the simulated speed
+		self.get_speed_modelled(trials=False)
+		# Simulate trials
+		for ax, exp in zip(axarr, self.experiments_names):
+			self.keep_trials_experiment(exp)
+			self.simulate_trials(ax=ax, n_trials=steps)
+
+		self.plot_speeds(ax=axarr2[1])
 
 	def plot_duration_over_speed_raw(self, ax=None, original_colors=False):
 		if ax is None:
@@ -289,8 +321,15 @@ class Analyzer(GLMdata):
 		outcomes = []
 		for i in range(n_trials):
 			# get random speed and apply noise
-			s = random.choice(self.trials.mean_speed.values)
-			est_speeds = [s + np.random.normal(0, self.speed_noise_param, 1) for i in exp_distances]
+			# s = random.choice(self.trials.mean_speed.values)
+			s = self.speed_modelled.rvs()
+			# s = 1
+
+			if self.speed_noise_param > 0:
+				est_speeds = [s + np.random.normal(0, self.speed_noise_param, 1) for i in exp_distances]
+			else:
+				est_speeds = [s for i in exp_distances]
+
 
 			# get random length
 			est_lengths  = [d.rvs(size=1) for d in exp_distances]
@@ -406,7 +445,6 @@ class Analyzer(GLMdata):
 		
 		return means, probs 
 	
-
 	def plot_psychometric(self, x, x_data, y_data, sigmoid=None, label=None, ployfit=None):
 		# curve
 		f, ax = plt.subplots(figsize=(8, 8))
@@ -432,6 +470,11 @@ class Analyzer(GLMdata):
 a = Analyzer("asymmetric")
 
 # %%
+a.plot_pr_simulations(2, 0.5, steps=1000)
+
+# %%
+a.pathlength_noise_factor = 2
+a.speed_noise_param = 0.25
 means, probs = a.psychometric_curve_distances()
 
 # %%

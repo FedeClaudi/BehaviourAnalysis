@@ -158,7 +158,12 @@ class FilesAutomationToolbox:
         videos = [f.split('.')[0] for f in os.listdir(self.videos_fld) if 'tdms' not in f and "." in f]
         poses = [f.split('_')[:-1] for f in os.listdir(self.pose_fld) if 'h5' in f]
 
-        not_tracked = [f for f in videos if f.split('_') not in poses and os.path.getsize(os.path.join(self.videos_fld, f+".mp4")) > 10000] #  and 'overview'  in f.lower()]
+        not_tracked = []
+        for f in videos:
+            videoname = os.path.join(self.videos_fld, f+".mp4")
+            if not os.path.isfile(videoname): videoname = os.path.join(self.videos_fld, f+".avi")
+            if os.path.getsize(videoname) > 10000 and f.split('_') not in poses: not_tracked.append(f)
+                
         print('To track: ', not_tracked)
         print(len(not_tracked), ' files yet to track')
 
@@ -232,3 +237,6 @@ if __name__ == "__main__":
 
     # automation.save_ai_files_as_pandas()
 # 
+
+
+

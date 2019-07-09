@@ -154,12 +154,13 @@ def get_sessuids_given_experiment(experiment):
     return (Sessions & "experiment_name='{}'".format(experiment)).fetch("uid")
 
 def get_maze_template(exp=None):
+    fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis_metadata\\maze\\Maze_templates"
     if exp is None:
-        maze_model = cv2.imread('Utilities\\Maze_templates\\mazemodel.png')
+        maze_model = cv2.imread(os.path.join(fld, 'mazemodel.png'))
     else:
         exp = exp.lower()
         if 'pathint2' in exp:
-            maze_model = cv2.imread('Utilities\\Maze_templates\\PathInt2.png')
+            maze_model = cv2.imread(os.path.join(fld, 'PathInt2.png')) # TODO fix the others
         elif 'pathint' in exp:
             maze_model = cv2.imread('Utilities\\Maze_templates\\PathInt.png')
         elif 'square' in exp:

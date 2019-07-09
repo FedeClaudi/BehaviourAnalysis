@@ -74,7 +74,7 @@ if sys.platform != "darwin":
             from database.dj_config import start_connection 
             dbname, _ = start_connection()    
         except:
-            pass
+            print("Could not connect to database")
         else:
             print("Importing tables")
             from database.TablesDefinitionsV4 import *
@@ -82,6 +82,8 @@ if sys.platform != "darwin":
 from Utilities.file_io.files_load_save import *
 from Utilities.video_and_plotting.video_editing import Editor
 from Utilities.maths.math_utils import *
+
+from Processing.plot.plotting_utils import close_figure, save_figure
 
 
 
