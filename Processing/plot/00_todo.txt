@@ -1,7 +1,0 @@
-
-make a script that for any group of trials plots the timelapse of the pose during escape for all of them as a tiled subplot
-
-
-
-
-

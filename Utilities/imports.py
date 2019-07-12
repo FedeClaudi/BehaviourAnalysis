@@ -15,7 +15,7 @@ if sys.platform == "darwin":
     mpl.use("Qt5Agg")
 
 # Set up matplotlib
-mpl.rcParams['text.color'] = "black"
+mpl.rcParams['text.color'] = "white"
 
 mpl.rcParams['figure.figsize'] = [20, 16]
 mpl.rcParams['figure.facecolor'] = [.2, .2, .2]
@@ -46,11 +46,11 @@ mpl.rcParams['legend.scatterpoints'] = 3
 mpl.rcParams['legend.edgecolor'] = 'red'
 # mpl.rcParams['legend.facecolor'] = [.2, .2, .2]
 
-mpl.rcParams['axes.facecolor'] = "white"
-mpl.rcParams['axes.edgecolor'] = "black"
-mpl.rcParams['axes.labelcolor'] = "black"
-
-mpl.rcParams['text.color'] = "black"
+mpl.rcParams['axes.facecolor'] = [.2, .2, .2]
+mpl.rcParams['axes.edgecolor'] = "white"
+mpl.rcParams['axes.labelcolor'] = "white"
+mpl.rcParams['xtick.color'] = "white"
+mpl.rcParams['ytick.color'] = "white"
 
 mpl.rcParams['image.aspect'] = "auto"
 

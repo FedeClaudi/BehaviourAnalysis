@@ -19,9 +19,10 @@ class analyse_all_trals:
 
         
 
-        self.naughty_experiments = ['Lambda Maze',  'FlipFlop Maze', 'FlipFlop2 Maze',  "PathInt2 D", "PathInt2 DL", 'TwoArmsLong Maze', "FourArms Maze"]
+        self.naughty_experiments = ['Lambda Maze',  'FlipFlop Maze', 'FlipFlop2 Maze', 'TwoArmsLong Maze', "FourArms Maze", "Foraging"]
 
-        self.good_experiments = ["PathInt2", "PathInt2-L", "PathInt2 L", "Square Maze", "TwoAndahalf Maze", "PathInt"]
+        self.good_experiments = ["Psychometric - short", "Psychometric - long", "PathInt2", "PathInt2-L", 
+                                "PathInt2 L", "Square Maze", "TwoAndahalf Maze", "PathInt",  "PathInt2 D", "PathInt2 DL"]
 
         if fill_in_table:  # Get tracking data
             self.table = AllTrials()
@@ -108,9 +109,9 @@ class analyse_all_trals:
                     continue  # ? placeholder stim entry%R
                 
                 if start > rec_tracking.shape[0]: 
-                    # print("something went wrong, sitm is too late")
-                    # break
-                    raise ValueError("stim start is too late")
+                    print("something went wrong, sitm is too late")
+                    break
+                    # raise ValueError("stim start is too late")
 
                 # Get either the frame at which the next stim starts of the recording ends
                 if stim_n < number_of_stimuli-1:

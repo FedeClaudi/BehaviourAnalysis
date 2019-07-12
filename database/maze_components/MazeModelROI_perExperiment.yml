@@ -6,12 +6,16 @@ FourArms Maze: ['p1', 'b1', 'b4', 'p2', 'b9', 'p3', 'b13', 'b10', 's', 't', 'b11
 Lambda Maze: []
 
 PathInt: ['s', 't', 'p1', 'b1', 'b4', 'b10', 'b11', 'p5', 'b6', 'b15']
+
 PathInt2: ['s', 't', 'p1', 'b1', 'b4', 'b10', 'b11', 'p5', 'b6']
+Psychometric - short: ['s', 't', 'p1', 'b1', 'b4', 'b10', 'b11', 'p5', 'b6']
+Psychometric - long: ['s', 't', 'p1', 'b1', 'b4', 'b10', 'b11', 'p5', 'b6']
 PathInt2-D: ['s', 't', 'p1', 'b1', 'b4', 'b10', 'b11', 'p5', 'b6']
 PathInt2-DL: ['s', 't', 'p1', 'b1', 'b4', 'b10', 'b11', 'p5', 'b6']
 PathInt2-L: ['s', 't', 'p1', 'b1', 'b4', 'b10', 'b11', 'p5', 'b6']
 PathInt2-Close: ['s', 't', 'p1', 'b1', 'b4', 'b10', 'b11', 'p5', 'b6']
 PathInt2 Close: ['s', 't', 'p1', 'b1', 'b4', 'b10', 'b11', 'p5', 'b6']
+Foraging: ['s', 't', 'p1', 'b1', 'b4', 'b10', 'b11', 'p5', 'b6']
 
 Square Maze: ['s', 't', 'b5', 'p2', 'b10', 'b11', 'p5', 'b6']
 TwoAndahalf Maze: ['s', 't', 'b5', 'p2', 'b10', 'b11', 'p5', 'b6', 'b15']

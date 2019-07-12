@@ -188,7 +188,7 @@ def make_commoncoordinatematrices_table(table, key):
 	# TODO make this work for THREAT camera too
 
 	# Get the maze model template according to the experiment being processed
-	if int(key["uid"]<248):
+	if int(key["uid"]<248) or int(key["uid"]>301):
 		old_mode = True
 		maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel_old.png')
 	else:
@@ -277,7 +277,11 @@ def make_stimuli_table(table, key):
 			ax.set(xlim=[stim_start_times[0]-5000, stim_start_times[0]+5000])
 
 		# Get the FPS for the overview video
-		videofile = (Recording.FilePaths & key).fetch1("overview_video")
+		try:
+			videofile = (Recording.FilePaths & key).fetch1("overview_video")
+		except:
+			print("could not find videofile for ", key)
+			return
 		nframes, width, height, fps = Editor.get_video_params(videofile)
 
 		# Get feather file 
@@ -426,7 +430,11 @@ def make_visual_stimuli_metadata(table):
 		if stim_type == "audio": return # this is only for visualz
 
 		# Load the metadata
-		metadata = load_yaml((table.VisualStimuliLogFile & key).fetch1("filepath"))
+		try:
+			metadata = load_yaml((table.VisualStimuliLogFile & key).fetch1("filepath"))
+		except:
+			print("Could not get metadata for ", key)
+			continue
 
 		# Get the stim calculator
 		contrast_calculator = ContrastCalc(measurement_file="C:\\Users\\Federico\\Documents\\GitHub\\VisualStimuli\\Utils\\measurements.xlsx")
@@ -481,7 +489,11 @@ def make_trackingdata_table(table, key):
 	# TODO make this work with threat vieos
 
 	# Get videos and CCM
-	vid = (Recording.FilePaths & key).fetch1("overview_video")
+	try:
+		vid = (Recording.FilePaths & key).fetch1("overview_video")
+	except:
+		print("Could not fetch video for: ", key)
+		return
 	ccm = (CCM & key).fetch(format="frame")
 
 	# load pose data

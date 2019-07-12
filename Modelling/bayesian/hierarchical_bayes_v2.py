@@ -121,7 +121,6 @@ class Modeller:
         plt.show()
 
     def model_individuals(self):
-
         asym_escapes, sym_escapes = self.get_individuals_data()
         # print(np.array(asym_escapes))
         # asym_escapes, sym_escapes = self.get_grouped_data()
@@ -148,7 +147,6 @@ class Modeller:
         plt.show()
 
     def model_individuals_hierarchical(self):
-
         asym_escapes, sym_escapes = self.get_individuals_data()
         
         asym_hits = [np.sum(np.array(trials)) for trials in asym_escapes]

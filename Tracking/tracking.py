@@ -70,7 +70,7 @@ class SetUpTracking:
                 print('     file moved correctly')
 
 
-        for i, video in enumerate(self.video_to_process[::-1]):
+        for i, video in enumerate(self.video_to_process):
             print('Processing video {} of {}'.format(i+1, len(self.video_to_process)))
 
             # Get the DLC model config path
@@ -84,6 +84,10 @@ class SetUpTracking:
                 
             # Move video to local HD: otherwise analysis breaks if internet connection is unstable
             complete_path = os.path.join(self.video_folder, video)
+
+            if not os.path.isfile(complete_path): 
+                print("!!! could not find file: ", complete_path)
+                continue
             
             if os.path.getsize(complete_path) < 2000: continue # Check that video has frames
             

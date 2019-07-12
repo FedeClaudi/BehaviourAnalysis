@@ -155,7 +155,7 @@ class FilesAutomationToolbox:
         return unconverted
 
     def get_list_not_tracked_videos(self):
-        videos = [f.split('.')[0] for f in os.listdir(self.videos_fld) if 'tdms' not in f and "." in f]
+        videos = [f.split('.')[0] for f in os.listdir(self.videos_fld) if 'tdms' not in f and "." in f and not "Threat" in f]
         poses = [f.split('_')[:-1] for f in os.listdir(self.pose_fld) if 'h5' in f]
 
         not_tracked = []

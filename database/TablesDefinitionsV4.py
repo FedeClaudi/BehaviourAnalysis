@@ -34,6 +34,15 @@ class Session(dj.Manual):
 	"""
 	# ? population method is in populate_database
 
+	class Metadata(dj.Part):
+		definition = """
+		-> Session
+		---
+		maze_type: int  # maze design id
+		naive: int      # was the mouse naive
+		lights: int     # light on, off, na, or part on part off
+		"""
+
 @schema
 class MazeComponents(dj.Imported):
 	definition = """
@@ -200,7 +209,7 @@ class TrackingData(dj.Imported):
 	experiments_to_skip = ['FlipFlop Maze', 'FlipFlop2 Maze', 'FourArms Maze', 'Lambda Maze', 
 							'Model Based', 
 							'PathInt2 Close', 
-							'TwoArmsLong Maze']
+							'TwoArmsLong Maze', "Foraging"]
 
 	bodyparts = ['snout', 'neck', 'body', 'tail_base',]
 
