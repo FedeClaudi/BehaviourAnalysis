@@ -78,6 +78,7 @@ def make_recording_table(table, key):
 					in os.listdir(tb.analog_input_folder) 
 					if rec_name in f]
 		if not aifile:
+			print("could not find AI file for: ", key)
 			return
 		else:
 			aifile = aifile[0]
@@ -427,13 +428,14 @@ def make_visual_stimuli_metadata(table):
 
 		stim_type = (table & key).fetch1("stim_type")
 
-		if stim_type == "audio": return # this is only for visualz
+		if stim_type == "audio": 
+			continue # this is only for visualz
 
 		# Load the metadata
 		try:
 			metadata = load_yaml((table.VisualStimuliLogFile & key).fetch1("filepath"))
 		except:
-			print("Could not get metadata for ", key)
+			# print("Could not get metadata for ", key)
 			continue
 
 		# Get the stim calculator
@@ -484,7 +486,9 @@ def make_trackingdata_table(table, key):
 	from database.TablesDefinitionsV4 import Recording, Session, CCM, MazeComponents
 	# skip experiments that i'm not interested in 
 	experiment = (Session & key).fetch1("experiment_name")
-	if experiment in table.experiments_to_skip: return
+	if experiment in table.experiments_to_skip: 
+		# print("Skipping experiment: ", experiment)
+		return
 
 	# TODO make this work with threat vieos
 

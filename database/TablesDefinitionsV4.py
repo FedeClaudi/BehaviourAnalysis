@@ -42,7 +42,8 @@ class Session(dj.Manual):
 		naive: int      # was the mouse naive
 		lights: int     # light on, off, na, or part on part off
 		"""
-
+	def get_experiments_in_table(self):
+		return set(Session.fetch("experiment_name"))
 @schema
 class MazeComponents(dj.Imported):
 	definition = """
@@ -111,7 +112,10 @@ class Recording(dj.Imported):
 	def make(self, key):
 		make_recording_table(self, key)
 
-		
+	def get_experiments_in_table(self):
+		return set((Session * Recording).fetch("experiment_name"))
+
+
 	class FilePaths(dj.Part):
 		definition = """
 			# stores a reference to all the relevant files

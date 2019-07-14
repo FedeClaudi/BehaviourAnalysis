@@ -92,7 +92,13 @@ class PopulateDatabase:
                 print(table)
                 raise ValueError('Failed to add data entry {}-{} to {} table'.format(checktag, dataname, table.full_table_name))
 
+    def delete_wrong_entries(self):
+        sessions_to_delete = np.arange(347, 358)
 
+        for s in sessions_to_delete:
+            (Session & "uid={}".format(s)).delete()
+
+        a = 1
 
 
     def remove_table(self, tablename):
@@ -243,6 +249,7 @@ if __name__ == '__main__':
 
     # ? Remove stuff from tables
     # p.delete_placeholders_from_stim_table()
+    # p.delete_wrong_entries()
         
     # ? These tables population is fast and largely automated
     # p.populate_mice_table()   # ! mice recordings, components... 
@@ -261,13 +268,13 @@ if __name__ == '__main__':
     # errors = p.trackingdata.populate(display_progress=True, suppress_errors=False, return_exception_objects =True) # ! tracking data
 
     # errors = p.stimuli.populate(display_progress=True, suppress_errors=False, return_exception_objects=True) # , max_calls =10)  # ! stimuli
-    # p.stimuli.make_metadata()
+    # p.stimuli.make_metadata() # ? only used for visual stims
 
 
     if errors: raise ValueError([print("\n\n", e) for e in errors])
 
     # ? Show database content and progress
-    print(p.session.Metadata())
+    print(p.trackingdata.get_experiments_in_table())
     p.show_progress()
 
 
