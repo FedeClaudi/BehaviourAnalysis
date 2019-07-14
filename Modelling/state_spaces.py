@@ -23,8 +23,8 @@ class StateSpacesAnalyser:
         # Load the tracking data for each session
         # sessions = Session.fetch("uid")
         # ? uid restricted to fetch only one
-        self.data = pd.DataFrame(((Session & "experiment_name='PathInt2'") * (TrackingData.BodyPartData & "bpname='body'")).fetch()) # ! fetching only one for speed
-        self.data_tail = pd.DataFrame(((Session & "experiment_name='PathInt2'") * (TrackingData.BodyPartData & "bpname='tail_base'")).fetch()) # ! fetching only one for speed
+        self.data = pd.DataFrame(((Session & "experiment_name='PathInt2'") * (TrackingData.BodyPartData & "bpname='body'")).fetch())
+        self.data_tail = pd.DataFrame(((Session & "experiment_name='PathInt2'") * (TrackingData.BodyPartData & "bpname='tail_base'")).fetch()) 
         self.stimuli = pd.DataFrame(((Session & "experiment_name='PathInt2'") * (Stimuli)).fetch())
 
         print("Got data")
@@ -35,7 +35,7 @@ class StateSpacesAnalyser:
         shelter = [500, 710]
 
         # Get speed and angular velocity at each frame for each session
-        x, y, speeds, ang_speeds, shelter_dist, xy, orientation, shelter_speed, y_speed = [], [], [], [], [], [], [], [], []
+        x, y, speeds, ang_speeds, shelter_dist, xy, orientation, shelter_speed, y_speed, x_speed = [], [], [], [], [], [], [], [], [], []
         for (i, brow), (ii, trow) in tqdm(zip(self.data.iterrows(), self.data_tail.iterrows())):
             # Timepoints with speed > 4*std are considered tracking errors
             speed = brow.tracking_data[:, 2].copy()
@@ -50,6 +50,7 @@ class StateSpacesAnalyser:
             
             # y speed
             y_speed.append(np.append(np.diff(line_smoother(brow.tracking_data[:, 1])), 0))
+            x_speed.append(np.append(np.diff(line_smoother(brow.tracking_data[:, 0])), 0))
 
             # ? Body axis orientation
             angles = line_smoother(calc_angle_between_vectors_of_points_2d(brow.tracking_data[:, :2].T, trow.tracking_data[:, :2].T))
@@ -59,12 +60,7 @@ class StateSpacesAnalyser:
             # if i == 1: break
 
 
-        self.session = pd.DataFrame.from_dict(dict(s=np.hstack(speeds), o=np.hstack(orientation), ang_speeds=np.hstack(ang_speeds), y_speed=np.hstack(y_speed)))
-        a = 1
-        # self.data["speed"] = speeds
-        # self.data["shelter_speed"] = shelter_speed
-        # self.data["orientation"] = orientation
-        # self.data["ang_speed"] = ang_speeds
+        self.session = pd.DataFrame.from_dict(dict(x=np.hstack(x), y=np.hstack(y), o=np.hstack(orientation), vo=np.hstack(ang_speeds), vx=np.hstack(x_speed),  vy=np.hstack(y_speed)))
 
 
 
@@ -155,17 +151,9 @@ class StateSpacesAnalyser:
         x = StandardScaler().fit_transform(self.session.values)
 
         # pca
-        pca = PCA(n_components=4)
+        pca = PCA(n_components=2)
         principalComponents = pca.fit_transform(x)
-        df = pd.DataFrame(data = principalComponents, columns = ['pc1', 'pc2', "pc3", "pc4"])
-
-
-
-        # t sne
-        # tsne = manifold.TSNE(n_components=2, init='pca').fit_transform(x[:10000, :])
-        # f,ax = plt.subplots()
-        # ax.scatter(tsne[:, 0], tsne[:, 1], c=stim_times[:10000], cmap="Reds")
-        # ax.set(facecolor=[.2, .2, .2])
+        df = pd.DataFrame(data = principalComponents, columns = ['pc1', 'pc2'])
 
         # Get the timepoints corresponding to escapes
         stim_starts = [s for s in self.stimuli.overview_frame.values if s > 0  ]
@@ -173,28 +161,23 @@ class StateSpacesAnalyser:
 
         for start in stim_starts:
             stim_times[start: start+150] = 1
-                    # stim_times[start:start + 40] = 1
-                    # stim_times[start + 40:start + 80] = 2
-                    # stim_times[start + 80:start + 120] = 3
-                    # stim_times[start + 120:start + 160] = 4
-                    # stim_times[start + 160:start + 200] = 5
         df["escape"] = stim_times
 
         # Plot
-        # f, ax = plt.subplots()
-        fig = plt.figure(figsize = (16, 16))
-        ax = fig.add_subplot(111, projection='3d')
+        f, ax = plt.subplots()
+        # fig = plt.figure(figsize = (16, 16))
+        # ax = fig.add_subplot(111, projection='3d')
         time = np.arange(len(df))
 
-        # ax.scatter(df.pc1.loc[df.escape==0], df.pc2.loc[df.escape==0], df.pc3.loc[df.escape==0],  c="w", alpha=.1)
+        deltat = 30
         for i, start in enumerate(stim_starts):
             if start < 0 or start > len(df): continue
-            # ax.plot(df.pc1.values[start:start+150], df.pc2.values[start:start+150], df.pc3.values[start:start+150], lw=5)
-            ax.scatter(df.pc1.values[start:start+150], df.pc2.values[start:start+150], df.pc3.values[start:start+150], c=np.arange(150), s = 100, alpha=.4, cmap="Reds")
-            # if i == 3: break
+            ax.scatter(df.pc1.values[start-deltat:start], df.pc2.values[start-deltat:start], c=np.arange(deltat), s = 25, alpha=.8, cmap="Reds")
+            ax.scatter(df.pc1.values[start:start+deltat], df.pc2.values[start:start+deltat], c=np.arange(deltat), s = 25, alpha=.8, cmap="Greens")
+            # if i == 10: break 
 
-
-        ax.set(title="PCA", xlabel="pc1", ylabel="pc2", facecolor=[.2, .2, .2], xlim=[-2, 12], ylim=[-3, 7])
+        # ax.scatter(df.pc1.values, df.pc2.values, c=np.arange(len(df.pc2.values)), s = 25, alpha=.4, cmap="Reds")
+        ax.set(title="PCA", xlabel="pc1", ylabel="pc2", facecolor=[.2, .2, .2])
 
         plt.show()
 

@@ -236,23 +236,31 @@ class ExperimentsAnalyser:
         ax.set(facecolor=[.2, .2, .2])
 
     def tracking_custom_plot(self):
-        f, axarr = plt.subplots(ncols=2, nrows=2, sharex=True, sharey=True)
-        axarr = axarr.flatten()
-        # f, ax = plt.subplots()
+        # f, axarr = plt.subplots(ncols=2, nrows=2, sharex=True, sharey=True)
+        # axarr = axarr.flatten()
+        f, axarr = plt.subplots(ncols=3)
         
-        for i, ax in enumerate(axarr):
-        # for i in np.arange(4):
+        # for i, ax in enumerate(axarr):
+        for i in np.arange(4):
             mazen = i + 1
             tracking = self.get_sesions_trials(maze_design=mazen, lights=1, escapes=True)
-            self.plot_tracking(tracking, ax=ax, colorby="arm", color=self.colors[mazen])
-        ax.set(title=self.maze_designs[mazen], xlim=[100, 720], ylim=[100, 720])
+            self.plot_tracking(tracking, ax=axarr[0], colorby=None, color=self.colors[mazen])
+            self.plot_tracking(tracking, ax=axarr[1], colorby="speed", color=self.colors[mazen])
+            self.plot_tracking(tracking, ax=axarr[2], colorby="arm", color=self.colors[mazen])
+
+        for ax in axarr:
+            ax.set(xlim=[100, 720], ylim=[100, 720])
+
+    def tracking_aligned_to_start_plot(self):
+        # TODO
+        pass
 
     def plot_pr_by_condition(self):
         conditions = dict(
-            maze1 =  self.get_sesions_trials(maze_design=1, naive=None, lights=1, escapes=True),
-            maze2 =  self.get_sesions_trials(maze_design=2, naive=None, lights=1, escapes=True),
-            maze3 =  self.get_sesions_trials(maze_design=3, naive=None, lights=1, escapes=True),
-            maze4 =  self.get_sesions_trials(maze_design=4, naive=None, lights=1, escapes=True),
+            maze1 =  self.get_sesions_trials(maze_design=1, naive=0, lights=1, escapes=True),
+            maze2 =  self.get_sesions_trials(maze_design=2, naive=0, lights=1, escapes=True),
+            maze3 =  self.get_sesions_trials(maze_design=3, naive=0, lights=1, escapes=True),
+            maze4 =  self.get_sesions_trials(maze_design=4, naive=0, lights=1, escapes=True),
         )
 
         hits, ntrials, p_r, n_trials = self.get_binary_trials_per_condition(conditions)
@@ -270,7 +278,7 @@ class ExperimentsAnalyser:
 
 if __name__ == "__main__":
     ea = ExperimentsAnalyser()
-    print(ea)
     ea.tracking_custom_plot()
+    # ea.plot_pr_by_condition()
     plt.show()
 
