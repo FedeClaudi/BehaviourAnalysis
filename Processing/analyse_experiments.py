@@ -2,9 +2,9 @@
 import sys
 sys.path.append('./')   # <- necessary to import packages from other directories within the project
 
-if __name__ == "__main__": # avoid re importing the tables for every core in during bayesian modeeling
-    from Utilities.imports import *
-else: print("starting extra core for MCMC")
+# if __name__ == "__main__": # avoid re importing the tables for every core in during bayesian modeeling
+from Utilities.imports import *
+
 
 # %matplotlib inline
 import pymc3 as pm
@@ -36,8 +36,8 @@ class ExperimentsAnalyser:
         self.session_metadata = self.session_metadata.loc[self.session_metadata.maze_type > -1]
 
     def __str__(self):
-        def get_summary(df):
-            summary = dict(maze=[], tot_mice=[], naive=[])
+        def get_summary(df, lights=1):
+            summary = dict(maze=[], tot_mice=[], naive=[], n_stimuli=[], n_escapes=[])
             for maze_id, maze_name in self.maze_designs.items():
                 if maze_id == -1: continue
                     
@@ -46,22 +46,23 @@ class ExperimentsAnalyser:
                 summary["maze"].append(maze_name)
                 summary["tot_mice"].append(len(maze_data))
                 summary["naive"].append(len(maze_data.loc[maze_data.naive == 1]))
+                summary["n_stimuli"].append(len(self.get_sesions_trials(maze_design=maze_id, naive=None, lights=lights, escapes=False)))
+                summary["n_escapes"].append(len(self.get_sesions_trials(maze_design=maze_id, naive=None, lights=lights, escapes=True)))
 
-            summary["not_naive"] = [t-n for t,n in zip(summary["tot_mice"], summary["naive"])]
             summary = pd.DataFrame(summary)
             return summary
 
         data = self.session_metadata
         # Get how many mice were done with the lights on on each maze, divide by naive and not naive
         lights_on_data = data.loc[data.lights==1]
-        summary = get_summary(lights_on_data)
+        summary = get_summary(lights_on_data, lights=1)
 
         print("Sessions per experiment - lights ON")
         print(summary)
 
 
         lights_off_data = data.loc[data.lights==0]
-        summary = get_summary(lights_off_data)
+        summary = get_summary(lights_off_data, lights=0)
 
         print("\n\Sessions per experiment - lights OFF")
         print(summary)
@@ -235,23 +236,26 @@ class ExperimentsAnalyser:
         ax.set(facecolor=[.2, .2, .2])
 
     def tracking_custom_plot(self):
-        # f, axarr = plt.subplots(ncols=2, nrows=2, sharex=True, sharey=True)
-        # axarr = axarr.flatten()
-        f, ax = plt.subplots()
+        f, axarr = plt.subplots(ncols=2, nrows=2, sharex=True, sharey=True)
+        axarr = axarr.flatten()
+        # f, ax = plt.subplots()
         
-        # for i, ax in enumerate(axarr):
-        for i in np.arange(4):
+        for i, ax in enumerate(axarr):
+        # for i in np.arange(4):
             mazen = i + 1
             tracking = self.get_sesions_trials(maze_design=mazen, lights=1, escapes=True)
-            self.plot_tracking(tracking, ax=ax, color=self.colors[mazen])
+            self.plot_tracking(tracking, ax=ax, colorby="arm", color=self.colors[mazen])
         ax.set(title=self.maze_designs[mazen], xlim=[100, 720], ylim=[100, 720])
 
     def plot_pr_by_condition(self):
         conditions = dict(
-                asym_dark =  self.get_sesions_trials(maze_design=1, naive=None, lights=0, escapes=True),
+            maze1 =  self.get_sesions_trials(maze_design=1, naive=None, lights=1, escapes=True),
+            maze2 =  self.get_sesions_trials(maze_design=2, naive=None, lights=1, escapes=True),
+            maze3 =  self.get_sesions_trials(maze_design=3, naive=None, lights=1, escapes=True),
+            maze4 =  self.get_sesions_trials(maze_design=4, naive=None, lights=1, escapes=True),
         )
 
-        hits, ntrials, p_r = self.get_binary_trials_per_condition(conditions)
+        hits, ntrials, p_r, n_trials = self.get_binary_trials_per_condition(conditions)
 
         f, ax = plt.subplots()
 

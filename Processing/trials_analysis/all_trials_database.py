@@ -11,6 +11,7 @@ class analyse_all_trals:
         get all trips data from the database
         divide them based on arm of orgin and return and trial or not
     """
+    shelter_location = [500, 700]
 
     def __init__(self, erase_table=False, fill_in_table=False):
         self.debug = False   # Plot stuff to check things
@@ -106,7 +107,7 @@ class analyse_all_trals:
                 stim_duration = stim['duration']
 
                 if start == -1 or stim_duration == .1:
-                    continue  # ? placeholder stim entry%R
+                    continue  # ? placeholder stim entry
                 
                 if start > rec_tracking.shape[0]: 
                     print("something went wrong, sitm is too late")
@@ -125,7 +126,8 @@ class analyse_all_trals:
                 else:
                     stop = rec_tracking.shape[0]
 
-                if stop < start: raise ValueError
+                if stop < start: 
+                    raise ValueError
 
                 # Now we have the max possible length for the trial
                 # But check if the mouse got to the shelter first or if 20s elapsed
@@ -141,8 +143,13 @@ class analyse_all_trals:
                 check_got_at_shelt = False
                 if np.any(shelter_enters): # if we have an enter, crop the tracking accordingly
                     check_got_at_shelt = True
-                    shelter_enter = shelter_enters[0]
-                    trial_tracking = trial_tracking[:shelter_enter, :] 
+                    # The mouse got on shelter platform during  the trial, now check when exactly the mouse got to the shelter proper
+                    distance_shelter = calc_distance_from_shelter(trial_tracking[:, :2], self.shelter_location)
+                    try:
+                        at_shelt = np.where(distance_shelter < 50)[0][0]
+                    except:
+                        at_shelt = shelter_enters[0]
+                    trial_tracking = trial_tracking[:at_shelt, :] 
 
                 # Get threat enters and exits
                 threat_enters, threat_exits = get_roi_enters_exits(trial_tracking[:, -1], 1)
@@ -170,7 +177,6 @@ class analyse_all_trals:
                 out_trip_tracking = rec_tracking[:start, :]
                 out_shelter_enters, out_shelter_exits = get_roi_enters_exits(out_trip_tracking[:, -1], 0)
                 out_trip_tracking = out_trip_tracking[out_shelter_exits[-1]:, :]
-                # TODO add all bps to out trip tracking ?
 
                 # Get arm of origin
                 origin_rois = convert_roi_id_to_tag(out_trip_tracking[:, -1])
@@ -180,9 +186,9 @@ class analyse_all_trals:
 
                 # Check if the trial can be considered an escape
                 if escape_arm is not None:
-                    trial_duration = trial_tracking.shape[0]/fps
+                    trial_duration = trial_tracking.shape[0]/fps 
                     trial_speed = correct_speed(trial_tracking[:, 2])
-                    try:
+                    try: 
                         if np.mean(trial_speed)>self.escape_speed_thresholds[exp] and check_got_at_shelt:
                             is_escape = "true"
                         else:
@@ -193,13 +199,6 @@ class analyse_all_trals:
                 else:
                     is_escape = 'false'
                     trial_duration = -1
-
-                # Create multidimensionsal np.array for tracking data
-                # useful_dims = [0, 1, 2, -1] # ? obsolete
-                # insert_tracking = np.zeros((trial_tracking['body'].shape[0], len(useful_dims), len(trial_tracking.keys())))
-                
-                # for i, bp in enumerate(bps):
-                #     insert_tracking[:, :, i] = trial_tracking[bp][:, useful_dims]
 
                 if escape_arm is None:
                     escape_arm = 'nan'
