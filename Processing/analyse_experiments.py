@@ -27,16 +27,10 @@ class ExperimentsAnalyser:
     if sys.platform != "darwin":
         metadata_folder = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis_metadata\\Psychometric"
     else:
-        metadata_folder = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/analysis_metadata"
+        metadata_folder = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/analysis_metadata/Psychometric"
 
     def __init__(self):
-        # Get a bunch of basic stuff
-        self.sessions = pd.DataFrame((Session - 'experiment_name="Foraging"').fetch())
-        self.session_metadata = pd.DataFrame((Session * Session.Metadata  - 'experiment_name="Foraging"').fetch())
-
-        # Keep only sessions of interest
-        self.sessions = self.sessions.loc[self.session_metadata.maze_type > -1]
-        self.session_metadata = self.session_metadata.loc[self.session_metadata.maze_type > -1]
+        pass
 
     def __str__(self):
         def get_summary(df, lights=1):
@@ -141,7 +135,9 @@ class ExperimentsAnalyser:
         for k, df in conditions.items():
             save_df(df, os.path.join(self.metadata_folder, k+".pkl"))
 
-
+    def load_trials_from_pickle(self):
+        names = ["maze1", "maze2", "maze3", "maze4"]
+        return {n:load_df(os.path.join(self.metadata_folder, n+".pkl")) for n in names}
 
 
     """
