@@ -24,7 +24,10 @@ class ExperimentsAnalyser:
     concentration_hyper = (10, 10)  # mean and std of hyper gamma distribution (concentrations)
     
     # Folders
-    metadata_folder = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis_metadata\\Psychometric"
+    if sys.platform != "darwin":
+        metadata_folder = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis_metadata\\Psychometric"
+    else:
+        metadata_folder = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/analysis_metadata"
 
     def __init__(self):
         # Get a bunch of basic stuff
@@ -126,6 +129,20 @@ class ExperimentsAnalyser:
         p_r = {c: [h/n for h,n in zip(hits[c], ntrials[c])] for c in hits.keys()}
         n_mice = {c:len(v) for c,v in hits.items()}
         return hits, ntrials, p_r, n_mice
+
+    def save_trials_to_pickle(self):
+        conditions = dict(
+            maze1 =  self.get_sesions_trials(maze_design=1, naive=None, lights=1, escapes=True),
+            maze2 =  self.get_sesions_trials(maze_design=2, naive=None, lights=1, escapes=True),
+            maze3 =  self.get_sesions_trials(maze_design=3, naive=None, lights=1, escapes=True),
+            maze4 =  self.get_sesions_trials(maze_design=4, naive=None, lights=1, escapes=True),
+        )
+
+        for k, df in conditions.items():
+            save_df(df, os.path.join(self.metadata_folder, k+".pkl"))
+
+
+
 
     """
     ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
@@ -278,7 +295,8 @@ class ExperimentsAnalyser:
 
 if __name__ == "__main__":
     ea = ExperimentsAnalyser()
-    ea.tracking_custom_plot()
+    ea.save_trials_to_pickle()
+    # ea.tracking_custom_plot()
     # ea.plot_pr_by_condition()
-    plt.show()
+    # plt.show()
 

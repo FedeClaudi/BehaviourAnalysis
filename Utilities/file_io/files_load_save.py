@@ -46,6 +46,12 @@ def load_tdms_from_winstore(filetomove):
 def load_feather(path):
     return pd.read_feather(path)
 
+def save_df(df, filepath):
+        df.to_pickle(filepath)
+
+def load_df(filepath):
+        pd.read_pickle(filepath)
+
 if __name__ == "__main__":
     path = "Z:\\branco\\Federico\\raw_behaviour\\maze\\analoginputdata\\as_pandas\\180223_CA503_1.ft"
     loaded = load_feather(path)
