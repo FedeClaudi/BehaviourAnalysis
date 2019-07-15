@@ -3,7 +3,6 @@ import shutil
 import os
 import subprocess
 import sys
-import pyfastcopy
 from multiprocessing import Process
 import numpy as np
 from functools import partial

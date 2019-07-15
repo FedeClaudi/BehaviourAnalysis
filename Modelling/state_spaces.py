@@ -19,6 +19,7 @@ trdata = np.vstack([t.tracking_data for i,t in data.iterrows()])[:, :2].astype(n
 
 trdata[:, 0] -= np.min(trdata[:, 0])
 trdata[:, 1] -= np.min(trdata[:, 1])
+trdata = np.int32(trdata / 5)
 
 # get XY tracking data shifted by 1 in time
 shifted_trdata = np.zeros_like(trdata)
@@ -31,7 +32,7 @@ print(min(angles), max(angles), np.mean(angles))
 #%%
 # Plot scatterplot
 f, ax = plt.subplots()
-ax.scatter(trdata[:, 0], trdata[:, 1], c=angles, vmin=0, vmax=360, s=50, alpha=.8)
+# ax.scatter(trdata[:, 0], trdata[:, 1], c=angles, vmin=0, vmax=360, s=2, alpha=.5)
 
 
 #%%
@@ -42,20 +43,24 @@ for (x, y), a in zip(trdata, angles):
     count[x, y] += 1
     tot_angle[x, y] += a
 theta = np.deg2rad(tot_angle / count)
-plt.imshow(np.rot90(theta))
+# plt.imshow(np.rot90(theta))
 
 # %%
 # Get as 3d array
-xyt = np.vstack([[x, y, theta[x, y]] for x,y in trdata])
+# xyt = np.vstack([[x, y, theta[x, y]] for x,y in trdata])
+
+xyt = np.vstack([[x, y, math.radians(theta[x, y])] for x in np.arange(theta.shape[0]) for y in np.arange(theta.shape[1])])
+
 f, ax = plt.subplots()
 plt.scatter(xyt[:, 0], xyt[:, 1], c=xyt[:, 2], s=2)
 #%%
 # Quiver plot
-u, v = np.cos(np.deg2rad(xyt[:, 2])), np.sin(np.deg2rad(xyt[:, 2]))
+u, v = np.cos(xyt[:, 2], where=~np.isnan(xyt[:, 2])), np.sin(xyt[:, 2], where=~np.isnan(xyt[:, 2]))
 
 
 fig, ax = plt.subplots()
-q = ax.quiver(xyt[:, 0], xyt[:, 1], u, v, angles, angles='xy', scale_units='xy', 
-                    scale=.1, cmap="Reds", alpha=.5)
+plt.axis("equal")
+q = ax.quiver(xyt[:, 0], xyt[:, 1], u, v, xyt[:, 2], angles='xy', scale_units='xy', 
+                    scale=.11, cmap="Reds", alpha=.5)
 
 #%%

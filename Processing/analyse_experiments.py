@@ -5,14 +5,14 @@ sys.path.append('./')   # <- necessary to import packages from other directories
 # if __name__ == "__main__": # avoid re importing the tables for every core in during bayesian modeeling
 from Utilities.imports import *
 
+from Modelling.bayesian.bayes_V3 import Bayes
 
 # %matplotlib inline
-import pymc3 as pm
 import pickle
 
 # %%
 # Define class
-class ExperimentsAnalyser:
+class ExperimentsAnalyser(Bayes):
     maze_designs = {0:"three_arms", 1:"asymmetric_long", 2:"asymmetric_mediumlong", 3:"asymmetric_mediumshort", 4:"symmetric", -1:"nan"}
     naive_lookup = {0: "experienced", 1:"naive", -1:"nan"}
     lights_lookup = {0: "off", 1:"on", 2:"on_trials", 3:"on_exploration", -1:"nan"}
@@ -30,7 +30,7 @@ class ExperimentsAnalyser:
         metadata_folder = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/analysis_metadata/Psychometric"
 
     def __init__(self):
-        pass
+        Bayes.__init__(self)
 
     def __str__(self):
         def get_summary(df, lights=1):
@@ -145,44 +145,12 @@ class ExperimentsAnalyser:
                          ANALYSE STUFF
     ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
     """
+    def bayes_by_condition_analytical(self, load=True):
+        if not load: raise NotImplementedError
+        else:
+            data = self.load_trials_from_pickle()
 
-    def model_hierarchical_bayes(self, conditions):
-        hits, ntrials, p_r, n_mice = self.get_binary_trials_per_condition(conditions)
-
-        # Prep hyper and prior params
-        k_hyper_shape, k_hyper_rate = gamma_distribution_params(mean=self.concentration_hyper[0], sd=self.concentration_hyper[1])
-
-        # Create model and fit
-        n_conditions = len(list(conditions.keys()))
-        print("Fitting bayes to conditions:", list(conditions.keys()))
-        with pm.Model() as model:
-            # Define hyperparams
-            modes_hyper = pm.Beta("mode_hyper", alpha=self.hyper_mode[0], beta=self.hyper_mode[1], shape=n_conditions)
-            concentrations_hyper = pm.Gamma("concentration_hyper", alpha=k_hyper_shape, beta=k_hyper_rate, shape=n_conditions) # + 2 # ! FIGURE OUT WHAT THIS + 2 IS DOING OVER HERE ????
-
-            # Define priors
-            for i, condition in enumerate(conditions.keys()):
-                prior_a, prior_b = beta_distribution_params(omega=modes_hyper[i], kappa=concentrations_hyper[i])
-                prior = pm.Beta("{}_prior".format(condition), alpha=prior_a, beta=prior_b, shape=len(ntrials[condition]))
-                likelihood = pm.Binomial("{}_likelihood".format(condition), n=ntrials[condition], p=prior, observed=hits[condition])
-
-            # Fit
-            print("Got all the variables, starting NUTS sampler")
-            trace = pm.sample(6000, tune=500, cores=4, nuts_kwargs={'target_accept': 0.99}, progressbar=True)
-            
-
-        return trace
-
-    def save_bayes_trace(self, trace, savepath):
-        if not isinstance(trace, pd.DataFrame):
-            trace = pm.trace_to_dataframe(trace)
-
-        with open(savepath, 'wb') as output:
-            pickle.dump(trace, output, pickle.HIGHEST_PROTOCOL)
-
-    def load_trace(self, loadname):
-        trace = pd.read_pickle(loadname)
-        return trace
+        self.analytical_bayes_individuals(conditions=None, data=data, mode="grouped")
 
     def bayes_by_condition(self, load=False):
         tracename = os.path.join(self.metadata_folder, "lightdark_asym.pkl")
@@ -213,7 +181,6 @@ class ExperimentsAnalyser:
             ax.legend()            
         plt.show()
 
-        a = 1
 
     """
     ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
@@ -291,8 +258,9 @@ class ExperimentsAnalyser:
 
 if __name__ == "__main__":
     ea = ExperimentsAnalyser()
-    ea.save_trials_to_pickle()
+    ea.bayes_by_condition_analytical()
+    # ea.save_trials_to_pickle()
     # ea.tracking_custom_plot()
     # ea.plot_pr_by_condition()
-    # plt.show()
+    plt.show()
 

@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 # TODO add possibility to shade area under the curve
 # %%
 def plot_distribution(*args, dist_type="logistic", comulative=False, xlim=[0, 10], ylim=[0, 1], 
-                    color="r", alpha=1, ax=None, **kwargs):
+                    color="r", alpha=1, title=None, ax=None, **kwargs):
     # Get the distribution
     if dist_type == "logistic":
         dist = stats.logistic(*args, **kwargs)
@@ -27,7 +27,7 @@ def plot_distribution(*args, dist_type="logistic", comulative=False, xlim=[0, 10
     x = np.linspace(dist.ppf(0.0001), dist.ppf(0.99999), 100)
     ax.plot(x, func(x), color=color, lw=2, alpha=alpha)
 
-    ax.set(title=dist_type, xlim=xlim, ylim=ylim)
+    ax.set(title=title, xlim=xlim, ylim=ylim)
 
     return ax
 

@@ -56,6 +56,10 @@ mpl.rcParams['image.aspect'] = "auto"
 
 
 import matplotlib.pyplot as plt
+
+plt.style.use('seaborn-pastel')
+
+
 import seaborn as sns
 
 import time
@@ -84,7 +88,7 @@ from Utilities.video_and_plotting.video_editing import Editor
 from Utilities.maths.math_utils import *
 
 from Processing.plot.plotting_utils import close_figure, save_figure
-
+from Processing.plot.plot_distributions import plot_distribution
 
 
 
