@@ -401,7 +401,7 @@ def calc_distance_from_shelter(v, shelter):
 def angle_between_points_2d_clockwise(p1, p2):
 	'''angle_between_points_2d_clockwise [Determines the angle of a straight line drawn between point one and two. 
 		The number returned, which is a double in degrees, tells us how much we have to rotate
-		a horizontal line anit-clockwise for it to match the line between the two points.]
+		a horizontal line anti-clockwise for it to match the line between the two points.]
 
 	Arguments:
 		p1 {[np.ndarray, list]} -- np.array or list [ with the X and Y coordinates of the point]
