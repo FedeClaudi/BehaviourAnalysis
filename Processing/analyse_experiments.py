@@ -9,6 +9,7 @@ from Modelling.bayesian.bayes_V3 import Bayes
 
 # %matplotlib inline
 import pickle
+import pymc3 as pm
 
 # %%
 # Define class
@@ -151,8 +152,10 @@ class ExperimentsAnalyser(Bayes):
     def bayes_by_condition(self, load=False):
         tracename = os.path.join(self.metadata_folder, "lightdark_asym.pkl")
         conditions = dict(
-                asym =     self.get_sesions_trials(maze_design=1, naive=None, lights=1, escapes=True),
-                sym =       self.get_sesions_trials(maze_design=4, naive=None, lights=1, escapes=True),
+                maze1 =     self.get_sesions_trials(maze_design=1, naive=None, lights=1, escapes=True),
+                maze2 =     self.get_sesions_trials(maze_design=2, naive=None, lights=1, escapes=True),
+                maze3 =     self.get_sesions_trials(maze_design=3, naive=None, lights=1, escapes=True),
+                maze4 =      self.get_sesions_trials(maze_design=4, naive=None, lights=1, escapes=True),
             )
 
         if not load:

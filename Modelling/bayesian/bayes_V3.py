@@ -6,12 +6,14 @@ from Utilities.imports import *
 import pymc3 as pm
 from math import factorial as fact
 from scipy.special import binom
+import pickle
+import pymc3 as pm
 
 class Bayes:
     # Bayes hyper params
-    hyper_mode = (5, 5)  # a,b of hyper beta distribution (modes)
-    concentration_hyper = (0.01, 0.01)  # mean and std of hyper gamma distribution (concentrations)
-    
+    hyper_mode = (1, 1)  # a,b of hyper beta distribution (modes)
+    concentration_hyper = (1, 10)  # mean and std of hyper gamma distribution (concentrations)
+    k_hyper_shape, k_hyper_rate = 0.01, 0.01
 
     def __init__(self):
         pass
@@ -31,7 +33,7 @@ class Bayes:
         hits, ntrials, p_r, n_mice = self.get_binary_trials_per_condition(conditions)
 
         # Prep hyper and prior params
-        k_hyper_shape, k_hyper_rate = gamma_distribution_params(mean=self.concentration_hyper[0], sd=self.concentration_hyper[1])
+        # k_hyper_shape, k_hyper_rate = gamma_distribution_params(mean=self.concentration_hyper[0], sd=self.concentration_hyper[1])
 
         # Create model and fit
         n_conditions = len(list(conditions.keys()))
@@ -39,7 +41,7 @@ class Bayes:
         with pm.Model() as model:
             # Define hyperparams
             modes_hyper = pm.Beta("mode_hyper", alpha=self.hyper_mode[0], beta=self.hyper_mode[1], shape=n_conditions)
-            concentrations_hyper = pm.Gamma("concentration_hyper", alpha=k_hyper_shape, beta=k_hyper_rate, shape=n_conditions) # + 2 # ! FIGURE OUT WHAT THIS + 2 IS DOING OVER HERE ????
+            concentrations_hyper = pm.Gamma("concentration_hyper", alpha=self.k_hyper_shape, beta=self.k_hyper_rate, shape=n_conditions) # + 2 # ! FIGURE OUT WHAT THIS + 2 IS DOING OVER HERE ????
 
             # Define priors
             for i, condition in enumerate(conditions.keys()):
@@ -49,9 +51,10 @@ class Bayes:
 
             # Fit
             print("Got all the variables, starting NUTS sampler")
-            trace = pm.sample(6000, tune=500, cores=4, nuts_kwargs={'target_accept': 0.99}, progressbar=True)
+            trace = pm.sample(6000, tune=1500, cores=2, nuts_kwargs={'target_accept': 0.99}, progressbar=True)
             
-
+            pm.traceplot(trace)
+            plt.show()
         return trace
 
 
