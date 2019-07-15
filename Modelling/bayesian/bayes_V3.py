@@ -8,6 +8,11 @@ from math import factorial as fact
 from scipy.special import binom
 
 class Bayes:
+    # Bayes hyper params
+    hyper_mode = (5, 5)  # a,b of hyper beta distribution (modes)
+    concentration_hyper = (0.01, 0.01)  # mean and std of hyper gamma distribution (concentrations)
+    
+
     def __init__(self):
         pass
 
@@ -98,7 +103,7 @@ class Bayes:
                     # the likelihood function will be a Binomial with the binomial factor being the product of all the factors, 
                     # time theta to the product of K times (1-theta) to the product of n-k.
                     f, ax  = plt.subplots()
-                    a, b = 1, 1
+                    a, b = 100, 100
 
                     # compute likelihood function
                     fact, kk, dnk = 1, 1, 1

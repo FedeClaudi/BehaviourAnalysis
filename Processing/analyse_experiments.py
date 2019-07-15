@@ -19,10 +19,6 @@ class ExperimentsAnalyser(Bayes):
     colors = {0:"b", 1:"r", 2:"g", 3:"m", 4:"orange", -1:"w"}
     arms_colors = {"Left_Far":"g", "Left_Medium":"g", "Right_Medium":"r", "Right_Far":"r", "Centre":"m"}
 
-    # Bayes hyper params
-    hyper_mode = (5, 5)  # a,b of hyper beta distribution (modes)
-    concentration_hyper = (10, 10)  # mean and std of hyper gamma distribution (concentrations)
-    
     # Folders
     if sys.platform != "darwin":
         metadata_folder = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis_metadata\\Psychometric"
@@ -258,7 +254,7 @@ class ExperimentsAnalyser(Bayes):
 
 if __name__ == "__main__":
     ea = ExperimentsAnalyser()
-    ea.bayes_by_condition_analytical()
+    ea.bayes_by_condition()
     # ea.save_trials_to_pickle()
     # ea.tracking_custom_plot()
     # ea.plot_pr_by_condition()
