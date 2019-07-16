@@ -96,9 +96,9 @@ class Environment(World):
 		if ax is None: f, axarr = plt.subplots(ncols=2)
 
 		axarr[0].imshow(self.maze, cmap="Greys_r")
-		axarr[0].scatter(self.start_location[0], self.start_location[1], c='g', s=200, alpha=.5)
-		axarr[0].scatter(self.goal_location[0], self.goal_location[1], c='r', s=200, alpha=.5)
-		axarr[0].scatter(self.curr_state[0], self.curr_state[1], c='b', s=200, alpha=1)
+		axarr[0].scatter(self.start_location[0], self.start_location[1], c='g', s=200, alpha=.5, label="Start location")
+		axarr[0].scatter(self.goal_location[0], self.goal_location[1], c='r', s=200, alpha=.5, label="Goal location")
+		axarr[0].scatter(self.curr_state[0], self.curr_state[1], c='b', s=100, alpha=.5, label="Current state")
 
 		if start is not None:
 			axarr[0].scatter(start[0], start[1], c='g', s=200, alpha=.5)
@@ -109,6 +109,7 @@ class Environment(World):
 			axarr[0].scatter([x for x,y in self.free_states], [y for x,y in self.free_states])
 
 		axarr[1].imshow(self.geodesic_distance)
+		axarr[0].legend()
 
 	def reset(self,):
 		# reset the environment

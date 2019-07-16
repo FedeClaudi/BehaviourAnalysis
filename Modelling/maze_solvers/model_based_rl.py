@@ -12,13 +12,13 @@ import pickle
 from scipy.special import softmax
 from tqdm import tqdm 
 
-from Processing.modelling.maze_solvers.agent import Agent
-from Processing.tracking_stats.math_utils import calc_distance_between_points_2d as dist
+from Modelling.maze_solvers.agent import Agent
+from Utilities.maths.math_utils import calc_distance_between_points_2d as dist
 
 
 class VanillaMB(Agent):
-	def __init__(self,):
-		Agent.__init__(self)
+	def __init__(self, grid_size=None, **kwargs):
+		Agent.__init__(self, grid_size=grid_size, **kwargs)
 
 		self.block_probability = 0.0  # ? probabilistic block in state transition prob func
 

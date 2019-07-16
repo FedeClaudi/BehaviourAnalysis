@@ -6,6 +6,7 @@ sys.path.append('./')   # <- necessary to import packages from other directories
 from Utilities.imports import *
 
 from Modelling.bayesian.bayes_V3 import Bayes
+from Modelling.maze_solvers.gradient_agent import GradientAgent
 
 # %matplotlib inline
 import pickle
@@ -28,6 +29,8 @@ class ExperimentsAnalyser(Bayes):
 
     def __init__(self):
         Bayes.__init__(self)
+
+        self.session_metadata = pd.DataFrame((Session * Session.Metadata - "maze_type=-1"))
 
     def __str__(self):
         def get_summary(df, lights=1):
@@ -136,18 +139,58 @@ class ExperimentsAnalyser(Bayes):
         names = ["maze1", "maze2", "maze3", "maze4"]
         return {n:load_df(os.path.join(self.metadata_folder, n+".pkl")) for n in names}
 
+    def get_arms_lengths_with_agent(self, load=False):
+        if not load:
+            # Get Gradiend Agent and maze arms images
+            agent = GradientAgent(grid_size=1000, start_location=[515, 208], goal_location=[515, 720])
+
+            if sys.platform == "darwin":
+                maze_arms_fld = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/analysis_metadata/maze_solvers/good_single_arms"
+            else:
+                maze_arms_fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis_metadata\\maze_solvers\\good_single_arms"
+            
+            arms = [os.path.join(maze_arms_fld, a) for a in os.listdir(maze_arms_fld) if "jpg" in a or "png" in a]
+            arms_data = dict(maze=[], n_steps=[], torosity=[], distance=[])
+            # Loop over each arm
+            for arm in arms:
+                if "centre" in arm: continue
+                print("getting geo distance for arm: ",arm)
+                # ? get maze, geodesic and walk
+                agent.maze, agent.free_states = agent.get_maze_from_image(model_path=arm)
+                agent.geodesic_distance = agent.geodist(agent.maze, agent.goal_location)
+                walk = agent.walk()
+                agent.plot_walk(walk)
+
+
+                # Process walks to get lengths and so on
+                arms_data["maze"].append(os.path.split(arm)[1].split(".")[0])
+                arms_data["n_steps"].append(len(walk))
+                arms_data["distance"].append(round(np.sum(calc_distance_between_points_in_a_vector_2d(np.array(walk)))))
+                threat_shelter_dist = calc_distance_between_points_2d(agent.start_location, agent.goal_location)
+                arms_data["torosity"].append(np.sum(calc_distance_between_points_in_a_vector_2d(np.array(walk))) / threat_shelter_dist)
+            
+            arms_data = pd.DataFrame(arms_data)
+            print(arms_data)
+            arms_data.to_pickle(os.path.join(self.metadata_folder, "geoagent_paths.pkl"))
+            plt.show()
+            return arms_data
+        else:
+            return pd.read_pickle(os.path.join(self.metadata_folder, "geoagent_paths.pkl"))
+
+
 
     """
     ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
                          ANALYSE STUFF
     ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
     """
-    def bayes_by_condition_analytical(self, load=True):
+    def bayes_by_condition_analytical(self, load=True, mode="grouped"):
         if not load: raise NotImplementedError
         else:
             data = self.load_trials_from_pickle()
 
-        self.analytical_bayes_individuals(conditions=None, data=data, mode="grouped")
+        modes = self.analytical_bayes_individuals(conditions=None, data=data, mode=mode)
+        return modes
 
     def bayes_by_condition(self, load=False):
         tracename = os.path.join(self.metadata_folder, "lightdark_asym.pkl")
@@ -155,7 +198,7 @@ class ExperimentsAnalyser(Bayes):
                 maze1 =     self.get_sesions_trials(maze_design=1, naive=None, lights=1, escapes=True),
                 maze2 =     self.get_sesions_trials(maze_design=2, naive=None, lights=1, escapes=True),
                 maze3 =     self.get_sesions_trials(maze_design=3, naive=None, lights=1, escapes=True),
-                maze4 =      self.get_sesions_trials(maze_design=4, naive=None, lights=1, escapes=True),
+                maze4 =     self.get_sesions_trials(maze_design=4, naive=None, lights=1, escapes=True),
             )
 
         if not load:
@@ -197,7 +240,7 @@ class ExperimentsAnalyser(Bayes):
     def plot_tracking(self, tracking, ax=None, colorby=None, color="w", origin=False, minT=0, maxT=-1):
         if ax is None: f, ax = plt.subplots()
 
-        for i, trial in tqdm(tracking.iterrows()):
+        for i, trial in tracking.iterrows():
             if not origin: tr = trial.tracking_data
             else: tr = trial.outward_tracking_data
 
@@ -212,7 +255,7 @@ class ExperimentsAnalyser(Bayes):
                 cmap = None
                 
             ax.scatter(tr[minT:maxT, 0], tr[minT:maxT, 1], c=c,  cmap=cmap, alpha=.25, s=10) # cmap="gray", vmin=0, vmax=10,
-        ax.set(facecolor=[.2, .2, .2])
+        ax.set(facecolor=[.05, .05, .05])
 
     def tracking_custom_plot(self):
         # f, axarr = plt.subplots(ncols=2, nrows=2, sharex=True, sharey=True)
@@ -247,19 +290,24 @@ class ExperimentsAnalyser(Bayes):
         f, ax = plt.subplots()
 
         for i, (condition, pr) in enumerate(p_r.items()):
-            ax.scatter(np.random.normal(i, .1, size=len(pr)), pr, alpha=.4, color="w", s=250, label=condition)
-            ax.scatter(i, np.mean(pr), alpha=1, color="r", s=500, label=None)
+            ax.scatter(np.random.normal(i, .1, size=len(pr)), pr, alpha=.7, color=self.colors[i+1], s=250, label=condition)
+            ax.scatter(i, np.mean(pr), alpha=1, color="w", s=500, label=None)
 
-        ax.set(facecolor=[.2, .2, .2], ylim=[-0.05, 1.05], xticks = np.arange(len(conditions.keys())), xticklabels = conditions.keys())
+        ax.set(facecolor=[.2, .2, .2], ylim=[-0.05, 1.05],ylabel="p(R)", title="p(R) per mouse per maze",
+                 xticks = np.arange(len(conditions.keys())), xticklabels = conditions.keys())
         ax.legend()
 
         
 
 if __name__ == "__main__":
     ea = ExperimentsAnalyser()
+    # print(ea)
     ea.bayes_by_condition()
     # ea.save_trials_to_pickle()
     # ea.tracking_custom_plot()
     # ea.plot_pr_by_condition()
     plt.show()
 
+
+
+#%%

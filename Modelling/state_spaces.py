@@ -17,12 +17,12 @@ data = ea.load_trials_from_pickle()
 
 
 # %%
-fig, axarr = plt.subplots(ncols=2, nrows=2, sharex=True, sharey=True)
+fig, axarr = plt.subplots(figsize=(16, 16), ncols=2, nrows=2, sharex=True, sharey=True)
 axarr = axarr.flatten()
 # plt.axis("equal")
 
 #? Conv fact = 1
-xx, rr = [345, 239, 245, 187], 70
+xx, rr = [348, 309, 242, 187], [68, 60, 60, 70]
 yy = 177
 
 # ? Conv fact = 2
@@ -66,7 +66,7 @@ for data_n, (k, d) in enumerate(data.items()):
     theta = np.zeros_like(sins)
     for i, x in enumerate(np.arange(sins.shape[0])):
         for ii, y in enumerate(np.arange(sins.shape[1])):
-            if i % 3 == 0 and ii % 3 == 0:
+            if i % 2 == 0 and ii % 2 == 0:
                 theta[x, y] = math.atan(sins[x, y]/coss[x, y])
         
     theta[theta == 0] = np.nan
@@ -82,24 +82,20 @@ for data_n, (k, d) in enumerate(data.items()):
     axarr[data_n].set(title=k)
 
     # Get angles on threat area and take average
-    # TODO make the getting the average direction on threat better
-    # x = xx[data_n]
-    ttheta = np.vstack([[s,c] for xx,yy,s,c in zip(xytsc[:, 0], xytsc[:, 1], xytsc[:, 3], xytsc[:, 4]) if x-rr < xx < x+rr and yy-rr < yy < yy+rr])
-    # ttheta = theta[x-rr:x+rr, yy-rr:yy+3].flatten()
-    # muttheta = math.atan(np.sum([math.sin(t) for t in ttheta if ~np.isnan(t)])/np.sum([math.cos(t) for t in ttheta  if ~np.isnan(t)]))
-    
-    musin, mucos = np.nanmean(ttheta[:, 0]), np.nanmean(ttheta[:, 1])
+    # x, r = xx[data_n], rr[data_n]
+    # ttheta = np.vstack([[s,c] for xx,yy,s,c in zip(xytsc[:, 0], xytsc[:, 1], xytsc[:, 3], xytsc[:, 4]) if x-r < xx < x+r and yy-r < yy < yy+r])
+    # musin, mucos = np.nanmean(ttheta[:, 0]), np.nanmean(ttheta[:, 1])
 
-    for ax in axarr:
-        q = ax.quiver(5, 5, musin, mucos, angles="xy", scale_units='width', 
-                        scale=4,  color="w", alpha=.4, headaxislength=5)
-    q = axarr[data_n].quiver(5, 5, musin, mucos, angles="xy", scale_units='width', 
-                scale=4,  color="r", alpha=1, headaxislength=5)
-    circle = Circle((xx[data_n], yy), rr, color="w", fill=False, alpha=.2, lw=2)
-    axarr[data_n].add_artist(circle)
+    # for ax in axarr:
+    #     q = ax.quiver(5, 5, musin, mucos, angles="xy", scale_units='width', 
+    #                     scale=4,  color="w", alpha=.4, headaxislength=5)
+    # q = axarr[data_n].quiver(5, 5, musin, mucos, angles="xy", scale_units='width', 
+    #             scale=4,  color="r", alpha=1, headaxislength=5)
+    # circle = Circle((xx[data_n], yy), r, color="w", fill=False, alpha=.2, lw=2)
+    # axarr[data_n].add_artist(circle)
 
 
-    # f2, ax = plt.subplots(figsize=(10, 10))
+    # # f2, ax = plt.subplots(figsize=(10, 10))
     # q = ax.quiver(xytsc[:, 0], xytsc[:, 1], xytsc[:, 3], xytsc[:, 4], xytsc[:, 2], angles="xy", scale_units='width', 
     #                     scale=50, cmap="Spectral", alpha=1, headaxislength=5)
     # ax.set(title=k, xlim=[0, 150], ylim=[0, 120])

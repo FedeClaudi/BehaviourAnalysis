@@ -15,6 +15,8 @@ class Bayes:
     concentration_hyper = (1, 10)  # mean and std of hyper gamma distribution (concentrations)
     k_hyper_shape, k_hyper_rate = 0.01, 0.01
 
+    a, b  = 1, 1 # Parameters of priors Beta for individual and grouped analytical solution
+
     def __init__(self):
         pass
 
@@ -65,13 +67,15 @@ class Bayes:
 
             # either pass conditions or pass a dataframe with pre loaded data
         """
-
+        a, b  = self.a, self.b
         if conditions is not None:
             hits, ntrials, p_r, n_mice = self.get_binary_trials_per_condition(conditions)
             # for (cond, H), (c, N) in zip(hits.items(), ntrials.items())
             raise NotImplementedError
         elif data is not None:
-            for exp, trials in data.items():
+            f, ax  = plt.subplots(figsize=(12, 12),)
+            modes = {}
+            for expn, (exp, trials) in enumerate(data.items()):
                 # Get number of tirals ad hits per session
                 N, K = [], []
                 sessions = sorted(set(trials.session_uid.values))
@@ -88,25 +92,17 @@ class Bayes:
                     # Because Beta is a conjugate prior to the Binomial, the posterior is a Beta with
                     # a2 = a1 - 1 + k and b2 = b1 - 1 + n - k and the whole thing is multiplied by
                     # binomial factor n!/(k!(n-k)!)
-                    f, ax  = plt.subplots()
-
-                    a, b = 1, 1
-                    posteriors = {"a":[], "b":[], "c":[]}
                     for k, n in zip(K, N):
                         a2, b2 = a - 1 + k, b - 1 + n - k
-                        posteriors["a"].append(a2)
-                        posteriors["b"].append(b2)
-                        posteriors["c"].append(binom(n, k))
+                        plot_distribution(a2, b2, title=exp, dist_type="beta", color=self.colors[expn+1], alpha=.5, xlim=[-0.1, 1.1], ylim=[0, 10], ax=ax)
 
-                        plot_distribution(a2, b2, title=exp, dist_type="beta", xlim=[-0.1, 1.1], ylim=[0, 10], ax=ax)
-                    plot_distribution(a, b, dist_type="beta", xlim=[0, 1], ylim=[0, 12], color='g', ax=ax, title=exp)
+                    if expn == 0:
+                        plot_distribution(a, b, dist_type="beta", xlim=[0, 1], ylim=[0, 15], color='w', ax=ax, title=exp, label="prior")
 
                 elif mode == "grouped":
                     # Compute the likelihood function (product of each mouse's likelihood)and plg that into bayes theorem
                     # the likelihood function will be a Binomial with the binomial factor being the product of all the factors, 
                     # time theta to the product of K times (1-theta) to the product of n-k.
-                    f, ax  = plt.subplots()
-                    a, b = 100, 100
 
                     # compute likelihood function
                     fact, kk, dnk = 1, 1, 1
@@ -116,18 +112,26 @@ class Bayes:
                         dnk += n-k
                     
                     # Now compute the posterior
-                    a2 = a - 1 + kk, 
+                    a2 = a - 1 + kk
                     b2 = b - 1 + dnk
-                    plot_distribution(a2, b2, dist_type="beta", xlim=[0, 1], ylim=[0, 12], ax=ax, title=exp)
-                    plot_distribution(a, b, dist_type="beta", xlim=[0, 1], ylim=[0, 12], color='g', ax=ax, title=exp)
+                    plot_distribution(a2, b2, dist_type="beta", xlim=[0, 1], ylim=[0, 15], color=self.colors[expn+1],
+                                    ax=ax, title=exp, label=exp)
+                    if expn == 0:
+                        plot_distribution(a, b, dist_type="beta", xlim=[0, 1], ylim=[0, 15], color='w', ax=ax, title=exp, label="prior")
 
+                    # Plot mean and mode of posterior
+                    mean =  a2 / (a2 + b2)
+                    _mode = (a2 -1)/(a2 + b2 -2)
+                    modes[exp] = _mode
+                    ax.axvline(_mode, color=self.colors[expn+1], lw=2, ls="--", alpha=.8)
                     
                 elif mode == "hierarhical":
                     pass
                 else: raise ValueError(mode)
                 
-
-
+            ax.set(title="{} bayes".format(mode), ylabel="pdf", xlabel="theta")
+            ax.legend()
+            return modes
         else:
             raise ValueError("need to pass either condtions or data")
 

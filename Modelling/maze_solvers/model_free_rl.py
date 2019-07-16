@@ -7,16 +7,15 @@ from tqdm import tqdm
 import random
 from scipy.special import softmax
 
-from Processing.modelling.maze_solvers.agent import Agent
+from Modelling.maze_solvers.agent import Agent
 
 class VanillaMF(Agent):
-	def __init__(self):
-		Agent.__init__(self)
+	def __init__(self, grid_size=None, **kwargs):
+		Agent.__init__(self, grid_size=grid_size, **kwargs)
 
 		# Parameters
 		self.max_iters = 600
 		
-
 		self.epsilon = .95  # the higher the less greedy
 		self.alpha = 1     # how much to value new experience, in a deterministic world set as 1
 		self.gamma = .8    # discount on future rewards, the higher the less discount

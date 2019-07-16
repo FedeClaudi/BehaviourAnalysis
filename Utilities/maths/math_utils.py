@@ -28,15 +28,14 @@ def polyfit(order, x, y):
 	f = np.poly1d(z)
 	return f
 
-def sigmoid(x, x0, k):
-	# fit a sigmoid
-	y = 1 / (1 + np.exp(-k*(x-x0)))
-	return y
+def sigmoid(x, a, b):
+    y = 1 / (1 + np.exp(-b*(x-a)))
+    return y
 
-def half_sigmoid(x, x0, k):
+def half_sigmoid(x, a, b):
 	# TODO Fit a sigmoid in range chance-1
 	chance = .5
-	y = chance + (1-chance) / (1 + np.exp(-k*(x-x0)))
+	y = chance + (1-chance) / (1 + np.exp(-b*(x-a)))
 	return y
 
 def moving_average(arr, window_size):
