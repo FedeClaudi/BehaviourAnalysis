@@ -8,12 +8,10 @@ from scipy.spatial import distance
 from math import factorial, atan2, degrees, acos, sqrt, pi
 import math
 import matplotlib.pyplot as plt
-from Utilities.file_io.files_load_save import load_yaml
 from scipy.signal import medfilt as median_filter
 from scipy.interpolate import interp1d
 from collections import namedtuple
 try:
-	from sklearn import  linear_model
 	from sklearn import preprocessing
 except: pass
 
@@ -22,27 +20,8 @@ try:
 except:
 	print("didnt import skfmm")
 
-def polyfit(order, x, y):
-	#  calculate polynomial
-	z = np.polyfit(x, y, order)
-	f = np.poly1d(z)
-	return f
 
-def sigmoid(x, a, b):
-    y = 1 / (1 + np.exp(-b*(x-a)))
-    return y
-
-def half_sigmoid(x, a, b):
-	# TODO Fit a sigmoid in range chance-1
-	chance = .5
-	y = chance + (1-chance) / (1 + np.exp(-b*(x-a)))
-	return y
-
-def moving_average(arr, window_size):
-
-    cumsum_vec = np.cumsum(np.insert(arr, 0, 0)) 
-    return (cumsum_vec[window_size:] - cumsum_vec[:-window_size]) / window_size
-
+# ! ARRAY NORMALISATION
 def interpolate_nans(A):
 	nan = np.nan
 	ok = ~np.isnan(A)
@@ -71,79 +50,13 @@ def normalise_1d(arr):
 	normed = min_max_scaler.fit_transform(arr.reshape(-1, 1))
 	return normed
 
-def linear_regression(X,Y, split_per=None):
-	import statsmodels.api as sm
 
-	# ! sns.regplot much better
-	if split_per is not None: raise NotImplementedError("Fix dataset splitting") # TODO spplit dataset
-	# remove NANs
-	remove_idx = [i for i,(x,y) in enumerate(zip(X,Y)) if np.isnan(x) or np.isnan(y)]
 
-	X = np.delete(X, remove_idx)
-	Y = np.delete(Y, remove_idx)
-	# Regression with Robust Linear Model
-	X = sm.add_constant(X)
-	res = sm.RLM(Y, X, missing="drop").fit()
-	# raise ValueError(res.params)
-	return X, res.params[0], res.params[1], res
 
-def beta_distribution_params(a=None, b=None, mu=None, sigma=None, omega=None, kappa=None):
-	"""[converts parameters of beta into different formulations]
-	
-	Keyword Arguments:
-		a {[type]} -- [a param] (default: {None})
-		b {[type]} -- [b param] (default: {None})
-		mu {[type]} -- [mean] (default: {None})
-		sigma {[type]} -- [standard var] (default: {None})
-		omega {[type]} -- [mode] (default: {None})
-		kappa {[type]} -- [concentration] (default: {None})
-	
-	Raises:
-		NotImplementedError: [description]
-	"""
-	if kappa is not None and omega is not None:
-		a = omega * (kappa-2) + 1
-		b = (1 - omega)*(kappa - 2) + 1 
-		return a, b
-	elif a is not None and b is not None:
-		mu = a / (a+b)
-		omega = (a - 1)/(a + b -2)
-		kappa  = a + b
-		return mu, omega, kappa
-	else: raise NotImplementedError
-
-def gamma_distribution_params(mean=None, sd=None, mode=None, shape=None, rate=None):
-	if mean is not None and sd is not None:
-		if mean < 0: raise NotImplementedError
-		
-		shape = mean**2 / sd**2
-		rate = mean / sd**2
-	elif mode is not None and sd is not None:
-		if mode < 0: raise NotImplementedError
-
-		rate = (mode+math.sqrt(mode**2 + 4*(sd**2)))/ (2 * (sd**2))
-		shape = 1 + mode*rate
-	elif shape is not None and rate is not None:
-		mu = shape/rate
-		sd = math.sqrt(shape)/rate
-		return mu, sd
-	return shape, rate
-
-def get_distribution(dist, *args, n_samples=10000):
-	if dist == 'uniform':
-		return np.random.uniform(args[0], args[1], n_samples)
-	elif dist == 'normal':
-		return np.random.normal(args[0], args[1], n_samples)
-	elif dist == 'beta':
-		return np.random.beta(args[0], args[1], n_samples)
-	elif dist == 'gamma':
-		return np.random.gamma(args[0], args[1], n_samples)
-
-def median_filter_1d(x, pad=20, kernel=11):
-	half_pad = int(pad/2)
-	x_pad = np.pad(x, pad, 'edge')
-	x_filtered = median_filter(x_pad, kernel_size=kernel)[half_pad:-half_pad]
-	return x_filtered
+# ! MOMENTS
+def moving_average(arr, window_size):
+    cumsum_vec = np.cumsum(np.insert(arr, 0, 0)) 
+    return (cumsum_vec[window_size:] - cumsum_vec[:-window_size]) / window_size
 
 def mean_confidence_interval(data, confidence=0.95):
 	mean, var, std = stats.bayes_mvs(data)
@@ -160,6 +73,7 @@ def percentile_range(data, low=5, high=95):
 	res = namedtuple("percentile", "low median high")
 	return res(lowp, median, highp)
 
+# ! MISC
 def fill_nans_interpolate(y, pkind='linear'):
 	"""
 	Interpolates data to fill nan values
@@ -182,26 +96,8 @@ def fill_nans_interpolate(y, pkind='linear'):
 			, kind=pkind)
 	return f(aindexes)
 
-def calc_prob_item_in_list(ls, it):
-	"""[Calculates the frequency of occurences of item in list]
-	
-	Arguments:
-		ls {[list]} -- [list of items]
-		it {[int, array, str]} -- [items]
-	"""
-
-	n_items = len(ls)
-	n_occurrences = len([x for x in ls if x == it])
-	return n_occurrences/n_items
-
 def get_n_colors(n):
 	return [plt.get_cmap("tab20")(i) for i in np.arange(n)]
-
-def correct_speed(speed):
-	speed = speed.copy()
-	perc99 = np.percentile(speed, 99.5)
-	speed[speed>perc99] = perc99
-	return median_filter(speed, 31)
 
 def calc_IdPhi(phi):
 	dPhi = abs(np.diff(phi))
@@ -210,26 +106,6 @@ def calc_IdPhi(phi):
 
 def calc_LogIdPhi(phi):
 	return math.log(calc_IdPhi(phi))
-
-def remove_tracking_errors(tracking, debug = False):
-	"""
-		Get timepoints in which the velocity of a bp tracking is too high and remove them
-	"""
-	filtered = np.zeros(tracking.shape)
-	for i in np.arange(tracking.shape[1]):
-		temp = tracking[:, i].copy()
-		if i <2:
-			temp[temp < 10] = np.nan
-		filtered[:, i] = signal.medfilt(temp, kernel_size  = 5)
-
-		if debug:
-			plt.figure()
-			plt.plot(tracking[:, i], color='k', linewidth=2)
-			plt.plot(temp, color='g', linewidth=1)
-			plt.plot(filtered[:, i], 'o', color='r')
-			plt.show()
-
-	return filtered
 
 def get_roi_enters_exits(roi_tracking, roi_id):
 	"""get_roi_enters_exits [Get all the timepoints in which mouse enters or exits a specific roi]
@@ -278,6 +154,50 @@ def turning_points(array):
 			ps = s
 	return idx_min, idx_max
 
+
+# ! PROBABILITIES
+def calc_prob_item_in_list(ls, it):
+	"""[Calculates the frequency of occurences of item in list]
+	
+	Arguments:
+		ls {[list]} -- [list of items]
+		it {[int, array, str]} -- [items]
+	"""
+
+	n_items = len(ls)
+	n_occurrences = len([x for x in ls if x == it])
+	return n_occurrences/n_items
+
+
+# ! ERROR CORRECTION
+def correct_speed(speed):
+	speed = speed.copy()
+	perc99 = np.percentile(speed, 99.5)
+	speed[speed>perc99] = perc99
+	return median_filter(speed, 31)
+
+def remove_tracking_errors(tracking, debug = False):
+	"""
+		Get timepoints in which the velocity of a bp tracking is too high and remove them
+	"""
+	filtered = np.zeros(tracking.shape)
+	for i in np.arange(tracking.shape[1]):
+		temp = tracking[:, i].copy()
+		if i <2:
+			temp[temp < 10] = np.nan
+		filtered[:, i] = signal.medfilt(temp, kernel_size  = 5)
+
+		if debug:
+			plt.figure()
+			plt.plot(tracking[:, i], color='k', linewidth=2)
+			plt.plot(temp, color='g', linewidth=1)
+			plt.plot(filtered[:, i], 'o', color='r')
+			plt.show()
+
+	return filtered
+
+
+# ! GEOMETRY
 def calc_distane_between_point_and_line(line_points, p3):
 	"""[Calcs the perpendicular distance between a point and a line]
 	
@@ -522,38 +442,6 @@ def calc_ang_velocity(angles):
 	angles_radis = np.radians(angles) # <- to unwrap
 	ang_vel_rads = np.insert(np.diff(np.unwrap(angles_radis)), 0, 0)
 	return np.degrees(ang_vel_rads)
-
-def line_smoother(y, window_size=31, order=5, deriv=0, rate=1):
-	# Apply a Savitzy-Golay filter to smooth traces
-	order_range = range(order + 1)
-	half_window = (window_size - 1) // 2
-	# precompute coefficients
-	b = np.mat([[k ** i for i in order_range] for k in range(-half_window, half_window + 1)])
-	m = np.linalg.pinv(b).A[deriv] * rate ** deriv * factorial(deriv)
-	# pad the signal at the extremes with values taken from the signal itself
-	try:
-		firstvals = y[0] - np.abs(y[1:half_window + 1][::-1] - y[0])
-		lastvals = y[-1] + np.abs(y[-half_window - 1:-1][::-1] - y[-1])
-		y = np.concatenate((firstvals, y, lastvals))
-		return np.convolve(m[::-1], y, mode='valid')
-	except:
-		# print('ops smoothing')
-		y = np.array(y)
-		firstvals = y[0] - np.abs(y[1:half_window + 1][::-1] - y[0])
-		lastvals = y[-1] + np.abs(y[-half_window - 1:-1][::-1] - y[-1])
-		y = np.concatenate((firstvals, y, lastvals))
-		return np.convolve(m[::-1], y, mode='valid')
-
-def line_smoother_convolve(y, window_size=31):
-	box = np.ones(window_size)/window_size
-	y_smooth = np.convolve(y, box, mode='same')
-	return y_smooth
-
-
-
-"""
-	GEODESIC DISTANCE OF AN ARENA REPRESENTED AS A 2D ARRAY OF 0S AND 1S
-"""
 
 def geodist(maze, shelter):
 	"""[Calculates the geodesic distance from the shelter at each location of the maze]

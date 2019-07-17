@@ -91,6 +91,8 @@ if sys.platform != "darwin":
 from Utilities.file_io.files_load_save import *
 from Utilities.video_and_plotting.video_editing import Editor
 from Utilities.maths.math_utils import *
+from Utilities.maths.distributions import *
+from Utilities.maths.filtering import *
 
 from Processing.plot.plotting_utils import close_figure, save_figure
 from Processing.plot.plot_distributions import plot_distribution
