@@ -7,8 +7,7 @@ from scipy.optimize import curve_fit
 # %maptlotlib inline
 # TODO add possibility to shade area under the curve
 # %%
-def plot_distribution(*args, dist_type="logistic", comulative=False, xlim=[0, 10], ylim=[0, 1], 
-                    color="r", alpha=1, title=None, ax=None, label=None,  **kwargs):
+def plot_distribution(*args, dist_type="logistic", comulative=False, ax=None, shaded=False, plot_kwargs={}, ax_kwargs={},  **kwargs):
     # Get the distribution
     if dist_type == "logistic":
         dist = stats.logistic(*args, **kwargs)
@@ -26,14 +25,18 @@ def plot_distribution(*args, dist_type="logistic", comulative=False, xlim=[0, 10
     # Plot
     if ax is None: f, ax = plt.subplots()
     x = np.linspace(dist.ppf(0.0001), dist.ppf(0.99999), 100)
-    ax.plot(x, func(x), color=color, lw=4, alpha=alpha, label=label)
 
-    ax.set(title=title, xlim=xlim, ylim=ylim)
+    if not shaded:
+        ax.plot(x, func(x), **plot_kwargs)
+    else: 
+        ax.fill(x, func(x), **plot_kwargs)
+
+    ax.set(**ax_kwargs)
 
     return ax
 
-def plot_fitted_sigmoid(func, xdata, ydata, xrange, ax, scatter_kwargs={}, line_kwargs={}):
-    popt, pcov = curve_fit(func, xdata, ydata)
+def plot_fitted_sigmoid(func, xdata, ydata, xrange, ax, fit_kwargs={}, scatter_kwargs={}, line_kwargs={}):
+    popt, pcov = curve_fit(func, xdata, ydata, **fit_kwargs)
 
     x = np.linspace(xrange[0], xrange[1], 100)
     y = func(x, *popt)

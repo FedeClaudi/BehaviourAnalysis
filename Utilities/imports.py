@@ -54,6 +54,11 @@ mpl.rcParams['ytick.color'] = "white"
 
 mpl.rcParams['image.aspect'] = "auto"
 
+font = {'family' : 'normal',
+        'weight' : 'bold',
+        'size'   : 22}
+
+mpl.rc('font', **font)
 
 import matplotlib.pyplot as plt
 

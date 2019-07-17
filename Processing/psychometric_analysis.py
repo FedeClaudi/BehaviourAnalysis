@@ -2,6 +2,9 @@
 import sys
 sys.path.append('./')   # <- necessary to import packages from other directories within the project
 
+from statistics import mode
+from scipy.signal import find_peaks as peaks
+
 from Utilities.imports import *
 
 from Processing.plot.plot_distributions import plot_fitted_sigmoid
@@ -18,10 +21,10 @@ class PsychometricAnalyser(ExperimentsAnalyser):
         ExperimentsAnalyser.__init__(self)
 
         self.conditions = dict(
-            maze1 =  self.get_sesions_trials(maze_design=1, naive=0, lights=1, escapes=True),
-            maze2 =  self.get_sesions_trials(maze_design=2, naive=0, lights=1, escapes=True),
-            maze3 =  self.get_sesions_trials(maze_design=3, naive=0, lights=1, escapes=True),
-            maze4 =  self.get_sesions_trials(maze_design=4, naive=0, lights=1, escapes=True),
+            maze1 =  self.get_sesions_trials(maze_design=1, naive=None, lights=1, escapes=True),
+            maze2 =  self.get_sesions_trials(maze_design=2, naive=None, lights=1, escapes=True),
+            maze3 =  self.get_sesions_trials(maze_design=3, naive=None, lights=1, escapes=True),
+            maze4 =  self.get_sesions_trials(maze_design=4, naive=None, lights=1, escapes=True),
         )
 
         self.maze_names_r = {v:k for k,v in self.maze_names.items()}
@@ -61,29 +64,47 @@ class PsychometricAnalyser(ExperimentsAnalyser):
         self.paths_lengths["georatio"] = [round(x / short_arm_dist, 4) for x in self.paths_lengths.distance.values]
 
 
-    def plot_pr_by_condition(self):
+    def plot_pr_by_condition(self, raw_individuals=False):
         # Get paths length ratios and p(R) by condition
         self.get_paths_lengths()
         hits, ntrials, p_r, n_trials = self.get_binary_trials_per_condition(self.conditions)
         
+        # Get modes on individuals posteriors
+        trace = self.bayes_by_condition(conditions=self.conditions, load=True, tracefile="psychometric_individual_bayes.pkl", plot=False)
+        n_bins = 100
+        bins = {k:[np.digitize(a, np.linspace(0, 1, n_bins)) for a in v.T] for k,v in trace.items()}
+        modes = {k:[np.median(b)/n_bins for b in bins] for k,bins in bins.items()}
+
+
         # Plot each individual's pR and the group mean as a factor of L/R length ratio
         f, ax = plt.subplots()
-        lr_ratios_mean_pr = []
+        lr_ratios_mean_pr, lr_ratios_mean_pr_all = [],[[],  []]
         for i, (condition, pr) in enumerate(p_r.items()):
             x = self.paths_lengths.loc[self.paths_lengths.maze == condition].georatio.values
-            ax.scatter(np.random.normal(x, 0.01, size=len(pr)), pr, alpha=.7, color=self.colors[i+1], s=250, label=condition)
-            ax.scatter(x, np.mean(pr), alpha=.1, color=[.5, .5, .8], s=200, label=None)
-
-            lr_ratios_mean_pr.append((x[0], np.mean(pr)))
+            if raw_individuals:
+                ax.scatter(np.random.normal(x, 0.01, size=len(pr)), pr, alpha=.5, color=self.colors[i+1], s=250, label=condition)
+                lr_ratios_mean_pr.append((x[0], np.median(pr)))
+                lr_ratios_mean_pr_all[0].append([x[0] for _ in np.arange(len(pr))])
+                lr_ratios_mean_pr_all[1].append(pr)
+            else:
+                ax.scatter(np.random.normal(x, 0.01, size=len(modes[condition])), modes[condition], alpha=.5, color=self.colors[i+1], s=250, label=condition)
+                lr_ratios_mean_pr.append((x[0], np.median(modes[condition])))
+                lr_ratios_mean_pr_all[0].append([x[0] for _ in np.arange(len(modes[condition]))])
+                lr_ratios_mean_pr_all[1].append(modes[condition])
 
         # Get grouped Bayes modes
-        modes = self.bayes_by_condition_analytical(mode="grouped")
+        modes = self.bayes_by_condition_analytical(mode="grouped", plot=True) 
 
         # Fit sigmoid
         xdata, ydata = np.array([x for x,y in lr_ratios_mean_pr]), np.array(list(modes.values()))
         plot_fitted_sigmoid(sigmoid, xdata, ydata, [0.75, 1.5], ax, 
-                                scatter_kwargs={"color":"w", "alpha":1, "s":250}, 
-                                line_kwargs={"color":"w", "lw":3})
+                                scatter_kwargs={"color":[.1, .1, .1], "alpha":1, "s":250}, 
+                                line_kwargs={"color":[.1, .1, .1], "lw":5, "label":"fitted means"})
+
+        xdata, ydata = np.hstack(lr_ratios_mean_pr_all[0]), np.hstack(lr_ratios_mean_pr_all[1])
+        plot_fitted_sigmoid(sigmoid, xdata, ydata, [0.75, 1.5], ax, 
+                                scatter_kwargs={"color":"w", "alpha":0, "s":250}, 
+                                line_kwargs={"color":"w", "lw":4, "label":"fitted individudals"})
 
         # Fix plotting
         ax.axhline(.5, color=[.7, .7, .7], lw=2, ls="--", alpha=.8)
@@ -91,11 +112,39 @@ class PsychometricAnalyser(ExperimentsAnalyser):
                  xticks = self.paths_lengths.georatio.values, xticklabels = self.paths_lengths.georatio.values)
         ax.legend()
 
+    def plot_heirarchical_bayes_effect(self):
+        # Get hierarchical Bayes modes and individual mice p(R)
+        hits, ntrials, p_r, n_trials = self.get_binary_trials_per_condition(self.conditions)
+        trace = self.bayes_by_condition(conditions=self.conditions, load=True, tracefile="psychometric_individual_bayes.pkl", plot=False) 
+
+        # Get the mode of the posteriors
+        n_bins = 100
+        bins = {k:[np.digitize(a, np.linspace(0, 1, n_bins)) for a in v.T] for k,v in trace.items()}
+        modes = {k:[np.median(b)/n_bins for b in bins] for k,bins in bins.items()}
+
+        f, axarr = plt.subplots(ncols=4, sharex=True, sharey=True)
+        
+        for i, (exp, ax) in enumerate(zip(trace.keys(), axarr)):
+            ax.scatter(np.random.normal(0, .025, size=len(p_r[exp])), p_r[exp], color=self.colors[i+1], alpha=.5, s=200)
+            ax.scatter(np.random.normal(1, .025, size=len(modes[exp])), modes[exp], color=self.colors[i+1], alpha=.5, s=200)
+
+            ax.scatter(0, np.mean(p_r[exp]), color="w", alpha=1, s=300)
+            ax.scatter(1, np.mean(modes[exp]), color="w", alpha=1, s=300)
+
+            ax.set(title=exp, xlim=[-.1, 1.1], ylim=[-.02, 1.02], xticks=[0, 1], xticklabels=["Raw", "Bayes"], ylabel="p(R)")
+
+
+        
 if __name__ == "__main__":
     pa = PsychometricAnalyser()
     
     # pa.get_paths_lengths(load=False)
     # print(pa.paths_lengths)
     pa.plot_pr_by_condition()
+    # pa.plot_heirarchical_bayes_effect()
+
     plt.show()
 
+
+
+#%%

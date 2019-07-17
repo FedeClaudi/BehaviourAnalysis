@@ -184,22 +184,24 @@ class ExperimentsAnalyser(Bayes):
                          ANALYSE STUFF
     ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
     """
-    def bayes_by_condition_analytical(self, load=True, mode="grouped"):
+    def bayes_by_condition_analytical(self, load=True, mode="grouped", plot=True):
         if not load: raise NotImplementedError
         else:
             data = self.load_trials_from_pickle()
 
-        modes = self.analytical_bayes_individuals(conditions=None, data=data, mode=mode)
+        modes = self.analytical_bayes_individuals(conditions=None, data=data, mode=mode, plot=plot)
         return modes
 
-    def bayes_by_condition(self, load=False):
-        tracename = os.path.join(self.metadata_folder, "lightdark_asym.pkl")
-        conditions = dict(
-                maze1 =     self.get_sesions_trials(maze_design=1, naive=None, lights=1, escapes=True),
-                maze2 =     self.get_sesions_trials(maze_design=2, naive=None, lights=1, escapes=True),
-                maze3 =     self.get_sesions_trials(maze_design=3, naive=None, lights=1, escapes=True),
-                maze4 =     self.get_sesions_trials(maze_design=4, naive=None, lights=1, escapes=True),
-            )
+    def bayes_by_condition(self, conditions=None,  load=False, tracefile="a.pkl", plot=True):
+        tracename = os.path.join(self.metadata_folder, tracefile)
+
+        if conditions is None:
+            conditions = dict(
+                    maze1 =     self.get_sesions_trials(maze_design=1, naive=None, lights=1, escapes=True),
+                    maze2 =     self.get_sesions_trials(maze_design=2, naive=None, lights=1, escapes=True),
+                    maze3 =     self.get_sesions_trials(maze_design=3, naive=None, lights=1, escapes=True),
+                    maze4 =     self.get_sesions_trials(maze_design=4, naive=None, lights=1, escapes=True),
+                )
 
         if not load:
             trace = self.model_hierarchical_bayes(conditions)
@@ -212,16 +214,19 @@ class ExperimentsAnalyser(Bayes):
         good_columns = {c:[col for col in trace.columns if col[0:len(c)] == c] for c in conditions.keys()}
         condition_traces = {c:trace[cols].values for c, cols in good_columns.items()}
 
-        f, axarr = plt.subplots(nrows=len(conditions.keys()))
-        for (condition, data), color, ax in zip(condition_traces.items(), ["w", "m", "g", "r", "b", "orange"], axarr):
-            for i in np.arange(data.shape[1]):
-                if i == 0: label = condition
-                else: label=None
-                sns.kdeplot(data[:, i], ax=ax, color=color, shade=True, alpha=.15)
+        if plot:
+            f, axarr = plt.subplots(nrows=len(conditions.keys()))
+            for (condition, data), color, ax in zip(condition_traces.items(), ["w", "m", "g", "r", "b", "orange"], axarr):
+                for i in np.arange(data.shape[1]):
+                    if i == 0: label = condition
+                    else: label=None
+                    sns.kdeplot(data[:, i], ax=ax, color=color, shade=True, alpha=.15)
 
-            ax.set(title="p(R) posteriors {}".format(condition), xlabel="p(R)", ylabel="pdf", facecolor=[.2, .2, .2])
-            ax.legend()            
-        plt.show()
+                ax.set(title="p(R) posteriors {}".format(condition), xlabel="p(R)", ylabel="pdf", facecolor=[.2, .2, .2])
+                ax.legend()            
+            plt.show()
+
+        return condition_traces
 
 
     """

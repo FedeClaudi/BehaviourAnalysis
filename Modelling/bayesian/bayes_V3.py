@@ -60,7 +60,7 @@ class Bayes:
         return trace
 
 
-    def analytical_bayes_individuals(self, conditions=None, data=None, mode="individuals"):
+    def analytical_bayes_individuals(self, conditions=None, data=None, mode="individuals", plot=True):
         """
             Solve bayesian model analytically without the need for MCMC.
             NOT hierarchical model, just individual mice
@@ -73,7 +73,7 @@ class Bayes:
             # for (cond, H), (c, N) in zip(hits.items(), ntrials.items())
             raise NotImplementedError
         elif data is not None:
-            f, ax  = plt.subplots(figsize=(12, 12),)
+            if plot: f, ax  = plt.subplots(figsize=(12, 12),)
             modes = {}
             for expn, (exp, trials) in enumerate(data.items()):
                 # Get number of tirals ad hits per session
@@ -94,11 +94,22 @@ class Bayes:
                     # binomial factor n!/(k!(n-k)!)
                     for k, n in zip(K, N):
                         a2, b2 = a - 1 + k, b - 1 + n - k
-                        plot_distribution(a2, b2, title=exp, dist_type="beta", color=self.colors[expn+1], alpha=.5, xlim=[-0.1, 1.1], ylim=[0, 10], ax=ax)
-
-                    if expn == 0:
-                        plot_distribution(a, b, dist_type="beta", xlim=[0, 1], ylim=[0, 15], color='w', ax=ax, title=exp, label="prior")
-
+                        if plot: 
+                            plot_distribution(a2, b2, dist_type="beta", ax=ax,
+                                                    plot_kwargs=dict(color=self.colors[expn+1], 
+                                                                    alpha=.5), 
+                                                    ax_kwargs=dict(xlim=[-0.1, 1.1], 
+                                                                    ylim=[0, 10]), )
+                    
+                    if plot:
+                        if expn == 0:
+                            plot_distribution(a, b,dist_type="beta", ax=ax,
+                                                    plot_kwargs=dict(color="w", 
+                                                                    alpha=.5,
+                                                                    label="prior"), 
+                                                    ax_kwargs=dict(xlim=[-0.1, 1.1], 
+                                                                    ylim=[0, 15],
+                                                                    title=exp))
                 elif mode == "grouped":
                     # Compute the likelihood function (product of each mouse's likelihood)and plg that into bayes theorem
                     # the likelihood function will be a Binomial with the binomial factor being the product of all the factors, 
@@ -114,23 +125,37 @@ class Bayes:
                     # Now compute the posterior
                     a2 = a - 1 + kk
                     b2 = b - 1 + dnk
-                    plot_distribution(a2, b2, dist_type="beta", xlim=[0, 1], ylim=[0, 15], color=self.colors[expn+1],
-                                    ax=ax, title=exp, label=exp)
-                    if expn == 0:
-                        plot_distribution(a, b, dist_type="beta", xlim=[0, 1], ylim=[0, 15], color='w', ax=ax, title=exp, label="prior")
+                    if plot:
+                        if expn == 0:
+                            plot_distribution(a2, b2, dist_type="beta", ax=ax, shaded=True, 
+                                            plot_kwargs=dict(color="w",  lw=3,
+                                                            alpha=.2,
+                                                            label="prior"), 
+                                            ax_kwargs=dict(xlim=[-0.1, 1.1], 
+                                                            ylim=[0, 15],))
+
+                        plot_distribution(a2, b2, dist_type="beta", ax=ax, shaded=True,
+                                                plot_kwargs=dict(color=self.colors[expn+1], lw=2, 
+                                                                alpha=.4,
+                                                                label=exp), 
+                                                ax_kwargs=dict(xlim=[-0.1, 1.1], 
+                                                                ylim=[0, 15],
+                                                                title=exp))
+
 
                     # Plot mean and mode of posterior
                     mean =  a2 / (a2 + b2)
                     _mode = (a2 -1)/(a2 + b2 -2)
                     modes[exp] = _mode
-                    ax.axvline(_mode, color=self.colors[expn+1], lw=2, ls="--", alpha=.8)
+                    if plot: ax.axvline(_mode, color=self.colors[expn+1], lw=2, ls="--", alpha=.8)
                     
                 elif mode == "hierarhical":
                     pass
                 else: raise ValueError(mode)
-                
-            ax.set(title="{} bayes".format(mode), ylabel="pdf", xlabel="theta")
-            ax.legend()
+
+            if plot:
+                ax.set(title="{} bayes".format(mode), ylabel="pdf", xlabel="theta")
+                ax.legend()
             return modes
         else:
             raise ValueError("need to pass either condtions or data")
