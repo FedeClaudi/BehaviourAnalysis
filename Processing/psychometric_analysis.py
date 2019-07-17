@@ -218,8 +218,8 @@ if __name__ == "__main__":
     # for i, exp in enumerate(pa.conditions.keys()):
     #     pa.plot_pr_by_condition(raw_individuals=False, exclude_experiments= [exp], ax=axarr[i+1])
 
-    pa.plot_pr_by_condition(raw_individuals=True)
-    # pa.sigmoid_bayes(load=False, plot=True)
+    # pa.plot_pr_by_condition(raw_individuals=True)
+    pa.sigmoid_bayes(load=False, plot=True)
 
     plt.show()
 

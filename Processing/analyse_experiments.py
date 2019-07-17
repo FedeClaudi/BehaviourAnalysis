@@ -32,7 +32,7 @@ class ExperimentsAnalyser(Bayes):
     def __init__(self):
         Bayes.__init__(self)
 
-        self.session_metadata = pd.DataFrame((Session * Session.Metadata - "maze_type=-1"))
+        # self.session_metadata = pd.DataFrame((Session * Session.Metadata - "maze_type=-1"))
 
     # def __str__(self):
     #     def get_summary(df, lights=1):

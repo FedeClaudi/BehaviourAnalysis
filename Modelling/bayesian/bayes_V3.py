@@ -168,15 +168,22 @@ class Bayes:
             # Define priors
             beta0 = pm.Normal('beta0', 0, sd=20)
             beta1 = pm.Normal("beta1", 0, sd=20)
-            
+            beta2 = pm.Normal('beta0', 0, sd=20)
+            beta3 = pm.Normal("beta1", 0, sd=20)
+
             # Define likelihood
-            mu = pm.math.sigmoid(beta0 + beta1*xdata)
+            mu = pm.math.sigmoid(beta0 + beta1*xdata)  # argument is the exponent of the sigmiod function
             likelihood = pm.Bernoulli('y',  mu,  observed=ydata)
+
+
+            # testlineaer regr
+            m2 = beta2 + x * beta3
+            like2 = pm.LinearRegression("y2", my2, observed=ydata)
 
             # Inference!
             print("inference time")
             trace = pm.sample(1000, tune=500, cores=3, discard_tuned_samples=True)
-            
+            pm.traceplot(trace)
         return trace
 
 

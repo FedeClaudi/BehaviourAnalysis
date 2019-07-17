@@ -63,7 +63,7 @@ fps = 40
 # Define a bunch of durations as number of frames
 duration        = 5*fps  # total clip duration
 still_dur       = 1*fps   # fixed spot at start of video
-expansion       = int(1*fps)   # loom expansion
+expansion       = int(.15*fps)   # loom expansion
 expanded_dur    = int(1*fps)   # fixed expanded spot at end of video
 
 # Define position and size
@@ -122,6 +122,6 @@ ax.plot(radiuses, color="r", lw=3)
 plt.show()
 
 # ? Save video to file
-videoname = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/plots/forT/kidsloom.mp4"
+videoname = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/plots/forT/kidsloom_3x.mp4"
 opencv_write_clip(videoname, np.rot90(frames), w=frame_size[1], h=frame_size[0], framerate=fps,
                         format='.mp4', iscolor=False)
