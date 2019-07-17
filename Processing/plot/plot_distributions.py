@@ -38,7 +38,7 @@ def plot_distribution(*args, dist_type="logistic", comulative=False, ax=None, sh
     if not shaded:
         ax.plot(x, func(x), **plot_kwargs)
     else: 
-        ax.fill(x, func(x), **plot_kwargs)
+        ax.fill_between(x, 0, func(x), **plot_kwargs)
 
     ax.set(**ax_kwargs)
 
@@ -71,13 +71,6 @@ def plot_fitted_curve(func, xdata, ydata, ax, xrange=None, print_fit=False, nump
 # %%
 if __name__ == "__main__":
     # Plot some curves
-    ax = plot_distribution(dist_type="logistic", comulative=True, loc=1, scale=.5, xlim=[0, 2], alpha=.25)
-    ax = plot_distribution(dist_type="logistic", comulative=True, loc=1, scale=2, xlim=[0, 2], alpha=1, ax=ax)
-
-    ax.axvline(1.76, ls=":", color="w", alpha=.4, lw=1)
-    ax.axhline(0.84, ls=":", color="w", alpha=.4, lw=1)
-
-    ax.axvline(1, ls=":", color="w", alpha=.4, lw=1)
-    ax.axhline(0.5, ls=":", color="w", alpha=.4, lw=1)
-
+    plot_distribution(2, 7, dist_type="beta", shaded=True, x_range=[0, 1], plot_kwargs={"color":"r"}, ax_kwargs={})
+    plt.show()
     #%%

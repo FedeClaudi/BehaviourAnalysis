@@ -78,43 +78,54 @@ class PsychometricAnalyser(ExperimentsAnalyser):
     """
         ||||||||||||||||||||||||||||    BAYES     |||||||||||||||||||||
     """
-    def sigmoid_bayes(self):
-        # Get data
-        allhits, ntrials, p_r, n_mice = self.get_binary_trials_per_condition(self.conditions)
-        self.get_paths_lengths()
+    def sigmoid_bayes(self, plot=True, load=False, robust=False):
+        tracename = os.path.join(self.metadata_folder, "robust_sigmoid_bayes.pkl")
+        if not load:
+            # Get data
+            allhits, ntrials, p_r, n_mice = self.get_binary_trials_per_condition(self.conditions)
+            self.get_paths_lengths()
+            
+            # Clean data and plot scatterplot
+            if plot: f, ax = plt.subplots(figsize=large_square_fig)
+            x_data, y_data = [], []
+            for i, (condition, hits) in enumerate(allhits.items()):
+                failures = [ntrials[condition][ii]-hits[ii] for ii in np.arange(n_mice[condition])]            
+                x = self.paths_lengths.loc[self.paths_lengths.maze == condition].georatio.values[0]
+
+                xxh, xxf = [x for h in hits for _ in np.arange(h)],   [x for f in failures for _ in np.arange(f)]
+                yyh, yyf = [1 for h in hits for _ in np.arange(h)],   [0 for f in failures for _ in np.arange(f)]
+
+                x_data += xxh + xxf
+                y_data += yyh + yyf
+
+            if plot:
+                ax.scatter(x_data, [y + np.random.normal(0, 0.07, size=1) for y in y_data], color=white, s=250, alpha=.3)
+                ax.axvline(1, color=grey, alpha=.8, ls="--", lw=3)
+                ax.axhline(.5, color=grey, alpha=.8, ls="--", lw=3)
+                ax.axhline(1, color=grey, alpha=.5, ls=":", lw=1)
+                ax.axhline(0, color=grey, alpha=.5, ls=":", lw=1)
+
+            # Get bayesian logistic fit + plot
+            xp = np.linspace(np.min(x_data)-.2, np.max(x_data)  +.2, 100)
+            if not robust:
+                trace = self.bayesian_logistic_regression(x_data, y_data) # ? naive
+            else:
+                trace = self.robust_bayesian_logistic_regression()(x_data, y_data) # ? robust
+
+            b0, b0_std = np.mean(trace.get_values("beta0")), np.std(trace.get_values("beta0"))
+            b1, b1_std = np.mean(trace.get_values("beta1")), np.std(trace.get_values("beta1"))
+            if plot:
+                ax.plot(xp, logistic(xp, b0, b1), color=red, lw=3)
+                ax.fill_between(xp, logistic(xp, b0-b0_std, b1-b1_std), logistic(xp, b0+b0_std, b1+b1_std),  color=red, alpha=.15)
         
-        # Clean data and plot scatterplot
-        f, ax = plt.subplots(figsize=large_square_fig)
-        x_data, y_data = [], []
-        for i, (condition, hits) in enumerate(allhits.items()):
-            failures = [ntrials[condition][ii]-hits[ii] for ii in np.arange(n_mice[condition])]            
-            x = self.paths_lengths.loc[self.paths_lengths.maze == condition].georatio.values[0]
+                ax.set(title="Logistic regression", yticks=[0, 1], yticklabels=["left", "right"], ylabel="escape arm", xlabel="L/R length ratio",
+                            xticks=self.paths_lengths.georatio.values, xticklabels=self.paths_lengths.georatio.values)
 
-            xxh, xxf = [x for h in hits for _ in np.arange(h)],   [x for f in failures for _ in np.arange(f)]
-            yyh, yyf = [1 for h in hits for _ in np.arange(h)],   [0 for f in failures for _ in np.arange(f)]
-
-            x_data += xxh + xxf
-            y_data += yyh + yyf
-        ax.scatter(x_data, [y + np.random.normal(0, 0.01, size=1) for y in y_data], color=white, s=250, alpha=.3)
-
-        # Get bayesian logistic fit + plot
-        xp = np.linspace(np.min(x_data)-.2, np.max(x_data)  +.2, 100)
-        trace = self.robust_bayesian_logistic_regression(x_data, y_data) # ? robust
-
-
-        trace.get_values("beta0"), trace.get_values("beta1")
-        ax.plot(xp, sigmoid2(xp, b0.mean(), b1.mean()), color=red, lw=3)
-
-        for i in range(20):
-            ax.plot(xp, sigmoid2(xp, b0.mean(), b1.mean()), color=red, lw=3)
-
-
-
-
-
-        plt.show()
-        a = 1
-
+            df = pd.DataFrame.from_dict(dict(b0=trace.get_values("beta0"), b1=trace.get_values("beta1")))
+            df.to_pickle(tracename)
+        else:
+            df = pd.read_pickle(tracename)
+        return df
 
     """
         ||||||||||||||||||||||||||||    PLOTTERS     |||||||||||||||||||||
@@ -133,43 +144,43 @@ class PsychometricAnalyser(ExperimentsAnalyser):
         lr_ratios_mean_pr = {"grouped":[], "individuals_x":[], "individuals_y":[]}
         for i, (condition, pr) in enumerate(p_r.items()):
             x = self.paths_lengths.loc[self.paths_lengths.maze == condition].georatio.values
-            if not raw_individuals:
+            if raw_individuals:
                 y = pr
             else:
                 y = modes[condition]
 
             if condition not in exclude_experiments:# ? use the data for curves fitting
-                k = .7
+                k = .4
                 lr_ratios_mean_pr["grouped"].append((x[0], np.median(y)))  
                 lr_ratios_mean_pr["individuals_x"].append([x[0] for _ in np.arange(len(y))])
                 lr_ratios_mean_pr["individuals_y"].append(y)
             else: 
                 k = .1
                 del grouped_modes[condition]
-            ax.scatter(np.random.normal(x, 0.01, size=len(y)), y, alpha=.8, color=desaturate_color(self.colors[i+1], k=k), s=250)
+            ax.scatter(np.random.normal(x, 0.01, size=len(y)), y, alpha=.2, color=pink, s=250)
 
 
           
-        # Fit sigmoid to group data and individual mice
-        plot_fitted_curve(sigmoid, np.array([x for x,y in lr_ratios_mean_pr["grouped"]]), np.array(list(grouped_modes.values())), ax, xrange=[0.75, 1.5],
-                                scatter_kwargs={"color":white, "alpha":1, "s":250}, 
-                                line_kwargs={"color":desaturate_color(white), "lw":5, "label":"sigmoid means", "ls":"--"})
-        plot_fitted_curve(sigmoid, np.hstack(lr_ratios_mean_pr["individuals_x"]), np.hstack(lr_ratios_mean_pr["individuals_y"]), ax, xrange=[0.75, 1.5],  # ? ind. sigmoid
-                                scatter_kwargs={"color":white, "alpha":0, "s":250}, 
-                                line_kwargs={"color":white, "lw":4, "label":"sigmoid individudals"})
+        # Fit logistic to group data and individual mice
+        plot_fitted_curve(logistic, np.array([x for x,y in lr_ratios_mean_pr["grouped"]]), np.array(list(grouped_modes.values())), ax, xrange=[0.75, 1.5],
+                                scatter_kwargs={"color":green, "alpha":1, "s":250}, 
+                                line_kwargs={"color":green, "lw":5, "label":"logistic - means", "ls":"--"})
 
-        # Fit step function and linear function
-        # plot_fitted_curve(step_function, np.hstack(lr_ratios_mean_pr["individuals_x"]), np.hstack(lr_ratios_mean_pr["individuals_y"]), ax, xrange=[0.75, 1.5],
-        #                         # fit_kwargs={"bounds":[(0, 0, 0), (1, 2, 1)]}, 
-        #                         scatter_kwargs={"color":pink, "alpha":0, "s":250}, 
-        #                         line_kwargs={"color":pink, "lw":4, "label":"step func individudals", "ls":"--"})
+        plot_fitted_curve(logistic, np.hstack(lr_ratios_mean_pr["individuals_x"]), np.hstack(lr_ratios_mean_pr["individuals_y"]), ax, xrange=[0.75, 1.5],  # ? ind. sigmoid
+                                scatter_kwargs={"alpha":0}, 
+                                line_kwargs={"color":pink, "lw":4, "label":"logistic - individudals"})
 
-        plot_fitted_curve(linear_func, np.hstack(lr_ratios_mean_pr["individuals_x"]), np.hstack(lr_ratios_mean_pr["individuals_y"]),ax , xrange=[0.75, 1.5],
-                                scatter_kwargs={"color":teal, "alpha":0, "s":250}, 
-                                line_kwargs={"color":teal, "lw":4, "label":"linear func individudals", "ls":"--"})
-        
+        # Fit sigmoid to raw trial data with robust bayesian logistic regression
+        xp = np.linspace(0.75, 1.5, 100)
+        df =   self.sigmoid_bayes(plot=False, load=True)
+        b0, b1 = np.mean(df["b0"]), np.mean(df["b1"])
+        ax.plot(xp, logistic(xp, b0, b1), color=teal, lw=3, label="bayesian logistic - trials")
+
         # Fix plotting
-        ax.axhline(.5, color=grey, lw=2, ls="--", alpha=.2)
+        ax.axvline(1, color=grey, alpha=.8, ls="--", lw=3)
+        ax.axhline(.5, color=grey, alpha=.8, ls="--", lw=3)
+        ax.axhline(1, color=grey, alpha=.5, ls=":", lw=1)
+        ax.axhline(0, color=grey, alpha=.5, ls=":", lw=1)
         ax.set(ylim=[-0.05, 1.05], ylabel="p(R)", title="p(R) per mouse per maze", xlabel="L/R length raito",
                  xticks = self.paths_lengths.georatio.values, xticklabels = self.paths_lengths.georatio.values)
         ax.legend()
@@ -203,11 +214,12 @@ if __name__ == "__main__":
 
     # f, axarr = plt.subplots(figsize=large_square_fig, ncols=3, nrows=2)
     # axarr = axarr.flatten()
-    # pa.plot_pr_by_condition(raw_individuals=True, ax=axarr[0])
+    # pa.plot_pr_by_condition(raw_individuals=False, ax=axarr[0])
     # for i, exp in enumerate(pa.conditions.keys()):
-    #     pa.plot_pr_by_condition(raw_individuals=True, exclude_experiments= [exp], ax=axarr[i+1])
+    #     pa.plot_pr_by_condition(raw_individuals=False, exclude_experiments= [exp], ax=axarr[i+1])
 
-    pa.sigmoid_bayes()
+    pa.plot_pr_by_condition(raw_individuals=True)
+    # pa.sigmoid_bayes(load=False, plot=True)
 
     plt.show()
 

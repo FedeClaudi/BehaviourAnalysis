@@ -17,7 +17,7 @@ def polyfit(order, x, y):
 def sigmoid(x, a, b):
     return 1 / (1 + np.exp(-b*(x-a)))
 
-def sigmoid2(x, a, b):
+def logistic(x, a, b):
     return np.exp(a + b*x)/(1 + np.exp(a + b*x))
 
 def half_sigmoid(x, a, b):

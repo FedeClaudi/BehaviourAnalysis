@@ -177,7 +177,7 @@ class Bayes:
             print("inference time")
             trace = pm.sample(1000, tune=500, cores=3, discard_tuned_samples=True)
             
-        return trace.get_values("beta0").mean(), trace.get_values("beta1").mean()
+        return trace
 
 
 
@@ -186,17 +186,17 @@ class Bayes:
         print("fitting ROBUST bayesian logistic regression")
         with pm.Model() as model: 
             # Define priors
-            beta0 = pm.Normal('beta0', 0, sd=20)
-            beta1 = pm.Normal("beta1", 0, sd=20)
+            beta0 = pm.Normal('beta0', 0, sd=30)
+            beta1 = pm.Normal("beta1", 0, sd=30)
             
             # Define likelihood
-            alpha = pm.Beta("normal", alpha=1, beta=9)
+            alpha = pm.Beta("alpha", alpha=1, beta=9)
             mu = alpha * .5 + (1 - alpha) * pm.math.sigmoid(beta0 + beta1*xdata)
             likelihood = pm.Bernoulli('y',  mu,  observed=ydata)
 
 
             # Inference!
             print("inference time")
-            trace = pm.sample(1000, tune=500, cores=2, discard_tuned_samples=True)
+            trace = pm.sample(2000, tune=1000, cores=2, nuts_kwargs={'target_accept': 0.99}, discard_tuned_samples=True)
             
-        return trace
+        return trace    
