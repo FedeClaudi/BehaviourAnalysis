@@ -6,6 +6,7 @@ from statistics import mode
 from scipy.signal import find_peaks as peaks
 
 from Utilities.imports import *
+from Utilities.import_tables import *
 
 from Processing.plot.plot_distributions import plot_fitted_curve
 

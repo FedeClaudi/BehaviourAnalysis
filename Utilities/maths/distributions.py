@@ -5,6 +5,7 @@ import numpy as np
 from scipy import misc, signal, stats
 import matplotlib.pyplot as plt
 
+
 # ! FIT MATH FUNCTIONS
 # ? Functions to pass to curve_fit
 def polyfit(order, x, y):
@@ -24,6 +25,10 @@ def half_sigmoid(x, a, b):
 
 def linear_func(x, a, b):
     return x*a + b
+
+
+def exponential(x, a, b, c, d):
+    return  a*np.exp(-c*(x-b))+d
 
 def step_function(x,a, b, c):
     # Step function

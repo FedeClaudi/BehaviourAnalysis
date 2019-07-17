@@ -7,7 +7,7 @@ from scipy.optimize import curve_fit
 # %maptlotlib inline
 # TODO add possibility to shade area under the curve
 # %%
-def plot_distribution(*args, dist_type="logistic", comulative=False, ax=None, shaded=False, plot_kwargs={}, ax_kwargs={},  **kwargs):
+def plot_distribution(*args, dist_type="logistic", comulative=False, ax=None, shaded=False, x_range=None, plot_kwargs={}, ax_kwargs={},  **kwargs):
     # Get the distribution
     if dist_type == "logistic":
         dist = stats.logistic(*args, **kwargs)
@@ -15,16 +15,25 @@ def plot_distribution(*args, dist_type="logistic", comulative=False, ax=None, sh
         dist = stats.gamma(*args, **kwargs)
     elif dist_type == "beta":
         dist = stats.beta(*args, **kwargs)
+    elif dist_type == "exponential":
+        dist = np.exp
     else:
         raise NotImplementedError
 
     # Get the probability density function or comulative density function
     if comulative: func = dist.cdf
-    else: func = dist.pdf
+    else: 
+        try:
+            func = dist.pdf
+            x = np.linspace(dist.ppf(0.0001), dist.ppf(0.99999), 100)
+
+        except:
+            func = dist
+            x = np.linspace(x_range[0], x_range[1], 100)
+
 
     # Plot
     if ax is None: f, ax = plt.subplots()
-    x = np.linspace(dist.ppf(0.0001), dist.ppf(0.99999), 100)
 
     if not shaded:
         ax.plot(x, func(x), **plot_kwargs)
@@ -35,16 +44,28 @@ def plot_distribution(*args, dist_type="logistic", comulative=False, ax=None, sh
 
     return ax
 
-def plot_fitted_curve(func, xdata, ydata, xrange, ax, print_fit=False, fit_kwargs={}, scatter_kwargs={}, line_kwargs={}):
-    popt, pcov = curve_fit(func, xdata, ydata, **fit_kwargs)
-    if print_fit: print(popt)
-    x = np.linspace(xrange[0], xrange[1], 100)
-    y = func(x, *popt)
+def plot_fitted_curve(func, xdata, ydata, ax, xrange=None, print_fit=False, numpy_polyfit=False,
+                        fit_kwargs={}, scatter_kwargs={}, line_kwargs={}):
+    if numpy_polyfit and not isinstance(numpy_polyfit, int): raise ValueError("numpy_polyfit should be an integer")
+    # set numpy_polifit to an integer to fit a numpy polinomial with degree numpy polyfit
+
+    if xrange is not None: x = np.linspace(xrange[0], xrange[1], 100)
+    else: x = np.linspace(np.min(xdata), np.max(xdata), 100)
+
+    if not numpy_polyfit: # ? scipy curve fit instead
+        popt, pcov = curve_fit(func, xdata, ydata, **fit_kwargs)
+        if print_fit: print(popt)
+        y = func(x, *popt)
+        to_return = popt
+    else:
+        func = func(numpy_polyfit, xdata, ydata)
+        y = func(x)
+        to_return = func
 
     ax.scatter(xdata, ydata, **scatter_kwargs)
     ax.plot(x, y, **line_kwargs)
 
-
+    return to_return
 
 
 # %%

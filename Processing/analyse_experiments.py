@@ -4,6 +4,7 @@ sys.path.append('./')   # <- necessary to import packages from other directories
 
 # if __name__ == "__main__": # avoid re importing the tables for every core in during bayesian modeeling
 from Utilities.imports import *
+from Utilities.import_tables import *
 
 from Modelling.bayesian.bayes_V3 import Bayes
 from Modelling.maze_solvers.gradient_agent import GradientAgent

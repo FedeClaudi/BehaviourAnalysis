@@ -2,6 +2,7 @@ import sys
 sys.path.append('./')   
 
 from Utilities.imports import *
+from Utilities.import_tables import *
 
 import pymc3 as pm
 from math import factorial as fact
