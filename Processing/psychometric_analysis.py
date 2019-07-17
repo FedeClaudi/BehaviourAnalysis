@@ -3,10 +3,9 @@ import sys
 sys.path.append('./')   # <- necessary to import packages from other directories within the project
 
 from statistics import mode
-from scipy.signal import find_peaks as peaks
+import pymc3 as pm
 
 from Utilities.imports import *
-from Utilities.import_tables import *
 
 from Processing.plot.plot_distributions import plot_fitted_curve
 
@@ -76,6 +75,46 @@ class PsychometricAnalyser(ExperimentsAnalyser):
 
         return modes
 
+    """
+        ||||||||||||||||||||||||||||    BAYES     |||||||||||||||||||||
+    """
+    def sigmoid_bayes(self):
+        # Get data
+        allhits, ntrials, p_r, n_mice = self.get_binary_trials_per_condition(self.conditions)
+        self.get_paths_lengths()
+        
+        # Clean data and plot scatterplot
+        f, ax = plt.subplots(figsize=large_square_fig)
+        x_data, y_data = [], []
+        for i, (condition, hits) in enumerate(allhits.items()):
+            failures = [ntrials[condition][ii]-hits[ii] for ii in np.arange(n_mice[condition])]            
+            x = self.paths_lengths.loc[self.paths_lengths.maze == condition].georatio.values[0]
+
+            xxh, xxf = [x for h in hits for _ in np.arange(h)],   [x for f in failures for _ in np.arange(f)]
+            yyh, yyf = [1 for h in hits for _ in np.arange(h)],   [0 for f in failures for _ in np.arange(f)]
+
+            x_data += xxh + xxf
+            y_data += yyh + yyf
+        ax.scatter(x_data, [y + np.random.normal(0, 0.01, size=1) for y in y_data], color=white, s=250, alpha=.3)
+
+        # Get bayesian logistic fit + plot
+        xp = np.linspace(np.min(x_data)-.2, np.max(x_data)  +.2, 100)
+        trace = self.robust_bayesian_logistic_regression(x_data, y_data) # ? robust
+
+
+        trace.get_values("beta0"), trace.get_values("beta1")
+        ax.plot(xp, sigmoid2(xp, b0.mean(), b1.mean()), color=red, lw=3)
+
+        for i in range(20):
+            ax.plot(xp, sigmoid2(xp, b0.mean(), b1.mean()), color=red, lw=3)
+
+
+
+
+
+        plt.show()
+        a = 1
+
 
     """
         ||||||||||||||||||||||||||||    PLOTTERS     |||||||||||||||||||||
@@ -83,7 +122,7 @@ class PsychometricAnalyser(ExperimentsAnalyser):
     def plot_pr_by_condition(self, raw_individuals=False, exclude_experiments=[None], ax=None):
         # Get paths length ratios and p(R) by condition
         self.get_paths_lengths()
-        hits, ntrials, p_r, n_trials = self.get_binary_trials_per_condition(self.conditions)
+        hits, ntrials, p_r, n_mice = self.get_binary_trials_per_condition(self.conditions)
         
         # Get modes on individuals posteriors and grouped bayes
         modes = self.get_hb_modes()
@@ -112,22 +151,22 @@ class PsychometricAnalyser(ExperimentsAnalyser):
 
           
         # Fit sigmoid to group data and individual mice
-        plot_fitted_curve(sigmoid, np.array([x for x,y in lr_ratios_mean_pr["grouped"]]), np.array(list(grouped_modes.values())), [0.75, 1.5], ax, 
+        plot_fitted_curve(sigmoid, np.array([x for x,y in lr_ratios_mean_pr["grouped"]]), np.array(list(grouped_modes.values())), ax, xrange=[0.75, 1.5],
                                 scatter_kwargs={"color":white, "alpha":1, "s":250}, 
                                 line_kwargs={"color":desaturate_color(white), "lw":5, "label":"sigmoid means", "ls":"--"})
-        plot_fitted_curve(sigmoid, np.hstack(lr_ratios_mean_pr["individuals_x"]), np.hstack(lr_ratios_mean_pr["individuals_y"]), [0.75, 1.5], ax,   # ? ind. sigmoid
+        plot_fitted_curve(sigmoid, np.hstack(lr_ratios_mean_pr["individuals_x"]), np.hstack(lr_ratios_mean_pr["individuals_y"]), ax, xrange=[0.75, 1.5],  # ? ind. sigmoid
                                 scatter_kwargs={"color":white, "alpha":0, "s":250}, 
                                 line_kwargs={"color":white, "lw":4, "label":"sigmoid individudals"})
 
         # Fit step function and linear function
-        # plot_fitted_curve(step_function, np.hstack(lr_ratios_mean_pr["individuals_x"]), np.hstack(lr_ratios_mean_pr["individuals_y"]), [0.75, 1.5], ax, 
+        # plot_fitted_curve(step_function, np.hstack(lr_ratios_mean_pr["individuals_x"]), np.hstack(lr_ratios_mean_pr["individuals_y"]), ax, xrange=[0.75, 1.5],
         #                         # fit_kwargs={"bounds":[(0, 0, 0), (1, 2, 1)]}, 
         #                         scatter_kwargs={"color":pink, "alpha":0, "s":250}, 
         #                         line_kwargs={"color":pink, "lw":4, "label":"step func individudals", "ls":"--"})
 
-        # plot_fitted_curve(linear_func, np.hstack(lr_ratios_mean_pr["individuals_x"]), np.hstack(lr_ratios_mean_pr["individuals_y"]), [0.75, 1.5], ax, 
-        #                         scatter_kwargs={"color":teal, "alpha":0, "s":250}, 
-        #                         line_kwargs={"color":teal, "lw":4, "label":"linear func individudals", "ls":"--"})
+        plot_fitted_curve(linear_func, np.hstack(lr_ratios_mean_pr["individuals_x"]), np.hstack(lr_ratios_mean_pr["individuals_y"]),ax , xrange=[0.75, 1.5],
+                                scatter_kwargs={"color":teal, "alpha":0, "s":250}, 
+                                line_kwargs={"color":teal, "lw":4, "label":"linear func individudals", "ls":"--"})
         
         # Fix plotting
         ax.axhline(.5, color=grey, lw=2, ls="--", alpha=.2)
@@ -162,11 +201,13 @@ class PsychometricAnalyser(ExperimentsAnalyser):
 if __name__ == "__main__":
     pa = PsychometricAnalyser()
 
-    f, axarr = plt.subplots(figsize=large_square_fig, ncols=3, nrows=2)
-    axarr = axarr.flatten()
-    pa.plot_pr_by_condition(raw_individuals=True, ax=axarr[0])
-    for i, exp in enumerate(pa.conditions.keys()):
-        pa.plot_pr_by_condition(raw_individuals=True, exclude_experiments= [exp], ax=axarr[i+1])
+    # f, axarr = plt.subplots(figsize=large_square_fig, ncols=3, nrows=2)
+    # axarr = axarr.flatten()
+    # pa.plot_pr_by_condition(raw_individuals=True, ax=axarr[0])
+    # for i, exp in enumerate(pa.conditions.keys()):
+    #     pa.plot_pr_by_condition(raw_individuals=True, exclude_experiments= [exp], ax=axarr[i+1])
+
+    pa.sigmoid_bayes()
 
     plt.show()
 

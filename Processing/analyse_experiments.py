@@ -4,7 +4,7 @@ sys.path.append('./')   # <- necessary to import packages from other directories
 
 # if __name__ == "__main__": # avoid re importing the tables for every core in during bayesian modeeling
 from Utilities.imports import *
-from Utilities.import_tables import *
+
 
 from Modelling.bayesian.bayes_V3 import Bayes
 from Modelling.maze_solvers.gradient_agent import GradientAgent
@@ -34,42 +34,42 @@ class ExperimentsAnalyser(Bayes):
 
         self.session_metadata = pd.DataFrame((Session * Session.Metadata - "maze_type=-1"))
 
-    def __str__(self):
-        def get_summary(df, lights=1):
-            summary = dict(maze=[], tot_mice=[], naive=[], n_stimuli=[], n_escapes=[])
-            for maze_id, maze_name in self.maze_designs.items():
-                if maze_id == -1: continue
+    # def __str__(self):
+    #     def get_summary(df, lights=1):
+    #         summary = dict(maze=[], tot_mice=[], naive=[], n_stimuli=[], n_escapes=[])
+    #         for maze_id, maze_name in self.maze_designs.items():
+    #             if maze_id == -1: continue
                     
-                maze_data = df.loc[df.maze_type == maze_id]
+    #             maze_data = df.loc[df.maze_type == maze_id]
 
-                summary["maze"].append(maze_name)
-                summary["tot_mice"].append(len(maze_data))
-                summary["naive"].append(len(maze_data.loc[maze_data.naive == 1]))
-                summary["n_stimuli"].append(len(self.get_sesions_trials(maze_design=maze_id, naive=None, lights=lights, escapes=False)))
-                summary["n_escapes"].append(len(self.get_sesions_trials(maze_design=maze_id, naive=None, lights=lights, escapes=True)))
+    #             summary["maze"].append(maze_name)
+    #             summary["tot_mice"].append(len(maze_data))
+    #             summary["naive"].append(len(maze_data.loc[maze_data.naive == 1]))
+    #             summary["n_stimuli"].append(len(self.get_sesions_trials(maze_design=maze_id, naive=None, lights=lights, escapes=False)))
+    #             summary["n_escapes"].append(len(self.get_sesions_trials(maze_design=maze_id, naive=None, lights=lights, escapes=True)))
 
-            summary = pd.DataFrame(summary)
-            return summary
+    #         summary = pd.DataFrame(summary)
+    #         return summary
 
-        data = self.session_metadata
-        # Get how many mice were done with the lights on on each maze, divide by naive and not naive
-        lights_on_data = data.loc[data.lights==1]
-        summary = get_summary(lights_on_data, lights=1)
+    #     data = self.session_metadata
+    #     # Get how many mice were done with the lights on on each maze, divide by naive and not naive
+    #     lights_on_data = data.loc[data.lights==1]
+    #     summary = get_summary(lights_on_data, lights=1)
 
-        print("Sessions per experiment - lights ON")
-        print(summary)
+    #     print("Sessions per experiment - lights ON")
+    #     print(summary)
 
 
-        lights_off_data = data.loc[data.lights==0]
-        summary = get_summary(lights_off_data, lights=0)
+    #     lights_off_data = data.loc[data.lights==0]
+    #     summary = get_summary(lights_off_data, lights=0)
 
-        print("\n\Sessions per experiment - lights OFF")
-        print(summary)
-        return ""
+    #     print("\n\Sessions per experiment - lights OFF")
+    #     print(summary)
+    #     return ""
 
-    def __repr__(self): 
-        self.__str__()
-        return ""
+    # def __repr__(self): 
+    #     self.__str__()
+    #     return ""
 
     """
     ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||

@@ -15,13 +15,14 @@ def polyfit(order, x, y):
 	return f
 
 def sigmoid(x, a, b):
-    y = 1 / (1 + np.exp(-b*(x-a)))
-    return y
+    return 1 / (1 + np.exp(-b*(x-a)))
+
+def sigmoid2(x, a, b):
+    return np.exp(a + b*x)/(1 + np.exp(a + b*x))
 
 def half_sigmoid(x, a, b):
 	chance = .5
-	y = chance + (1-chance) / (1 + np.exp(-b*(x-a)))
-	return y
+	return chance + (1-chance) / (1 + np.exp(-b*(x-a)))
 
 def linear_func(x, a, b):
     return x*a + b

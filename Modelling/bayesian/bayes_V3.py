@@ -2,7 +2,6 @@ import sys
 sys.path.append('./')   
 
 from Utilities.imports import *
-from Utilities.import_tables import *
 
 import pymc3 as pm
 from math import factorial as fact
@@ -162,3 +161,42 @@ class Bayes:
             raise ValueError("need to pass either condtions or data")
 
  
+    def bayesian_logistic_regression(self, xdata, ydata):
+        # ? from doing bayesian data analysis p 324
+        print("fitting bayesian logistic regression")
+        with pm.Model() as model: 
+            # Define priors
+            beta0 = pm.Normal('beta0', 0, sd=20)
+            beta1 = pm.Normal("beta1", 0, sd=20)
+            
+            # Define likelihood
+            mu = pm.math.sigmoid(beta0 + beta1*xdata)
+            likelihood = pm.Bernoulli('y',  mu,  observed=ydata)
+
+            # Inference!
+            print("inference time")
+            trace = pm.sample(1000, tune=500, cores=3, discard_tuned_samples=True)
+            
+        return trace.get_values("beta0").mean(), trace.get_values("beta1").mean()
+
+
+
+    def robust_bayesian_logistic_regression(self, xdata, ydata):
+        # ? from doing bayesian data analysis p 324
+        print("fitting ROBUST bayesian logistic regression")
+        with pm.Model() as model: 
+            # Define priors
+            beta0 = pm.Normal('beta0', 0, sd=20)
+            beta1 = pm.Normal("beta1", 0, sd=20)
+            
+            # Define likelihood
+            alpha = pm.Beta("normal", alpha=1, beta=9)
+            mu = alpha * .5 + (1 - alpha) * pm.math.sigmoid(beta0 + beta1*xdata)
+            likelihood = pm.Bernoulli('y',  mu,  observed=ydata)
+
+
+            # Inference!
+            print("inference time")
+            trace = pm.sample(1000, tune=500, cores=2, discard_tuned_samples=True)
+            
+        return trace
