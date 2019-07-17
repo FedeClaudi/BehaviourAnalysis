@@ -1,7 +1,7 @@
-import sys
-sys.path.append('./')   # <- necessary to import packages from other directories within the project
-
-from Utilities.imports import *
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
+import cv2 
 
 
 def plot_fitted_curve(func, xdata, ydata, ax, xrange=None, print_fit=False, numpy_polyfit=False,
@@ -27,6 +27,34 @@ def plot_fitted_curve(func, xdata, ydata, ax, xrange=None, print_fit=False, nump
 
     return to_return
 
+def opencv_write_clip(videopath, frames_data, w=None, h=None, framerate=None, start=None, stop=None,
+                        format='.mp4', iscolor=False):
+    """ create a .cv2 videowriter and  write clip to file """
+    if format != '.mp4':
+        raise ValueError('Fileformat not yet supported by this function: {}'.format(format))
+
+    if start is None: start = 0
+    if stop is None: stop = frames_data.shape[-1]
+    start, stop = int(start), int(stop)
+    if w is None: w = frames_data.shape[0]
+    if h is None: h = frames_data.shape[1]
+    if framerate is None: raise ValueError('No frame rate parameter was given as an input')
+
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    videowriter = cv2.VideoWriter(videopath, fourcc, framerate, (w, h), iscolor)
+
+    for framen in range(start, stop):
+        frame = np.array(frames_data[:, :, framen], dtype=np.uint8).T
+        cv2.imshow('frame', frame)
+        cv2.waitKey(1)
+        videowriter.write(frame)
+    videowriter.release()
+
+def exponential(x, a, b, c, d):
+    return  a*np.exp(-c*(x-b))+d
+
+pink     = [.7, .4, .5]
+teal     = [0., .7, .7]
 
 # ? Create a video with a non linear loom
 # * params
@@ -94,7 +122,6 @@ ax.plot(radiuses, color="r", lw=3)
 plt.show()
 
 # ? Save video to file
-videoeditor = Editor()
-videoname = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\plots\\forT\\kidsloom.mp4"
-videoeditor.opencv_write_clip(videoname, np.rot90(frames), w=frame_size[1], h=frame_size[0], framerate=fps,
+videoname = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/plots/forT/kidsloom.mp4"
+opencv_write_clip(videoname, np.rot90(frames), w=frame_size[1], h=frame_size[0], framerate=fps,
                         format='.mp4', iscolor=False)
