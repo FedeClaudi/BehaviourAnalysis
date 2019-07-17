@@ -7,7 +7,7 @@ from scipy.signal import find_peaks as peaks
 
 from Utilities.imports import *
 
-from Processing.plot.plot_distributions import plot_fitted_sigmoid
+from Processing.plot.plot_distributions import plot_fitted_curve
 
 from Processing.analyse_experiments import ExperimentsAnalyser
 
@@ -64,53 +64,76 @@ class PsychometricAnalyser(ExperimentsAnalyser):
         self.paths_lengths["georatio"] = [round(x / short_arm_dist, 4) for x in self.paths_lengths.distance.values]
 
 
-    def plot_pr_by_condition(self, raw_individuals=False):
-        # Get paths length ratios and p(R) by condition
-        self.get_paths_lengths()
-        hits, ntrials, p_r, n_trials = self.get_binary_trials_per_condition(self.conditions)
-        
-        # Get modes on individuals posteriors
+    """
+        ||||||||||||||||||||||||||||    GETTERS     |||||||||||||||||||||
+    """
+    def get_hb_modes(self):
         trace = self.bayes_by_condition(conditions=self.conditions, load=True, tracefile="psychometric_individual_bayes.pkl", plot=False)
         n_bins = 100
         bins = {k:[np.digitize(a, np.linspace(0, 1, n_bins)) for a in v.T] for k,v in trace.items()}
         modes = {k:[np.median(b)/n_bins for b in bins] for k,bins in bins.items()}
 
+        return modes
+
+
+    """
+        ||||||||||||||||||||||||||||    PLOTTERS     |||||||||||||||||||||
+    """
+    def plot_pr_by_condition(self, raw_individuals=False, exclude_experiments=[None], ax=None):
+        # Get paths length ratios and p(R) by condition
+        self.get_paths_lengths()
+        hits, ntrials, p_r, n_trials = self.get_binary_trials_per_condition(self.conditions)
+        
+        # Get modes on individuals posteriors and grouped bayes
+        modes = self.get_hb_modes()
+        grouped_modes = self.bayes_by_condition_analytical(mode="grouped", plot=False) 
 
         # Plot each individual's pR and the group mean as a factor of L/R length ratio
-        f, ax = plt.subplots()
-        lr_ratios_mean_pr, lr_ratios_mean_pr_all = [],[[],  []]
+        if ax is None: f, ax = plt.subplots()
+        lr_ratios_mean_pr = {"grouped":[], "individuals_x":[], "individuals_y":[]}
         for i, (condition, pr) in enumerate(p_r.items()):
             x = self.paths_lengths.loc[self.paths_lengths.maze == condition].georatio.values
-            if raw_individuals:
-                ax.scatter(np.random.normal(x, 0.01, size=len(pr)), pr, alpha=.5, color=self.colors[i+1], s=250, label=condition)
-                lr_ratios_mean_pr.append((x[0], np.median(pr)))
-                lr_ratios_mean_pr_all[0].append([x[0] for _ in np.arange(len(pr))])
-                lr_ratios_mean_pr_all[1].append(pr)
+            if not raw_individuals:
+                y = pr
             else:
-                ax.scatter(np.random.normal(x, 0.01, size=len(modes[condition])), modes[condition], alpha=.5, color=self.colors[i+1], s=250, label=condition)
-                lr_ratios_mean_pr.append((x[0], np.median(modes[condition])))
-                lr_ratios_mean_pr_all[0].append([x[0] for _ in np.arange(len(modes[condition]))])
-                lr_ratios_mean_pr_all[1].append(modes[condition])
+                y = modes[condition]
 
-        # Get grouped Bayes modes
-        modes = self.bayes_by_condition_analytical(mode="grouped", plot=True) 
+            if condition not in exclude_experiments:# ? use the data for curves fitting
+                k = .7
+                lr_ratios_mean_pr["grouped"].append((x[0], np.median(y)))  
+                lr_ratios_mean_pr["individuals_x"].append([x[0] for _ in np.arange(len(y))])
+                lr_ratios_mean_pr["individuals_y"].append(y)
+            else: 
+                k = .1
+                del grouped_modes[condition]
+            ax.scatter(np.random.normal(x, 0.01, size=len(y)), y, alpha=.8, color=desaturate_color(self.colors[i+1], k=k), s=250)
 
-        # Fit sigmoid
-        xdata, ydata = np.array([x for x,y in lr_ratios_mean_pr]), np.array(list(modes.values()))
-        plot_fitted_sigmoid(sigmoid, xdata, ydata, [0.75, 1.5], ax, 
-                                scatter_kwargs={"color":[.1, .1, .1], "alpha":1, "s":250}, 
-                                line_kwargs={"color":[.1, .1, .1], "lw":5, "label":"fitted means"})
 
-        xdata, ydata = np.hstack(lr_ratios_mean_pr_all[0]), np.hstack(lr_ratios_mean_pr_all[1])
-        plot_fitted_sigmoid(sigmoid, xdata, ydata, [0.75, 1.5], ax, 
-                                scatter_kwargs={"color":"w", "alpha":0, "s":250}, 
-                                line_kwargs={"color":"w", "lw":4, "label":"fitted individudals"})
+          
+        # Fit sigmoid to group data and individual mice
+        plot_fitted_curve(sigmoid, np.array([x for x,y in lr_ratios_mean_pr["grouped"]]), np.array(list(grouped_modes.values())), [0.75, 1.5], ax, 
+                                scatter_kwargs={"color":white, "alpha":1, "s":250}, 
+                                line_kwargs={"color":desaturate_color(white), "lw":5, "label":"sigmoid means", "ls":"--"})
+        plot_fitted_curve(sigmoid, np.hstack(lr_ratios_mean_pr["individuals_x"]), np.hstack(lr_ratios_mean_pr["individuals_y"]), [0.75, 1.5], ax,   # ? ind. sigmoid
+                                scatter_kwargs={"color":white, "alpha":0, "s":250}, 
+                                line_kwargs={"color":white, "lw":4, "label":"sigmoid individudals"})
 
+        # Fit step function and linear function
+        # plot_fitted_curve(step_function, np.hstack(lr_ratios_mean_pr["individuals_x"]), np.hstack(lr_ratios_mean_pr["individuals_y"]), [0.75, 1.5], ax, 
+        #                         # fit_kwargs={"bounds":[(0, 0, 0), (1, 2, 1)]}, 
+        #                         scatter_kwargs={"color":pink, "alpha":0, "s":250}, 
+        #                         line_kwargs={"color":pink, "lw":4, "label":"step func individudals", "ls":"--"})
+
+        # plot_fitted_curve(linear_func, np.hstack(lr_ratios_mean_pr["individuals_x"]), np.hstack(lr_ratios_mean_pr["individuals_y"]), [0.75, 1.5], ax, 
+        #                         scatter_kwargs={"color":teal, "alpha":0, "s":250}, 
+        #                         line_kwargs={"color":teal, "lw":4, "label":"linear func individudals", "ls":"--"})
+        
         # Fix plotting
-        ax.axhline(.5, color=[.7, .7, .7], lw=2, ls="--", alpha=.8)
-        ax.set(facecolor=[.2, .2, .2], ylim=[-0.05, 1.05], ylabel="p(R)", title="p(R) per mouse per maze", xlabel="L/R length raito",
+        ax.axhline(.5, color=grey, lw=2, ls="--", alpha=.2)
+        ax.set(ylim=[-0.05, 1.05], ylabel="p(R)", title="p(R) per mouse per maze", xlabel="L/R length raito",
                  xticks = self.paths_lengths.georatio.values, xticklabels = self.paths_lengths.georatio.values)
         ax.legend()
+
 
     def plot_heirarchical_bayes_effect(self):
         # Get hierarchical Bayes modes and individual mice p(R)
@@ -137,11 +160,12 @@ class PsychometricAnalyser(ExperimentsAnalyser):
         
 if __name__ == "__main__":
     pa = PsychometricAnalyser()
-    
-    # pa.get_paths_lengths(load=False)
-    # print(pa.paths_lengths)
-    pa.plot_pr_by_condition()
-    # pa.plot_heirarchical_bayes_effect()
+
+    f, axarr = plt.subplots(figsize=large_square_fig, ncols=3, nrows=2)
+    axarr = axarr.flatten()
+    pa.plot_pr_by_condition(raw_individuals=True, ax=axarr[0])
+    for i, exp in enumerate(pa.conditions.keys()):
+        pa.plot_pr_by_condition(raw_individuals=True, exclude_experiments= [exp], ax=axarr[i+1])
 
     plt.show()
 

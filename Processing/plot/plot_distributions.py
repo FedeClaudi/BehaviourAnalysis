@@ -35,9 +35,9 @@ def plot_distribution(*args, dist_type="logistic", comulative=False, ax=None, sh
 
     return ax
 
-def plot_fitted_sigmoid(func, xdata, ydata, xrange, ax, fit_kwargs={}, scatter_kwargs={}, line_kwargs={}):
+def plot_fitted_curve(func, xdata, ydata, xrange, ax, print_fit=False, fit_kwargs={}, scatter_kwargs={}, line_kwargs={}):
     popt, pcov = curve_fit(func, xdata, ydata, **fit_kwargs)
-
+    if print_fit: print(popt)
     x = np.linspace(xrange[0], xrange[1], 100)
     y = func(x, *popt)
 

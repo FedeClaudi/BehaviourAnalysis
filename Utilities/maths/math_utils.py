@@ -50,8 +50,14 @@ def normalise_1d(arr):
 	normed = min_max_scaler.fit_transform(arr.reshape(-1, 1))
 	return normed
 
+# ! COLORS
+def get_n_colors(n):
+	return [plt.get_cmap("tab20")(i) for i in np.arange(n)]
 
-
+def desaturate_color(c, k=.5):
+    # c needs to be an array of 3 floats that specify RGB color
+    # k needs to be a float between 0 and 1
+    return [cc*k for cc in c]
 
 # ! MOMENTS
 def moving_average(arr, window_size):
@@ -95,9 +101,6 @@ def fill_nans_interpolate(y, pkind='linear'):
 			, fill_value="extrapolate"
 			, kind=pkind)
 	return f(aindexes)
-
-def get_n_colors(n):
-	return [plt.get_cmap("tab20")(i) for i in np.arange(n)]
 
 def calc_IdPhi(phi):
 	dPhi = abs(np.diff(phi))

@@ -3,6 +3,7 @@ sys.path.append('./')
 
 import numpy as np
 from scipy import misc, signal, stats
+import matplotlib.pyplot as plt
 
 # ! FIT MATH FUNCTIONS
 # ? Functions to pass to curve_fit
@@ -21,12 +22,22 @@ def half_sigmoid(x, a, b):
 	y = chance + (1-chance) / (1 + np.exp(-b*(x-a)))
 	return y
 
+def linear_func(x, a, b):
+    return x*a + b
+
+def step_function(x,a, b, c):
+    # Step function
+    """
+    a: value at x = b
+    f(x) = 0 if x<b, a if x=b and 2*a if  x > a
+    """
+    return a * (np.sign(x-b) + c)
+
 # ? regression
-def linear_regression(X,Y, split_per=None):
+def linear_regression(X,Y):
 	import statsmodels.api as sm
 
 	# ! sns.regplot much better
-	if split_per is not None: raise NotImplementedError("Fix dataset splitting") # TODO spplit dataset
 	# remove NANs
 	remove_idx = [i for i,(x,y) in enumerate(zip(X,Y)) if np.isnan(x) or np.isnan(y)]
 
@@ -92,3 +103,12 @@ def gamma_distribution_params(mean=None, sd=None, mode=None, shape=None, rate=No
 		sd = math.sqrt(shape)/rate
 		return mu, sd
 	return shape, rate
+
+if __name__ == "__main__":
+    xval = sorted(np.concatenate([np.linspace(-5,5,100),[0]])) # includes x = 0
+    yval = step_function(xval)
+    plt.plot(xval,yval,'ko-')
+    plt.ylim(-0.1,1.1)
+    plt.xlabel('x',size=18)
+    plt.ylabel('H(x)',size=20)
+    plt.show()

@@ -18,8 +18,9 @@ class ExperimentsAnalyser(Bayes):
     maze_designs = {0:"three_arms", 1:"asymmetric_long", 2:"asymmetric_mediumlong", 3:"asymmetric_mediumshort", 4:"symmetric", -1:"nan"}
     naive_lookup = {0: "experienced", 1:"naive", -1:"nan"}
     lights_lookup = {0: "off", 1:"on", 2:"on_trials", 3:"on_exploration", -1:"nan"}
-    colors = {0:"b", 1:"r", 2:"g", 3:"m", 4:"orange", -1:"w"}
-    arms_colors = {"Left_Far":"g", "Left_Medium":"g", "Right_Medium":"r", "Right_Far":"r", "Centre":"m"}
+
+    colors = {0:blue, 1:red, 2:green, 3:magenta, 4:orange, -1:white}
+    arms_colors = {"Left_Far":green, "Left_Medium":green, "Right_Medium":green, "Right_Far":green, "Centre":magenta}
 
     # Folders
     if sys.platform != "darwin":

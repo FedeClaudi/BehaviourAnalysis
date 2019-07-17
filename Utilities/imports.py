@@ -54,7 +54,7 @@ mpl.rcParams['ytick.color'] = "white"
 
 mpl.rcParams['image.aspect'] = "auto"
 
-font = {'family' : 'normal',
+font = {'family' : 'Courier New',
         'weight' : 'bold',
         'size'   : 22}
 
@@ -93,6 +93,7 @@ from Utilities.video_and_plotting.video_editing import Editor
 from Utilities.maths.math_utils import *
 from Utilities.maths.distributions import *
 from Utilities.maths.filtering import *
+from Utilities.constants import *
 
 from Processing.plot.plotting_utils import close_figure, save_figure
 from Processing.plot.plot_distributions import plot_distribution
