@@ -26,11 +26,9 @@ def plot_distribution(*args, dist_type="logistic", comulative=False, ax=None, sh
         try:
             func = dist.pdf
             x = np.linspace(dist.ppf(0.0001), dist.ppf(0.99999), 100)
-
         except:
             func = dist
             x = np.linspace(x_range[0], x_range[1], 100)
-
 
     # Plot
     if ax is None: f, ax = plt.subplots()
@@ -68,9 +66,17 @@ def plot_fitted_curve(func, xdata, ydata, ax, xrange=None, print_fit=False, nump
     return to_return
 
 
+def dist_plot(dist, ax=None, **kwargs):
+    # ? this is differente from plot distribution because we already have the distribution, just want to plot it
+    if ax is None: create_figure(subplots=False)
+    
+    x = np.linspace(dist.ppf(0.0001), dist.ppf(0.99999), 100)
+    ax.plot(x, dist.pdf(x), **kwargs)
+    
+
+
 # %%
 if __name__ == "__main__":
     # Plot some curves
     plot_distribution(2, 7, dist_type="beta", shaded=True, x_range=[0, 1], plot_kwargs={"color":"r"}, ax_kwargs={})
     plt.show()
-    #%%

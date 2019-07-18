@@ -68,7 +68,7 @@ def save_figure(f, path):
 def close_figure(f):
     plt.close(f)
 
-def style_legend(ax):
+def make_legend(ax):
     l = ax.legend()
     for text in l.get_texts():
         text.set_color([.7, .7, .7])
@@ -79,8 +79,8 @@ def ortholines(ax, orientations, values, color=[.7, .7, .7], lw=3, alpha=.5, ls=
 
     for o,v in zip(orientations, values):
         if o == 0:
-            func = ax.hline
+            func = ax.axhline
         else:
-            func = ax.vline
+            func = ax.axvline
 
-        func(v, color=[.7, .7, .7], lw=3, alpha=.5, ls="--", **kwargs)
+        func(v, color=color, lw=lw, alpha=alpha, ls=ls, **kwargs)

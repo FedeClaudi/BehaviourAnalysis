@@ -9,20 +9,18 @@ from Processing.trials_analysis.all_trials_loader import Trials
 from scipy import stats
 from scipy.optimize import curve_fit
 
-data = GLMdata
-
-%matplotlib inline
+# %matplotlib inline
 
 
 # %%
 # Define class
-class Analyzer(GLMdata):
+class DTModel(GLMdata):
 	arms_names = ["centre", "rightmedium", "leftfar"]
 	experiments_names = ["threearms", "symmetric", "asymmetric"]
 	colors = {"centre":"m", "rightmedium":"g", "leftfar":"r", "leftmedium":"g"}
 	colors2 = {"centre":"m", "right_medium":"g", "left_far":"r", "left_medium":"g"}
 
-	def __init__(self, experiment):
+	def __init__(self, experiment, light_mode=False):
 		GLMdata.__init__(self, load_trials_from_file=True)
 
 		# Params for simulations
@@ -37,16 +35,17 @@ class Analyzer(GLMdata):
 		self.all_trials = self.trials.copy()
 
 		# ARms params
-		self.keep_trials_experiment("threearms") # necessary to correctly estimate path length
-		self.params = self.load_maze_params()
-		self.get_arms_params_with_geoagent()
+        if not light_mode:
+            self.keep_trials_experiment("threearms") # necessary to correctly estimate path length
+            self.params = self.load_maze_params()
+            self.get_arms_params_with_geoagent()
 
-		# Keep only trial for the experiment
-		self.keep_trials_experiment(experiment)
+            # Keep only trial for the experiment
+            self.keep_trials_experiment(experiment)
 
-		# other
-		self.get_speed_distributions()
-		self.get_speed_modelled()
+        # other
+        self.get_speed_distributions()
+        self.get_speed_modelled()
 
 	def keep_trials_experiment(self, experiment):
 		self.experiment_name = experiment
@@ -87,8 +86,6 @@ class Analyzer(GLMdata):
 			self.speed_modelled = stats.norm(loc = np.mean(self.trials_speeds), scale=np.std(self.trials_speeds)/2)
 		else:
 			self.speed_modelled = stats.gamma(1.25, loc=0.1, scale=0.5)
-
-
 
 	def plot_speeds(self, ax=None):
 		# Get modelled speeds
@@ -298,7 +295,6 @@ class Analyzer(GLMdata):
 
 		return ax
 
-	# TODO probs names should have the same names of the arms distances
 	def simulate_trials(self, n_trials=10000, ax=None, distances=None, plot=True):
 		# For N trials draw a random sped
 		# for each arm estimate the escape duration given noisy estimate of length + noisy estimate of duration
@@ -329,8 +325,7 @@ class Analyzer(GLMdata):
 				est_speeds = [s + np.random.normal(0, self.speed_noise_param, 1) for i in exp_distances]
 			else:
 				est_speeds = [s for i in exp_distances]
-
-
+                
 			# get random length
 			est_lengths  = [d.rvs(size=1) for d in exp_distances]
 
@@ -466,59 +461,50 @@ class Analyzer(GLMdata):
 
 
 
+if __name__ == "__main__":
+    a = DTModel("asymmetric")
 
-a = Analyzer("asymmetric")
+    # %%
+    a.plot_pr_simulations(2, 0.5, steps=1000)
 
-# %%
-a.plot_pr_simulations(2, 0.5, steps=1000)
+    # %%
+    a.pathlength_noise_factor = 2
+    a.speed_noise_param = 0.25
+    means, probs = a.psychometric_curve_distances()
 
-# %%
-a.pathlength_noise_factor = 2
-a.speed_noise_param = 0.25
-means, probs = a.psychometric_curve_distances()
+    # %%
+    # run stuff
+    a.keep_trials_experiment("asymmetric")
+    # ax = a.plot_duration_over_speed_raw(original_colors=True)
+    # ax2 = a.plot_duration_over_speed_modelled(show_raw=False)
+    ax, raw_dists_asym, colors2_asym = a.plot_durationspeed_distribution()
 
-# %%
-# run stuff
-a.keep_trials_experiment("asymmetric")
-# ax = a.plot_duration_over_speed_raw(original_colors=True)
-# ax2 = a.plot_duration_over_speed_modelled(show_raw=False)
-ax, raw_dists_asym, colors2_asym = a.plot_durationspeed_distribution()
-
-a.keep_trials_experiment("threearms")
-# a.plot_duration_over_speed_raw(ax=ax, original_colors=True)
-# ax2 = a.plot_duration_over_speed_modelled(ax=ax2, show_raw=False)
-ax, raw_dists_3arms, colors2_3arms = a.plot_durationspeed_distribution()
-
-
-# %%
-# Test
-a.keep_trials_experiment("asymmetric")
-a.get_pathlength_estimates(plot=True)
-a.simulate_trials(n_trials=10000)
+    a.keep_trials_experiment("threearms")
+    # a.plot_duration_over_speed_raw(ax=ax, original_colors=True)
+    # ax2 = a.plot_duration_over_speed_modelled(ax=ax2, show_raw=False)
+    ax, raw_dists_3arms, colors2_3arms = a.plot_durationspeed_distribution()
 
 
-#%%
-# test
-def sigmoid(x, x0, k):
-	 y = 1 / (1 + np.exp(-k*(x-x0)))
-	 return y
+    # %%
+    # Test
+    a.keep_trials_experiment("asymmetric")
+    a.get_pathlength_estimates(plot=True)
+    a.simulate_trials(n_trials=10000)
 
-# xdata = np.array([0.0,   1.0,  3.0, 4.3, 7.0,   8.0,   8.5, 10.0, 12.0])
-# ydata = np.array([0.01, 0.02, 0.04, 0.11, 0.43,  0.7, 0.89, 0.95, 0.99])
-xdata = means
-ydata = probs
+    xdata = means
+    ydata = probs
 
 
-popt, pcov = curve_fit(sigmoid, xdata, ydata, p0=[1000, 0.001], )
-print(popt)
+    popt, pcov = curve_fit(sigmoid, xdata, ydata, p0=[1000, 0.001], )
+    print(popt)
 
-x = np.linspace(-1, 15, 50)
-y = sigmoid(x, *popt)
+    x = np.linspace(-1, 15, 50)
+    y = sigmoid(x, *popt)
 
-plt.plot(xdata, ydata, 'o', label='data', color="r")
-plt.plot(x,y, label='fit', color="k")
-plt.ylim(0, 1.05)
-plt.legend(loc='best')
-plt.show()
+    plt.plot(xdata, ydata, 'o', label='data', color="r")
+    plt.plot(x,y, label='fit', color="k")
+    plt.ylim(0, 1.05)
+    plt.legend(loc='best')
+    plt.show()
 
-#%%
+    #%%
