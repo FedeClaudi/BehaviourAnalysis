@@ -20,12 +20,13 @@ class PsychometricAnalyser(ExperimentsAnalyser):
     def __init__(self):
         ExperimentsAnalyser.__init__(self)
 
-        self.conditions = dict(
-            maze1 =  self.get_sesions_trials(maze_design=1, naive=None, lights=1, escapes=True),
-            maze2 =  self.get_sesions_trials(maze_design=2, naive=None, lights=1, escapes=True),
-            maze3 =  self.get_sesions_trials(maze_design=3, naive=None, lights=1, escapes=True),
-            maze4 =  self.get_sesions_trials(maze_design=4, naive=None, lights=1, escapes=True),
-        )
+        # self.conditions = dict(
+        #     maze1 =  self.get_sesions_trials(maze_design=1, naive=None, lights=1, escapes=True),
+        #     maze2 =  self.get_sesions_trials(maze_design=2, naive=None, lights=1, escapes=True),
+        #     maze3 =  self.get_sesions_trials(maze_design=3, naive=None, lights=1, escapes=True),
+        #     maze4 =  self.get_sesions_trials(maze_design=4, naive=None, lights=1, escapes=True),
+        # )
+        self.conditions = self.load_trials_from_pickle()
 
         self.maze_names_r = {v:k for k,v in self.maze_names.items()}
 
@@ -110,7 +111,7 @@ class PsychometricAnalyser(ExperimentsAnalyser):
             if not robust:
                 trace = self.bayesian_logistic_regression(x_data, y_data) # ? naive
             else:
-                trace = self.robust_bayesian_logistic_regression()(x_data, y_data) # ? robust
+                trace = self.robust_bayesian_logistic_regression(x_data, y_data) # ? robust
 
             b0, b0_std = np.mean(trace.get_values("beta0")), np.std(trace.get_values("beta0"))
             b1, b1_std = np.mean(trace.get_values("beta1")), np.std(trace.get_values("beta1"))
@@ -137,7 +138,7 @@ class PsychometricAnalyser(ExperimentsAnalyser):
         
         # Get modes on individuals posteriors and grouped bayes
         modes = self.get_hb_modes()
-        grouped_modes = self.bayes_by_condition_analytical(mode="grouped", plot=False) 
+        grouped_modes, grouped_means = self.bayes_by_condition_analytical(mode="grouped", plot=False) 
 
         # Plot each individual's pR and the group mean as a factor of L/R length ratio
         if ax is None: f, ax = plt.subplots()
@@ -156,7 +157,7 @@ class PsychometricAnalyser(ExperimentsAnalyser):
                 lr_ratios_mean_pr["individuals_y"].append(y)
             else: 
                 k = .1
-                del grouped_modes[condition]
+                del grouped_modes[condition], grouped_means[condition]
             ax.scatter(np.random.normal(x, 0.01, size=len(y)), y, alpha=.2, color=pink, s=250)
 
 
@@ -165,6 +166,7 @@ class PsychometricAnalyser(ExperimentsAnalyser):
         plot_fitted_curve(logistic, np.array([x for x,y in lr_ratios_mean_pr["grouped"]]), np.array(list(grouped_modes.values())), ax, xrange=[0.75, 1.5],
                                 scatter_kwargs={"color":green, "alpha":1, "s":250}, 
                                 line_kwargs={"color":green, "lw":5, "label":"logistic - means", "ls":"--"})
+
 
         plot_fitted_curve(logistic, np.hstack(lr_ratios_mean_pr["individuals_x"]), np.hstack(lr_ratios_mean_pr["individuals_y"]), ax, xrange=[0.75, 1.5],  # ? ind. sigmoid
                                 scatter_kwargs={"alpha":0}, 
@@ -218,8 +220,8 @@ if __name__ == "__main__":
     # for i, exp in enumerate(pa.conditions.keys()):
     #     pa.plot_pr_by_condition(raw_individuals=False, exclude_experiments= [exp], ax=axarr[i+1])
 
-    # pa.plot_pr_by_condition(raw_individuals=True)
-    pa.sigmoid_bayes(load=False, plot=True)
+    # pa.plot_pr_by_condition(raw_individuals=False)
+    pa.sigmoid_bayes(load=False, plot=True, robust=False)
 
     plt.show()
 

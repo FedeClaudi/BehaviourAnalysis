@@ -74,7 +74,7 @@ class Bayes:
             raise NotImplementedError
         elif data is not None:
             if plot: f, ax  = plt.subplots(figsize=(12, 12),)
-            modes = {}
+            modes, means = {}, {}
             for expn, (exp, trials) in enumerate(data.items()):
                 # Get number of tirals ad hits per session
                 N, K = [], []
@@ -146,7 +146,7 @@ class Bayes:
                     # Plot mean and mode of posterior
                     mean =  a2 / (a2 + b2)
                     _mode = (a2 -1)/(a2 + b2 -2)
-                    modes[exp] = _mode
+                    modes[exp], means[exp] = _mode, mean
                     if plot: ax.axvline(_mode, color=self.colors[expn+1], lw=2, ls="--", alpha=.8)
                     
                 elif mode == "hierarhical":
@@ -156,7 +156,7 @@ class Bayes:
             if plot:
                 ax.set(title="{} bayes".format(mode), ylabel="pdf", xlabel="theta")
                 ax.legend()
-            return modes
+            return modes, means
         else:
             raise ValueError("need to pass either condtions or data")
 
@@ -168,18 +168,11 @@ class Bayes:
             # Define priors
             beta0 = pm.Normal('beta0', 0, sd=20)
             beta1 = pm.Normal("beta1", 0, sd=20)
-            beta2 = pm.Normal('beta0', 0, sd=20)
-            beta3 = pm.Normal("beta1", 0, sd=20)
 
             # Define likelihood
             mu = pm.math.sigmoid(beta0 + beta1*xdata)  # argument is the exponent of the sigmiod function
             likelihood = pm.Bernoulli('y',  mu,  observed=ydata)
-
-
-            # testlineaer regr
-            m2 = beta2 + x * beta3
-            like2 = pm.LinearRegression("y2", my2, observed=ydata)
-
+            
             # Inference!
             print("inference time")
             trace = pm.sample(1000, tune=500, cores=3, discard_tuned_samples=True)
