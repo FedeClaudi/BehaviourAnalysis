@@ -29,21 +29,6 @@ def get_bps_as_points_dict(frame_pose):
             pointsdict[bpname] = np.int32([bp_pos.x, bp_pos.y])
     return pointsdict
 
-
-def make_legend(ax, c1=[0.1, .1, .1], c2=[0.8, 0.8, 0.8], changefont=False):
-    """
-    Make a legend with background color c1, edge color c2 and optionally a user selected font size
-    """
-    if not changefont:
-        legend = ax.legend(frameon=True)
-    else:
-        legend = ax.legend(frameon=True, prop={'size': changefont})
-
-    frame = legend.get_frame()
-    frame.set_facecolor(c1)
-    frame.set_edgecolor(c2)
-
-
 def save_all_open_figs(target_fld=False, name=False, format=False, exclude_number=False):
     open_figs = plt.get_fignums()
 
@@ -62,14 +47,13 @@ def save_all_open_figs(target_fld=False, name=False, format=False, exclude_numbe
         plt.savefig(ttl)
 
 
-def create_figure(subplots=True, share_x=False, share_y=False,nrows=1, ncols=1, facecolor=[.1, .1, .1]):
+def create_figure(subplots=True, **kwargs):
     if not subplots:
-        f = plt.figure(facecolor=facecolor)
-        axarr = None
+        f, ax = plt.subplots(**kwargs)
     else:
-        f, axarr = plt.subplots(nrows, ncols, facecolor=facecolor,  sharex=share_x, sharey=share_y, figsize=(22,13))
-    return f, axarr
-
+        f, ax = plt.subplots(**kwargs)
+        ax = ax.flatten()
+    return f, ax
 
 def show(): plt.show()
 
@@ -83,3 +67,8 @@ def save_figure(f, path):
 
 def close_figure(f):
     plt.close(f)
+
+def style_legend(ax):
+    l = ax.legend()
+    for text in l.get_texts():
+        text.set_color([.7, .7, .7])

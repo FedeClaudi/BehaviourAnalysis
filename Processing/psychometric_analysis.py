@@ -141,7 +141,9 @@ class PsychometricAnalyser(ExperimentsAnalyser):
         grouped_modes, grouped_means = self.bayes_by_condition_analytical(mode="grouped", plot=False) 
 
         # Plot each individual's pR and the group mean as a factor of L/R length ratio
-        if ax is None: f, ax = plt.subplots()
+        if ax is None: 
+            f, ax = create_figure(subplots=False)
+            
         lr_ratios_mean_pr = {"grouped":[], "individuals_x":[], "individuals_y":[]}
         for i, (condition, pr) in enumerate(p_r.items()):
             x = self.paths_lengths.loc[self.paths_lengths.maze == condition].georatio.values
@@ -185,7 +187,7 @@ class PsychometricAnalyser(ExperimentsAnalyser):
         ax.axhline(0, color=grey, alpha=.5, ls=":", lw=1)
         ax.set(ylim=[-0.05, 1.05], ylabel="p(R)", title="p(R) per mouse per maze", xlabel="L/R length raito",
                  xticks = self.paths_lengths.georatio.values, xticklabels = self.paths_lengths.georatio.values)
-        ax.legend()
+        style_legend(ax)
 
 
     def plot_heirarchical_bayes_effect(self):
@@ -220,8 +222,8 @@ if __name__ == "__main__":
     # for i, exp in enumerate(pa.conditions.keys()):
     #     pa.plot_pr_by_condition(raw_individuals=False, exclude_experiments= [exp], ax=axarr[i+1])
 
-    # pa.plot_pr_by_condition(raw_individuals=False)
-    pa.sigmoid_bayes(load=False, plot=True, robust=False)
+    pa.plot_pr_by_condition(raw_individuals=False)
+    # pa.sigmoid_bayes(load=False, plot=True, robust=False)
 
     plt.show()
 

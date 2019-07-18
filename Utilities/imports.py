@@ -40,7 +40,7 @@ from Utilities.maths.distributions import *
 from Utilities.maths.filtering import *
 from Utilities.constants import *
 
-from Processing.plot.plotting_utils import close_figure, save_figure
+from Processing.plot.plotting_utils import close_figure, save_figure, save_all_open_figs, create_figure, show, style_legend
 from Processing.plot.plot_distributions import plot_distribution, plot_fitted_curve
 
 
