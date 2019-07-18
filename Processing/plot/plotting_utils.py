@@ -72,3 +72,15 @@ def style_legend(ax):
     l = ax.legend()
     for text in l.get_texts():
         text.set_color([.7, .7, .7])
+
+def ortholines(ax, orientations, values, color=[.7, .7, .7], lw=3, alpha=.5, ls="--",  **kwargs):
+    if not isinstance(orientations, list): orientations = [orientations]
+    if not isinstance(values, list): values = [values]
+
+    for o,v in zip(orientations, values):
+        if o == 0:
+            func = ax.hline
+        else:
+            func = ax.vline
+
+        func(v, color=[.7, .7, .7], lw=3, alpha=.5, ls="--", **kwargs)

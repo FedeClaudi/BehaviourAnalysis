@@ -73,8 +73,10 @@ class PsychometricAnalyser(ExperimentsAnalyser):
         n_bins = 100
         bins = {k:[np.digitize(a, np.linspace(0, 1, n_bins)) for a in v.T] for k,v in trace.items()}
         modes = {k:[np.median(b)/n_bins for b in bins] for k,bins in bins.items()}
+        stds = {k:[np.std(m) for m in v.T] for k,v in trace.items()}
+        means = {k:[np.mean(m) for m in v.T] for k,v in trace.items()}
 
-        return modes
+        return modes, means, stds
 
     """
         ||||||||||||||||||||||||||||    BAYES     |||||||||||||||||||||
@@ -137,56 +139,50 @@ class PsychometricAnalyser(ExperimentsAnalyser):
         hits, ntrials, p_r, n_mice = self.get_binary_trials_per_condition(self.conditions)
         
         # Get modes on individuals posteriors and grouped bayes
-        modes = self.get_hb_modes()
+        modes, means, stds = self.get_hb_modes()
         grouped_modes, grouped_means = self.bayes_by_condition_analytical(mode="grouped", plot=False) 
 
         # Plot each individual's pR and the group mean as a factor of L/R length ratio
         if ax is None: 
             f, ax = create_figure(subplots=False)
             
-        lr_ratios_mean_pr = {"grouped":[], "individuals_x":[], "individuals_y":[]}
+        lr_ratios_mean_pr = {"grouped":[], "individuals_x":[], "individuals_y":[], "individuals_y_sigma":[]}
         for i, (condition, pr) in enumerate(p_r.items()):
-            x = self.paths_lengths.loc[self.paths_lengths.maze == condition].georatio.values
-            if raw_individuals:
-                y = pr
-            else:
-                y = modes[condition]
+            x = self.paths_lengths.loc[self.paths_lengths.maze == condition].distance.values
 
+            if raw_individuals: # ? use raw of HB data
+                y = pr
+                 # ? Plot individual mice's p(R)
+                ax.scatter(np.random.normal(x, 0.01, size=len(y)), y, alpha=.2, color=pink, s=250)
+            else:
+                y = means[condition]
+                # ? plot HB PR with errorbars
+                ax.errorbar(np.random.normal(x, 7, size=len(y)), y, yerr=stds[condition], 
+                            fmt='o', markeredgecolor=self.colors[i+1], markerfacecolor=self.colors[i+1], markersize=12, 
+                            ecolor=desaturate_color(self.colors[i+1], k=.5), elinewidth=3, 
+                            capthick=2, alpha=.8)
+                            
             if condition not in exclude_experiments:# ? use the data for curves fitting
                 k = .4
                 lr_ratios_mean_pr["grouped"].append((x[0], np.median(y)))  
                 lr_ratios_mean_pr["individuals_x"].append([x[0] for _ in np.arange(len(y))])
                 lr_ratios_mean_pr["individuals_y"].append(y)
+                lr_ratios_mean_pr["individuals_y_sigma"].append(stds[condition])
             else: 
                 k = .1
                 del grouped_modes[condition], grouped_means[condition]
-            ax.scatter(np.random.normal(x, 0.01, size=len(y)), y, alpha=.2, color=pink, s=250)
 
 
-          
-        # Fit logistic to group data and individual mice
-        plot_fitted_curve(logistic, np.array([x for x,y in lr_ratios_mean_pr["grouped"]]), np.array(list(grouped_modes.values())), ax, xrange=[0.75, 1.5],
-                                scatter_kwargs={"color":green, "alpha":1, "s":250}, 
-                                line_kwargs={"color":green, "lw":5, "label":"logistic - means", "ls":"--"})
-
-
-        plot_fitted_curve(logistic, np.hstack(lr_ratios_mean_pr["individuals_x"]), np.hstack(lr_ratios_mean_pr["individuals_y"]), ax, xrange=[0.75, 1.5],  # ? ind. sigmoid
+        plot_fitted_curve(sigmoid, np.hstack(lr_ratios_mean_pr["individuals_x"]), np.hstack(lr_ratios_mean_pr["individuals_y"]), ax, xrange=[400, 1000],  # ? ind. sigmoid
+                                fit_kwargs={"sigma": np.hstack(lr_ratios_mean_pr["individuals_y_sigma"]), "bounds":[[500, .001], [700, .2]], "method":"dogbox"},
                                 scatter_kwargs={"alpha":0}, 
-                                line_kwargs={"color":pink, "lw":4, "label":"logistic - individudals"})
-
-        # Fit sigmoid to raw trial data with robust bayesian logistic regression
-        xp = np.linspace(0.75, 1.5, 100)
-        df =   self.sigmoid_bayes(plot=False, load=True)
-        b0, b1 = np.mean(df["b0"]), np.mean(df["b1"])
-        ax.plot(xp, logistic(xp, b0, b1), color=teal, lw=3, label="bayesian logistic - trials")
+                                line_kwargs={"color":white, "alpha":1, "lw":4, "label":"logistic - individudals"})
 
         # Fix plotting
-        ax.axvline(1, color=grey, alpha=.8, ls="--", lw=3)
-        ax.axhline(.5, color=grey, alpha=.8, ls="--", lw=3)
-        ax.axhline(1, color=grey, alpha=.5, ls=":", lw=1)
-        ax.axhline(0, color=grey, alpha=.5, ls=":", lw=1)
-        ax.set(ylim=[-0.05, 1.05], ylabel="p(R)", title="p(R) per mouse per maze", xlabel="L/R length raito",
-                 xticks = self.paths_lengths.georatio.values, xticklabels = self.paths_lengths.georatio.values)
+        ortholines(ax, [1, 0,], [590, .5])
+        ortholines(ax, [0, 0,], [1, 0], ls=":", lw=1, alpha=.3)
+        ax.set(ylim=[-0.05, 1.05], ylabel="p(R)", title="p(R) per mouse per maze", xlabel="Left path length (a.u.)",
+                 xticks = self.paths_lengths.distance.values, xticklabels = self.paths_lengths.distance.values)
         style_legend(ax)
 
 
@@ -196,20 +192,22 @@ class PsychometricAnalyser(ExperimentsAnalyser):
         trace = self.bayes_by_condition(conditions=self.conditions, load=True, tracefile="psychometric_individual_bayes.pkl", plot=False) 
 
         # Get the mode of the posteriors
-        n_bins = 100
-        bins = {k:[np.digitize(a, np.linspace(0, 1, n_bins)) for a in v.T] for k,v in trace.items()}
-        modes = {k:[np.median(b)/n_bins for b in bins] for k,bins in bins.items()}
+        modes, means, stds = self.get_hb_modes()
 
         f, axarr = plt.subplots(ncols=4, sharex=True, sharey=True)
         
         for i, (exp, ax) in enumerate(zip(trace.keys(), axarr)):
             ax.scatter(np.random.normal(0, .025, size=len(p_r[exp])), p_r[exp], color=self.colors[i+1], alpha=.5, s=200)
             ax.scatter(np.random.normal(1, .025, size=len(modes[exp])), modes[exp], color=self.colors[i+1], alpha=.5, s=200)
+            ax.scatter(np.random.normal(2, .025, size=len(means[exp])), means[exp], color=self.colors[i+1], alpha=.5, s=200)
+            ax.scatter(np.random.normal(3, .025, size=len(stds[exp])), stds[exp], color=self.colors[i+1], alpha=.5, s=200)
 
             ax.scatter(0, np.mean(p_r[exp]), color="w", alpha=1, s=300)
             ax.scatter(1, np.mean(modes[exp]), color="w", alpha=1, s=300)
+            ax.scatter(2, np.mean(means[exp]), color="w", alpha=1, s=300)
+            ax.scatter(3, np.mean(stds[exp]), color="w", alpha=1, s=300)
 
-            ax.set(title=exp, xlim=[-.1, 1.1], ylim=[-.02, 1.02], xticks=[0, 1], xticklabels=["Raw", "Bayes"], ylabel="p(R)")
+            ax.set(title=exp, xlim=[-.1, 3.1], ylim=[-.02, 1.02], xticks=[0, 1, 2, 3], xticklabels=["Raw", "hb modes", "hb means", "hb stds"], ylabel="p(R)")
 
 
         
@@ -224,6 +222,7 @@ if __name__ == "__main__":
 
     pa.plot_pr_by_condition(raw_individuals=False)
     # pa.sigmoid_bayes(load=False, plot=True, robust=False)
+    # pa.plot_heirarchical_bayes_effect()
 
     plt.show()
 
