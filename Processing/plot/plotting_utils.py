@@ -107,19 +107,16 @@ def vline_to_point(ax, x, y, **kwargs):
     ax.plot([x, x], [0, y], **kwargs)
 
 
-def hline_to_curve(ax, y, curve, **kwargs):
+def hline_to_curve(ax, y, xdata, ydata, **kwargs):
     """[plots a vertical line from the x axis to the curve at location x]
     
     Arguments:
         ax {[axarray]} -- [ax to plot on]
-        y {[float]} -- [y value to plot on ]
-        curve {[np.array]} -- [array of data with the curve. The horizzontal line will go from y on the y axis to the first point in 
-                            which curve == y]
+        x {[float]} -- [x value to plot on ]
+        curve {[np.array]} -- [array of data with the curve. The vertical line will go from 0 to curve[x]]
     """
-    # try:
-    #     x_stop = np.where(curve == y)[0][0]
-    # except:
-    #     x_stop = len(curve)
-
-    # ax.plot([0, x_stop], [y, y], **kwargs)    
-    raise NotImplementedError("need to make it work as for vline")
+    line = ax.plot(xdata, ydata, alpha=0)
+    xline, yline = line[0].get_data()
+    y = find_nearest(yline, y)
+    xval = xline[np.where(yline == y)[0][0]]
+    ax.plot([0, xval], [y, y], **kwargs)

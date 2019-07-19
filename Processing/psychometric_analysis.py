@@ -203,7 +203,10 @@ class PsychometricAnalyser(ExperimentsAnalyser):
 
         # ? Plot best fit
         best_sigma = sigma_range[np.argmin(mserr)]
+        lowest_err = mserr[np.argmin(mserr)]
         vline_to_curve(mseax, best_sigma, sigma_range, mserr, color=white, lw=6)
+        hline_to_curve(mseax, lowest_err, sigma_range, mserr, color=white, lw=6)
+
         analytical_pr = self.simulate_trials_analytical()
         pomp = plot_fitted_curve(sigmoid, self.paths_lengths.georatio.values, np.hstack(list(analytical_pr.values())), ax, xrange=xrange, 
             scatter_kwargs={"alpha":0}, 
@@ -335,7 +338,7 @@ class PsychometricAnalyser(ExperimentsAnalyser):
             #                         scatter_kwargs={"alpha":1}, 
             #                         line_kwargs={"color":desaturate_color(green), "alpha":.5, "lw":4, "label":"simulated pR - $\omega : {}$".format(round(nn, 2))})
             pomp = plot_fitted_curve(sigmoid, [m[0] for m in lr_ratios_mean_pr["grouped"]], np.hstack(list(analytical_pr.values())), ax, xrange=xrange, 
-                        scatter_kwargs={"alpha":0}, 
+                        scatter_kwargs={"alpha":1}, 
                         line_kwargs={"color":desaturate_color(teal), "alpha":0, "lw":4})
             fitted.append(pomp)
         ax.fill_between(xp, sigmoid(xp, *fitted[0]), sigmoid(xp, *fitted[1]),  color=lightblue, alpha=.15, label="model pR - $\sigma : {}-{}$".format(.05, .2))
