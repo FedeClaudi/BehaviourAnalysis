@@ -87,7 +87,7 @@ class PsychometricAnalyser(ExperimentsAnalyser):
     """
     def dt_model_speed_and_distances(self, plot=False):
         speed = stats.norm(loc=self.speed_mu, scale=self.speed_sigma)
-        distances = {a.maze:stats.norm(loc=a.distance, scale=math.sqrt(a.distance) * self.distance_noise) for i,a in self.paths_lengths.iterrows()}
+        distances = {a.maze:stats.norm(loc=a.georatio, scale=self.distance_noise) for i,a in self.paths_lengths.iterrows()}
         
         if plot:
             f, axarr = create_figure(subplots=True, ncols=2)
@@ -195,16 +195,13 @@ class PsychometricAnalyser(ExperimentsAnalyser):
         modes, means, stds = self.get_hb_modes()
         grouped_modes, grouped_means = self.bayes_by_condition_analytical(mode="grouped", plot=False) 
 
- 
-
-
-        # Plot each individual's pR and the group mean as a factor of L/R length ratio
+         # Plot each individual's pR and the group mean as a factor of L/R length ratio
         if ax is None: 
             f, ax = create_figure(subplots=False)
             
         lr_ratios_mean_pr = {"grouped":[], "individuals_x":[], "individuals_y":[], "individuals_y_sigma":[]}
         for i, (condition, pr) in enumerate(p_r.items()):
-            x = self.paths_lengths.loc[self.paths_lengths.maze == condition].distance.values
+            x = self.paths_lengths.loc[self.paths_lengths.maze == condition].georatio.values
 
             if raw_individuals: # ? use raw of HB data
                 y = pr
@@ -213,10 +210,10 @@ class PsychometricAnalyser(ExperimentsAnalyser):
             else:
                 y = means[condition]
                 # ? plot HB PR with errorbars
-                ax.errorbar(np.random.normal(x, 7, size=len(y)), y, yerr=stds[condition], 
-                            fmt='o', markeredgecolor=teal, markerfacecolor=teal, markersize=12, 
-                            ecolor=desaturate_color(teal, k=.5), elinewidth=3, 
-                            capthick=2, alpha=.1, zorder=0)
+                ax.errorbar(np.random.normal(x, 0.02, size=len(y)), y, yerr=stds[condition], 
+                            fmt='o', markeredgecolor=desaturate_color(white, k=.4), markerfacecolor=desaturate_color(white, k=.4), markersize=10, 
+                            ecolor=desaturate_color(white, k=.2), elinewidth=3, 
+                            capthick=2, alpha=.4, zorder=0)
                             
             if condition not in exclude_experiments:# ? use the data for curves fitting
                 k = .4
@@ -229,31 +226,34 @@ class PsychometricAnalyser(ExperimentsAnalyser):
                 del grouped_modes[condition], grouped_means[condition]
 
         # Plot simulation results   + plotted sigmoid
-        for i, (nn, col) in enumerate(zip(np.linspace(2, 5, 5), get_n_colors(10))):
+        fitted = []
+        for i, (nn, col) in enumerate(zip(np.linspace(0.06, 0.16, 2), get_n_colors(10))):
             self.distance_noise = nn
             sim_trials, sim_pr = self.simulate_trials(niters=1000)
-            plot_fitted_curve(sigmoid, [m[0] for m in lr_ratios_mean_pr["grouped"]], np.hstack(list(sim_pr.values())), ax, xrange=[400, 1000], 
-                                    fit_kwargs={"bounds":[[500, .001], [700, .2]], "method":"dogbox"},
-                                    scatter_kwargs={"alpha":1, "color":col, "s":250}, 
-                                    line_kwargs={"color":desaturate_color(col), "alpha":1, "lw":4, "label":"simulated pR - $\omega : {}$".format(nn)})
+            pomp = plot_fitted_curve(sigmoid, [m[0] for m in lr_ratios_mean_pr["grouped"]], np.hstack(list(sim_pr.values())), ax, xrange=[0.25, 1.75], 
+                                    scatter_kwargs={"alpha":0}, 
+                                    line_kwargs={"color":desaturate_color(green), "alpha":.5, "lw":4, "label":"simulated pR - $\omega : {}$".format(round(nn, 2))})
+            fitted.append(pomp)
+
+        xp =  np.linspace(.25, 1.75, 100)
+        ax.fill_between(xp, sigmoid(xp, *fitted[0]), sigmoid(xp, *fitted[1]),  color=green, alpha=.15)
 
         # Fit sigmoid to median pR of raw data
-        plot_fitted_curve(sigmoid, [m[0] for m in lr_ratios_mean_pr["grouped"]], [m[1] for m in lr_ratios_mean_pr["grouped"]], ax, xrange=[400, 1000], 
-                                fit_kwargs={"bounds":[[500, .001], [700, .2]], "method":"dogbox"},
-                                scatter_kwargs={"alpha":1, "color":green, "s":250, "alpha":.8}, 
-                                line_kwargs={"color":green, "alpha":.8, "lw":4, "label":"individual pR"})
+        plot_fitted_curve(sigmoid, [m[0] for m in lr_ratios_mean_pr["grouped"]], [m[1] for m in lr_ratios_mean_pr["grouped"]], ax, xrange=[0.25, 1.75], 
+                                scatter_kwargs={"alpha":0, "color":magenta, "s":250, "alpha":0}, 
+                                line_kwargs={"color":magenta, "alpha":.8, "lw":4, "label":"individual pR"})
 
         # Plot fitted sigmoid
-        plot_fitted_curve(sigmoid, np.hstack(lr_ratios_mean_pr["individuals_x"]), np.hstack(lr_ratios_mean_pr["individuals_y"]), ax, xrange=[400, 1000],  # ? ind. sigmoid
-                                fit_kwargs={"sigma": np.hstack(lr_ratios_mean_pr["individuals_y_sigma"]), "bounds":[[570, .001], [700, .2]], "method":"dogbox"},
+        plot_fitted_curve(sigmoid, np.hstack(lr_ratios_mean_pr["individuals_x"]), np.hstack(lr_ratios_mean_pr["individuals_y"]), ax, xrange=[0.25, 1.75],  # ? ind. sigmoid
+                                fit_kwargs={"sigma": np.hstack(lr_ratios_mean_pr["individuals_y_sigma"]), }, 
                                 scatter_kwargs={"alpha":0}, 
                                 line_kwargs={"color":white, "alpha":.8, "lw":4, "label":"logistic - individudals"})
 
         # Fix plotting
-        ortholines(ax, [1, 0,], [590, .5])
+        ortholines(ax, [1, 0,], [1, .5])
         ortholines(ax, [0, 0,], [1, 0], ls=":", lw=1, alpha=.3)
         ax.set(ylim=[-0.05, 1.05], ylabel="p(R)", title="p(R) per mouse per maze", xlabel="Left path length (a.u.)",
-                 xticks = self.paths_lengths.distance.values, xticklabels = self.paths_lengths.distance.values)
+                 xticks = self.paths_lengths.georatio.values, xticklabels = self.paths_lengths.georatio.values)
         make_legend(ax)
 
 
