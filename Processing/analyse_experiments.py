@@ -31,8 +31,8 @@ class ExperimentsAnalyser(Bayes):
 
     def __init__(self):
         Bayes.__init__(self)
-
-        # self.session_metadata = pd.DataFrame((Session * Session.Metadata - "maze_type=-1"))
+        
+        self.session_metadata = pd.DataFrame((Session * Session.Metadata - "maze_type=-1"))
 
     # def __str__(self):
     #     def get_summary(df, lights=1):
@@ -308,12 +308,12 @@ class ExperimentsAnalyser(Bayes):
 
 if __name__ == "__main__":
     ea = ExperimentsAnalyser()
-    # print(ea)
-    ea.bayes_by_condition()
+    print(ea)
+    # ea.bayes_by_condition()
     # ea.save_trials_to_pickle()
     # ea.tracking_custom_plot()
     # ea.plot_pr_by_condition()
-    plt.show()
+    # plt.show()
 
 
 

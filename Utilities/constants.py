@@ -10,5 +10,7 @@ white    = [1., 1., 1.]
 black    = [0., 0., 0.]
 grey     = [.7, .7, .7]
 teal     = [0., .7, .7]
+lilla    = [.8, .4, .9]
+lightblue = [.6, .6, .9]
 
 large_square_fig = (16, 16)

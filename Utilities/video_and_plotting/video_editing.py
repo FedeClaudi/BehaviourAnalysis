@@ -804,8 +804,6 @@ class Editor:
             else: return frame
 
 if __name__ == '__main__':
-    
-
     # ! Preapre Threat Clips for DLC training
     editor = Editor()
     fld = "Z:\\branco\\Federico\\raw_behaviour\\maze\\_threat_training_clips\\originals"
@@ -828,6 +826,6 @@ if __name__ == '__main__':
 
 
 
-    Editor().manual_video_inspect(r"C:\Users\Federico\Documents\GitHub\composite.mp4")
+    Editor().manual_video_inspect(r"D:\Dropbox (UCL - SWC)\Rotation_vte\180719_F1L_composite2.mp4")
 
     # Editor().compress_clip(r"O:\M_1L.avi", .6, save_path=r"O:\test.mp4")
