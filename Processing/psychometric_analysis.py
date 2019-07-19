@@ -244,7 +244,7 @@ class PsychometricAnalyser(ExperimentsAnalyser):
                                 line_kwargs={"color":magenta, "alpha":.8, "lw":4, "label":"individual pR"})
 
         # Plot fitted sigmoid
-        plot_fitted_curve(sigmoid, np.hstack(lr_ratios_mean_pr["individuals_x"]), np.hstack(lr_ratios_mean_pr["individuals_y"]), ax, xrange=[0.25, 1.75],  # ? ind. sigmoid
+        hbfit = plot_fitted_curve(sigmoid, np.hstack(lr_ratios_mean_pr["individuals_x"]), np.hstack(lr_ratios_mean_pr["individuals_y"]), ax, xrange=[0.25, 1.75],  # ? ind. sigmoid
                                 fit_kwargs={"sigma": np.hstack(lr_ratios_mean_pr["individuals_y_sigma"]), }, 
                                 scatter_kwargs={"alpha":0}, 
                                 line_kwargs={"color":white, "alpha":.8, "lw":4, "label":"logistic - individudals"})
@@ -252,6 +252,10 @@ class PsychometricAnalyser(ExperimentsAnalyser):
         # Fix plotting
         ortholines(ax, [1, 0,], [1, .5])
         ortholines(ax, [0, 0,], [1, 0], ls=":", lw=1, alpha=.3)
+
+        for i, x in enumerate(self.paths_lengths.georatio.values):
+            vline_to_curve(ax, x, xp, sigmoid(xp, *hbfit), color=self.colors[i+1], ls="--", lw=3, alpha=.8)
+
         ax.set(ylim=[-0.05, 1.05], ylabel="p(R)", title="p(R) per mouse per maze", xlabel="Left path length (a.u.)",
                  xticks = self.paths_lengths.georatio.values, xticklabels = self.paths_lengths.georatio.values)
         make_legend(ax)
