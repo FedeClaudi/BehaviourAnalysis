@@ -55,6 +55,15 @@ def normalise_1d(arr):
 	normed = min_max_scaler.fit_transform(arr.reshape(-1, 1))
 	return normed
 
+def find_hist_peak(arr, bins=None, density=True):
+    if bins is None: bins = np.linspace(np.min(arr), np.max(arr), 10)
+    
+    hist, binedges = np.histogram(arr, bins=bins, density=density)
+    yi, y = np.argmax(hist), np.max(hist)
+    x = np.mean(binedges[yi:yi+2])
+    return yi, y, x
+
+
 # ! COLORS
 def get_n_colors(n):
 	return [plt.get_cmap("tab20")(i) for i in np.arange(n)]

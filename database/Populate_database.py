@@ -256,7 +256,7 @@ if __name__ == '__main__':
     # p.populate_sessions_table()
 
     # p.recording.populate(display_progress=True) 
-    # p.recording.make_paths(p) # TODO 190510_CA556 missing
+    # p.recording.make_paths(p) 
     # p.recording.make_aligned_frames() 
     
     # p.mazecomponents.populate(display_progress=True)  # ? this will require input for new experiments

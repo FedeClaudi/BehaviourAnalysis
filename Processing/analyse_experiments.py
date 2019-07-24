@@ -21,7 +21,10 @@ class ExperimentsAnalyser(Bayes):
     lights_lookup = {0: "off", 1:"on", 2:"on_trials", 3:"on_exploration", -1:"nan"}
 
     colors = {0:blue, 1:red, 2:green, 3:magenta, 4:orange, -1:white}
-    arms_colors = {"Left_Far":green, "Left_Medium":green, "Right_Medium":green, "Right_Far":green, "Centre":magenta}
+    arms_colors = {"Left_Far":green, "Left_Medium":green, "Right_Medium":red, "Right_Far":red, "Centre":magenta}
+
+    # ! important 
+    max_duration_th = 7.5
 
     # Folders
     if sys.platform != "darwin":
@@ -32,11 +35,18 @@ class ExperimentsAnalyser(Bayes):
     def __init__(self):
         Bayes.__init__(self)
         
+        self.conditions = dict(
+                    maze1 =  self.get_sessions_trials(maze_design=1, naive=None, lights=None, escapes=None, escapes_dur=False),
+                    maze2 =  self.get_sessions_trials(maze_design=2, naive=None, lights=None, escapes=None, escapes_dur=False),
+                    maze3 =  self.get_sessions_trials(maze_design=3, naive=None, lights=None, escapes=None, escapes_dur=False),
+                    maze4 =  self.get_sessions_trials(maze_design=4, naive=None, lights=None, escapes=None, escapes_dur=False),
+                )
+
         self.session_metadata = pd.DataFrame((Session * Session.Metadata - "maze_type=-1"))
 
     # def __str__(self):
-    #     def get_summary(df, lights=1):
-    #         summary = dict(maze=[], tot_mice=[], naive=[], n_stimuli=[], n_escapes=[])
+    #     def get_summary(df):
+    #         summary = dict(maze=[], tot_mice=[], naive=[])
     #         for maze_id, maze_name in self.maze_designs.items():
     #             if maze_id == -1: continue
                     
@@ -45,26 +55,14 @@ class ExperimentsAnalyser(Bayes):
     #             summary["maze"].append(maze_name)
     #             summary["tot_mice"].append(len(maze_data))
     #             summary["naive"].append(len(maze_data.loc[maze_data.naive == 1]))
-    #             summary["n_stimuli"].append(len(self.get_sesions_trials(maze_design=maze_id, naive=None, lights=lights, escapes=False)))
-    #             summary["n_escapes"].append(len(self.get_sesions_trials(maze_design=maze_id, naive=None, lights=lights, escapes=True)))
 
     #         summary = pd.DataFrame(summary)
     #         return summary
 
     #     data = self.session_metadata
-    #     # Get how many mice were done with the lights on on each maze, divide by naive and not naive
-    #     lights_on_data = data.loc[data.lights==1]
-    #     summary = get_summary(lights_on_data, lights=1)
-
-    #     print("Sessions per experiment - lights ON")
-    #     print(summary)
-
-
-    #     lights_off_data = data.loc[data.lights==0]
-    #     summary = get_summary(lights_off_data, lights=0)
-
-    #     print("\n\Sessions per experiment - lights OFF")
-    #     print(summary)
+    #     summary = get_summary(data)
+    #     print("Sessions per experiment\n", summary)
+    #     print()
     #     return ""
 
     # def __repr__(self): 
@@ -95,7 +93,7 @@ class ExperimentsAnalyser(Bayes):
         andtracking = (data * TrackingData.BodyPartData & "bpname='{}'".format(bp))
         return pd.DataFrame(andtracking.fetch())
 
-    def get_sesions_trials(self, maze_design=None, naive=None, lights=None, escapes=True):
+    def get_sessions_trials(self, maze_design=None, naive=None, lights=None, escapes=False, escapes_dur=True):
         # Given a dj query with the relevant sessions, fetches the corresponding trials from AllTrials
         sessions = self.get_sessions_by_condition(maze_design, naive, lights, df=True)
         ss = set(sorted(sessions.uid.values))
@@ -103,6 +101,8 @@ class ExperimentsAnalyser(Bayes):
         all_trials = pd.DataFrame(AllTrials.fetch())
         if escapes:
             all_trials = all_trials.loc[all_trials.is_escape == "true"]
+        if escapes_dur:
+            all_trials = all_trials.loc[all_trials.escape_duration <= 7.5]
         trials = all_trials.loc[all_trials.session_uid.isin(ss)]
 
         return trials
@@ -127,14 +127,7 @@ class ExperimentsAnalyser(Bayes):
         return hits, ntrials, p_r, n_mice
 
     def save_trials_to_pickle(self):
-        conditions = dict(
-            maze1 =  self.get_sesions_trials(maze_design=1, naive=None, lights=1, escapes=True),
-            maze2 =  self.get_sesions_trials(maze_design=2, naive=None, lights=1, escapes=True),
-            maze3 =  self.get_sesions_trials(maze_design=3, naive=None, lights=1, escapes=True),
-            maze4 =  self.get_sesions_trials(maze_design=4, naive=None, lights=1, escapes=True),
-        )
-
-        for k, df in conditions.items():
+        for k, df in self.conditions.items():
             save_df(df, os.path.join(self.metadata_folder, k+".pkl"))
 
     def load_trials_from_pickle(self):
@@ -198,12 +191,7 @@ class ExperimentsAnalyser(Bayes):
         tracename = os.path.join(self.metadata_folder, tracefile)
 
         if conditions is None:
-            conditions = dict(
-                    maze1 =     self.get_sesions_trials(maze_design=1, naive=None, lights=1, escapes=True),
-                    maze2 =     self.get_sesions_trials(maze_design=2, naive=None, lights=1, escapes=True),
-                    maze3 =     self.get_sesions_trials(maze_design=3, naive=None, lights=1, escapes=True),
-                    maze4 =     self.get_sesions_trials(maze_design=4, naive=None, lights=1, escapes=True),
-                )
+            conditions = self.conditions
 
         if not load:
             trace = self.model_hierarchical_bayes(conditions)
@@ -230,6 +218,50 @@ class ExperimentsAnalyser(Bayes):
 
         return condition_traces
 
+    """
+    ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+                         ANALYSE STUFF
+    ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+    """
+    def escape_definition_investigation(self):
+        conditions = dict(
+                    maze1 =  self.get_sessions_trials(maze_design=1, naive=None, lights=None, escapes=None, escapes_dur=True),
+                    maze2 =  self.get_sessions_trials(maze_design=2, naive=None, lights=None, escapes=None, escapes_dur=True),
+                    maze3 =  self.get_sessions_trials(maze_design=3, naive=None, lights=None, escapes=None, escapes_dur=True),
+                    maze4 =  self.get_sessions_trials(maze_design=4, naive=None, lights=None, escapes=None, escapes_dur=True),
+                )
+
+        f,ax = plt.subplots()
+        same, same_detailed = [], {"yy":0, "yn":0, "ny":0, "nn":0}
+        for condition, df in conditions.items():
+            sess_same = []
+            for i, trial in df.iterrows():
+                if trial.is_escape == "true":
+                    if trial.escape_duration <= 10: 
+                        sess_same.append(1)
+                        same_detailed["yy"] += 1
+                    else: 
+                        sess_same.append(0)
+                        same_detailed["yn"] += 1
+                else:
+                    if trial.escape_duration <= 10: 
+                        sess_same.append(0)
+                        same_detailed["ny"] += 1
+                    else: 
+                        sess_same.append(1)    
+                        same_detailed["nn"] += 1
+            same.extend(sess_same)
+
+            ax.hist(df.loc[df.escape_arm == "Right_Medium"].escape_duration, color=red, alpha=.5,  bins=20, density=False)
+            ax.hist(df.loc[df.escape_arm == "Left_Medium"].escape_duration, color=green, alpha=.5, bins=20, density=False)
+            ax.hist(df.loc[df.escape_arm == "Left_Far"].escape_duration, color=green, alpha=.5, bins=20, density=False)
+
+        ax.axvline(self.max_duration_th, color="m", lw=3)
+        make_legend(ax)
+        print("{} of trials have matching definition".format(np.mean(same)))
+        print(same_detailed)
+
+
 
     """
     ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
@@ -252,27 +284,21 @@ class ExperimentsAnalyser(Bayes):
             else: tr = trial.outward_tracking_data
 
             if colorby == "arm": 
-                c = self.arms_colors[trial.escape_arm]
-                cmap = None
+                kwargs = {"color":self.arms_colors[trial.escape_arm]}
             elif colorby == "speed": 
-                c=tr[minT:maxT, 2]
-                cmap = "gray"
+                kwargs = {"c":tr[minT:maxT, 2], "cmap":"gray"}
             else: 
-                c = color
-                cmap = None
+                kwargs = {"color":color}
                 
-            ax.scatter(tr[minT:maxT, 0], tr[minT:maxT, 1], c=c,  cmap=cmap, alpha=.25, s=10) # cmap="gray", vmin=0, vmax=10,
+            ax.scatter(tr[minT:maxT, 0], tr[minT:maxT, 1], alpha=.25, s=10, **kwargs) 
         ax.set(facecolor=[.05, .05, .05])
 
     def tracking_custom_plot(self):
-        # f, axarr = plt.subplots(ncols=2, nrows=2, sharex=True, sharey=True)
-        # axarr = axarr.flatten()
         f, axarr = plt.subplots(ncols=3)
         
-        # for i, ax in enumerate(axarr):
         for i in np.arange(4):
             mazen = i + 1
-            tracking = self.get_sesions_trials(maze_design=mazen, lights=1, escapes=True)
+            tracking = self.get_sessions_trials(maze_design=mazen, lights=1, escapes=True)
             self.plot_tracking(tracking, ax=axarr[0], colorby=None, color=self.colors[mazen])
             self.plot_tracking(tracking, ax=axarr[1], colorby="speed", color=self.colors[mazen])
             self.plot_tracking(tracking, ax=axarr[2], colorby="arm", color=self.colors[mazen])
@@ -285,12 +311,7 @@ class ExperimentsAnalyser(Bayes):
         pass
 
     def plot_pr_by_condition(self):
-        conditions = dict(
-            maze1 =  self.get_sesions_trials(maze_design=1, naive=0, lights=1, escapes=True),
-            maze2 =  self.get_sesions_trials(maze_design=2, naive=0, lights=1, escapes=True),
-            maze3 =  self.get_sesions_trials(maze_design=3, naive=0, lights=1, escapes=True),
-            maze4 =  self.get_sesions_trials(maze_design=4, naive=0, lights=1, escapes=True),
-        )
+        conditions = self.conditions
 
         hits, ntrials, p_r, n_trials = self.get_binary_trials_per_condition(conditions)
 
@@ -299,6 +320,7 @@ class ExperimentsAnalyser(Bayes):
         for i, (condition, pr) in enumerate(p_r.items()):
             ax.scatter(np.random.normal(i, .1, size=len(pr)), pr, alpha=.7, color=self.colors[i+1], s=250, label=condition)
             ax.scatter(i, np.mean(pr), alpha=1, color="w", s=500, label=None)
+            ax.errorbar(i, np.mean(pr), yerr=np.std(pr),  **white_errorbar)
 
         ax.set(facecolor=[.2, .2, .2], ylim=[-0.05, 1.05],ylabel="p(R)", title="p(R) per mouse per maze",
                  xticks = np.arange(len(conditions.keys())), xticklabels = conditions.keys())
@@ -308,13 +330,15 @@ class ExperimentsAnalyser(Bayes):
 
 if __name__ == "__main__":
     ea = ExperimentsAnalyser()
-    print(ea)
-    # ea.bayes_by_condition()
-    # ea.save_trials_to_pickle()
+    # print(ea)
+    ea.save_trials_to_pickle()
     # ea.tracking_custom_plot()
-    # ea.plot_pr_by_condition()
-    # plt.show()
+    ea.plot_pr_by_condition()
+
+    ea.escape_definition_investigation()
+
+    ea.bayes_by_condition(conditions=None,  load=False, tracefile="psychometric_individual_bayes.pkl", plot=False)
+
+    plt.show()
 
 
-
-#%%

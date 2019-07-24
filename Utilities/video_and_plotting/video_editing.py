@@ -826,6 +826,6 @@ if __name__ == '__main__':
 
 
 
-    Editor().manual_video_inspect(r"D:\Dropbox (UCL - SWC)\Rotation_vte\180719_F1L_composite2.mp4")
+    Editor().manual_video_inspect(r"C:\Users\Federico\Desktop\test\TOSHDNX120_A_011.mov")
 
     # Editor().compress_clip(r"O:\M_1L.avi", .6, save_path=r"O:\test.mp4")

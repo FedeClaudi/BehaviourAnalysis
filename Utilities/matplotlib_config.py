@@ -28,7 +28,7 @@ mpl.rcParams['lines.linewidth'] = 2.0
 
 mpl.rcParams['legend.fancybox'] = True
 mpl.rcParams['legend.loc'] = 'best'
-mpl.rcParams['legend.numpoints'] = 2
+mpl.rcParams['legend.numpoints'] = 1
 mpl.rcParams['legend.fontsize'] = 'small'
 mpl.rcParams['legend.framealpha'] = .8
 mpl.rcParams['legend.scatterpoints'] = 3
@@ -36,6 +36,7 @@ mpl.rcParams['legend.edgecolor'] = [.8, .2, .2]
 mpl.rcParams['legend.facecolor'] = [.25, .25, .25]
 mpl.rcParams['legend.shadow'] = True
 mpl.rcParams['legend.columnspacing'] = 1
+mpl.rcParams["legend.markerscale"] = 1.0
 
 mpl.rcParams['axes.facecolor'] = [.2, .2, .2]
 mpl.rcParams['axes.edgecolor'] = [.8, .8, .8]

@@ -26,3 +26,5 @@ grey_dotted_line = dict(color=grey, lw=4, ls="--", alpha=.5)
 big_dot = dict(alpha=.9, s=250)
 big_red_dot = dict(c=red, alpha=.9, s=250)
 big_blue_dot = dict(c=blue, alpha=.9, s=250)
+
+white_errorbar = dict(fmt='o', markeredgecolor=white, markerfacecolor=white, markersize=10, ecolor=grey, elinewidth=3, capthick=2, alpha=1, zorder=0)

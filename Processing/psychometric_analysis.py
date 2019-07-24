@@ -7,6 +7,7 @@ import pymc3 as pm
 from sklearn.metrics import mean_squared_error as MSE
 from scipy.spatial.distance import squareform
 from lmfit import minimize, Parameters, Model
+import statsmodels.api as sm
 
 from Utilities.imports import *
 
@@ -26,16 +27,10 @@ class PsychometricAnalyser(ExperimentsAnalyser):
 
     def __init__(self):
         ExperimentsAnalyser.__init__(self)
-
-        # self.conditions = dict(
-        #     maze1 =  self.get_sesions_trials(maze_design=1, naive=None, lights=1, escapes=True),
-        #     maze2 =  self.get_sesions_trials(maze_design=2, naive=None, lights=1, escapes=True),
-        #     maze3 =  self.get_sesions_trials(maze_design=3, naive=None, lights=1, escapes=True),
-        #     maze4 =  self.get_sesions_trials(maze_design=4, naive=None, lights=1, escapes=True),
-        # )
         self.conditions = self.load_trials_from_pickle()
-
         self.maze_names_r = {v:k for k,v in self.maze_names.items()}
+
+        self.get_paths_lengths()
 
     def get_paths_lengths(self, load=True):
         if not load:
@@ -110,7 +105,6 @@ class PsychometricAnalyser(ExperimentsAnalyser):
 
     def simulate_trials_analytical(self):
         # Get simulated running speed and path lengths estimates
-        self.get_paths_lengths()
         speed, distances = self.dt_model_speed_and_distances(plot=False)
 
         # right arm
@@ -127,10 +121,8 @@ class PsychometricAnalyser(ExperimentsAnalyser):
             pR[left] = round(1 - stats.norm.cdf(-mu/sigma,  loc=0, scale=1), 3)
         return pR
 
-
     def simulate_trials(self, niters=1000):
         # Get simulated running speed and path lengths estimates
-        self.get_paths_lengths()
         speed, distances = self.dt_model_speed_and_distances(plot=False, sqrt=False)
 
         # right arm
@@ -162,8 +154,7 @@ class PsychometricAnalyser(ExperimentsAnalyser):
         xp =  np.linspace(.8, 1.55, 200)
         xrange = [.8, 1.55]
 
-                # Get paths length ratios and p(R) by condition
-        self.get_paths_lengths()
+        # Get paths length ratios and p(R) by condition
         hits, ntrials, p_r, n_mice = self.get_binary_trials_per_condition(self.conditions)
         
         # Get modes on individuals posteriors and grouped bayes
@@ -269,7 +260,6 @@ class PsychometricAnalyser(ExperimentsAnalyser):
         if not load:
             # Get data
             allhits, ntrials, p_r, n_mice = self.get_binary_trials_per_condition(self.conditions)
-            self.get_paths_lengths()
             
             # Clean data and plot scatterplot
             if plot: f, ax = plt.subplots(figsize=large_square_fig)
@@ -316,12 +306,12 @@ class PsychometricAnalyser(ExperimentsAnalyser):
     """
         ||||||||||||||||||||||||||||    PLOTTERS     |||||||||||||||||||||
     """
-    def plot_pr_by_condition(self, raw_individuals=False, exclude_experiments=[None], ax=None):
+
+    def pr_by_condition(self, exclude_experiments=[None], ax=None):
         xp =  np.linspace(.8, 1.55, 200)
         xrange = [.8, 1.55]
 
         # Get paths length ratios and p(R) by condition
-        self.get_paths_lengths()
         hits, ntrials, p_r, n_mice = self.get_binary_trials_per_condition(self.conditions)
         
         # Get modes on individuals posteriors and grouped bayes
@@ -331,27 +321,23 @@ class PsychometricAnalyser(ExperimentsAnalyser):
          # Plot each individual's pR and the group mean as a factor of L/R length ratio
         if ax is None: 
             f, ax = create_figure(subplots=False)
+        else: f = None
             
         lr_ratios_mean_pr = {"grouped":[], "individuals_x":[], "individuals_y":[], "individuals_y_sigma":[]}
         for i, (condition, pr) in enumerate(p_r.items()):
             x = self.paths_lengths.loc[self.paths_lengths.maze == condition].georatio.values
 
-            if raw_individuals: # ? use raw of HB data
-                y = pr
-                 # ? Plot individual mice's p(R)
-                ax.scatter(np.random.normal(x, 0.01, size=len(y)), y, alpha=.2, color=pink, s=250)
-            else:
-                y = means[condition]
-                # ? plot HB PR with errorbars
-                ax.errorbar(np.random.normal(x, 0.01, size=len(y)), y, yerr=stds[condition], 
-                            fmt='o', markeredgecolor=desaturate_color(white, k=.4), markerfacecolor=desaturate_color(white, k=.4), markersize=10, 
-                            ecolor=desaturate_color(white, k=.2), elinewidth=3, 
-                            capthick=2, alpha=.4, zorder=0)
-                ax.errorbar(x, np.mean(y), yerr=np.std(y), 
-                            fmt='o', markeredgecolor=self.colors[i+1], markerfacecolor=self.colors[i+1], markersize=15, 
-                            ecolor=desaturate_color(self.colors[i+1], k=.7), elinewidth=3, 
-                            capthick=2, alpha=1, zorder=0)             
-                vline_to_point(ax, x, np.mean(y), color=desaturate_color(self.colors[i+1], k=.7), lw=4, ls="--", alpha=.4)
+            y = means[condition]
+            # ? plot HB PR with errorbars
+            ax.errorbar(np.random.normal(x, 0.005, size=len(y)), y, yerr=stds[condition], 
+                        fmt='o', markeredgecolor=desaturate_color(white, k=.6), markerfacecolor=desaturate_color(white, k=.6), markersize=10, 
+                        ecolor=desaturate_color(white, k=.2), elinewidth=3, 
+                        capthick=2, alpha=.6, zorder=0)
+            ax.errorbar(x, np.mean(y), yerr=np.std(y), 
+                        fmt='o', markeredgecolor=self.colors[i+1], markerfacecolor=self.colors[i+1], markersize=15, 
+                        ecolor=desaturate_color(self.colors[i+1], k=.7), elinewidth=3, label=condition,
+                        capthick=2, alpha=1, zorder=0)             
+            vline_to_point(ax, x, np.mean(y), color=desaturate_color(self.colors[i+1], k=.7), lw=4, ls="--", alpha=.2)
 
 
             if condition not in exclude_experiments:# ? use the data for curves fitting
@@ -364,35 +350,67 @@ class PsychometricAnalyser(ExperimentsAnalyser):
                 k = .1
                 del grouped_modes[condition], grouped_means[condition]
 
+        # Fix plotting
+        ortholines(ax, [1, 0,], [1, .5])
+        ax.set(ylim=[0, 1], ylabel="p(R)", title="p(R) per mouse per maze", xlabel="Left path length (a.u.)",
+                 xticks = self.paths_lengths.georatio.values, xticklabels = self.conditions.keys())
+        make_legend(ax)
+
+        return lr_ratios_mean_pr, grouped_modes, grouped_means, modes, means, stds, f, ax, xp, xrange
+
+    def plot_pr_by_condition_detailed(self):
+        f, axarr = create_figure(subplots=True, ncols=3, sharey=False)
+        # plot normal pR
+        lr_ratios_mean_pr, grouped_modes, grouped_means, modes, means, stds, _, ax, xp, xrange = self.pr_by_condition(ax=axarr[0])
+
+        # Plot a kde of the pR of each mouse on each maze
+        for i, (maze, prs) in enumerate(means.items()):
+            bins = np.linspace(0, 1, 15)
+            # axarr[1].hist(prs, bins=bins, alpha=.1, histtype="stepfilled",color=self.colors[i+1], orientation="horizontal", density=True)
+            # axarr[1].hist(prs, bins=bins, alpha=1, histtype="step", color=self.colors[i+1], orientation="horizontal", density=True)
+
+            kde = sm.nonparametric.KDEUnivariate(prs)
+            kde.fit(bw=.05) # Estimate the densities
+            xx, yy = kde.density/np.max(kde.density)+(4-i)*2-2, kde.support
+            axarr[1].plot(xx, yy, color=self.colors[i+1], lw=3, label=maze, zorder=10)
+            axarr[1].fill_between(xx, yy, color=self.colors[i+1], lw=3, zorder=10, alpha=.15)
+
+            hmax, yyy = np.max(xx), yy[np.argmax(xx)]
+            axarr[1].scatter(hmax, yyy, color=self.colors[i+1], s=250)
+            axarr[1].scatter(hmax, np.mean(yy), color=desaturate_color(self.colors[i+1]), s=250)
+            axarr[1].scatter(hmax, np.median(yy), color=desaturate_color(self.colors[i+1], k=.4), s=250)
+
+            axarr[1].axhline(yyy, color=self.colors[i+1], alpha=.5, ls="--", lw=3)
+            axarr[0].axhline(yyy, color=self.colors[i+1], alpha=.5, ls="--", lw=3)
+
+            # Plot kurtosis and skewness of the distributions
+            k, s = stats.kurtosis(kde.density), stats.skew(kde.density)
+            axarr[2].scatter(k, s, color=self.colors[i+1], s=250, label=maze)
+
+        ortholines(axarr[1], [0,], [.5])
+        axarr[1].set(title="individuals pR distribution", xlabel="density",  ylim=[0, 1], xlim=[0, 9])
+        make_legend(axarr[1])
+
+        ortholines(axarr[2], [1, 0,], [0, 0])
+        axarr[2].set(title="moments", xlabel="kurtosis", ylabel="skewness")
+        make_legend(axarr[2])
+
+
+    def model_summary(self, exclude_experiments=[None], ax=None):
+        lr_ratios_mean_pr, grouped_modes, grouped_means, modes, means, stds, f, ax, xp, xrange = self.pr_by_condition(exclude_experiments=exclude_experiments, ax=ax)
+
         # Plot simulation results   + plotted sigmoid
         # ? logistic regression on analytical simulation
 
         fitted = []
         for i, (nn, col) in enumerate(zip(np.linspace(.05, .2, 2), get_n_colors(10))):
             self.distance_noise = nn
-            # sim_trials, sim_pr = self.simulate_trials(niters=10000)
             analytical_pr = self.simulate_trials_analytical()
-
-            # pomp = plot_fitted_curve(sigmoid, [m[0] for m in lr_ratios_mean_pr["grouped"]], np.hstack(list(sim_pr.values())), ax, xrange=xrange, 
-            #                         scatter_kwargs={"alpha":1}, 
-            #                         line_kwargs={"color":desaturate_color(green), "alpha":.5, "lw":4, "label":"simulated pR - $\omega : {}$".format(round(nn, 2))})
             pomp = plot_fitted_curve(sigmoid, [m[0] for m in lr_ratios_mean_pr["grouped"]], np.hstack(list(analytical_pr.values())), ax, xrange=xrange, 
-                        scatter_kwargs={"alpha":1}, 
+                        scatter_kwargs={"alpha":0}, 
                         line_kwargs={"color":desaturate_color(teal), "alpha":0, "lw":4})
             fitted.append(pomp)
         ax.fill_between(xp, sigmoid(xp, *fitted[0]), sigmoid(xp, *fitted[1]),  color=lightblue, alpha=.15, label="model pR - $\sigma : {}-{}$".format(.05, .2))
-
-        # ? logistic regression on analytical simulation
-        # analytical_pr = self.simulate_trials_analytical()
-        # pomp = plot_fitted_curve(sigmoid, [m[0] for m in lr_ratios_mean_pr["grouped"]], np.hstack(list(analytical_pr.values())), ax, xrange=xrange, 
-        #     scatter_kwargs={"alpha":1, "color":teal, "s":200}, 
-        #     line_kwargs={"color":teal, "alpha":.5, "lw":4, "label":"analytical pR - $\omega : {}$".format(round(self.distance_noise, 2))})
-
-
-        # ? Bayesian logistic regression on trial data
-        # df = self.sigmoid_bayes(plot=False, load=True, robust=False)
-        # b0, b0std, b1, b1std = np.mean(df.b0), sqrt(np.std(df.b0)), np.mean(df.b1), sqrt(np.std(df.b1))
-        # ax.plot(xp, logistic(xp, b0, b1), color=teal, lw=3, label="bayesian logistic regression - raw trials")
 
         # ? Fit sigmoid to median pR of raw data  
         plot_fitted_curve(sigmoid, [m[0] for m in lr_ratios_mean_pr["grouped"]], [m[1] for m in lr_ratios_mean_pr["grouped"]], ax, xrange=xrange, 
@@ -419,8 +437,7 @@ class PsychometricAnalyser(ExperimentsAnalyser):
                  xticks = self.paths_lengths.georatio.values, xticklabels = self.conditions.keys())
         make_legend(ax)
 
-
-    def plot_heirarchical_bayes_effect(self):
+    def plot_hierarchical_bayes_effect(self):
         # Get hierarchical Bayes modes and individual mice p(R)
         hits, ntrials, p_r, n_trials = self.get_binary_trials_per_condition(self.conditions)
         trace = self.bayes_by_condition(conditions=self.conditions, load=True, tracefile="psychometric_individual_bayes.pkl", plot=False) 
@@ -431,17 +448,22 @@ class PsychometricAnalyser(ExperimentsAnalyser):
         f, axarr = plt.subplots(ncols=4, sharex=True, sharey=True)
         
         for i, (exp, ax) in enumerate(zip(trace.keys(), axarr)):
+            ax.errorbar(0.1, np.mean(p_r[exp]), yerr=np.std(p_r[exp]),  **white_errorbar)
+            ax.errorbar(0.9, np.mean(means[exp]), yerr=np.std(means[exp]),  **white_errorbar)
             ax.scatter(np.random.normal(0, .025, size=len(p_r[exp])), p_r[exp], color=self.colors[i+1], alpha=.5, s=200)
-            ax.scatter(np.random.normal(1, .025, size=len(modes[exp])), modes[exp], color=self.colors[i+1], alpha=.5, s=200)
-            ax.scatter(np.random.normal(2, .025, size=len(means[exp])), means[exp], color=self.colors[i+1], alpha=.5, s=200)
-            ax.scatter(np.random.normal(3, .025, size=len(stds[exp])), stds[exp], color=self.colors[i+1], alpha=.5, s=200)
+            ax.scatter(np.random.normal(1, .025, size=len(means[exp])), means[exp], color=self.colors[i+1], alpha=.5, s=200)
 
-            ax.scatter(0, np.mean(p_r[exp]), color="w", alpha=1, s=300)
-            ax.scatter(1, np.mean(modes[exp]), color="w", alpha=1, s=300)
-            ax.scatter(2, np.mean(means[exp]), color="w", alpha=1, s=300)
-            ax.scatter(3, np.mean(stds[exp]), color="w", alpha=1, s=300)
+            kde = sm.nonparametric.KDEUnivariate(p_r[exp])
+            kde.fit(bw=.05) # Estimate the densities
+            ax.fill_between(kde.density/(np.max(kde.density)*3), 0, kde.support, alpha=.1, color=self.colors[i+1], lw=3, zorder=10)
 
-            ax.set(title=exp, xlim=[-.1, 3.1], ylim=[-.02, 1.02], xticks=[0, 1, 2, 3], xticklabels=["Raw", "hb modes", "hb means", "hb stds"], ylabel="p(R)")
+            kde = sm.nonparametric.KDEUnivariate(means[exp])
+            kde.fit(bw=.05) # Estimate the densities
+            ax.fill_between(1-kde.density/(np.max(kde.density)*3), 0, kde.support, alpha=.1, color=self.colors[i+1], lw=3,zorder=10)
+
+            ortholines(ax, [0,], [.5])
+
+            ax.set(title=exp, xlim=[-.1, 1.1], ylim=[-.02, 1.02], xticks=[0, 1], xticklabels=["Raw", "hb means"], ylabel="p(R)")
 
     def plot_utility_function(self):
         def get_utility_matrix():
@@ -455,7 +477,6 @@ class PsychometricAnalyser(ExperimentsAnalyser):
             return np.rot90(up_tr.T, 1)
 
 
-        self.get_paths_lengths()
         print(self.paths_lengths)
         
         f, axarr = create_figure(subplots=True, ncols=2)
@@ -519,8 +540,11 @@ class PsychometricAnalyser(ExperimentsAnalyser):
 if __name__ == "__main__":
     pa = PsychometricAnalyser()
 
-    pa.fit_model()
+    pa.plot_pr_by_condition_detailed()
+    # pa.model_summary()
+    pa.plot_hierarchical_bayes_effect()
 
+    print(pa.paths_lengths)
 
     plt.show()
 
