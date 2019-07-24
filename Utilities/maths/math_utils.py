@@ -206,7 +206,7 @@ def remove_tracking_errors(tracking, debug = False):
 
 
 # ! GEOMETRY
-def calc_distane_between_point_and_line(line_points, p3):
+def calc_distance_between_point_and_line(line_points, p3):
 	"""[Calcs the perpendicular distance between a point and a line]
 	
 	Arguments:

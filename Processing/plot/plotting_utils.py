@@ -106,7 +106,6 @@ def vline_to_curve(ax, x, xdata, ydata, **kwargs):
 def vline_to_point(ax, x, y, **kwargs):
     ax.plot([x, x], [0, y], **kwargs)
 
-
 def hline_to_curve(ax, y, xdata, ydata, **kwargs):
     """[plots a vertical line from the x axis to the curve at location x]
     

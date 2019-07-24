@@ -14,3 +14,15 @@ lilla    = [.8, .4, .9]
 lightblue = [.6, .6, .9]
 
 large_square_fig = (16, 16)
+
+# kwargs for plotting
+grey_line = dict(color=grey, lw=4, alpha=.85)
+
+
+dotted_line = dict(lw=4, ls="--", alpha=.5)
+grey_dotted_line = dict(color=grey, lw=4, ls="--", alpha=.5)
+
+
+big_dot = dict(alpha=.9, s=250)
+big_red_dot = dict(c=red, alpha=.9, s=250)
+big_blue_dot = dict(c=blue, alpha=.9, s=250)

@@ -5,6 +5,7 @@ sys.path.append('./')   # <- necessary to import packages from other directories
 from statistics import mode
 import pymc3 as pm
 from sklearn.metrics import mean_squared_error as MSE
+from scipy.spatial.distance import squareform
 
 from Utilities.imports import *
 
@@ -68,6 +69,9 @@ class PsychometricAnalyser(ExperimentsAnalyser):
         self.paths_lengths = pd.merge(self.paths_lengths, geopaths)
         short_arm_dist = self.paths_lengths.loc[self.paths_lengths.maze=="maze4"].distance.values[0]
         self.paths_lengths["georatio"] = [round(x / short_arm_dist, 4) for x in self.paths_lengths.distance.values]
+
+        self.short_arm_len = self.paths_lengths.loc[self.paths_lengths.maze=="maze4"].georatio.values[0]
+        self.long_arm_len = self.paths_lengths.loc[self.paths_lengths.maze=="maze1"].georatio.values[0]
 
 
     """
@@ -218,7 +222,7 @@ class PsychometricAnalyser(ExperimentsAnalyser):
         ortholines(ax, [0, 0,], [1, 0], ls=":", lw=1, alpha=.3)
         ax.set(title="best fit logistic regression", ylim=[-0.01, 1.05], ylabel="p(R)", xlabel="Left path length (a.u.)",
                  xticks = self.paths_lengths.georatio.values, xticklabels = self.conditions.keys())
-        mseax.set(title="Fit error", ylabel="MSE", xlabel="$\sigma$")
+        mseax.set(title="Fit error", ylabel="MSE", xlabel="$\sigma$", xlim=[minsigma, maxsigma], ylim=[0, max(mserr)])
         make_legend(ax)
         
 
@@ -404,20 +408,83 @@ class PsychometricAnalyser(ExperimentsAnalyser):
 
             ax.set(title=exp, xlim=[-.1, 3.1], ylim=[-.02, 1.02], xticks=[0, 1, 2, 3], xticklabels=["Raw", "hb modes", "hb means", "hb stds"], ylabel="p(R)")
 
+    def plot_utility_function(self):
+        def get_utility_matrix():
+            n_cols = 500
+            x = np.linspace(0, 2, n_cols)
+            y = np.linspace(0, 2, n_cols)
 
+            u = np.reshape([2 - (xx-yy) for xx in x for yy in y], (n_cols, n_cols)).T
+            up_tr = np.triu(u) 
+            up_tr[np.tril_indices(n_cols)] = np.nan
+            return np.rot90(up_tr.T, 1)
+
+
+        self.get_paths_lengths()
+        print(self.paths_lengths)
         
+        f, axarr = create_figure(subplots=True, ncols=2)
+        ax, ax2 = axarr[0], axarr[1]
+
+        # Get background image and show
+        util = get_utility_matrix()
+        ax.imshow(util, extent=[.8, 1.6, .8, 1.6], alpha=.9)
+
+        # Plt arms combinations
+        distances = {}
+        for i, row in self.paths_lengths.iterrows():
+            maze_dist = calc_distance_between_point_and_line([[.8, .8], [1.6, 1.6]], [self.short_arm_len, row.georatio])
+            ax.scatter(self.short_arm_len, row.georatio, color=self.colors[i+1], label=row.maze + " - {}".format(round(maze_dist, 4)), **big_dot)
+            distances[row.maze] = maze_dist
+            c = row.georatio - self.short_arm_len
+            ax.plot([0.5, 1.75], [.5+c, 1.75+c], color=self.colors[i+1], lw=3, ls="--", alpha=.25)
+
+            if i < 3: 
+                maze_dist2 = calc_distance_between_point_and_line([[.8, .8], [1.6, 1.6]], [row.georatio, self.long_arm_len])
+                ax.scatter(row.georatio, self.long_arm_len, color=random.choice(get_n_colors(10)), label=round(maze_dist2, 4),  **big_dot)
+
+        ax.plot([0.5, 1.75], [.5, 1.75], **grey_line)
+
+        make_legend(ax)
+        ax.set(title="utility function", xlabel="Right arm length (a.u.)", ylabel="Left arm length (a.u.)",
+                xlim=[.8, 1.6], ylim=[.8, 1.6])
+
+        # Plot p(R) vs distance from line
+        hits, ntrials, p_r, n_mice = self.get_binary_trials_per_condition(self.conditions)
+        modes, means, stds = self.get_hb_modes()
+        for_fitting = {"x":[], "y":[], "e":[]}
+        for i, (maze, pr) in enumerate(p_r.items()):
+            x, y, e = np.random.normal(distances[maze], 0.005, size=len(means[maze])), means[maze], stds[maze]
+            ax2.errorbar(x, y, yerr=e, 
+                        fmt='o', markeredgecolor=self.colors[i+1], markerfacecolor=self.colors[i+1], markersize=10, 
+                        ecolor=desaturate_color(self.colors[i+1], k=.4), elinewidth=3,  capthick=2, alpha=.8, zorder=0)
+            for_fitting["x"].append(x)
+            for_fitting["y"].append(y)
+            for_fitting["e"].append(e)
+
+
+        # ? Fit logistic regression to mean p(R)+std(p(R))
+        # pomp = plot_fitted_curve(sigmoid, [np.mean(a) for a in for_fitting["x"]], [np.mean(a) for a in for_fitting["y"]], ax2, xrange=[-.01, .45], 
+        #     fit_kwargs={"sigma":[np.mean(a) for a in for_fitting["e"]]},
+        #     scatter_kwargs={"alpha":1, "color":lightblue}, 
+        #     line_kwargs={"color":lightblue, "alpha":1, "lw":4}) 
+
+        pomp = plot_fitted_curve(sigmoid, np.hstack(for_fitting["x"]), np.hstack(for_fitting["y"]), ax2, xrange=[-.01, .45], 
+            fit_kwargs={"sigma":np.hstack(for_fitting["e"])},
+            scatter_kwargs={"alpha":0}, 
+            line_kwargs={"color":white, "alpha":1, "lw":4}) 
+
+        ortholines(ax2, [0, 0.5,], [.5, 0], ls="--", lw=3, alpha=.3)
+        ax2.set(title="p(R) vs distance from unity line", xlabel="distance", ylabel="p(R)")
+
+        plt.show()
+        a =1 
+
+
 if __name__ == "__main__":
     pa = PsychometricAnalyser()
 
-    # sim_trials, sim_pr = pa.simulate_trials(niters=50000)
-    # analytical_pr = pa.simulate_trials_analytical()
-
-    # print("sim", sim_pr)
-    # print("analytical", analytical_pr)
-
-    # pa.plot_pr_by_condition(raw_individuals=False)
-
-    pa.fit_model()
+    pa.plot_utility_function()
 
 
     plt.show()
