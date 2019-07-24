@@ -6,6 +6,7 @@ from statistics import mode
 import pymc3 as pm
 from sklearn.metrics import mean_squared_error as MSE
 from scipy.spatial.distance import squareform
+from lmfit import minimize, Parameters, Model
 
 from Utilities.imports import *
 
@@ -185,31 +186,65 @@ class PsychometricAnalyser(ExperimentsAnalyser):
                         ecolor=desaturate_color(self.colors[i+1], k=.7), elinewidth=3, 
                         capthick=2, alpha=1, zorder=0)             
 
+        # ? Fit model with lmfit
+        # def residual(params, ytrue):
+        #     self.distance_noise = params["sigma"].value
 
-        # ? Fit the model with a range of params and plot the results
-        fitted = {k:[]  for k in self.conditions.keys()}
-        mserr = []
-        minsigma, maxsigma = 0.05, .2
-        sigma_range = np.linspace(minsigma, maxsigma, 100)
-        ytrue = [np.mean(m) for m in means.values()]
-        for sigma in sigma_range:
+        #     analytical_pr = self.simulate_trials_analytical()
+        #     # return analytical_pr
+        #     return np.sum((np.array(list(analytical_pr.values())) - ytrue)**2)
+
+        def residual(distances, sigma):
             self.distance_noise = sigma
             analytical_pr = self.simulate_trials_analytical()
-            simulation = self.simulate_trials_analytical()
-            {fitted[k].append(pr) for k,pr in simulation.items()}
-            mserr.append(MSE(ytrue, list(simulation.values())))
+            return np.sum(np.array(list(analytical_pr.values())))
+             
+        params = Parameters()
+        params.add("sigma", min=1.e-10, max=.5)
+        model = Model(residual, params=params)
+        params = model.make_params()
+        params["sigma"].min, params["sigma"].max = 1.e-10, 1
+
+        ytrue = [np.mean(m) for m in means.values()]
+        x = self.paths_lengths.georatio.values
+
+        result = model.fit(ytrue, distances=x, params=params)
+        print(result.params["sigma"].value)
+        a = 1
+
+        # params = Parameters()
+        # params.add("sigma", min=1.e-10, max=.5, brute_step=.01)
+        # 
+        # out = minimize(residual, params, args=(ytrue,)) #, method="brute")
+        # print(out.params["sigma"])
+        # a = 1
+    
+        # # ? Fit the model with a range of params and plot the results
+        # fitted = {k:[]  for k in self.conditions.keys()}
+        # mserr = []
+        # minsigma, maxsigma = 0.05, .2
+        # sigma_range = np.linspace(minsigma, maxsigma, 100)
+        # ytrue = [np.mean(m) for m in means.values()]
+        # for sigma in sigma_range:
+        #     self.distance_noise = sigma
+        #     analytical_pr = self.simulate_trials_analytical()
+        #     simulation = self.simulate_trials_analytical()
+        #     {fitted[k].append(pr) for k,pr in simulation.items()}
+        #     mserr.append(MSE(ytrue, list(simulation.values())))
    
-        # ? Plot mean square error
-        for s in sigma_range[::5]:
-            vline_to_curve(mseax, s, sigma_range, mserr, color=desaturate_color(teal), lw=2)
-        mseax.plot(sigma_range, mserr, color=teal, lw=4)
-        mseax.axhline(0, color=white, lw=4)
+        # # ? Plot mean square error
+        # for s in sigma_range[::5]:
+        #     vline_to_curve(mseax, s, sigma_range, mserr, color=desaturate_color(teal), lw=2)
+        # mseax.plot(sigma_range, mserr, color=teal, lw=4)
+        # mseax.axhline(0, color=white, lw=4)
 
         # ? Plot best fit
-        best_sigma = sigma_range[np.argmin(mserr)]
-        lowest_err = mserr[np.argmin(mserr)]
-        vline_to_curve(mseax, best_sigma, sigma_range, mserr, color=white, lw=6)
-        hline_to_curve(mseax, lowest_err, sigma_range, mserr, color=white, lw=6)
+        # best_sigma = sigma_range[np.argmin(mserr)]
+        best_sigma = result.params["sigma"].value
+        self.distance_noise = best_sigma
+        # lowest_err = mserr[np.argmin(mserr)]
+        # vline_to_curve(mseax, best_sigma, sigma_range, mserr, color=white, lw=6)
+        # hline_to_curve(mseax, lowest_err, sigma_range, mserr, color=white, lw=6)
 
         analytical_pr = self.simulate_trials_analytical()
         pomp = plot_fitted_curve(sigmoid, self.paths_lengths.georatio.values, np.hstack(list(analytical_pr.values())), ax, xrange=xrange, 
@@ -222,7 +257,7 @@ class PsychometricAnalyser(ExperimentsAnalyser):
         ortholines(ax, [0, 0,], [1, 0], ls=":", lw=1, alpha=.3)
         ax.set(title="best fit logistic regression", ylim=[-0.01, 1.05], ylabel="p(R)", xlabel="Left path length (a.u.)",
                  xticks = self.paths_lengths.georatio.values, xticklabels = self.conditions.keys())
-        mseax.set(title="Fit error", ylabel="MSE", xlabel="$\sigma$", xlim=[minsigma, maxsigma], ylim=[0, max(mserr)])
+        # mseax.set(title="Fit error", ylabel="MSE", xlabel="$\sigma$", xlim=[minsigma, maxsigma], ylim=[0, max(mserr)])
         make_legend(ax)
         
 
@@ -484,7 +519,7 @@ class PsychometricAnalyser(ExperimentsAnalyser):
 if __name__ == "__main__":
     pa = PsychometricAnalyser()
 
-    pa.plot_utility_function()
+    pa.fit_model()
 
 
     plt.show()
