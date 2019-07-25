@@ -1,6 +1,8 @@
 import sys
 sys.path.append('./')
 
+import collections
+
 from Utilities.imports import *
 
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame, get_arm_given_rois, convert_roi_id_to_tag
@@ -89,6 +91,13 @@ class analyse_all_trals:
                 print("Smth went wrong while getting tracking data, maybe there is no data there, maybe smth else is wrong")
                 continue
 
+            # Get the number of samples before each rec
+            recs_trackins = collections.OrderedDict(sorted(recs_trackins.items()))
+            recs_lengths = {k:v.shape[0] for k,v in recs_trackins.items()}
+            cumlens = np.cumsum(list(recs_lengths.values()))
+            cl = [0]
+            cl.extend(list(cumlens[:-1]))
+            cumulative_lengths = {k:v for k,v in zip(recs_trackins.keys(), cl)}
 
             for stim_n, stim in enumerate(session_stims):
                 print(' ... stim {} of {}'.format(stim_n+1, number_of_stimuli))
@@ -213,6 +222,7 @@ class analyse_all_trals:
                     tracking_data = trial_tracking,
                     outward_tracking_data = out_trip_tracking, 
                     stim_frame = start,
+                    stim_frame_session = start + cumulative_lengths[stim['recording_uid']],
                     stim_type = stim['stim_type'],
                     stim_duration = stim_duration,
                     is_escape = is_escape,

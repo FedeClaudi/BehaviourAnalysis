@@ -24,7 +24,7 @@ class ExperimentsAnalyser(Bayes):
     arms_colors = {"Left_Far":green, "Left_Medium":green, "Right_Medium":red, "Right_Far":red, "Centre":magenta}
 
     # ! important 
-    max_duration_th = 7.5
+    max_duration_th = 8.0
 
     # Folders
     if sys.platform != "darwin":
@@ -36,10 +36,10 @@ class ExperimentsAnalyser(Bayes):
         Bayes.__init__(self)
         
         self.conditions = dict(
-                    maze1 =  self.get_sessions_trials(maze_design=1, naive=None, lights=None, escapes=None, escapes_dur=False),
-                    maze2 =  self.get_sessions_trials(maze_design=2, naive=None, lights=None, escapes=None, escapes_dur=False),
-                    maze3 =  self.get_sessions_trials(maze_design=3, naive=None, lights=None, escapes=None, escapes_dur=False),
-                    maze4 =  self.get_sessions_trials(maze_design=4, naive=None, lights=None, escapes=None, escapes_dur=False),
+                    maze1 =  self.get_sessions_trials(maze_design=1, naive=None, lights=None, escapes=None, escapes_dur=True),
+                    maze2 =  self.get_sessions_trials(maze_design=2, naive=None, lights=None, escapes=None, escapes_dur=True),
+                    maze3 =  self.get_sessions_trials(maze_design=3, naive=None, lights=None, escapes=None, escapes_dur=True),
+                    maze4 =  self.get_sessions_trials(maze_design=4, naive=None, lights=None, escapes=None, escapes_dur=True),
                 )
 
         self.session_metadata = pd.DataFrame((Session * Session.Metadata - "maze_type=-1"))
@@ -101,8 +101,9 @@ class ExperimentsAnalyser(Bayes):
         all_trials = pd.DataFrame(AllTrials.fetch())
         if escapes:
             all_trials = all_trials.loc[all_trials.is_escape == "true"]
+
         if escapes_dur:
-            all_trials = all_trials.loc[all_trials.escape_duration <= 7.5]
+            all_trials = all_trials.loc[all_trials.escape_duration <= self.max_duration_th]
         trials = all_trials.loc[all_trials.session_uid.isin(ss)]
 
         return trials
@@ -172,7 +173,13 @@ class ExperimentsAnalyser(Bayes):
         else:
             return pd.read_pickle(os.path.join(self.metadata_folder, "geoagent_paths.pkl"))
 
+    def merge_conditions_trials(self, dfs):
+        # dfs is a list of dataframes with the trials for each condition
 
+        merged = dfs[0]
+        for df in dfs[1:]:
+            merged = merged.append(df)
+        return merged
 
     """
     ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
@@ -184,8 +191,8 @@ class ExperimentsAnalyser(Bayes):
         else:
             data = self.load_trials_from_pickle()
 
-        modes = self.analytical_bayes_individuals(conditions=None, data=data, mode=mode, plot=plot)
-        return modes
+        modes, means = self.analytical_bayes_individuals(conditions=None, data=data, mode=mode, plot=plot)
+        return modes, means
 
     def bayes_by_condition(self, conditions=None,  load=False, tracefile="a.pkl", plot=True):
         tracename = os.path.join(self.metadata_folder, tracefile)
@@ -262,6 +269,33 @@ class ExperimentsAnalyser(Bayes):
         print(same_detailed)
 
 
+    def escape_thershold_effect(self):
+        f, axarr = plt.subplots(nrows=5)
+
+        ths = np.linspace(0, 20, 41)
+
+        for th in tqdm(ths):
+            self.max_duration_th = th
+            conditions = dict(
+                    maze1 =  self.get_sessions_trials(maze_design=1, naive=None, lights=None, escapes=None, escapes_dur=True),
+                    maze2 =  self.get_sessions_trials(maze_design=2, naive=None, lights=None, escapes=None, escapes_dur=True),
+                    maze3 =  self.get_sessions_trials(maze_design=3, naive=None, lights=None, escapes=None, escapes_dur=True),
+                    maze4 =  self.get_sessions_trials(maze_design=4, naive=None, lights=None, escapes=None, escapes_dur=True),
+                )
+
+            hits, ntrials, p_r, n_trials = self.get_binary_trials_per_condition(conditions)
+            for i, (condition, pr) in enumerate(p_r.items()):
+                axarr[i].scatter([th for _ in np.arange(len(pr))], pr, alpha=.7, color=self.colors[i+1], s=100)
+                # axarr[i].errorbar(i, np.mean(pr), yerr=np.std(pr),  **white_errorbar)
+
+            self.save_trials_to_pickle()
+            modes, means = self.bayes_by_condition_analytical(load=True, plot=False)
+            for i, (maze, m) in enumerate(means.items()):
+                axarr[4].scatter(th, m, color=self.colors[i+1], s=200)
+
+        titles = list(conditions.keys()) + ["grouped bayes means"]
+        for ax, ttl in zip(axarr, titles):
+            ax.set(title=ttl, ylim=[-0.1, 1.1])
 
     """
     ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
@@ -306,10 +340,6 @@ class ExperimentsAnalyser(Bayes):
         for ax in axarr:
             ax.set(xlim=[100, 720], ylim=[100, 720])
 
-    def tracking_aligned_to_start_plot(self):
-        # TODO
-        pass
-
     def plot_pr_by_condition(self):
         conditions = self.conditions
 
@@ -326,18 +356,80 @@ class ExperimentsAnalyser(Bayes):
                  xticks = np.arange(len(conditions.keys())), xticklabels = conditions.keys())
         ax.legend()
 
-        
+    def plot_pr_vs_time(self):
+        # loop over different settings for kde
+        for bw in [60]:
+            # crate figure
+            f, axarr = create_figure(subplots=True, nrows=5, ncols=2, sharex=True)
+            leftcol, rightcol = [0, 2, 4, 6, 8], [1, 3, 5, 7, 9]
+
+            # loop over experiments
+            for i, (condition, df) in enumerate(self.conditions.items()):
+                ax = axarr[leftcol[i]]
+                axspeed = axarr[rightcol[i]]
+                times, ones, zeros, speeds = [], [], [], []
+                # loop over trials
+                for n, (_, trial) in enumerate(df.iterrows()):
+                    # get time of trial and escape arm
+                    x = trial.stim_frame_session / trial.fps
+                    if 'Right' in trial.escape_arm:
+                        y = 1
+                        ones.append(x)
+                    else:
+                        y = 0
+                        zeros.append(x)
+
+                    # Get escape speed
+                    escape_speed = np.mean(trial.tracking_data[:, 2]) / trial.fps
+                    times.append(x)
+                    speeds.append(escape_speed)
+
+                    # plot
+                    ax.scatter(x, y, color=self.colors[i+1], s=50, alpha=.5)
+
+                # linear regression on speed and
+                sns.regplot(times, speeds, ax=axspeed, scatter=True, order=1, scatter_kws=dict(s=75, color=desaturate_color(self.colors[i+1], k=.5)),
+                                line_kws=dict(color=self.colors[i+1], lw=2, alpha=1), truncate=True,)
+
+                # Plot KDEs
+                ax, kde_right = plot_kde(ax, fit_kde(ones, bw=bw), .8, invert=True, normto=.25, color=self.colors[i+1])
+                ax, kde_left = plot_kde(ax, fit_kde(zeros, bw=bw), .2, invert=False, normto=.25, color=self.colors[i+1])
+
+                # Plot ratio of KDEs in last plot
+                xxx = np.linspace(np.max([np.min(kde_right.support), np.min(kde_left.support)]), np.min([np.max(kde_right.support), np.max(kde_left.support)]), 1000)
+                ratio = [kde_right.evaluate(xx)/(kde_right.evaluate(xx)+kde_left.evaluate(xx)) for xx in xxx]
+                axarr[leftcol[4]].plot(xxx, ratio, lw=3, color=self.colors[i+1], label=condition)
+
+            # Set axes correctly
+            for i, (ax, maze) in enumerate(zip(axarr, list(self.conditions.keys()))):
+                if i in leftcol:
+                    kwargs = dict( ylim=[-.1, 1.1], yticklabels=["left", "right"], ylabel="escape", yticks=[0, 1],  ) 
+                else:
+                    kwargs = dict(ylabel="90th perc of escape speed (a.u)")
+
+                ax.set(title=maze, xlabel="time (min)",  xticks=[x*60 for x in np.linspace(0, 100, 11)], xticklabels=np.linspace(0, 100, 11), **kwargs)
+
+            ortholines(axarr[4], [0,], [.5])
+            axarr[leftcol[4]].set(title="balance over time", xlabel="time (min)", ylabel="R / (R+L)")
+            make_legend(axarr[4])
+            f.tight_layout()
+
 
 if __name__ == "__main__":
     ea = ExperimentsAnalyser()
     # print(ea)
     ea.save_trials_to_pickle()
     # ea.tracking_custom_plot()
-    ea.plot_pr_by_condition()
+    # ea.plot_pr_by_condition()
 
-    ea.escape_definition_investigation()
+    # ea.escape_definition_investigation()
+    # ea.escape_thershold_effect()
 
-    ea.bayes_by_condition(conditions=None,  load=False, tracefile="psychometric_individual_bayes.pkl", plot=False)
+    # ea.plot_pr_vs_time()
+
+    
+
+    # ea.bayes_by_condition(conditions=None,  load=False, tracefile="psychometric_individual_bayes.pkl", plot=False)
 
     plt.show()
 

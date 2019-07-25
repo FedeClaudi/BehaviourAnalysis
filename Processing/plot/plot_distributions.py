@@ -74,6 +74,27 @@ def dist_plot(dist, ax=None, **kwargs):
     ax.plot(x, dist.pdf(x), **kwargs)
     
 
+def plot_kde(ax, kde, z, invert=False, vertical=False, normto=None, label=None, **kwargs):
+    if vertical:
+        x = kde.density
+        y = kde.support
+    else:
+        x, y = kde.support, kde.density
+    
+    if normto is not None:
+        y = y / np.max(y) * normto
+
+    if invert:
+        y = z - y
+    else: y = y + z
+
+    ax.fill_between(x, z, y, alpha=.15, **kwargs)
+    ax.plot(x, y, alpha=1, label=label, **kwargs)
+
+    return ax, kde
+        
+
+
 
 # %%
 if __name__ == "__main__":

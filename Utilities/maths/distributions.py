@@ -4,6 +4,7 @@ sys.path.append('./')
 import numpy as np
 from scipy import misc, signal, stats
 import matplotlib.pyplot as plt
+import statsmodels.api as sm
 
 
 # ! FIT MATH FUNCTIONS
@@ -109,6 +110,12 @@ def gamma_distribution_params(mean=None, sd=None, mode=None, shape=None, rate=No
 		sd = math.sqrt(shape)/rate
 		return mu, sd
 	return shape, rate
+
+def fit_kde(x, **kwargs):
+    x = np.array(x).astype(np.float)
+    kde = sm.nonparametric.KDEUnivariate(x)
+    kde.fit(**kwargs) # Estimate the densities
+    return kde
 
 if __name__ == "__main__":
     xval = sorted(np.concatenate([np.linspace(-5,5,100),[0]])) # includes x = 0

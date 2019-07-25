@@ -269,6 +269,7 @@ class AllTrials(dj.Manual):
 		outward_tracking_data: longblob
 
 		stim_frame: int
+        stim_frame_session: int  # stim frame relative to the start of the session and not the start of the recording
 		stim_type: enum('audio', 'visual')
 		stim_duration: int
 
