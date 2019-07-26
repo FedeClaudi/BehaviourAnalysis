@@ -24,7 +24,7 @@ class ExperimentsAnalyser(Bayes):
     arms_colors = {"Left_Far":green, "Left_Medium":green, "Right_Medium":red, "Right_Far":red, "Centre":magenta}
 
     # ! important 
-    max_duration_th = 8.0
+    max_duration_th = 19
 
     # Folders
     if sys.platform != "darwin":
@@ -36,38 +36,38 @@ class ExperimentsAnalyser(Bayes):
         Bayes.__init__(self)
         
         self.conditions = dict(
-                    maze1 =  self.get_sessions_trials(maze_design=1, naive=None, lights=None, escapes=None, escapes_dur=True),
-                    maze2 =  self.get_sessions_trials(maze_design=2, naive=None, lights=None, escapes=None, escapes_dur=True),
-                    maze3 =  self.get_sessions_trials(maze_design=3, naive=None, lights=None, escapes=None, escapes_dur=True),
-                    maze4 =  self.get_sessions_trials(maze_design=4, naive=None, lights=None, escapes=None, escapes_dur=True),
+                    maze1 =  self.get_sessions_trials(maze_design=1, naive=None, lights=1, escapes=None, escapes_dur=1),
+                    maze2 =  self.get_sessions_trials(maze_design=2, naive=None, lights=1, escapes=None, escapes_dur=1),
+                    maze3 =  self.get_sessions_trials(maze_design=3, naive=None, lights=1, escapes=None, escapes_dur=1),
+                    maze4 =  self.get_sessions_trials(maze_design=4, naive=None, lights=1, escapes=None, escapes_dur=1),
                 )
 
         self.session_metadata = pd.DataFrame((Session * Session.Metadata - "maze_type=-1"))
 
-    # def __str__(self):
-    #     def get_summary(df):
-    #         summary = dict(maze=[], tot_mice=[], naive=[])
-    #         for maze_id, maze_name in self.maze_designs.items():
-    #             if maze_id == -1: continue
+    def __str__(self):
+        def get_summary(df):
+            summary = dict(maze=[], tot_mice=[], naive=[])
+            for maze_id, maze_name in self.maze_designs.items():
+                if maze_id == -1: continue
                     
-    #             maze_data = df.loc[df.maze_type == maze_id]
+                maze_data = df.loc[df.maze_type == maze_id]
 
-    #             summary["maze"].append(maze_name)
-    #             summary["tot_mice"].append(len(maze_data))
-    #             summary["naive"].append(len(maze_data.loc[maze_data.naive == 1]))
+                summary["maze"].append(maze_name)
+                summary["tot_mice"].append(len(maze_data))
+                summary["naive"].append(len(maze_data.loc[maze_data.naive == 1]))
 
-    #         summary = pd.DataFrame(summary)
-    #         return summary
+            summary = pd.DataFrame(summary)
+            return summary
 
-    #     data = self.session_metadata
-    #     summary = get_summary(data)
-    #     print("Sessions per experiment\n", summary)
-    #     print()
-    #     return ""
+        data = self.session_metadata
+        summary = get_summary(data)
+        print("Sessions per experiment\n", summary)
+        print()
+        return ""
 
-    # def __repr__(self): 
-    #     self.__str__()
-    #     return ""
+    def __repr__(self): 
+        self.__str__()
+        return ""
 
     """
     ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
@@ -77,10 +77,13 @@ class ExperimentsAnalyser(Bayes):
 
     def get_sessions_by_condition(self, maze_design=None, naive=None, lights=None, df=False):
         data = Session * Session.Metadata  - 'experiment_name="Foraging"'  - "maze_type=-1"
+
         if maze_design is not None:
             data = (data & "maze_type={}".format(maze_design))
+
         if naive is not None:
             data = (data & "naive={}".format(naive))
+
         if lights is not None:
             data = (data & "lights={}".format(lights))
 
@@ -99,12 +102,17 @@ class ExperimentsAnalyser(Bayes):
         ss = set(sorted(sessions.uid.values))
 
         all_trials = pd.DataFrame(AllTrials.fetch())
+
         if escapes:
             all_trials = all_trials.loc[all_trials.is_escape == "true"]
 
         if escapes_dur:
             all_trials = all_trials.loc[all_trials.escape_duration <= self.max_duration_th]
+            
         trials = all_trials.loc[all_trials.session_uid.isin(ss)]
+
+        # n sessions in trials:
+        # len(set(trials.session_uid))
 
         return trials
 
@@ -190,9 +198,7 @@ class ExperimentsAnalyser(Bayes):
         if not load: raise NotImplementedError
         else:
             data = self.load_trials_from_pickle()
-
-        modes, means = self.analytical_bayes_individuals(conditions=None, data=data, mode=mode, plot=plot)
-        return modes, means
+        return self.analytical_bayes_individuals(conditions=None, data=data, mode=mode, plot=plot)
 
     def bayes_by_condition(self, conditions=None,  load=False, tracefile="a.pkl", plot=True):
         tracename = os.path.join(self.metadata_folder, tracefile)
@@ -417,10 +423,11 @@ class ExperimentsAnalyser(Bayes):
 
 if __name__ == "__main__":
     ea = ExperimentsAnalyser()
-    # print(ea)
+    print(ea)
     ea.save_trials_to_pickle()
     # ea.tracking_custom_plot()
     # ea.plot_pr_by_condition()
+    ea.bayes_by_condition(conditions=None,  load=False, tracefile="psychometric_individual_bayes.pkl", plot=True)
 
     # ea.escape_definition_investigation()
     # ea.escape_thershold_effect()
@@ -429,7 +436,6 @@ if __name__ == "__main__":
 
     
 
-    # ea.bayes_by_condition(conditions=None,  load=False, tracefile="psychometric_individual_bayes.pkl", plot=False)
 
     plt.show()
 

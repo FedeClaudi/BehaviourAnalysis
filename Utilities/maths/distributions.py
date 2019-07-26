@@ -67,6 +67,15 @@ def get_distribution(dist, *args, n_samples=10000):
 	elif dist == 'gamma':
 		return np.random.gamma(args[0], args[1], n_samples)
 
+def get_parametric_distribution(dist, *args, **kwargs):
+    if dist == "beta":
+        dist = stats.beta(*args, **kwargs)
+    else: raise NotImplementedError
+
+    support = np.linspace(dist.ppf(0.001), dist.ppf(0.999), 100)
+    density = dist.pdf(support)
+    return dist, support, density
+
 
 # ! STATISTICAL DISTRIBUTIONS PARAMETERS
 def beta_distribution_params(a=None, b=None, mu=None, sigma=None, omega=None, kappa=None):
@@ -116,6 +125,11 @@ def fit_kde(x, **kwargs):
     kde = sm.nonparametric.KDEUnivariate(x)
     kde.fit(**kwargs) # Estimate the densities
     return kde
+
+
+
+
+
 
 if __name__ == "__main__":
     xval = sorted(np.concatenate([np.linspace(-5,5,100),[0]])) # includes x = 0

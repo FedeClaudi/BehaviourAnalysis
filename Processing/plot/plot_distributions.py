@@ -37,6 +37,7 @@ def plot_distribution(*args, dist_type="logistic", comulative=False, ax=None, sh
         ax.plot(x, func(x), **plot_kwargs)
     else: 
         ax.fill_between(x, 0, func(x), **plot_kwargs)
+        ax.plot(x, func(x), **plot_kwargs)
 
     ax.set(**ax_kwargs)
 
@@ -88,8 +89,7 @@ def plot_kde(ax, kde, z, invert=False, vertical=False, normto=None, label=None, 
         y = z - y
     else: y = y + z
 
-    ax.fill_between(x, z, y, alpha=.15, **kwargs)
-    ax.plot(x, y, alpha=1, label=label, **kwargs)
+    plot_shaded_withline(ax, x, y, z, **kwargs)
 
     return ax, kde
         

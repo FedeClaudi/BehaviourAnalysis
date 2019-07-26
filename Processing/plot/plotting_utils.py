@@ -106,7 +106,7 @@ def vline_to_curve(ax, x, xdata, ydata, **kwargs):
 def vline_to_point(ax, x, y, **kwargs):
     ax.plot([x, x], [0, y], **kwargs)
 
-def hline_to_curve(ax, y, xdata, ydata, **kwargs):
+def hline_to_curve(ax, y, xdata, ydata, dot=False, line_kwargs={}, scatter_kwargs={}, **kwargs):
     """[plots a vertical line from the x axis to the curve at location x]
     
     Arguments:
@@ -118,4 +118,13 @@ def hline_to_curve(ax, y, xdata, ydata, **kwargs):
     xline, yline = line[0].get_data()
     y = find_nearest(yline, y)
     xval = xline[np.where(yline == y)[0][0]]
-    ax.plot([0, xval], [y, y], **kwargs)
+    ax.plot([0, xval], [y, y], **line_kwargs, **kwargs)
+    if dot:
+        ax.scatter(xval, y, **scatter_kwargs, **kwargs)
+
+def plot_shaded_withline(ax, x, y, z=None, label=None,  **kwargs):
+    if z is not None:
+        ax.fill_between(x, z, y, alpha=.15, **kwargs)
+    else:
+        ax.fill_between(x, y, alpha=.15, **kwargs)
+    ax.plot(x, y, alpha=1, label=label, **kwargs)

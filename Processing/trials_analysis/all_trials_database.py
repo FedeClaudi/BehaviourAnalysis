@@ -5,6 +5,8 @@ import collections
 
 from Utilities.imports import *
 
+import warnings
+
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame, get_arm_given_rois, convert_roi_id_to_tag
 from Processing.tracking_stats.velocity_analysis import get_expl_speeds
 
@@ -24,8 +26,8 @@ class analyse_all_trals:
 
         self.naughty_experiments = ['Lambda Maze',  'FlipFlop Maze', 'FlipFlop2 Maze', 'TwoArmsLong Maze', "FourArms Maze", "Foraging"]
 
-        self.good_experiments = ["Psychometric - short", "Psychometric - long", "PathInt2", "PathInt2-L", 
-                                "PathInt2 L", "Square Maze", "TwoAndahalf Maze", "PathInt",  "PathInt2 D", "PathInt2 DL"]
+        self.good_experiments = ["Psychometric - short", "Psychometric - long", "PathInt2", "PathInt2-L", "PathInt2-D", "PathInt2-L",
+                                "PathInt2 L", "Square Maze", "TwoAndahalf Maze", "PathInt",  "PathInt2 D"]
 
         if fill_in_table:  # Get tracking data
             self.table = AllTrials()

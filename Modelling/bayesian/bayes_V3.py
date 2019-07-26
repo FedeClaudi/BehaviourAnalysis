@@ -71,7 +71,8 @@ class Bayes:
             raise NotImplementedError
         elif data is not None:
             if plot: f, ax  = plt.subplots(figsize=(12, 12),)
-            modes, means = {}, {}
+            ptuple = namedtuple("betaparams", "a b")
+            modes, means, params = {}, {}, {}
             for expn, (exp, trials) in enumerate(data.items()):
                 # Get number of tirals ad hits per session
                 N, K = [], []
@@ -141,9 +142,11 @@ class Bayes:
 
 
                     # Plot mean and mode of posterior
-                    mean =  a2 / (a2 + b2)
-                    _mode = (a2 -1)/(a2 + b2 -2)
-                    modes[exp], means[exp] = _mode, mean
+                    try:
+                        mean =  a2 / (a2 + b2)
+                        _mode = (a2 -1)/(a2 + b2 -2)
+                    except: continue
+                    modes[exp], means[exp], params[exp] = _mode, mean, ptuple(a2, b2)
                     if plot: ax.axvline(_mode, color=self.colors[expn+1], lw=2, ls="--", alpha=.8)
                     
                 elif mode == "hierarhical":
@@ -153,7 +156,7 @@ class Bayes:
             if plot:
                 ax.set(title="{} bayes".format(mode), ylabel="pdf", xlabel="theta")
                 ax.legend()
-            return modes, means
+            return modes, means, params
         else:
             raise ValueError("need to pass either condtions or data")
 

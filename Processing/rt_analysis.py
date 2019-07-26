@@ -150,3 +150,38 @@ class rtAnalysis:
         else:
             datadf = pd.read_pickle(os.path.join(self.metadata_folder, "reaction_time.pkl"))
         return datadf
+
+
+    def rt_by_trial_by_mouse(self):
+        rtdata = self.inspect_rt_metric(load=True, plot=False)
+        data = self.merge_conditions_trials(list(self.conditions.values()))
+        f, axarr = create_figure(subplots=True, nrows=3)
+
+        sessions = sorted(set(data.session_uid.values))
+
+        allrt, allspeed, counter = np.zeros(40), np.zeros(40), np.zeros(40)
+        for sess in sessions:
+            trials = data.loc[data.session_uid == sess]
+            rts = rtdata[rtdata.trialid.isin(list(trials.trial_id.values))].rt_s.values
+            speeds = [np.mean(t.tracking_data[:, 2])/t.fps for i,t in trials.iterrows()]
+            # ntrials = trials.trial_number.values
+            ntrials = np.arange(len(rts))
+
+            if len(rts) != len(speeds) or len(speeds) != len(ntrials): continue
+            
+            for i, (r,s) in enumerate(zip(rts, speeds)):
+                allrt[i] += r
+                allspeed[i] += s
+                counter[i] += 1
+
+
+            axarr[0].plot(ntrials, rts, color=white, lw=3, alpha=.5)
+            axarr[1].plot(ntrials, speeds, color=white, lw=3, alpha=.5)
+            axarr[2].plot(np.diff(rts[:2]), 'o-', color=white, alpha=.5)
+
+        axarr[0].plot(allrt/counter, "o-", color=red, lw=5)
+        axarr[1].plot(allspeed/counter, "o-", color=red, lw=5)
+        axarr[2].plot(np.diff((allrt/counter)[:2]), "o-", color=red, lw=5)
+
+        axarr[0].set(xlabel="# trial", ylabel="react time (s)", xlim=[0, 20])
+        axarr[1].set(xlabel="# trial", ylabel="mean speed", xlim=[0, 20])

@@ -257,6 +257,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis):
 	"""
 		||||||||||||||||||||||||||||    BAYES     |||||||||||||||||||||
 	"""
+	
 	def sigmoid_bayes(self, plot=True, load=False, robust=False):
 		tracename = os.path.join(self.metadata_folder, "robust_sigmoid_bayes.pkl")
 		if not load:
@@ -318,7 +319,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis):
 		
 		# Get modes on individuals posteriors and grouped bayes
 		modes, means, stds = self.get_hb_modes()
-		grouped_modes, grouped_means = self.bayes_by_condition_analytical(mode="grouped", plot=False) 
+		grouped_modes, grouped_means, grouped_params = self.bayes_by_condition_analytical(mode="grouped", plot=False) 
 
 		 # Plot each individual's pR and the group mean as a factor of L/R length ratio
 		if ax is None: 
@@ -358,44 +359,56 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis):
 				 xticks = self.paths_lengths.georatio.values, xticklabels = self.conditions.keys())
 		make_legend(ax)
 
-		return lr_ratios_mean_pr, grouped_modes, grouped_means, modes, means, stds, f, ax, xp, xrange
+		return lr_ratios_mean_pr, grouped_modes, grouped_means, modes, means, stds, f, ax, xp, xrange, grouped_params
 
 	def plot_pr_by_condition_detailed(self):
-		f, axarr = create_figure(subplots=True, ncols=3, sharey=False)
+		f, axarr = create_figure(subplots=True, ncols=5, sharey=False)
 		# plot normal pR
-		lr_ratios_mean_pr, grouped_modes, grouped_means, modes, means, stds, _, ax, xp, xrange = self.pr_by_condition(ax=axarr[0])
+		lr_ratios_mean_pr, grouped_modes, grouped_means, modes, means, stds, _, ax, xp, xrange, grouped_params = self.pr_by_condition(ax=axarr[0])
 
 		# Plot a kde of the pR of each mouse on each maze
 		for i, (maze, prs) in enumerate(means.items()):
+			if len(prs) == 0: continue
 			bins = np.linspace(0, 1, 15)
 
+			# Plot KDE of mice's pR + max density point and horizontal lines
+			kde = fit_kde(prs, bw=.035)
+			shift = (4-i)*2-2
+			# shift = 0
 
-			kde = sm.nonparametric.KDEUnivariate(prs)
-			kde.fit(bw=.05) # Estimate the densities
-			xx, yy = kde.density/np.max(kde.density)+(4-i)*2-2, kde.support
-			axarr[1].plot(xx, yy, color=self.colors[i+1], lw=3, label=maze, zorder=10)
-			axarr[1].fill_between(xx, yy, color=self.colors[i+1], lw=3, zorder=10, alpha=.15)
+			# xx, yy = kde.density/np.max(kde.density)+shift, kde.support
+			xx, yy = kde.density+shift, kde.support
+			axarr[1].scatter(np.ones(len(prs))*shift, prs, color=desaturate_color(self.colors[i+1]), s=50)
+
+			plot_shaded_withline(axarr[1],xx, yy, color=self.colors[i+1], lw=3, label=maze, zorder=10 )
 
 			hmax, yyy = np.max(xx), yy[np.argmax(xx)]
-			axarr[1].scatter(hmax, yyy, color=self.colors[i+1], s=250)
-			axarr[1].scatter(hmax, np.mean(yy), color=desaturate_color(self.colors[i+1]), s=250)
-			axarr[1].scatter(hmax, np.median(yy), color=desaturate_color(self.colors[i+1], k=.4), s=250)
+			hline_to_curve(axarr[1], yyy, xx, yy, color=self.colors[i+1], dot=True, line_kwargs=dict(alpha=.5, ls="--", lw=3), scatter_kwargs=dict(s=100))
+			axarr[0].axhline(np.mean(prs), color=self.colors[i+1], alpha=.5, ls="--", lw=3)
 
-			axarr[1].axhline(yyy, color=self.colors[i+1], alpha=.5, ls="--", lw=3)
-			axarr[0].axhline(yyy, color=self.colors[i+1], alpha=.5, ls="--", lw=3)
+			# Plot beta distributions of grouped analytical bayes
+			beta, support, density = get_parametric_distribution("beta", *grouped_params[maze] )
+			plot_shaded_withline(axarr[2], density, support, z=None, color=self.colors[i+1])
+			hline_to_curve(axarr[2], support[np.argmax(density)], density, support, color=self.colors[i+1], dot=True, line_kwargs=dict(alpha=.5, ls="--", lw=3), scatter_kwargs=dict(s=100))
 
 			# Plot kurtosis and skewness of the distributions
 			k, s = stats.kurtosis(kde.density), stats.skew(kde.density)
-			axarr[2].scatter(k, s, color=self.colors[i+1], s=250, label=maze)
+			axarr[3].scatter(k, s, color=self.colors[i+1], s=250, label=maze)
+
+			axarr[4].bar(4-i, len(prs), color=self.colors[i+1])
 
 		ortholines(axarr[1], [0,], [.5])
-		axarr[1].set(title="individuals pR distribution", xlabel="density",  ylim=[0, 1], xlim=[0, 9])
+		axarr[1].set(title="individuals pR distribution", xlabel="density",  ylim=[0, 1], xlim=[-2, 15])
 		make_legend(axarr[1])
 
-		ortholines(axarr[2], [1, 0,], [0, 0])
-		axarr[2].set(title="moments", xlabel="kurtosis", ylabel="skewness")
-		make_legend(axarr[2])
+		ortholines(axarr[3], [1, 0,], [0, 0])
+		axarr[3].set(title="moments", xlabel="kurtosis", ylabel="skewness")
+		make_legend(axarr[3])
 
+		ortholines(axarr[2], [0,], [.5])
+		axarr[2].set(title="grouped bayes", ylabel="p(R)", xlabel="density",  ylim=[0, 1], xlim=[-2, 20])
+
+		axarr[4].set(title="mice x maze", xticks=[1, 2, 3, 4], xticklabels=["m4", "m3", "m2", "m1"], ylabel="# mice", xlabel="maze")
 
 	def model_summary(self, exclude_experiments=[None], ax=None):
 		lr_ratios_mean_pr, grouped_modes, grouped_means, modes, means, stds, f, ax, xp, xrange = self.pr_by_condition(exclude_experiments=exclude_experiments, ax=ax)
@@ -537,7 +550,6 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis):
 		plt.show()
 		a =1 
 
-
 	def plot_effect_of_time(self):
 		rtdf = self.inspect_rt_metric(load=True, plot=False)
 
@@ -546,8 +558,6 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis):
 			# crate figure
 			f, axarr = create_figure(subplots=True, nrows=5, ncols=3, sharex=True)
 			f2, rtax = plt.subplots()
-			f3, axarr3 = plt.subplots(nrows=4, sharex=True)
-			f4, axarr4 = plt.subplots(nrows=4, sharex=True)
 
 			leftcol, centercol, rightcol = [0, 3, 6, 9, 12], [1, 4, 7, 10, 13], [2, 5, 8, 11, 14]
 
@@ -557,7 +567,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis):
 				axspeed = axarr[centercol[i]]
 				axrt = axarr[rightcol[i]]
 
-				times, times2, ones, zeros, speeds, rts, trial_numbers, trial_numbers2 = [], [], [], [], [], [], [], []
+				times, times2, ones, zeros, speeds, rts, = [], [], [], [], [], [],
 				# loop over trials
 				for n, (_, trial) in enumerate(df.iterrows()):
 					# get time of trial and escape arm
@@ -576,30 +586,26 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis):
 					times.append(x)
 					speeds.append(escape_speed)
 
-					trial_numbers.append(trial.trial_number)
-
 					# Get reaction time
 					rt = rtdf.loc[rtdf.trialid == trial.trial_id].rt_s.values
 					if np.any(rt): 
 						if not np.isnan(rt[0]):
 							times2.append(x)
 							rts.append(rt[0])
-							trial_numbers2.append(trial.trial_number)
-
 
 					# plot
 					ax.scatter(x, y, color=self.colors[i+1], s=50, alpha=.5)
 
 				# linear regression on speed and rt
-				# sns.regplot(times, speeds, ax=axspeed, robust=True, scatter=True, order=1, scatter_kws=dict(s=25, color=desaturate_color(self.colors[i+1], k=.8)),
-				# 				line_kws=dict(color=self.colors[i+1], lw=2, alpha=1), truncate=True,)
-				# sns.regplot(times2, rts, ax=axrt, robust=True, scatter=True, order=1, scatter_kws=dict(s=25, color=desaturate_color(self.colors[i+1], k=.8)),
-				# 				line_kws=dict(color=self.colors[i+1], lw=2, alpha=1), truncate=True,)
+				
+				try:
+					sns.regplot(times, speeds, ax=axspeed, robust=True, scatter=True, order=1, scatter_kws=dict(s=25, color=desaturate_color(self.colors[i+1], k=.8)),
+								line_kws=dict(color=self.colors[i+1], lw=2, alpha=1), truncate=True,)
+					sns.regplot(times2, rts, ax=axrt, robust=True, scatter=True, order=1, scatter_kws=dict(s=25, color=desaturate_color(self.colors[i+1], k=.8)),
+								line_kws=dict(color=self.colors[i+1], lw=2, alpha=1), truncate=True,)
+				except:
+					continue
 
-				sns.regplot(trial_numbers2, rts, ax=axarr3[i], robust=False, scatter=True, order=1, scatter_kws=dict(s=25, color=desaturate_color(self.colors[i+1], k=.8)),
-								line_kws=dict(color=self.colors[i+1], lw=2, alpha=1), truncate=True,)
-				sns.regplot(trial_numbers, speeds, ax=axarr4[i], robust=False, scatter=True, order=1, scatter_kws=dict(s=25, color=desaturate_color(self.colors[i+1], k=.8)),
-								line_kws=dict(color=self.colors[i+1], lw=2, alpha=1), truncate=True,)
 				# KDE on reaction time
 				plot_kde(rtax, fit_kde(rts, bw=.05), i*1.6, invert=False, normto=None, color=self.colors[i+1], label=condition)
 
@@ -643,15 +649,23 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis):
 				ax.set(title="RT vs trial number", ylabel="RT", xlabel="trial number")
 			for ax in axarr4:
 				ax.set(title="mean speed vs trial number", ylabel="mean speed", xlabel="trial number")
+
+
+
+
+
 if __name__ == "__main__":
 	pa = PsychometricAnalyser()
 
-	# pa.plot_pr_by_condition_detailed()
+	pa.plot_pr_by_condition_detailed()
 	# pa.model_summary()
 	# pa.plot_hierarchical_bayes_effect()
 
-	pa.plot_effect_of_time()
 	# pa.inspect_rt_metric()
+
+	# pa.rt_by_trial_by_mouse()
+	# pa.plot_effect_of_time()
+
 	print(pa.paths_lengths)
 
 	plt.show()
