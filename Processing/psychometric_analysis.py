@@ -13,11 +13,12 @@ from Utilities.imports import *
 from Processing.plot.plot_distributions import plot_fitted_curve, dist_plot
 from Processing.analyse_experiments import ExperimentsAnalyser
 from Processing.rt_analysis import rtAnalysis
+from Processing.timed_analysis import timedAnalysis
 
 # %%
 # Define class
 
-class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis):
+class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis):
 	maze_names = {"maze1":"asymmetric_long", "maze2":"asymmetric_mediumlong", "maze3":"asymmetric_mediumshort", "maze4":"symmetric"}
 
 	# DT simulation params
@@ -83,7 +84,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis):
 		stds = {k:[np.std(m) for m in v.T] for k,v in trace.items()}
 		means = {k:[np.mean(m) for m in v.T] for k,v in trace.items()}
 
-		return modes, means, stds
+		return modes, means, stds, trace
 
 	"""
 		||||||||||||||||||||||||||||    DECISION THEORY MODEL     |||||||||||||||||||||
@@ -257,7 +258,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis):
 	"""
 		||||||||||||||||||||||||||||    BAYES     |||||||||||||||||||||
 	"""
-	
+
 	def sigmoid_bayes(self, plot=True, load=False, robust=False):
 		tracename = os.path.join(self.metadata_folder, "robust_sigmoid_bayes.pkl")
 		if not load:
@@ -306,6 +307,25 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis):
 			df = pd.read_pickle(tracename)
 		return df
 
+	def closer_look_at_hb(self):
+		# Get paths length ratios and p(R) by condition
+		hits, ntrials, p_r, n_mice, trials = self.get_binary_trials_per_condition(self.conditions)
+		modes, means, stds, traces = self.get_hb_modes()
+		f, axarr = create_figure(subplots=False, nrows=4, sharex=True)
+
+		for i, (condition, trace) in enumerate(traces.items()):
+			sort_idx = np.argsort(means[condition])
+			for mn, id in enumerate(sort_idx):
+				tr = trace[:, id]
+				kde = fit_kde(random.choices(tr,k=1000), bw=.05)
+				plot_kde(axarr[i], kde, z=mn, vertical=True, normto=.75, color=self.colors[i+1], lw=.5)
+
+			axarr[i].set(ylim=[0, 1], ylabel=condition)
+			axarr[i].axhline(.5, **grey_dotted_line)
+		
+		axarr[0].set(title="HB posteriors")
+		axarr[-1].set(xlabel="mouse id")
+
 	"""
 		||||||||||||||||||||||||||||    PLOTTERS     |||||||||||||||||||||
 	"""
@@ -315,7 +335,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis):
 		xrange = [.8, 1.55]
 
 		# Get paths length ratios and p(R) by condition
-		hits, ntrials, p_r, n_mice = self.get_binary_trials_per_condition(self.conditions)
+		hits, ntrials, p_r, n_mice, trials = self.get_binary_trials_per_condition(self.conditions)
 		
 		# Get modes on individuals posteriors and grouped bayes
 		modes, means, stds = self.get_hb_modes()
@@ -362,7 +382,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis):
 		return lr_ratios_mean_pr, grouped_modes, grouped_means, modes, means, stds, f, ax, xp, xrange, grouped_params
 
 	def plot_pr_by_condition_detailed(self):
-		f, axarr = create_figure(subplots=True, ncols=5, sharey=False)
+		f, axarr = create_figure(subplots=True, ncols=4, sharey=False)
 		# plot normal pR
 		lr_ratios_mean_pr, grouped_modes, grouped_means, modes, means, stds, _, ax, xp, xrange, grouped_params = self.pr_by_condition(ax=axarr[0])
 
@@ -391,27 +411,19 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis):
 			plot_shaded_withline(axarr[2], density, support, z=None, color=self.colors[i+1])
 			hline_to_curve(axarr[2], support[np.argmax(density)], density, support, color=self.colors[i+1], dot=True, line_kwargs=dict(alpha=.5, ls="--", lw=3), scatter_kwargs=dict(s=100))
 
-			# Plot kurtosis and skewness of the distributions
-			k, s = stats.kurtosis(kde.density), stats.skew(kde.density)
-			axarr[3].scatter(k, s, color=self.colors[i+1], s=250, label=maze)
-
-			axarr[4].bar(4-i, len(prs), color=self.colors[i+1])
+			axarr[3].bar(4-i, len(prs), color=self.colors[i+1])
 
 		ortholines(axarr[1], [0,], [.5])
 		axarr[1].set(title="individuals pR distribution", xlabel="density",  ylim=[0, 1], xlim=[-2, 15])
 		make_legend(axarr[1])
 
-		ortholines(axarr[3], [1, 0,], [0, 0])
-		axarr[3].set(title="moments", xlabel="kurtosis", ylabel="skewness")
-		make_legend(axarr[3])
-
 		ortholines(axarr[2], [0,], [.5])
 		axarr[2].set(title="grouped bayes", ylabel="p(R)", xlabel="density",  ylim=[0, 1], xlim=[-2, 20])
 
-		axarr[4].set(title="mice x maze", xticks=[1, 2, 3, 4], xticklabels=["m4", "m3", "m2", "m1"], ylabel="# mice", xlabel="maze")
+		axarr[3].set(title="mice x maze", xticks=[1, 2, 3, 4], xticklabels=["m4", "m3", "m2", "m1"], ylabel="# mice", xlabel="maze")
 
 	def model_summary(self, exclude_experiments=[None], ax=None):
-		lr_ratios_mean_pr, grouped_modes, grouped_means, modes, means, stds, f, ax, xp, xrange = self.pr_by_condition(exclude_experiments=exclude_experiments, ax=ax)
+		lr_ratios_mean_pr, grouped_modes, grouped_means, modes, means, stds, f, ax, xp, xrange, _ = self.pr_by_condition(exclude_experiments=exclude_experiments, ax=ax)
 
 		# Plot simulation results   + plotted sigmoid
 		# ? logistic regression on analytical simulation
@@ -550,105 +562,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis):
 		plt.show()
 		a =1 
 
-	def plot_effect_of_time(self):
-		rtdf = self.inspect_rt_metric(load=True, plot=False)
-
-		# loop over different settings for kde
-		for bw in [60]:
-			# crate figure
-			f, axarr = create_figure(subplots=True, nrows=5, ncols=3, sharex=True)
-			f2, rtax = plt.subplots()
-
-			leftcol, centercol, rightcol = [0, 3, 6, 9, 12], [1, 4, 7, 10, 13], [2, 5, 8, 11, 14]
-
-			# loop over experiments
-			for i, (condition, df) in enumerate(self.conditions.items()):
-				ax = axarr[leftcol[i]]
-				axspeed = axarr[centercol[i]]
-				axrt = axarr[rightcol[i]]
-
-				times, times2, ones, zeros, speeds, rts, = [], [], [], [], [], [],
-				# loop over trials
-				for n, (_, trial) in enumerate(df.iterrows()):
-					# get time of trial and escape arm
-					x = trial.stim_frame_session / trial.fps
-					if 'Right' in trial.escape_arm:
-						y = 1
-						ones.append(x)
-					else:
-						y = 0
-						zeros.append(x)
-
-					# Get escape speed
-					# if y == 1:
-						# escape_speed = np.percentile(line_smoother(trial.tracking_data[:, 2], window_size=51, order=5), 80) / trial.fps
-					escape_speed = np.mean(line_smoother(trial.tracking_data[:, 2], window_size=51, order=5)) / trial.fps
-					times.append(x)
-					speeds.append(escape_speed)
-
-					# Get reaction time
-					rt = rtdf.loc[rtdf.trialid == trial.trial_id].rt_s.values
-					if np.any(rt): 
-						if not np.isnan(rt[0]):
-							times2.append(x)
-							rts.append(rt[0])
-
-					# plot
-					ax.scatter(x, y, color=self.colors[i+1], s=50, alpha=.5)
-
-				# linear regression on speed and rt
-				
-				try:
-					sns.regplot(times, speeds, ax=axspeed, robust=True, scatter=True, order=1, scatter_kws=dict(s=25, color=desaturate_color(self.colors[i+1], k=.8)),
-								line_kws=dict(color=self.colors[i+1], lw=2, alpha=1), truncate=True,)
-					sns.regplot(times2, rts, ax=axrt, robust=True, scatter=True, order=1, scatter_kws=dict(s=25, color=desaturate_color(self.colors[i+1], k=.8)),
-								line_kws=dict(color=self.colors[i+1], lw=2, alpha=1), truncate=True,)
-				except:
-					continue
-
-				# KDE on reaction time
-				plot_kde(rtax, fit_kde(rts, bw=.05), i*1.6, invert=False, normto=None, color=self.colors[i+1], label=condition)
-
-				# Plot KDEs
-				ax, kde_right = plot_kde(ax, fit_kde(ones, bw=bw), .8, invert=True, normto=.25, color=self.colors[i+1])
-				ax, kde_left = plot_kde(ax, fit_kde(zeros, bw=bw), .2, invert=False, normto=.25, color=self.colors[i+1])
-
-				# Plot ratio of KDEs in last plot
-				xxx = np.linspace(np.max([np.min(kde_right.support), np.min(kde_left.support)]), np.min([np.max(kde_right.support), np.max(kde_left.support)]), 1000)
-				ratio = [kde_right.evaluate(xx)/(kde_right.evaluate(xx)+kde_left.evaluate(xx)) for xx in xxx]
-				axarr[leftcol[4]].plot(xxx, ratio, lw=3, color=self.colors[i+1], label=condition)
-
-			# Set axes correctly
-			for i, ax in enumerate(axarr):
-				if i in leftcol:
-					kwargs = dict(ylim=[-.1, 1.1], yticklabels=["left", "right"], ylabel="escape", yticks=[0, 1],  ) 
-				elif i in centercol:
-					kwargs = dict(ylabel="mean speed", ylim=[0, .45])
-				else:
-					kwargs = dict(ylabel="rt (s)", ylim=[0, 6])
-
-				ax.set(xticks=[x*60 for x in np.linspace(0, 100, 11)], xticklabels=np.linspace(0, 100, 11), **kwargs)
-
-			axarr[leftcol[0]].set(title="Left/Right")
-			axarr[centercol[0]].set(title="Escape speed")
-			axarr[rightcol[0]].set(title="Reaction time")
-
-			axarr[leftcol[-1]].set(xlabel="time (min)")
-			axarr[centercol[-1]].set(xlabel="time (min)")
-			axarr[rightcol[-1]].set(title="Reaction times", xlabel="time (min)")
-
-
-			axarr[leftcol[4]].set(title="balance over time", xlabel="time (min)", ylabel="R / (R+L)")
-			make_legend(axarr[leftcol[4]])
-			make_legend(axarr[rightcol[-1]])
-
-			rtax.set(title="RT by experiment", ylabel="density", xlabel="time (s)")
-			make_legend(rtax)
-
-			for ax in axarr3:
-				ax.set(title="RT vs trial number", ylabel="RT", xlabel="trial number")
-			for ax in axarr4:
-				ax.set(title="mean speed vs trial number", ylabel="mean speed", xlabel="trial number")
+	
 
 
 
@@ -657,19 +571,20 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis):
 if __name__ == "__main__":
 	pa = PsychometricAnalyser()
 
-	pa.plot_pr_by_condition_detailed()
+	# pa.plot_pr_by_condition_detailed()
 	# pa.model_summary()
 	# pa.plot_hierarchical_bayes_effect()
 
-	# pa.inspect_rt_metric()
+	# pa.inspect_rt_metric(load=False)
 
-	# pa.rt_by_trial_by_mouse()
-	# pa.plot_effect_of_time()
+	# pa.plot_effect_of_time(xaxis_istime=False)
+	# pa.plot_effect_of_time(xaxis_istime=True)
+
+	# pa.timed_pr()
+
+	pa.closer_look_at_hb()
 
 	print(pa.paths_lengths)
 
 	plt.show()
 
-
-
-#%%

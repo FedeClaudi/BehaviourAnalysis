@@ -67,12 +67,12 @@ def get_distribution(dist, *args, n_samples=10000):
 	elif dist == 'gamma':
 		return np.random.gamma(args[0], args[1], n_samples)
 
-def get_parametric_distribution(dist, *args, **kwargs):
+def get_parametric_distribution(dist, *args,  x0=0.000001, x1=0.9999999, **kwargs):
     if dist == "beta":
         dist = stats.beta(*args, **kwargs)
     else: raise NotImplementedError
 
-    support = np.linspace(dist.ppf(0.001), dist.ppf(0.999), 100)
+    support = np.linspace(dist.ppf(x0), dist.ppf(x1), 100)
     density = dist.pdf(support)
     return dist, support, density
 

@@ -1,12 +1,14 @@
-# %%
+import sys
+sys.path.append('./')   # <- necessary to import packages from other directories within the project
+
 from scipy import stats
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
-# %maptlotlib inline
-# TODO add possibility to shade area under the curve
-# %%
+from Processing.plot.plotting_utils import *
+
+
 def plot_distribution(*args, dist_type="logistic", comulative=False, ax=None, shaded=False, x_range=None, plot_kwargs={}, ax_kwargs={},  **kwargs):
     # Get the distribution
     if dist_type == "logistic":
@@ -83,21 +85,22 @@ def plot_kde(ax, kde, z, invert=False, vertical=False, normto=None, label=None, 
         x, y = kde.support, kde.density
     
     if normto is not None:
-        y = y / np.max(y) * normto
+        if not vertical:
+            y = y / np.max(y) * normto
+        else:
+            x = x / np.max(x) * normto
 
     if invert:
         y = z - y
-    else: y = y + z
+    else: 
+        if not vertical: y = y + z
+        else: x = x + z
 
     plot_shaded_withline(ax, x, y, z, **kwargs)
 
     return ax, kde
         
 
-
-
-# %%
 if __name__ == "__main__":
-    # Plot some curves
-    plot_distribution(2, 7, dist_type="beta", shaded=True, x_range=[0, 1], plot_kwargs={"color":"r"}, ax_kwargs={})
+    plot_distribution(1.001, 1.001, dist_type="beta")
     plt.show()

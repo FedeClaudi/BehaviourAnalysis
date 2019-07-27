@@ -15,7 +15,7 @@ class Bayes:
     concentration_hyper = (1, 10)  # mean and std of hyper gamma distribution (concentrations)
     k_hyper_shape, k_hyper_rate = 0.01, 0.01
 
-    a, b  = 1, 1 # Parameters of priors Beta for individual and grouped analytical solution
+    a, b  = 1.00, 1.00 # Parameters of priors Beta for individual and grouped analytical solution
 
     def __init__(self):
         pass
@@ -160,7 +160,15 @@ class Bayes:
         else:
             raise ValueError("need to pass either condtions or data")
 
- 
+    def simple_analytical_bayes(self, trials):
+        # trials = 1d array of 0s and 1s
+        k, n = np.sum(trials), len(trials)
+        a2, b2 = self.a - 1 + k, self.b - 1 + n - k
+        fact = binom(n, k)
+
+        mean, var, skew, kurt = stats.beta.stats(a2, b2, moments='mvsk')
+        return (a2, b2, fact), mean, var
+        
     def bayesian_logistic_regression(self, xdata, ydata):
         # ? from doing bayesian data analysis p 324
         print("fitting bayesian logistic regression")
