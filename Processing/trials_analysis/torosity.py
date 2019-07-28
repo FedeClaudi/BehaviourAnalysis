@@ -392,47 +392,6 @@ class Torosity(Trials):
 			ax.legend()
 
 
-	def plot_binned_threat_torosity(self):
-		# ? get binned torosity
-		# res, ares, res1, ares1, res2, ares2 = self.load_all_res()
-
-		# f, ax = plt.subplots()
-
-		# # loop over each trial
-		# all_trials_tors = []
-		# for i,tr in res.iterrows():
-		# 	print("processing trial ", i)
-		# 	tor = tr.threat_torosity
-		# 	end = tr.time_out_of_t
-		# 	tracking = tr.tracking_data
-		# 	br = tr.escape_arm
-
-		# 	# Loop over each time step before the mouse leaves the threat platform
-		# 	trial_tor = []
-		# 	for i in np.arange(end):
-		# 		trial_tor.append(self.process_one_trial(None, br, tracking=tracking[i:end, :, :], goal=list(tracking[end, :2, 0])))
-
-		# 	all_trials_tors.append(trial_tor)
-
-		# 	ax.plot(trial_tor, linewidth=2, alpha=.5)
-
-		# res['time_binned_threat_torosity'] = all_trials_tors
-
-		# res.to_pickle("Processing/trials_analysis/torosity_final.pkl")
-
-		res = pd.read_pickle("Processing/trials_analysis/torosity_final.pkl")
-		res = res.sort_values("threat_torosity", )
-		f, ax = plt.subplots()
-
-		for i,tbt in enumerate(res.time_binned_threat_torosity):
-			try:
-				normalised = normalise_to_val_at_idx(tbt, 0)
-				below_th = np.where(normalised < .75)[0][0]
-				ax.plot(normalised, alpha=.3)
-				ax.scatter(below_th, normalised[below_th], c='r')
-			except: pass
-
-	
 
 
 

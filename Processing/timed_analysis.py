@@ -10,7 +10,7 @@ class timedAnalysis:
     def __init__(self):
         pass
 
-    def plot_effect_of_time(self, xaxis_istime=True):
+    def plot_effect_of_time(self, xaxis_istime=True, robust=False):
             rtdf = self.inspect_rt_metric(load=True, plot=False)
 
             if xaxis_istime: bw = 60
@@ -61,9 +61,9 @@ class timedAnalysis:
 
                 # linear regression on speed and rt
                 try:
-                    sns.regplot(times, speeds, ax=axspeed, robust=False, scatter=True, order=1, scatter_kws=dict(s=25, color=desaturate_color(self.colors[i+1], k=.8)),
+                    sns.regplot(times, speeds, ax=axspeed, robust=robust, scatter=True, order=1, scatter_kws=dict(s=25, color=desaturate_color(self.colors[i+1], k=.8)),
                                 line_kws=dict(color=self.colors[i+1], lw=2, alpha=1), truncate=True,)
-                    sns.regplot(times2, rts, ax=axrt, robust=False, scatter=True, order=1, scatter_kws=dict(s=25, color=desaturate_color(self.colors[i+1], k=.8)),
+                    sns.regplot(times2, rts, ax=axrt, robust=robust, scatter=True, order=1, scatter_kws=dict(s=25, color=desaturate_color(self.colors[i+1], k=.8)),
                                 line_kws=dict(color=self.colors[i+1], lw=2, alpha=1), truncate=True,)
                 except:
                     continue
@@ -141,7 +141,7 @@ class timedAnalysis:
 
                     if len(outcomes_in_window) < 5: continue # skip times when there are too few trials
                     
-                    (a, b), mean, var = self.simple_analytical_bayes(outcomes_in_window)
+                    (a, b, fact), mean, var = self.simple_analytical_bayes(outcomes_in_window)
 
                     beta, support, density = get_parametric_distribution("beta", a, b, x0=0.05, x1=0.95)
                     try:

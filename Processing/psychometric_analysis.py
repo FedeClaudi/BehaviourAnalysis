@@ -14,11 +14,12 @@ from Processing.plot.plot_distributions import plot_fitted_curve, dist_plot
 from Processing.analyse_experiments import ExperimentsAnalyser
 from Processing.rt_analysis import rtAnalysis
 from Processing.timed_analysis import timedAnalysis
+from Processing.timeseries_analysis import TimeSeriesAnalysis
 
 # %%
 # Define class
 
-class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis):
+class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeSeriesAnalysis):
 	maze_names = {"maze1":"asymmetric_long", "maze2":"asymmetric_mediumlong", "maze3":"asymmetric_mediumshort", "maze4":"symmetric"}
 
 	# DT simulation params
@@ -315,10 +316,23 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis):
 
 		for i, (condition, trace) in enumerate(traces.items()):
 			sort_idx = np.argsort(means[condition])
+			at_chance = 0
 			for mn, id in enumerate(sort_idx):
 				tr = trace[:, id]
-				kde = fit_kde(random.choices(tr,k=1000), bw=.05)
+				# Plot raw PR
+				axarr[i].scatter(mn+.1, p_r[condition][id], color=teal, s=25, alpha=.8)
+
+				# Plot KDE of posterior
+				kde = fit_kde(random.choices(tr,k=5000), bw=.025)
 				plot_kde(axarr[i], kde, z=mn, vertical=True, normto=.75, color=self.colors[i+1], lw=.5)
+
+				# plot 95th percentile_range of posterior's means
+				percrange = percentile_range(tr)
+				axarr[i].scatter(mn, percrange.mean, color=self.colors[i+1], s=25)
+				axarr[i].plot([mn, mn], [percrange.low, percrange.high], color=grey, lw=2, alpha=.4)
+				if percrange.low <= .5: at_chance += 1
+
+			axarr[i].text(0.95, 0.1, '{} above chance'.format(round((len(sort_idx)-at_chance)/len(sort_idx)*100, 2)), color=grey, fontsize=15, transform=axarr[i].transAxes, **text_axaligned)
 
 			axarr[i].set(ylim=[0, 1], ylabel=condition)
 			axarr[i].axhline(.5, **grey_dotted_line)
@@ -571,16 +585,16 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis):
 if __name__ == "__main__":
 	pa = PsychometricAnalyser()
 
-	pa.plot_pr_by_condition_detailed()
+	# pa.plot_pr_by_condition_detailed()
 	# pa.model_summary()
-	pa.plot_hierarchical_bayes_effect()
+	# pa.plot_hierarchical_bayes_effect()
 
-	pa.inspect_rt_metric(load=False)
+	# pa.inspect_rt_metric(load=False)
 
 	# pa.plot_effect_of_time(xaxis_istime=False)
-	pa.plot_effect_of_time(xaxis_istime=True)
+	# pa.plot_effect_of_time(xaxis_istime=True, robust=False)
 
-	pa.timed_pr()
+	# pa.timed_pr()
 
 	pa.closer_look_at_hb()
 

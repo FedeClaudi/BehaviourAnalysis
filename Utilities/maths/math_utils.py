@@ -23,10 +23,10 @@ except:
 
 # ! ARRAY NORMALISATION and FUNCTIONS
 def find_nearest(a, a0):
-    "Element in nd array `a` closest to the scalar value `a0`"
-    idx = np.abs(a - a0).argmin()
-    return a.flat[idx]
-    
+	"Element in nd array `a` closest to the scalar value `a0`"
+	idx = np.abs(a - a0).argmin()
+	return a.flat[idx]
+	
 def interpolate_nans(A):
 	nan = np.nan
 	ok = ~np.isnan(A)
@@ -56,12 +56,12 @@ def normalise_1d(arr):
 	return normed
 
 def find_hist_peak(arr, bins=None, density=True):
-    if bins is None: bins = np.linspace(np.min(arr), np.max(arr), 10)
-    
-    hist, binedges = np.histogram(arr, bins=bins, density=density)
-    yi, y = np.argmax(hist), np.max(hist)
-    x = np.mean(binedges[yi:yi+2])
-    return yi, y, x
+	if bins is None: bins = np.linspace(np.min(arr), np.max(arr), 10)
+	
+	hist, binedges = np.histogram(arr, bins=bins, density=density)
+	yi, y = np.argmax(hist), np.max(hist)
+	x = np.mean(binedges[yi:yi+2])
+	return yi, y, x
 
 
 # ! COLORS
@@ -69,18 +69,18 @@ def get_n_colors(n):
 	return [plt.get_cmap("tab20")(i) for i in np.arange(n)]
 
 def desaturate_color(c, k=.5):
-    # c needs to be an array of 3 floats that specify RGB color
-    # k needs to be a float between 0 and 1
-    return [cc*k for cc in c]
+	# c needs to be an array of 3 floats that specify RGB color
+	# k needs to be a float between 0 and 1
+	return [cc*k for cc in c]
 
 # ! MOMENTS
 def moving_average(arr, window_size):
-    cumsum_vec = np.cumsum(np.insert(arr, 0, 0)) 
-    return (cumsum_vec[window_size:] - cumsum_vec[:-window_size]) / window_size
+	cumsum_vec = np.cumsum(np.insert(arr, 0, 0)) 
+	return (cumsum_vec[window_size:] - cumsum_vec[:-window_size]) / window_size
 
 def mean_confidence_interval(data, confidence=0.95):
 	mean, var, std = stats.bayes_mvs(data)
-	res = namedtuple("confidenceinterval", "mean interval_min interval_max")
+	res = namedtuple("confidenceinterval", "mean low high")
 	return res(mean.statistic, mean.minmax[0], mean.minmax[1])
 
 def percentile_range(data, low=5, high=95):
@@ -90,8 +90,9 @@ def percentile_range(data, low=5, high=95):
 	lowp = np.percentile(data, low)
 	highp = np.percentile(data, high)
 	median = np.median(data)
-	res = namedtuple("percentile", "low median high")
-	return res(lowp, median, highp)
+	mean = np.mean(data)
+	res = namedtuple("percentile", "low median mean high")
+	return res(lowp, median, mean, highp)
 
 # ! MISC
 def fill_nans_interpolate(y, pkind='linear'):
