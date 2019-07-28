@@ -32,7 +32,7 @@ class Bayes:
         return trace
 
     def model_hierarchical_bayes(self, conditions):
-        hits, ntrials, p_r, n_mice = self.get_binary_trials_per_condition(conditions)
+        hits, ntrials, p_r, n_mice, _ = self.get_binary_trials_per_condition(conditions)
 
         # Create model and fit
         n_conditions = len(list(conditions.keys()))
@@ -66,7 +66,7 @@ class Bayes:
         """
         a, b  = self.a, self.b
         if conditions is not None:
-            hits, ntrials, p_r, n_mice = self.get_binary_trials_per_condition(conditions)
+            hits, ntrials, p_r, n_mice, _ = self.get_binary_trials_per_condition(conditions)
             # for (cond, H), (c, N) in zip(hits.items(), ntrials.items())
             raise NotImplementedError
         elif data is not None:

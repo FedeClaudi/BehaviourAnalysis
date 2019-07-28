@@ -252,21 +252,21 @@ if __name__ == '__main__':
     # p.delete_wrong_entries()
         
     # ? These tables population is fast and largely automated
-    # p.populate_mice_table()   # ! mice recordings, components... 
-    # p.populate_sessions_table()
+    p.populate_mice_table()   # ! mice recordings, components... 
+    p.populate_sessions_table()
 
-    # p.recording.populate(display_progress=True) 
-    # p.recording.make_paths(p) 
-    # p.recording.make_aligned_frames() 
-    # p.mazecomponents.populate(display_progress=True)  # ? this will require input for new experiments
+    p.recording.populate(display_progress=True) 
+    p.recording.make_paths(p) 
+    p.recording.make_aligned_frames() 
+    p.mazecomponents.populate(display_progress=True)  # ? this will require input for new experiments
 
     # ? This slower and will require some input
     # p.ccm.populate(display_progress=True)  # ! ccm
 
     # ? this is considerably slower but should be automated
-    errors = p.trackingdata.populate(display_progress=True, suppress_errors=False, return_exception_objects =True) # ! tracking data
+    # errors = p.trackingdata.populate(display_progress=True, suppress_errors=False, return_exception_objects =True) # ! tracking data
 
-    errors = p.stimuli.populate(display_progress=True, suppress_errors=False, return_exception_objects=True) # , max_calls =10)  # ! stimuli
+    # errors = p.stimuli.populate(display_progress=True, suppress_errors=False, return_exception_objects=True) # , max_calls =10)  # ! stimuli
     # p.stimuli.make_metadata() # ? only used for visual stims
 
 

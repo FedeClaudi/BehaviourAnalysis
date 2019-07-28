@@ -338,7 +338,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis):
 		hits, ntrials, p_r, n_mice, trials = self.get_binary_trials_per_condition(self.conditions)
 		
 		# Get modes on individuals posteriors and grouped bayes
-		modes, means, stds = self.get_hb_modes()
+		modes, means, stds, _ = self.get_hb_modes()
 		grouped_modes, grouped_means, grouped_params = self.bayes_by_condition_analytical(mode="grouped", plot=False) 
 
 		 # Plot each individual's pR and the group mean as a factor of L/R length ratio
@@ -465,11 +465,11 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis):
 
 	def plot_hierarchical_bayes_effect(self):
 		# Get hierarchical Bayes modes and individual mice p(R)
-		hits, ntrials, p_r, n_trials = self.get_binary_trials_per_condition(self.conditions)
+		hits, ntrials, p_r, n_trials, _ = self.get_binary_trials_per_condition(self.conditions)
 		trace = self.bayes_by_condition(conditions=self.conditions, load=True, tracefile="psychometric_individual_bayes.pkl", plot=False) 
 
 		# Get the mode of the posteriors
-		modes, means, stds = self.get_hb_modes()
+		modes, means, stds, _ = self.get_hb_modes()
 
 		f, axarr = plt.subplots(ncols=4, sharex=True, sharey=True)
 		
@@ -571,16 +571,16 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis):
 if __name__ == "__main__":
 	pa = PsychometricAnalyser()
 
-	# pa.plot_pr_by_condition_detailed()
+	pa.plot_pr_by_condition_detailed()
 	# pa.model_summary()
-	# pa.plot_hierarchical_bayes_effect()
+	pa.plot_hierarchical_bayes_effect()
 
-	# pa.inspect_rt_metric(load=False)
+	pa.inspect_rt_metric(load=False)
 
 	# pa.plot_effect_of_time(xaxis_istime=False)
-	# pa.plot_effect_of_time(xaxis_istime=True)
+	pa.plot_effect_of_time(xaxis_istime=True)
 
-	# pa.timed_pr()
+	pa.timed_pr()
 
 	pa.closer_look_at_hb()
 

@@ -425,12 +425,11 @@ if __name__ == "__main__":
     ea = ExperimentsAnalyser()
     print(ea)
 
-    ea.get_arms_lengths_with_agent()
+    # ea.get_arms_lengths_with_agent()
 
-    # ea.save_trials_to_pickle()
-    # ea.tracking_custom_plot()
-    # ea.plot_pr_by_condition()
-    # ea.bayes_by_condition(conditions=None,  load=False, tracefile="psychometric_individual_bayes.pkl", plot=True)
+    ea.save_trials_to_pickle()
+    ea.tracking_custom_plot()
+    ea.bayes_by_condition(conditions=None,  load=False, tracefile="psychometric_individual_bayes.pkl", plot=True)
 
     # ea.escape_definition_investigation()
     # ea.escape_thershold_effect()
