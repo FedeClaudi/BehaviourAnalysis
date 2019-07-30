@@ -8,6 +8,7 @@ from math import factorial as fact
 from scipy.special import binom
 import pickle
 import pymc3 as pm
+import pydot
 
 class Bayes:
     # Bayes hyper params
@@ -30,6 +31,13 @@ class Bayes:
     def load_trace(self, loadname):
         trace = pd.read_pickle(loadname)
         return trace
+    
+    def save_model_image(self, model, savepath):
+        model = pm.model_to_graphviz(model)
+        model.render(filename=savepath)
+        a =  1
+
+
 
     def model_hierarchical_bayes(self, conditions):
         hits, ntrials, p_r, n_mice, _ = self.get_binary_trials_per_condition(conditions)
@@ -50,11 +58,59 @@ class Bayes:
 
             # Fit
             print("Got all the variables, starting NUTS sampler")
-            trace = pm.sample(6000, tune=500, cores=2, nuts_kwargs={'target_accept': 0.99}, progressbar=True)
-            
+            self.save_model_image(model, os.path.join("D:\\Dropbox (UCL - SWC)\\Rotation_vte\\plots\\00_Psychometric", "hb"))
+            # trace = pm.sample(6000, tune=500, cores=2, nuts_kwargs={'target_accept': 0.99}, progressbar=True)
+
             # pm.traceplot(trace)
             plt.show()
         return trace
+
+    def test_hierarchical_bayes_v2(self):
+        # Get all data organised
+        data = self.get_hits_ntrials_maze_dataframe()
+
+        # Define model and fit
+        print("Setting up model: ")
+        n_conditions = len(self.conditions.keys())
+        n_mice = len(data)
+        with pm.Model() as model:
+            # Define hypers
+            omega_prior = pm.Beta("omega_prior", alpha=1, beta=1)
+            kappa_prior = pm.Gamma("kappa_prior", alpha=.01, beta=.01)
+            print("     ... got hypers")
+
+            # Define categorical mode distribution and concentration
+            omegas_c,  kappas_c = [], []
+            for i in np.arange(n_conditions):
+                a_c, b_c = beta_distribution_params(omega=omega_prior, kappa=kappa_prior)
+
+                omg_c = pm.Beta("omg_c_{}".format(list(self.conditions.keys())[i]), alpha=a_c, beta=b_c)
+                omegas_c.append(omg_c)
+
+                kp_c = pm.Gamma("kp_c_{}".format(list(self.conditions.keys())[i]), alpha=.01, beta=.01)
+                kappas_c.append(kp_c)
+            print("     ... got categories")
+
+            # Define the prior of each mouse's bias
+            betas_theta = []
+            for i, mouse in data.iterrows():
+                a_t, b_t = beta_distribution_params(omega=omegas_c[mouse.maze], kappa=kappas_c[mouse.maze])
+
+                beta_theta = pm.Beta("beta_theta_{}".format(i), alpha=a_t, beta=b_t)
+                betas_theta.append(beta_theta)
+
+                likelihood = pm.Binomial("likelihood_{}".format(i), n=mouse.n, p=beta_theta, observed=mouse.k)
+
+            # Fit
+            print("Got all the variables, starting NUTS sampler")
+            
+            self.save_model_image(model, os.path.join("D:\\Dropbox (UCL - SWC)\\Rotation_vte\\plots\\00_Psychometric", "hb2"))
+            trace = pm.sample(1000, tune=500, cores=1, nuts_kwargs={'target_accept': 0.99}, progressbar=True)
+            
+        pm.traceplot(trace)
+        plt.show()
+        
+        self.save_bayes_trace(trace, os.path.join(self.metadata_folder, "test_hb_trace.pkl"))
 
 
     def analytical_bayes_individuals(self, conditions=None, data=None, mode="individuals", plot=True):
@@ -186,8 +242,6 @@ class Bayes:
             trace = pm.sample(1000, tune=500, cores=3, discard_tuned_samples=True)
             pm.traceplot(trace)
         return trace
-
-
 
     def robust_bayesian_logistic_regression(self, xdata, ydata):
         # ? from doing bayesian data analysis p 324

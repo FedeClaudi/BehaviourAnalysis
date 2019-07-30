@@ -89,7 +89,7 @@ def ortholines(ax, orientations, values, color=[.7, .7, .7], lw=3, alpha=.5, ls=
 
         func(v, color=color, lw=lw, alpha=alpha, ls=ls, **kwargs)
 
-def vline_to_curve(ax, x, xdata, ydata, **kwargs):
+def vline_to_curve(ax, x, xdata, ydata, dot=False, line_kwargs={}, scatter_kwargs={}, **kwargs):
     """[plots a vertical line from the x axis to the curve at location x]
     
     Arguments:
@@ -101,7 +101,9 @@ def vline_to_curve(ax, x, xdata, ydata, **kwargs):
     xline, yline = line[0].get_data()
     x = find_nearest(xline, x)
     yval = yline[np.where(xline == x)[0][0]]
-    ax.plot([x, x], [0, yval], **kwargs)
+    ax.plot([x, x], [0, yval], **line_kwargs)
+    if dot:
+        ax.scatter(x, yval, **scatter_kwargs, **kwargs)
 
 def vline_to_point(ax, x, y, **kwargs):
     ax.plot([x, x], [0, y], **kwargs)
@@ -122,9 +124,9 @@ def hline_to_curve(ax, y, xdata, ydata, dot=False, line_kwargs={}, scatter_kwarg
     if dot:
         ax.scatter(xval, y, **scatter_kwargs, **kwargs)
 
-def plot_shaded_withline(ax, x, y, z=None, label=None,  **kwargs):
+def plot_shaded_withline(ax, x, y, z=None, label=None, alpha=.15,  **kwargs):
     if z is not None:
-        ax.fill_between(x, z, y, alpha=.15, **kwargs)
+        ax.fill_between(x, z, y, alpha=alpha, **kwargs)
     else:
-        ax.fill_between(x, y, alpha=.15, **kwargs)
+        ax.fill_between(x, y, alpha=alpha, **kwargs)
     ax.plot(x, y, alpha=1, label=label, **kwargs)

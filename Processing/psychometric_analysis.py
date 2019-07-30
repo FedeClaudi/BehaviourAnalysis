@@ -77,8 +77,10 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 	"""
 		||||||||||||||||||||||||||||    GETTERS     |||||||||||||||||||||
 	"""
-	def get_hb_modes(self):
-		trace = self.bayes_by_condition(conditions=self.conditions, load=True, tracefile="psychometric_individual_bayes.pkl", plot=False)
+	def get_hb_modes(self, trace=None):
+		if trace is None:
+			trace = self.bayes_by_condition(conditions=self.conditions, load=True, tracefile="psychometric_individual_bayes.pkl", plot=False)
+		
 		n_bins = 100
 		bins = {k:[np.digitize(a, np.linspace(0, 1, n_bins)) for a in v.T] for k,v in trace.items()}
 		modes = {k:[np.median(b)/n_bins for b in bins] for k,bins in bins.items()}
@@ -342,6 +344,71 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 		axarr[0].set(title="HB posteriors")
 		axarr[-1].set(xlabel="mouse id")
 
+	def inspect_hbv2(self):
+		# Plot the restults of the alternative hierarchical model
+
+		# Load trace and get data
+		trace = self.load_trace(os.path.join(self.metadata_folder, "test_hb_trace.pkl"))
+		data = self.get_hits_ntrials_maze_dataframe()
+
+
+		# Plot
+		f, axarr = create_figure(subplots=True, ncols=2, nrows=2)
+
+		xmaxs = {k:[[], []] for k,v in self.conditions.items()}
+		for column in trace:
+			if not "beta_theta" in column: continue
+			n = int(column.split("_")[-1])
+			mouse = data.iloc[n]
+			ax = axarr[mouse.maze]
+			color = self.colors[1 + mouse.maze]
+
+			kde = fit_kde(random.choices(trace[column], k=5000),   bw=.025)
+			plot_kde(ax, kde, color=desaturate_color(color), z=0, alpha=0)
+
+			xmax = kde.support[np.argmax(kde.density)]
+			vline_to_curve(ax, xmax, kde.support, kde.density, dot=True, 
+							line_kwargs=dict(alpha=.85, ls="--", lw=2, color=color), scatter_kwargs=dict(s=100, color=color), zorder=100)
+			ax.scatter(xmax, 0, s=100, color=color, alpha=.8)
+			xmaxs["maze{}".format(mouse.maze+1)][0].append(xmax)
+			xmaxs["maze{}".format(mouse.maze+1)][1].append(np.std(kde.density))
+
+		for i, (k, v) in enumerate(xmaxs.items()):
+			# kde = fit_kde(v[0], kernel="gau", bw=.025)
+			kde = fit_kde(v[0],  weights=np.array(v[1]), kernel="gau", fft=False, bw=.025, gridsize=250) 
+			plot_kde(axarr[i], kde, invert=True, color=self.colors[i+1], z=0, alpha=.2)
+			axarr[i].axhline(0, **grey_line)
+
+
+		axarr[2].set(title="maze 3", xlim=[-.1, 1.1], ylim=[-8, 8])
+		axarr[1].set(title="maze 2", xlim=[-.1, 1.1], ylim=[-8, 8])
+		axarr[3].set(title="maze 4", xlim=[-.1, 1.1], ylim=[-8, 8])
+		axarr[0].set(title="maze 1", xlim=[-.1, 1.1], ylim=[-8, 8])
+
+
+	def test(self):
+		# Add the KDE's for each mouse in an expeirment and plot
+		f, ax = plt.subplots()
+		trace = self.load_trace(os.path.join(self.metadata_folder, "test_hb_trace.pkl"))
+		data = self.get_hits_ntrials_maze_dataframe()
+
+		comulative_trace = {k:np.zeros(2000) for k,v in self.conditions.items()}
+		n_mices = {k:0 for k,v in self.conditions.items()}
+		for column in trace:	
+			if not "beta_theta" in column: continue
+			n = int(column.split("_")[-1])
+			mouse = data.iloc[n]
+			
+			comulative_trace["maze{}".format(mouse.maze + 1)] += trace[column]
+			n_mices["maze{}".format(mouse.maze + 1)] += 1
+
+		for i, (k, v) in enumerate(comulative_trace.items()):
+			kde = fit_kde(v/n_mices[k],   bw=.025)
+			plot_kde(ax, kde, invert=False, color=self.colors[i+1], z=0, alpha=.2, label=k)
+
+		make_legend(ax)
+		ax.set(ylabel="probability", xlabel="p(R)", xlim=[0, 1])
+
 	"""
 		||||||||||||||||||||||||||||    PLOTTERS     |||||||||||||||||||||
 	"""
@@ -420,7 +487,6 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 				# Plot mean and 95th percentile range of probabilities 
 				plot_shaded_withline(axarr[2], kde.cdf, yy, color=desaturate_color(self.colors[i+1]), lw=3,  zorder=10 )
 
-
 				# percrange = percentile_range(prs)
 				# axarr[1].scatter(shift, percrange.mean, color=white, s=50, zorder=50)
 				# axarr[1].plot([shift, shift], [percrange.low, percrange.high], color=grey, lw=4, alpha=.9, zorder=40)
@@ -495,28 +561,47 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 		hits, ntrials, p_r, n_trials, _ = self.get_binary_trials_per_condition(self.conditions)
 		trace = self.bayes_by_condition(conditions=self.conditions, load=True, tracefile="psychometric_individual_bayes.pkl", plot=False) 
 
+		# Get data from the alternative hierarchical model
+		v2trace = self.load_trace(os.path.join(self.metadata_folder, "test_hb_trace.pkl"))
+		v2_cols = [k  for k in v2trace.columns if "beta_theta" in k]
+		data = self.get_hits_ntrials_maze_dataframe()
+
 		# Get the mode of the posteriors
 		modes, means, stds, _ = self.get_hb_modes()
 
 		f, axarr = plt.subplots(ncols=4, sharex=True, sharey=True)
 		
 		for i, (exp, ax) in enumerate(zip(trace.keys(), axarr)):
+			# Plot mean and errorbar for naive and standard hb
 			ax.errorbar(0.1, np.mean(p_r[exp]), yerr=np.std(p_r[exp]),  **white_errorbar)
 			ax.errorbar(0.9, np.mean(means[exp]), yerr=np.std(means[exp]),  **white_errorbar)
+
+			# Plot data from naive and standard hb
 			ax.scatter(np.random.normal(0, .025, size=len(p_r[exp])), p_r[exp], color=self.colors[i+1], alpha=.5, s=200)
 			ax.scatter(np.random.normal(1, .025, size=len(means[exp])), means[exp], color=self.colors[i+1], alpha=.5, s=200)
 
-			kde = sm.nonparametric.KDEUnivariate(p_r[exp])
-			kde.fit(bw=.05) # Estimate the densities
-			ax.fill_between(kde.density/(np.max(kde.density)*3), 0, kde.support, alpha=.1, color=self.colors[i+1], lw=3, zorder=10)
+			# Plot KDEs
+			kde = fit_kde(p_r[exp],   bw=.05)
+			plot_kde(ax, kde, z=0, vertical=True, normto=.3, color=self.colors[i+1],)
 
-			kde = sm.nonparametric.KDEUnivariate(means[exp])
-			kde.fit(bw=.05) # Estimate the densities
-			ax.fill_between(1-kde.density/(np.max(kde.density)*3), 0, kde.support, alpha=.1, color=self.colors[i+1], lw=3,zorder=10)
+			kde = fit_kde(means[exp],   bw=.05)
+			plot_kde(ax, kde, z=1, vertical=True, invert=False, normto=.3, color=self.colors[i+1],)
 
+			# Add results from alternative hb
+			exp_mice = data.loc[data.maze == int(exp[-1])-1].index
+			exp_traces_cols = [k for k in v2_cols if int(k.split("_")[-1]) in exp_mice]
+			t = v2trace[exp_traces_cols].values
+			v2means, v2stds = np.mean(t, 0), np.std(t, 0)
+
+			ax.errorbar(1.9, np.mean(v2means), yerr=np.std(v2means),  **white_errorbar)
+			ax.scatter(np.random.normal(2, .025, size=len(v2means)), v2means, color=self.colors[i+1], alpha=.5, s=200)
+
+			kde = fit_kde(v2means,   bw=.05)
+			plot_kde(ax, kde, z=2, vertical=True, invert=False, normto=.3, color=self.colors[i+1],)
+
+			# Set ax
 			ortholines(ax, [0,], [.5])
-
-			ax.set(title=exp, xlim=[-.1, 1.1], ylim=[-.02, 1.02], xticks=[0, 1], xticklabels=["Raw", "hb means"], ylabel="p(R)")
+			ax.set(title=exp, xlim=[-.1, 3.1], ylim=[-.02, 1.02], xticks=[0, 1, 2], xticklabels=["Raw", "hb means", "hb_v2"], ylabel="p(R)")
 
 	def plot_utility_function(self):
 		def get_utility_matrix():
@@ -598,7 +683,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 if __name__ == "__main__":
 	pa = PsychometricAnalyser()
 
-	pa.plot_pr_by_condition_detailed()
+	# pa.plot_pr_by_condition_detailed ()
 	# pa.model_summary()
 	# pa.plot_hierarchical_bayes_effect()
 
@@ -611,7 +696,14 @@ if __name__ == "__main__":
 
 	# pa.closer_look_at_hb()
 
+	pa.test_hierarchical_bayes_v2()
+	pa.test()
+	# pa.inspect_hbv2()
+
 	print(pa.paths_lengths)
 
 	plt.show()
 
+
+
+#%%

@@ -189,6 +189,20 @@ class ExperimentsAnalyser(Bayes):
             merged = merged.append(df)
         return merged
 
+    def get_hits_ntrials_maze_dataframe(self):
+        data = dict(id=[], k=[], n=[], maze=[])
+        hits, ntrials, p_r, n_mice, _ = self.get_binary_trials_per_condition(self.conditions)
+
+        for i, (k, n) in enumerate(zip(hits.values(), ntrials.values())):
+            for ii, (kk, nn) in enumerate(zip(k, n)):
+                data["id"].append(ii)
+                data["k"].append(kk)
+                data["n"].append(nn)
+                data["maze"].append(i)
+
+        data = pd.DataFrame.from_dict(data)
+        return data
+
     """
     ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
                          ANALYSE STUFF
