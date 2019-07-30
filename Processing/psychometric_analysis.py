@@ -316,7 +316,8 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 
 		for i, (condition, trace) in enumerate(traces.items()):
 			sort_idx = np.argsort(means[condition])
-			at_chance = 0
+			nmice = len(sort_idx)
+			above_chance, below_chance = 0, 0
 			for mn, id in enumerate(sort_idx):
 				tr = trace[:, id]
 				# Plot raw PR
@@ -330,9 +331,10 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 				percrange = percentile_range(tr)
 				axarr[i].scatter(mn, percrange.mean, color=self.colors[i+1], s=25)
 				axarr[i].plot([mn, mn], [percrange.low, percrange.high], color=grey, lw=2, alpha=.4)
-				if percrange.low <= .5: at_chance += 1
+				if percrange.low > .5: above_chance += 1
+				elif percrange.high < .5: below_chance += 1
 
-			axarr[i].text(0.95, 0.1, '{} above chance'.format(round((len(sort_idx)-at_chance)/len(sort_idx)*100, 2)), color=grey, fontsize=15, transform=axarr[i].transAxes, **text_axaligned)
+			axarr[i].text(0.95, 0.1, '{}% above .5 - {}% below .5'.format(round(above_chance/nmice*100, 2), round(below_chance/nmice*100, 2)), color=grey, fontsize=15, transform=axarr[i].transAxes, **text_axaligned)
 
 			axarr[i].set(ylim=[0, 1], ylabel=condition)
 			axarr[i].axhline(.5, **grey_dotted_line)
@@ -396,45 +398,56 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 		return lr_ratios_mean_pr, grouped_modes, grouped_means, modes, means, stds, f, ax, xp, xrange, grouped_params
 
 	def plot_pr_by_condition_detailed(self):
-		f, axarr = create_figure(subplots=True, ncols=4, sharey=False)
-		# plot normal pR
-		lr_ratios_mean_pr, grouped_modes, grouped_means, modes, means, stds, _, ax, xp, xrange, grouped_params = self.pr_by_condition(ax=axarr[0])
+		for bw in [0.01, 0.02, 0.03, 0.05, 0.1]:
+			f, axarr = create_figure(subplots=True, ncols=5, sharey=False)
+			# plot normal pR
+			lr_ratios_mean_pr, grouped_modes, grouped_means, modes, means, stds, _, ax, xp, xrange, grouped_params = self.pr_by_condition(ax=axarr[0])
 
-		# Plot a kde of the pR of each mouse on each maze
-		for i, (maze, prs) in enumerate(means.items()):
-			if len(prs) == 0: continue
-			bins = np.linspace(0, 1, 15)
+			# Plot a kde of the pR of each mouse on each maze
+			for i, (maze, prs) in enumerate(means.items()):
+				if len(prs) == 0: continue
+				bins = np.linspace(0, 1, 15)
 
-			# Plot KDE of mice's pR + max density point and horizontal lines
-			kde = fit_kde(prs, bw=.035)
-			shift = (4-i)*2-2
-			# shift = 0
+				# Plot KDE of mice's pR + max density point and horizontal lines
+				kde = fit_kde(prs, bw=bw)
+				shift = (4-i)*.1-.1
 
-			# xx, yy = kde.density/np.max(kde.density)+shift, kde.support
-			xx, yy = kde.density+shift, kde.support
-			axarr[1].scatter(np.ones(len(prs))*shift, prs, color=desaturate_color(self.colors[i+1]), s=50)
+				# Plot KDE of each experiments rpr
+				xx, yy = (kde.density*bw)+shift, kde.support
+				axarr[1].scatter(np.ones(len(prs))*shift, prs, color=desaturate_color(self.colors[i+1]), s=50)
+				plot_shaded_withline(axarr[1],xx, yy, color=self.colors[i+1], lw=3, label=maze, zorder=10 )
 
-			plot_shaded_withline(axarr[1],xx, yy, color=self.colors[i+1], lw=3, label=maze, zorder=10 )
+				# Plot mean and 95th percentile range of probabilities 
+				plot_shaded_withline(axarr[2], kde.cdf, yy, color=desaturate_color(self.colors[i+1]), lw=3,  zorder=10 )
 
-			hmax, yyy = np.max(xx), yy[np.argmax(xx)]
-			hline_to_curve(axarr[1], yyy, xx, yy, color=self.colors[i+1], dot=True, line_kwargs=dict(alpha=.5, ls="--", lw=3), scatter_kwargs=dict(s=100))
-			axarr[0].axhline(np.mean(prs), color=self.colors[i+1], alpha=.5, ls="--", lw=3)
 
-			# Plot beta distributions of grouped analytical bayes
-			beta, support, density = get_parametric_distribution("beta", *grouped_params[maze] )
-			plot_shaded_withline(axarr[2], density, support, z=None, color=self.colors[i+1])
-			hline_to_curve(axarr[2], support[np.argmax(density)], density, support, color=self.colors[i+1], dot=True, line_kwargs=dict(alpha=.5, ls="--", lw=3), scatter_kwargs=dict(s=100))
+				# percrange = percentile_range(prs)
+				# axarr[1].scatter(shift, percrange.mean, color=white, s=50, zorder=50)
+				# axarr[1].plot([shift, shift], [percrange.low, percrange.high], color=grey, lw=4, alpha=.9, zorder=40)
 
-			axarr[3].bar(4-i, len(prs), color=self.colors[i+1])
+				# Plot a line to the highest density point
+				hmax, yyy = np.max(xx), yy[np.argmax(xx)]
+				hline_to_curve(axarr[1], yyy, xx, yy, color=self.colors[i+1], dot=True, line_kwargs=dict(alpha=.5, ls="--", lw=3), scatter_kwargs=dict(s=100))
+				axarr[0].axhline(np.mean(prs), color=self.colors[i+1], alpha=.5, ls="--", lw=3)
 
-		ortholines(axarr[1], [0,], [.5])
-		axarr[1].set(title="individuals pR distribution", xlabel="density",  ylim=[0, 1], xlim=[-2, 15])
-		make_legend(axarr[1])
+				# Plot beta distributions of grouped analytical bayes
+				beta, support, density = get_parametric_distribution("beta", *grouped_params[maze] )
+				plot_shaded_withline(axarr[3], density, support, z=None, color=self.colors[i+1])
+				hline_to_curve(axarr[3], support[np.argmax(density)], density, support, color=self.colors[i+1], dot=True, line_kwargs=dict(alpha=.5, ls="--", lw=3), scatter_kwargs=dict(s=100))
 
-		ortholines(axarr[2], [0,], [.5])
-		axarr[2].set(title="grouped bayes", ylabel="p(R)", xlabel="density",  ylim=[0, 1], xlim=[-2, 20])
+				axarr[4].bar(4-i, len(prs), color=self.colors[i+1])
 
-		axarr[3].set(title="mice x maze", xticks=[1, 2, 3, 4], xticklabels=["m4", "m3", "m2", "m1"], ylabel="# mice", xlabel="maze")
+			ortholines(axarr[1], [0,], [.5])
+			axarr[1].set(title="individuals pR distribution - bw{}".format(bw), xlabel="probability",  ylim=[0, 1], xlim=[-0.01, 0.5])
+			make_legend(axarr[1])
+
+			axarr[2].set(title="individuals pR cdf", xlabel="cdf",  ylim=[0, 1], xlim=[0, 1])
+
+
+			ortholines(axarr[2], [0,], [.5])
+			axarr[3].set(title="grouped bayes", ylabel="p(R)", xlabel="probability",  ylim=[0, 1], xlim=[-2, 20])
+
+		axarr[4].set(title="mice x maze", xticks=[1, 2, 3, 4], xticklabels=["m4", "m3", "m2", "m1"], ylabel="# mice", xlabel="maze")
 
 	def model_summary(self, exclude_experiments=[None], ax=None):
 		lr_ratios_mean_pr, grouped_modes, grouped_means, modes, means, stds, f, ax, xp, xrange, _ = self.pr_by_condition(exclude_experiments=exclude_experiments, ax=ax)
@@ -585,18 +598,18 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 if __name__ == "__main__":
 	pa = PsychometricAnalyser()
 
-	# pa.plot_pr_by_condition_detailed()
+	pa.plot_pr_by_condition_detailed()
 	# pa.model_summary()
 	# pa.plot_hierarchical_bayes_effect()
 
 	# pa.inspect_rt_metric(load=False)
 
 	# pa.plot_effect_of_time(xaxis_istime=False)
-	# pa.plot_effect_of_time(xaxis_istime=True, robust=False)
+	# pa.plot_effect_of_time(xaxis_istime=True, robust=True)
 
 	# pa.timed_pr()
 
-	pa.closer_look_at_hb()
+	# pa.closer_look_at_hb()
 
 	print(pa.paths_lengths)
 
