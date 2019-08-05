@@ -4,7 +4,7 @@ sys.path.append('./')
 import numpy as np
 from scipy import misc, signal, stats
 import matplotlib.pyplot as plt
-import statsmodels.api as sm
+# import statsmodels.api as sm
 
 
 # ! FIT MATH FUNCTIONS
