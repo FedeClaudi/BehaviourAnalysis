@@ -50,10 +50,11 @@ def linear_regression(X,Y):
 
 	X = np.delete(X, remove_idx)
 	Y = np.delete(Y, remove_idx)
+
 	# Regression with Robust Linear Model
 	X = sm.add_constant(X)
 	res = sm.RLM(Y, X, missing="drop").fit()
-	# raise ValueError(res.params)
+
 	return X, res.params[0], res.params[1], res
 
 # ! STATISTICAL DISTRIBUTIONS

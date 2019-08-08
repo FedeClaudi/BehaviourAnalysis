@@ -68,7 +68,6 @@ def plot_fitted_curve(func, xdata, ydata, ax, xrange=None, print_fit=False, nump
 
     return to_return
 
-
 def dist_plot(dist, ax=None, **kwargs):
     # ? this is differente from plot distribution because we already have the distribution, just want to plot it
     if ax is None: plt.subplots()
@@ -76,7 +75,6 @@ def dist_plot(dist, ax=None, **kwargs):
     x = np.linspace(dist.ppf(0.0001), dist.ppf(0.99999), 100)
     ax.plot(x, dist.pdf(x), **kwargs)
     
-
 def plot_kde(ax, kde, z, invert=False, vertical=False, normto=None, label=None, **kwargs):
     if vertical:
         x = kde.density

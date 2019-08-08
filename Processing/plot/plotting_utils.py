@@ -44,6 +44,8 @@ def save_all_open_figs(target_fld=False, name=False, format=False, exclude_numbe
 
 
 def create_figure(subplots=True, **kwargs):
+    if "figsize" not in kwargs.keys():
+        kwargs["figsize"] = (12, 8)
     if not subplots:
         f, ax = plt.subplots(**kwargs)
     else:

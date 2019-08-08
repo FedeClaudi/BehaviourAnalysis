@@ -7,7 +7,7 @@ if sys.platform == "darwin":
 
 font = {'family' : 'Courier New',
         'weight' : 600,
-        'size'   : 22}
+        'size'   : 12}
 
 mpl.rc('font', **font)
 
