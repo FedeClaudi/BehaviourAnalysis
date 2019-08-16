@@ -4,38 +4,32 @@ sys.path.append("./")
 import deeplabcut as dlc
 import os
 
+fld = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Scotland"
+videos_fld = "/Volumes/Elements/scotland_filming/Day1/B/Clip"
 
-fld = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/ants/dlc"
-videos_fld = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/ants/dlc_vids"
+videos = [os.path.join(videos_fld, v) for v in os.listdir(videos_fld) if ".MXF" in v]
+print(videos)
 
-edited_videos = [v for v in os.listdir(videos_fld) if "_edited" in v]
-videos = [os.path.join(videos_fld, v) for v in os.listdir(videos_fld) if v not in edited_videos]
-
-# ? edit vidoes:
-# from Utilities.video_and_plotting.video_editing import Editor
-# editor = Editor()
-# for vid in videos:
-#     f, name = os.path.split(vid)
-#     name = name.split(".")[0]+"_edited.mp4"
-#     editor.compress_clip(vid, .5, save_path=os.path.join(f, name))
 # %%
-
-# # ? video projs
-# videos = [os.path.join(videos_fld, v) for v in os.listdir(videos_fld) if "edited"in v]
-
 # # ? create proj
-# dlc.create_new_project("ants", "federico", 
-#     videos, working_directory=fld, copy_videos=True)
+dlc.create_new_project("scotland", "steve", 
+    videos, working_directory=fld, copy_videos=False)
 
+# %%
 # ? run stuff
-config_file = '/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/ants/dlc/ants-federico-2019-06-24/config.yaml'
+config_file = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Scotland/scotland-steve-2019-08-12/config.yaml"
 
-# dlc.add_new_videos(config_file, ["/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/ants/dlc_vids/single_zoomed_2_edited.mp4"], copy_videos=True)
+# vids_to_add = ["/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/ants/vids/Decision Making Videos/100L60R/Ant6_Crop.avi",
+#                 "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/ants/vids/Decision Making Videos/120L60R/Ant5_Run1_Crop30fps.avi",
+#                 "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/ants/vids/Decision Making Videos/140L60R/Ant4_LeftCrop_30fps.avi",
+#                 ]
 
-# dlc.extract_frames(config_file, "manual",)
+# dlc.add_new_videos(config_file, vids_to_add, copy_videos=True)
+
+dlc.extract_frames(config_file, mode="manual")
 # dlc.label_frames(config_file)
 
-dlc.create_training_dataset(config_file)
+# dlc.create_training_dataset(config_file)
 # dlc.train_network(config_file)
 
 # dlc.analyze_videos(config_file, videos=videos, videotype="mp4")
