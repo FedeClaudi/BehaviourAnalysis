@@ -385,30 +385,6 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 		axarr[3].set(title="maze 4", xlim=[-.1, 1.1], ylim=[-8, 8])
 		axarr[0].set(title="maze 1", xlim=[-.1, 1.1], ylim=[-8, 8])
 
-
-	def test(self):
-		# Add the KDE's for each mouse in an expeirment and plot
-		f, ax = plt.subplots()
-		trace = self.load_trace(os.path.join(self.metadata_folder, "test_hb_trace.pkl"))
-		data = self.get_hits_ntrials_maze_dataframe()
-
-		comulative_trace = {k:np.zeros(2000) for k,v in self.conditions.items()}
-		n_mices = {k:0 for k,v in self.conditions.items()}
-		for column in trace:	
-			if not "beta_theta" in column: continue
-			n = int(column.split("_")[-1])
-			mouse = data.iloc[n]
-			
-			comulative_trace["maze{}".format(mouse.maze + 1)] += trace[column]
-			n_mices["maze{}".format(mouse.maze + 1)] += 1
-
-		for i, (k, v) in enumerate(comulative_trace.items()):
-			kde = fit_kde(v/n_mices[k],   bw=.025)
-			plot_kde(ax, kde, invert=False, color=self.colors[i+1], z=0, alpha=.2, label=k)
-
-		make_legend(ax)
-		ax.set(ylabel="probability", xlabel="p(R)", xlim=[0, 1])
-
 	"""
 		||||||||||||||||||||||||||||    PLOTTERS     |||||||||||||||||||||
 	"""
