@@ -661,7 +661,7 @@ if __name__ == "__main__":
 
 	# pa.plot_pr_by_condition_detailed ()
 	# pa.model_summary()
-	# pa.plot_hierarchical_bayes_effect()
+	pa.plot_hierarchical_bayes_effect()
 
 	# pa.inspect_rt_metric(load=False)
 
@@ -672,8 +672,8 @@ if __name__ == "__main__":
 
 	# pa.closer_look_at_hb()
 
-	pa.test_hierarchical_bayes_v2()
-	pa.test()
+	# pa.test_hierarchical_bayes_v2()
+	# pa.test()
 	# pa.inspect_hbv2()
 
 	print(pa.paths_lengths)

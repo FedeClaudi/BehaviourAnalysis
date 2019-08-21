@@ -4,7 +4,7 @@ sys.path.append('./')
 import numpy as np
 from scipy import misc, signal, stats
 import matplotlib.pyplot as plt
-# import statsmodels.api as sm
+import statsmodels.api as sm
 
 
 # ! FIT MATH FUNCTIONS
@@ -122,6 +122,8 @@ def gamma_distribution_params(mean=None, sd=None, mode=None, shape=None, rate=No
 	return shape, rate
 
 def fit_kde(x, **kwargs):
+    """ Fit a KDE using StatsModels. 
+        kwargs is useful to pass stuff to the fit, e.g. the binwidth (bw)"""
     x = np.array(x).astype(np.float)
     kde = sm.nonparametric.KDEUnivariate(x)
     kde.fit(**kwargs) # Estimate the densities

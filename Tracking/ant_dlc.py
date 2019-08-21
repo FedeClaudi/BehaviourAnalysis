@@ -14,9 +14,9 @@ else:
 
 # %%
 # # ? create proj
-# videos = os.path.join(videos_fld, v) for v in os.listdir(videos_fld)]
+# videos = [os.path.join(videos_fld, v) for v in os.listdir(videos_fld)  if ".avi" in v]
 # print(videos)
-# dlc.create_new_project("scotland", "steve", videos, working_directory=fld, copy_videos=False) # ? edit this
+# dlc.create_new_project("ants-dlc", "federico", videos, working_directory=fld, copy_videos=True) # ? edit this
 
 # %%
 # ? config file
@@ -28,10 +28,9 @@ if not os.path.isfile(config_file):
     
 # %%
 # ? Add vids to proj
-# vids_to_add = ["/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/ants/vids/Decision Making Videos/100L60R/Ant6_Crop.avi",
-#                 "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/ants/vids/Decision Making Videos/120L60R/Ant5_Run1_Crop30fps.avi",
-#                 "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/ants/vids/Decision Making Videos/140L60R/Ant4_LeftCrop_30fps.avi",
-#                 ]
+# vids_to_add = ["D:\\Dropbox (UCL - SWC)\\Rotation_vte\\ants\\vids\\Decision Making Videos\\140R60L\\Ant3_Right_Crop30fps.avi",
+#                "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\ants\\vids\\Decision Making Videos\\140R60L\\Ant2_Right_Crop30fps.avi",
+#                "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\ants\\vids\\Decision Making Videos\\140R60L\\Ant1_Right_Crop30fps.avi"]
 # dlc.add_new_videos(config_file, vids_to_add, copy_videos=True)
 
 # %% 
@@ -40,17 +39,34 @@ if not os.path.isfile(config_file):
 # dlc.label_frames(config_file)
 
 # %%
-# ? Create dataset and train
-# dlc.create_training_dataset(config_file)
-dlc.train_network(config_file)
+# ? Check labels
+# dlc.check_labels(config_file)
 
 # %%
-# ? Analyse
-# analysis_fld = os.path.join(videos_fld, "Decision Making Videos\\100L60R")
-# videos = [os.path.join(analysis_fld, v) for v in os.listdir(analysis_fld) if ".avi" in v]
-# dlc.analyze_videos(config_file, videos=videos, videotype="avi")
-# dlc.create_labeled_video(config_file, videos)
+# ? Create dataset
+# dlc.create_training_dataset(config_file)
+# 
+# %%
+# ? train network
+# dlc.train_network(config_file)
+
+# %%
+# # ? Analyse
+folds_to_analyse = ["100L60R", "100R60L", "120L60R", "120R60L", "140L60R", "140R60L"]
+for f in folds_to_analyse:
+    analysis_fld = os.path.join(videos_fld, "Decision Making Videos", f)
+    videos = [os.path.join(analysis_fld, v) for v in os.listdir(analysis_fld) if ".avi" in v]
+    dlc.analyze_videos(config_file, videos=videos, videotype="avi")
+    dlc.create_labeled_video(config_file, videos, trailpoints=7, draw_skeleton=False)
 
 
+
+#%%
+# ? outliers
+# dlc.extract_outlier_frames(config_file, videos)
+
+
+#%%
+# dlc.refine_labels(config_file)
 
 #%%
