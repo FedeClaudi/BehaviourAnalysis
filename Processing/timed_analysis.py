@@ -11,6 +11,10 @@ class timedAnalysis:
         pass
 
     def plot_effect_of_time(self, xaxis_istime=True, robust=False):
+        def print_lin_reg(x, y, ax):
+            _, p1, p2, res = linear_regression(x, y)
+            ax.text(0.95, 0.8, 'slope:{} - $r^2${}'.format(round(p2, 5), round(res.rsquared, 2)), color="k", fontsize=15, transform=ax.transAxes, **text_axaligned)
+
         rtdf = self.inspect_rt_metric(load=True, plot=False)
 
         if xaxis_istime: bw = 60
@@ -66,8 +70,12 @@ class timedAnalysis:
             try:
                 sns.regplot(times, speeds, ax=axspeed, robust=robust, scatter=True, order=1, scatter_kws=dict(s=25, color=desaturate_color(self.colors[i+1], k=.8)),
                             line_kws=dict(color=self.colors[i+1], lw=2, alpha=1), truncate=True,)
+                print_lin_reg(times, speeds, axspeed)
+
                 sns.regplot(times2, rts, ax=axrt, robust=robust, scatter=True, order=1, scatter_kws=dict(s=25, color=desaturate_color(self.colors[i+1], k=.8)),
                             line_kws=dict(color=self.colors[i+1], lw=2, alpha=1), truncate=True,)
+                print_lin_reg(times2, rts, axrt)
+                    
                 # store data
                 all_speeds.extend(speeds)
                 all_rts.extend(rts)
@@ -87,8 +95,14 @@ class timedAnalysis:
 
         sns.regplot(all_times, all_speeds, ax=axarr[centercol[i+1]], robust=robust, scatter=True, order=1, scatter_kws=dict(s=25, color=[.3, .3, .3]),
                     line_kws=dict(color="k", lw=2, alpha=1), truncate=True,)
+
+        print_lin_reg(all_times, all_speeds, axarr[centercol[i+1]])
+
+        
         sns.regplot(all_times2, all_rts, ax= axarr[rightcol[i+1]], robust=robust, scatter=True, order=1, scatter_kws=dict(s=25, color=[.3, .3, .3]),
                     line_kws=dict(color="k", lw=2, alpha=1), truncate=True,)
+        print_lin_reg(all_times2, all_rts, axarr[rightcol[i+1]])
+
 
         # Set axes correctly
         for i, ax in enumerate(axarr):

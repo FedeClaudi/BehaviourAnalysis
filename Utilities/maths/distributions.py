@@ -16,32 +16,31 @@ def polyfit(order, x, y):
 	return f
 
 def sigmoid(x, a, b):
-    return 1 / (1 + np.exp(-b*(x-a)))
+	return 1 / (1 + np.exp(-b*(x-a)))
 
 def logistic(x, a, b):
-    return np.exp(a + b*x)/(1 + np.exp(a + b*x))
+	return np.exp(a + b*x)/(1 + np.exp(a + b*x))
 
 def half_sigmoid(x, a, b):
 	chance = .5
 	return chance + (1-chance) / (1 + np.exp(-b*(x-a)))
 
 def linear_func(x, a, b):
-    return x*a + b
-
+	return x*a + b
 
 def exponential(x, a, b, c, d):
-    return  a*np.exp(-c*(x-b))+d
+	return  a*np.exp(-c*(x-b))+d
 
 def step_function(x,a, b, c):
-    # Step function
-    """
-    a: value at x = b
-    f(x) = 0 if x<b, a if x=b and 2*a if  x > a
-    """
-    return a * (np.sign(x-b) + c)
+	# Step function
+	"""
+	a: value at x = b
+	f(x) = 0 if x<b, a if x=b and 2*a if  x > a
+	"""
+	return a * (np.sign(x-b) + c)
 
 # ? regression
-def linear_regression(X,Y):
+def linear_regression(X,Y, robust=False):
 	import statsmodels.api as sm
 
 	# ! sns.regplot much better
@@ -53,8 +52,12 @@ def linear_regression(X,Y):
 
 	# Regression with Robust Linear Model
 	X = sm.add_constant(X)
-	res = sm.RLM(Y, X, missing="drop").fit()
 
+	if robust:
+		res = sm.RLM(Y, X, missing="drop").fit()
+	else:
+		res = sm.OLS(Y, X).fit()  # Ordinary least squares
+	
 	return X, res.params[0], res.params[1], res
 
 # ! STATISTICAL DISTRIBUTIONS
@@ -69,13 +72,13 @@ def get_distribution(dist, *args, n_samples=10000):
 		return np.random.gamma(args[0], args[1], n_samples)
 
 def get_parametric_distribution(dist, *args,  x0=0.000001, x1=0.9999999, **kwargs):
-    if dist == "beta":
-        dist = stats.beta(*args, **kwargs)
-    else: raise NotImplementedError
+	if dist == "beta":
+		dist = stats.beta(*args, **kwargs)
+	else: raise NotImplementedError
 
-    support = np.linspace(dist.ppf(x0), dist.ppf(x1), 100)
-    density = dist.pdf(support)
-    return dist, support, density
+	support = np.linspace(dist.ppf(x0), dist.ppf(x1), 100)
+	density = dist.pdf(support)
+	return dist, support, density
 
 
 # ! STATISTICAL DISTRIBUTIONS PARAMETERS
@@ -122,12 +125,12 @@ def gamma_distribution_params(mean=None, sd=None, mode=None, shape=None, rate=No
 	return shape, rate
 
 def fit_kde(x, **kwargs):
-    """ Fit a KDE using StatsModels. 
-        kwargs is useful to pass stuff to the fit, e.g. the binwidth (bw)"""
-    x = np.array(x).astype(np.float)
-    kde = sm.nonparametric.KDEUnivariate(x)
-    kde.fit(**kwargs) # Estimate the densities
-    return kde
+	""" Fit a KDE using StatsModels. 
+		kwargs is useful to pass stuff to the fit, e.g. the binwidth (bw)"""
+	x = np.array(x).astype(np.float)
+	kde = sm.nonparametric.KDEUnivariate(x)
+	kde.fit(**kwargs) # Estimate the densities
+	return kde
 
 
 
@@ -135,10 +138,10 @@ def fit_kde(x, **kwargs):
 
 
 if __name__ == "__main__":
-    xval = sorted(np.concatenate([np.linspace(-5,5,100),[0]])) # includes x = 0
-    yval = step_function(xval)
-    plt.plot(xval,yval,'ko-')
-    plt.ylim(-0.1,1.1)
-    plt.xlabel('x',size=18)
-    plt.ylabel('H(x)',size=20)
-    plt.show()
+	xval = sorted(np.concatenate([np.linspace(-5,5,100),[0]])) # includes x = 0
+	yval = step_function(xval)
+	plt.plot(xval,yval,'ko-')
+	plt.ylim(-0.1,1.1)
+	plt.xlabel('x',size=18)
+	plt.ylabel('H(x)',size=20)
+	plt.show()
