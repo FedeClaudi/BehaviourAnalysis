@@ -1,4 +1,4 @@
-import matplotlib.pyplot as plt
+from Utilities.matplotlib_config import *
 import os
 import numpy as np
 from Utilities.maths.math_utils import find_nearest

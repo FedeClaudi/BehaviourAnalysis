@@ -3,11 +3,10 @@ sys.path.append('./')   # <- necessary to import packages from other directories
 
 from scipy import stats
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
 from Processing.plot.plotting_utils import *
-
+from Utilities.matplotlib_config import *
 
 def plot_distribution(*args, dist_type="logistic", comulative=False, ax=None, shaded=False, x_range=None, plot_kwargs={}, ax_kwargs={},  **kwargs):
     # Get the distribution
@@ -100,5 +99,5 @@ def plot_kde(ax, kde, z, invert=False, vertical=False, normto=None, label=None, 
         
 
 if __name__ == "__main__":
-    plot_distribution(1.001, 1.001, dist_type="beta")
+    plot_distribution(1.00, 1.00, dist_type="beta", shaded="True", ax_kwargs={"ylim":[0, 1.1]}, plot_kwargs={"color":[.4, .8, .2]})
     plt.show()
