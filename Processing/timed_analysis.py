@@ -11,103 +11,116 @@ class timedAnalysis:
         pass
 
     def plot_effect_of_time(self, xaxis_istime=True, robust=False):
-            rtdf = self.inspect_rt_metric(load=True, plot=False)
+        rtdf = self.inspect_rt_metric(load=True, plot=False)
 
-            if xaxis_istime: bw = 60
-            else: bw = 0.5
+        if xaxis_istime: bw = 60
+        else: bw = 0.5
 
-            # crate figure
-            f, axarr = create_figure(subplots=True, nrows=5, ncols=3, sharex=True)
-            leftcol, centercol, rightcol = [0, 3, 6, 9, 12], [1, 4, 7, 10, 13], [2, 5, 8, 11, 14]
+        # crate figure
+        f, axarr = create_figure(subplots=True, nrows=5, ncols=3, sharex=True)
+        leftcol, centercol, rightcol = [0, 3, 6, 9, 12], [1, 4, 7, 10, 13], [2, 5, 8, 11, 14]
 
-            # loop over experiments
-            for i, (condition, df) in enumerate(self.conditions.items()):
-                ax = axarr[leftcol[i]]
-                axspeed = axarr[centercol[i]]
-                axrt = axarr[rightcol[i]]
+        # loop over experiments
+        all_speeds, all_rts, all_times, all_times2 = [], [], [], []
+        for i, (condition, df) in enumerate(self.conditions.items()):
+            ax = axarr[leftcol[i]]
+            axspeed = axarr[centercol[i]]
+            axrt = axarr[rightcol[i]]
 
-                times, times2, ones, zeros, speeds, rts, = [], [], [], [], [], [],
-                # loop over trials
-                for n, (_, trial) in enumerate(df.iterrows()):
-                    # get time of trial and escape arm
-                    if xaxis_istime:
-                        x = trial.stim_frame_session / trial.fps
-                    else:
-                        x = trial.trial_number
-
-                    if 'Right' in trial.escape_arm:
-                        y = 1
-                        ones.append(x)
-                    else:
-                        y = 0
-                        zeros.append(x)
-
-                    # Get escape speed
-                    # if y == 1:
-                        # escape_speed = np.percentile(line_smoother(trial.tracking_data[:, 2], window_size=51, order=5), 80) / trial.fps
-                    escape_speed = np.mean(line_smoother(trial.tracking_data[:, 2], window_size=51, order=5)) / trial.fps
-                    times.append(x)
-                    speeds.append(escape_speed)
-
-                    # Get reaction time
-                    rt = rtdf.loc[rtdf.trialid == trial.trial_id].rt_s.values
-                    if np.any(rt): 
-                        if not np.isnan(rt[0]):
-                            times2.append(x)
-                            rts.append(rt[0])
-
-                    # plot
-                    ax.scatter(x, y, color=self.colors[i+1], s=50, alpha=.5)
-
-                # linear regression on speed and rt
-                try:
-                    sns.regplot(times, speeds, ax=axspeed, robust=robust, scatter=True, order=1, scatter_kws=dict(s=25, color=desaturate_color(self.colors[i+1], k=.8)),
-                                line_kws=dict(color=self.colors[i+1], lw=2, alpha=1), truncate=True,)
-                    sns.regplot(times2, rts, ax=axrt, robust=robust, scatter=True, order=1, scatter_kws=dict(s=25, color=desaturate_color(self.colors[i+1], k=.8)),
-                                line_kws=dict(color=self.colors[i+1], lw=2, alpha=1), truncate=True,)
-                except:
-                    continue
-
-                # Plot KDEs
-                ax, kde_right = plot_kde(ax, fit_kde(ones, bw=bw), .8, invert=True, normto=.25, color=self.colors[i+1])
-                ax, kde_left = plot_kde(ax, fit_kde(zeros, bw=bw), .2, invert=False, normto=.25, color=self.colors[i+1])
-
-                # Plot ratio of KDEs in last plot
-                xxx = np.linspace(np.max([np.min(kde_right.support), np.min(kde_left.support)]), np.min([np.max(kde_right.support), np.max(kde_left.support)]), 1000)
-                ratio = [kde_right.evaluate(xx)/(kde_right.evaluate(xx)+kde_left.evaluate(xx)) for xx in xxx]
-                axarr[leftcol[4]].plot(xxx, ratio, lw=3, color=self.colors[i+1], label=condition)
-
-            # Set axes correctly
-            for i, ax in enumerate(axarr):
-                if i in leftcol:
-                    kwargs = dict(ylim=[-.1, 1.1], yticklabels=["left", "right"], ylabel="escape", yticks=[0, 1],  ) 
-                elif i in centercol:
-                    kwargs = dict(ylabel="mean speed", ylim=[0, .45])
-                else:
-                    kwargs = dict(ylabel="rt (s)", ylim=[0, 6])
-
+            times, times2, ones, zeros, speeds, rts, = [], [], [], [], [], [],
+            # loop over trials
+            for n, (_, trial) in enumerate(df.iterrows()):
+                # get time of trial and escape arm
                 if xaxis_istime:
-                    ax.set(xticks=[x*60 for x in np.linspace(0, 100, 11)], xticklabels=np.linspace(0, 100, 11), **kwargs)
+                    x = trial.stim_frame_session / trial.fps
                 else:
-                    ax.set(xlim=[0, 20], **kwargs)
+                    x = trial.trial_number
 
-            axarr[leftcol[0]].set(title="Left/Right")
-            axarr[centercol[0]].set(title="Escape speed")
-            axarr[rightcol[0]].set(title="Reaction time")
+                if 'Right' in trial.escape_arm:
+                    y = 1
+                    ones.append(x)
+                else:
+                    y = 0
+                    zeros.append(x)
+
+                # Get escape speed
+                # if y == 1:
+                    # escape_speed = np.percentile(line_smoother(trial.tracking_data[:, 2], window_size=51, order=5), 80) / trial.fps
+                escape_speed = np.mean(line_smoother(trial.tracking_data[:, 2], window_size=51, order=5)) / trial.fps
+                times.append(x)
+                speeds.append(escape_speed)
+
+                # Get reaction time
+                rt = rtdf.loc[rtdf.trialid == trial.trial_id].rt_s.values
+                if np.any(rt): 
+                    if not np.isnan(rt[0]):
+                        times2.append(x)
+                        rts.append(rt[0])
+
+
+
+                # plot
+                ax.scatter(x, y, color=self.colors[i+1], s=50, alpha=.5)
+
+            # linear regression on speed and rt
+            try:
+                sns.regplot(times, speeds, ax=axspeed, robust=robust, scatter=True, order=1, scatter_kws=dict(s=25, color=desaturate_color(self.colors[i+1], k=.8)),
+                            line_kws=dict(color=self.colors[i+1], lw=2, alpha=1), truncate=True,)
+                sns.regplot(times2, rts, ax=axrt, robust=robust, scatter=True, order=1, scatter_kws=dict(s=25, color=desaturate_color(self.colors[i+1], k=.8)),
+                            line_kws=dict(color=self.colors[i+1], lw=2, alpha=1), truncate=True,)
+                # store data
+                all_speeds.extend(speeds)
+                all_rts.extend(rts)
+                all_times.extend(times)
+                all_times2.extend(times2)
+            except:
+                continue
+
+            # Plot KDEs
+            ax, kde_right = plot_kde(ax, fit_kde(ones, bw=bw), .8, invert=True, normto=.25, color=self.colors[i+1])
+            ax, kde_left = plot_kde(ax, fit_kde(zeros, bw=bw), .2, invert=False, normto=.25, color=self.colors[i+1])
+
+            # Plot ratio of KDEs in last plot
+            xxx = np.linspace(np.max([np.min(kde_right.support), np.min(kde_left.support)]), np.min([np.max(kde_right.support), np.max(kde_left.support)]), 1000)
+            ratio = [kde_right.evaluate(xx)/(kde_right.evaluate(xx)+kde_left.evaluate(xx)) for xx in xxx]
+            axarr[leftcol[4]].plot(xxx, ratio, lw=3, color=self.colors[i+1], label=condition)
+
+        sns.regplot(all_times, all_speeds, ax=axarr[centercol[i+1]], robust=robust, scatter=True, order=1, scatter_kws=dict(s=25, color=[.3, .3, .3]),
+                    line_kws=dict(color="k", lw=2, alpha=1), truncate=True,)
+        sns.regplot(all_times2, all_rts, ax= axarr[rightcol[i+1]], robust=robust, scatter=True, order=1, scatter_kws=dict(s=25, color=[.3, .3, .3]),
+                    line_kws=dict(color="k", lw=2, alpha=1), truncate=True,)
+
+        # Set axes correctly
+        for i, ax in enumerate(axarr):
+            if i in leftcol:
+                kwargs = dict(ylim=[-.1, 1.1], yticklabels=["left", "right"], ylabel="escape", yticks=[0, 1],  ) 
+            elif i in centercol:
+                kwargs = dict(ylabel="mean speed", ylim=[0, .5])
+            else:
+                kwargs = dict(ylabel="rt (s)", ylim=[0, 13])
 
             if xaxis_istime:
-                xlab = "time (min)"
+                ax.set(xticks=[x*60 for x in np.linspace(0, 100, 11)], xticklabels=np.linspace(0, 100, 11), **kwargs)
             else:
-                xlab = "trial #"
+                ax.set(xlim=[0, 20], **kwargs)
 
-            axarr[leftcol[-1]].set(xlabel=xlab)
-            axarr[centercol[-1]].set(xlabel=xlab)
-            axarr[rightcol[-1]].set(title="Reaction times", xlabel=xlab)
+        axarr[leftcol[0]].set(title="Left/Right")
+        axarr[centercol[0]].set(title="Escape speed")
+        axarr[rightcol[0]].set(title="Reaction time")
+
+        if xaxis_istime:
+            xlab = "time (min)"
+        else:
+            xlab = "trial #"
+
+        axarr[leftcol[-1]].set(xlabel=xlab)
+        axarr[centercol[-1]].set(xlabel=xlab)
+        axarr[rightcol[-1]].set(title="Reaction times", xlabel=xlab)
 
 
-            axarr[leftcol[4]].set(title="balance over time", xlabel=xlab, ylabel="R / L+R")
-            make_legend(axarr[leftcol[4]])
-            make_legend(axarr[rightcol[-1]])
+        axarr[leftcol[4]].set(title="balance over time", xlabel=xlab, ylabel="R / L+R")
+        make_legend(axarr[leftcol[4]])
+        make_legend(axarr[rightcol[-1]])
 
 
     def timed_pr(self):

@@ -1,4 +1,4 @@
-# %%
+
 import sys
 sys.path.append('./')   # <- necessary to import packages from other directories within the project
 
@@ -16,7 +16,7 @@ from Processing.rt_analysis import rtAnalysis
 from Processing.timed_analysis import timedAnalysis
 from Processing.timeseries_analysis import TimeSeriesAnalysis
 
-# %%
+
 # Define class
 
 class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeSeriesAnalysis):
@@ -26,6 +26,9 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 	speed_mu, speed_sigma = 5, 2.5
 	speed_noise = 0
 	distance_noise = .1
+
+	#  ! important param
+	ratio = "georatio"  # ? Use  either georatio or ratio for estimating L/R length ratio
 
 	def __init__(self):
 		ExperimentsAnalyser.__init__(self)
@@ -70,8 +73,8 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 		short_arm_dist = self.paths_lengths.loc[self.paths_lengths.maze=="maze4"].distance.values[0]
 		self.paths_lengths["georatio"] = [round(x / short_arm_dist, 4) for x in self.paths_lengths.distance.values]
 
-		self.short_arm_len = self.paths_lengths.loc[self.paths_lengths.maze=="maze4"].georatio.values[0]
-		self.long_arm_len = self.paths_lengths.loc[self.paths_lengths.maze=="maze1"].georatio.values[0]
+		self.short_arm_len = self.paths_lengths.loc[self.paths_lengths.maze=="maze4"][self.ratio].values[0]
+		self.long_arm_len = self.paths_lengths.loc[self.paths_lengths.maze=="maze1"][self.ratio].values[0]
 
 
 	"""
@@ -96,7 +99,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 		speed = stats.norm(loc=self.speed_mu, scale=self.speed_sigma)
 		if sqrt: dnoise = math.sqrt(self.distance_noise)
 		else: dnoise = self.distance_noise
-		distances = {a.maze:stats.norm(loc=a.georatio, scale=dnoise) for i,a in self.paths_lengths.iterrows()}
+		distances = {a.maze:stats.norm(loc=a[self.ratio], scale=dnoise) for i,a in self.paths_lengths.iterrows()}
 		
 		if plot:
 			f, axarr = create_figure(subplots=True, ncols=2)
@@ -174,7 +177,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 			
 		lr_ratios_mean_pr = {"grouped":[], "individuals_x":[], "individuals_y":[], "individuals_y_sigma":[]}
 		for i, (condition, pr) in enumerate(p_r.items()):
-			x = self.paths_lengths.loc[self.paths_lengths.maze == condition].georatio.values
+			x = self.paths_lengths.loc[self.paths_lengths.maze == condition][self.ratio].values
 			y = means[condition]
 
 			# ? plot HB PR with errorbars
@@ -203,7 +206,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 		params["sigma"].min, params["sigma"].max = 1.e-10, 1
 
 		ytrue = [np.mean(m) for m in means.values()]
-		x = self.paths_lengths.georatio.values
+		x = self.paths_lengths[self.ratio].values
 
 		result = model.fit(ytrue, distances=x, params=params)
 		print(result.params["sigma"].value)
@@ -244,7 +247,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 		# hline_to_curve(mseax, lowest_err, sigma_range, mserr, color=white, lw=6)
 
 		analytical_pr = self.simulate_trials_analytical()
-		pomp = plot_fitted_curve(sigmoid, self.paths_lengths.georatio.values, np.hstack(list(analytical_pr.values())), ax, xrange=xrange, 
+		pomp = plot_fitted_curve(sigmoid, self.paths_lengths[self.ratio].values, np.hstack(list(analytical_pr.values())), ax, xrange=xrange, 
 			scatter_kwargs={"alpha":0}, 
 			line_kwargs={"color":white, "alpha":1, "lw":6, "label":"model pR - $\sigma : {}$".format(round(best_sigma, 2))})
 
@@ -253,7 +256,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 		ortholines(ax, [1, 0,], [1, .5])
 		ortholines(ax, [0, 0,], [1, 0], ls=":", lw=1, alpha=.3)
 		ax.set(title="best fit logistic regression", ylim=[-0.01, 1.05], ylabel="p(R)", xlabel="Left path length (a.u.)",
-				 xticks = self.paths_lengths.georatio.values, xticklabels = self.conditions.keys())
+				 xticks = self.paths_lengths[self.ratio].values, xticklabels = self.conditions.keys())
 		# mseax.set(title="Fit error", ylabel="MSE", xlabel="$\sigma$", xlim=[minsigma, maxsigma], ylim=[0, max(mserr)])
 		make_legend(ax)
 		
@@ -273,7 +276,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 			x_data, y_data = [], []
 			for i, (condition, hits) in enumerate(allhits.items()):
 				failures = [ntrials[condition][ii]-hits[ii] for ii in np.arange(n_mice[condition])]            
-				x = self.paths_lengths.loc[self.paths_lengths.maze == condition].georatio.values[0]
+				x = self.paths_lengths.loc[self.paths_lengths.maze == condition][self.ratio].values[0]
 
 				xxh, xxf = [x for h in hits for _ in np.arange(h)],   [x for f in failures for _ in np.arange(f)]
 				yyh, yyf = [1 for h in hits for _ in np.arange(h)],   [0 for f in failures for _ in np.arange(f)]
@@ -302,7 +305,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 				ax.fill_between(xp, logistic(xp, b0-b0_std, b1-b1_std), logistic(xp, b0+b0_std, b1+b1_std),  color=red, alpha=.15)
 		
 				ax.set(title="Logistic regression", yticks=[0, 1], yticklabels=["left", "right"], ylabel="escape arm", xlabel="L/R length ratio",
-							xticks=self.paths_lengths.georatio.values, xticklabels=self.paths_lengths.georatio.values)
+							xticks=self.paths_lengths[self.ratio].values, xticklabels=self.paths_lengths[self.ratio].values)
 
 			df = pd.DataFrame.from_dict(dict(b0=trace.get_values("beta0"), b1=trace.get_values("beta1")))
 			df.to_pickle(tracename)
@@ -315,16 +318,15 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 		hits, ntrials, p_r, n_mice, trials = self.get_binary_trials_per_condition(self.conditions)
 		modes, means, stds, traces = self.get_hb_modes()
 		f, axarr = create_figure(subplots=False, nrows=4, sharex=True)
+		f2, ax2 = create_figure(subplots=False)
 
+		aboves, belows, colors = [], [], []
 		for i, (condition, trace) in enumerate(traces.items()):
 			sort_idx = np.argsort(means[condition])
 			nmice = len(sort_idx)
 			above_chance, below_chance = 0, 0
 			for mn, id in enumerate(sort_idx):
 				tr = trace[:, id]
-				# Plot raw PR
-				axarr[i].scatter(mn+.1, p_r[condition][id], color=teal, s=25, alpha=.8)
-
 				# Plot KDE of posterior
 				kde = fit_kde(random.choices(tr,k=5000), bw=.025)
 				plot_kde(axarr[i], kde, z=mn, vertical=True, normto=.75, color=self.colors[i+1], lw=.5)
@@ -332,17 +334,27 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 				# plot 95th percentile_range of posterior's means
 				percrange = percentile_range(tr)
 				axarr[i].scatter(mn, percrange.mean, color=self.colors[i+1], s=25)
-				axarr[i].plot([mn, mn], [percrange.low, percrange.high], color=grey, lw=2, alpha=.4)
+				axarr[i].plot([mn, mn], [percrange.low, percrange.high], color=white, lw=2, alpha=1)
+
 				if percrange.low > .5: above_chance += 1
 				elif percrange.high < .5: below_chance += 1
 
 			axarr[i].text(0.95, 0.1, '{}% above .5 - {}% below .5'.format(round(above_chance/nmice*100, 2), round(below_chance/nmice*100, 2)), color=grey, fontsize=15, transform=axarr[i].transAxes, **text_axaligned)
+			aboves.append(round(above_chance/nmice*100, 2))
+			belows.append(round(below_chance/nmice*100, 2))
+			colors.append(self.colors[i+1])
 
 			axarr[i].set(ylim=[0, 1], ylabel=condition)
 			axarr[i].axhline(.5, **grey_dotted_line)
 		
 		axarr[0].set(title="HB posteriors")
 		axarr[-1].set(xlabel="mouse id")
+
+		sns.barplot( np.array(aboves), np.arange(4)+1, palette=colors, orient="h", ax=ax2)
+		sns.barplot(-np.array(belows), np.arange(4)+1, palette=colors, orient="h", ax=ax2)
+		ax2.axvline(0, **grey_line)
+		ax2.set(title="Above and below chance posteriors%", xlabel="%", ylabel="maze id", xlim = [-20, 80])
+
 
 	def inspect_hbv2(self):
 		# Plot the restults of the alternative hierarchical model
@@ -407,7 +419,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 			
 		lr_ratios_mean_pr = {"grouped":[], "individuals_x":[], "individuals_y":[], "individuals_y_sigma":[]}
 		for i, (condition, pr) in enumerate(p_r.items()):
-			x = self.paths_lengths.loc[self.paths_lengths.maze == condition].georatio.values
+			x = self.paths_lengths.loc[self.paths_lengths.maze == condition][self.ratio].values
 
 			y = means[condition]
 			# ? plot HB PR with errorbars
@@ -435,13 +447,13 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 		# Fix plotting
 		ortholines(ax, [1, 0,], [1, .5])
 		ax.set(ylim=[0, 1], ylabel="p(R)", title="p(R) per mouse per maze", xlabel="Left path length (a.u.)",
-				 xticks = self.paths_lengths.georatio.values, xticklabels = self.conditions.keys())
+				 xticks = self.paths_lengths[self.ratio].values, xticklabels = self.conditions.keys())
 		make_legend(ax)
 
 		return lr_ratios_mean_pr, grouped_modes, grouped_means, modes, means, stds, f, ax, xp, xrange, grouped_params
 
 	def plot_pr_by_condition_detailed(self):
-		for bw in [0.01, 0.02, 0.03, 0.05, 0.1]:
+		for bw in [0.02]:
 			f, axarr = create_figure(subplots=True, ncols=5, sharey=False)
 			# plot normal pR
 			lr_ratios_mean_pr, grouped_modes, grouped_means, modes, means, stds, _, ax, xp, xrange, grouped_params = self.pr_by_condition(ax=axarr[0])
@@ -458,7 +470,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 				# Plot KDE of each experiments rpr
 				xx, yy = (kde.density*bw)+shift, kde.support
 				axarr[1].scatter(np.ones(len(prs))*shift, prs, color=desaturate_color(self.colors[i+1]), s=50)
-				plot_shaded_withline(axarr[1],xx, yy, color=self.colors[i+1], lw=3, label=maze, zorder=10 )
+				plot_shaded_withline(axarr[1],xx, yy, z=shift, color=self.colors[i+1], lw=3, label=maze, zorder=10 )
 
 				# Plot mean and 95th percentile range of probabilities 
 				plot_shaded_withline(axarr[2], kde.cdf, yy, color=desaturate_color(self.colors[i+1]), lw=3,  zorder=10 )
@@ -529,7 +541,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 		ortholines(ax, [1, 0,], [1, .5])
 		ortholines(ax, [0, 0,], [1, 0], ls=":", lw=1, alpha=.3)
 		ax.set(ylim=[-0.01, 1.05], ylabel="p(R)", title="p(R) per mouse per maze", xlabel="Left path length (a.u.)",
-				 xticks = self.paths_lengths.georatio.values, xticklabels = self.conditions.keys())
+				 xticks = self.paths_lengths[self.ratio].values, xticklabels = self.conditions.keys())
 		make_legend(ax)
 
 	def plot_hierarchical_bayes_effect(self):
@@ -603,15 +615,15 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 		# Plt arms combinations
 		distances = {}
 		for i, row in self.paths_lengths.iterrows():
-			maze_dist = calc_distance_between_point_and_line([[.8, .8], [1.6, 1.6]], [self.short_arm_len, row.georatio])
-			ax.scatter(self.short_arm_len, row.georatio, color=self.colors[i+1], label=row.maze + " - {}".format(round(maze_dist, 4)), **big_dot)
+			maze_dist = calc_distance_between_point_and_line([[.8, .8], [1.6, 1.6]], [self.short_arm_len, row[self.ratio]])
+			ax.scatter(self.short_arm_len, row[self.ratio], color=self.colors[i+1], label=row.maze + " - {}".format(round(maze_dist, 4)), **big_dot)
 			distances[row.maze] = maze_dist
-			c = row.georatio - self.short_arm_len
+			c = row[self.ratio] - self.short_arm_len
 			ax.plot([0.5, 1.75], [.5+c, 1.75+c], color=self.colors[i+1], lw=3, ls="--", alpha=.25)
 
 			if i < 3: 
-				maze_dist2 = calc_distance_between_point_and_line([[.8, .8], [1.6, 1.6]], [row.georatio, self.long_arm_len])
-				ax.scatter(row.georatio, self.long_arm_len, color=random.choice(get_n_colors(10)), label=round(maze_dist2, 4),  **big_dot)
+				maze_dist2 = calc_distance_between_point_and_line([[.8, .8], [1.6, 1.6]], [row[self.ratio], self.long_arm_len])
+				ax.scatter(row[self.ratio], self.long_arm_len, color=random.choice(get_n_colors(10)), label=round(maze_dist2, 4),  **big_dot)
 
 		ax.plot([0.5, 1.75], [.5, 1.75], **grey_line)
 
@@ -659,14 +671,14 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 if __name__ == "__main__":
 	pa = PsychometricAnalyser()
 
-	# pa.plot_pr_by_condition_detailed ()
+	pa.plot_pr_by_condition_detailed()
 	# pa.model_summary()
-	pa.plot_hierarchical_bayes_effect()
+	# pa.plot_hierarchical_bayes_effect()
 
 	# pa.inspect_rt_metric(load=False)
 
-	# pa.plot_effect_of_time(xaxis_istime=False)
-	# pa.plot_effect_of_time(xaxis_istime=True, robust=True)
+	# pa.plot_effect_of_time(xaxis_istime=False, robust=False) # ? not useful
+	pa.plot_effect_of_time(xaxis_istime=True, robust=False)
 
 	# pa.timed_pr()
 
@@ -682,4 +694,3 @@ if __name__ == "__main__":
 
 
 
-#%%

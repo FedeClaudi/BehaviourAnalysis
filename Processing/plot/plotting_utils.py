@@ -140,9 +140,11 @@ def plot_shaded_withline(ax, x, y, z=None, label=None, alpha=.15,  **kwargs):
         alpha {float} -- [description] (default: {.15})
     """
     if z is not None:
-        raise NotImplementedError("use fill between XXX")
-        ax.fill_between(x, z, y, alpha=alpha, **kwargs)
+        # ax.fill_between(x, z, y, alpha=alpha, **kwargs)
+        ax.fill_betweenx(y, z, x, alpha=alpha, **kwargs)
+
     else:
-        raise NotImplementedError("use fill between XXX")
-        ax.fill_between(x, y, alpha=alpha, **kwargs)
+        # ax.fill_between(x, y, alpha=alpha, **kwargs)
+        ax.fill_betweenx(y, x, alpha=alpha, **kwargs)
+
     ax.plot(x, y, alpha=1, label=label, **kwargs)
