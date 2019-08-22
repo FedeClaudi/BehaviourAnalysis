@@ -127,8 +127,24 @@ def hline_to_curve(ax, y, xdata, ydata, dot=False, line_kwargs={}, scatter_kwarg
         ax.scatter(xval, y, **scatter_kwargs, **kwargs)
 
 def plot_shaded_withline(ax, x, y, z=None, label=None, alpha=.15,  **kwargs):
+    """[Plots a curve with shaded area and the line of the curve clearly visible]
+    
+    Arguments:
+        ax {[type]} -- [matplotlib axis]
+        x {[np.array, list]} -- [x data]
+        y {[np.array, list]} -- [y data]
+    
+    Keyword Arguments:
+        z {[type]} -- [description] (default: {None})
+        label {[type]} -- [description] (default: {None})
+        alpha {float} -- [description] (default: {.15})
+    """
     if z is not None:
-        ax.fill_between(x, z, y, alpha=alpha, **kwargs)
+        # ax.fill_between(x, z, y, alpha=alpha, **kwargs)
+        ax.fill_betweenx(y, z, x, alpha=alpha, **kwargs)
+
     else:
-        ax.fill_between(x, y, alpha=alpha, **kwargs)
+        # ax.fill_between(x, y, alpha=alpha, **kwargs)
+        ax.fill_betweenx(y, x, alpha=alpha, **kwargs)
+
     ax.plot(x, y, alpha=1, label=label, **kwargs)

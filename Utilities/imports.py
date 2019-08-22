@@ -32,7 +32,7 @@ if sys.platform != "darwin":
             print("Importing tables")
             from database.TablesDefinitionsV4 import *
 
-from Utilities.matplotlib_config import *
+from Utilities.matplotlib_config_figures import *
 
 from Utilities.file_io.files_load_save import *
 from Utilities.video_and_plotting.video_editing import Editor

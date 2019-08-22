@@ -75,6 +75,23 @@ def dist_plot(dist, ax=None, **kwargs):
     ax.plot(x, dist.pdf(x), **kwargs)
     
 def plot_kde(ax, kde, z, invert=False, vertical=False, normto=None, label=None, **kwargs):
+    """[Plots a KDE distribution. Plots first the shaded area and then the outline. 
+       KDE can be oriented vertically, inverted, normalised...]
+    
+    Arguments:
+        ax {[plt.axis]} -- [ax onto which to plot]
+        kde {[type]} -- [KDE fitted with statsmodels]
+        z {[type]} -- [value used to shift the curve, for a horizontal KDE z=0 means the curve is on the x axis. ]
+    
+    Keyword Arguments:
+        invert {bool} -- [mirror the KDE plot relative to the X or Y axis, depending on ortentation] (default: {False})
+        vertical {bool} -- [plot KDE vertically] (default: {False})
+        normto {[float]} -- [normalise the KDE so that the peak of the distribution is at a certain value] (default: {None})
+        label {[string]} -- [label for the legend] (default: {None})
+    
+    Returns:
+        ax, kde
+    """
     if vertical:
         x = kde.density
         y = kde.support

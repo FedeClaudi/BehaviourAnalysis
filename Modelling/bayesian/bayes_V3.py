@@ -35,9 +35,6 @@ class Bayes:
     def save_model_image(self, model, savepath):
         model = pm.model_to_graphviz(model)
         model.render(filename=savepath)
-        a =  1
-
-
 
     def model_hierarchical_bayes(self, conditions):
         hits, ntrials, p_r, n_mice, _ = self.get_binary_trials_per_condition(conditions)
