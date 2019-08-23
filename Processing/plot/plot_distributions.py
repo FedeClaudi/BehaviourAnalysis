@@ -6,7 +6,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 
 from Processing.plot.plotting_utils import *
-from Utilities.matplotlib_config import *
+from Utilities.matplotlib_config_figures import *
 
 def plot_distribution(*args, dist_type="logistic", comulative=False, ax=None, shaded=False, x_range=None, plot_kwargs={}, ax_kwargs={},  **kwargs):
     # Get the distribution
@@ -44,7 +44,7 @@ def plot_distribution(*args, dist_type="logistic", comulative=False, ax=None, sh
 
     return ax
 
-def plot_fitted_curve(func, xdata, ydata, ax, xrange=None, print_fit=False, numpy_polyfit=False,
+def plot_fitted_curve(func, xdata, ydata, ax, *args, xrange=None, print_fit=False, numpy_polyfit=False,
                         fit_kwargs={}, scatter_kwargs={}, line_kwargs={}):
     if numpy_polyfit and not isinstance(numpy_polyfit, int): raise ValueError("numpy_polyfit should be an integer")
     # set numpy_polifit to an integer to fit a numpy polinomial with degree numpy polyfit
@@ -53,7 +53,7 @@ def plot_fitted_curve(func, xdata, ydata, ax, xrange=None, print_fit=False, nump
     else: x = np.linspace(np.min(xdata), np.max(xdata), 100)
 
     if not numpy_polyfit: # ? scipy curve fit instead
-        popt, pcov = curve_fit(func, xdata, ydata, **fit_kwargs)
+        popt, pcov = curve_fit(func, xdata, ydata, *args, **fit_kwargs)
         if print_fit: print(popt)
         y = func(x, *popt)
         to_return = popt

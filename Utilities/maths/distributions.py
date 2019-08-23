@@ -3,7 +3,6 @@ sys.path.append('./')
 
 import numpy as np
 from scipy import misc, signal, stats
-import matplotlib.pyplot as plt
 import statsmodels.api as sm
 
 
@@ -15,8 +14,15 @@ def polyfit(order, x, y):
 	f = np.poly1d(z)
 	return f
 
-def sigmoid(x, a, b):
-	return 1 / (1 + np.exp(-b*(x-a)))
+# def sigmoid(x, a, b):
+# 	return 1 / (1 + np.exp(-b*(x-a)))
+
+def sigmoid(x, L ,x0, k, b):
+    y = L / (1 + np.exp(-k*(x-x0)))+b
+    return (y)
+
+def fsigmoid(x, a, b):
+    return 1.0 / (1.0 + np.exp(-a*(x-b)))
 
 def logistic(x, a, b):
 	return np.exp(a + b*x)/(1 + np.exp(a + b*x))

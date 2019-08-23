@@ -35,14 +35,16 @@ class ExperimentsAnalyser(Bayes):
     def __init__(self):
         Bayes.__init__(self)
         
-        self.conditions = dict(
-                    maze1 =  self.get_sessions_trials(maze_design=1, naive=None, lights=None, escapes=None, escapes_dur=1),
-                    maze2 =  self.get_sessions_trials(maze_design=2, naive=None, lights=None, escapes=None, escapes_dur=1),
-                    maze3 =  self.get_sessions_trials(maze_design=3, naive=None, lights=None, escapes=None, escapes_dur=1),
-                    maze4 =  self.get_sessions_trials(maze_design=4, naive=None, lights=None, escapes=None, escapes_dur=1),
-                )
+        if sys.platform != "darwin":
+            self.conditions = dict(
+                        maze1 =  self.get_sessions_trials(maze_design=1, naive=None, lights=None, escapes=None, escapes_dur=1),
+                        maze2 =  self.get_sessions_trials(maze_design=2, naive=None, lights=None, escapes=None, escapes_dur=1),
+                        maze3 =  self.get_sessions_trials(maze_design=3, naive=None, lights=None, escapes=None, escapes_dur=1),
+                        maze4 =  self.get_sessions_trials(maze_design=4, naive=None, lights=None, escapes=None, escapes_dur=1),
+                    )
 
-        self.session_metadata = pd.DataFrame((Session * Session.Metadata - "maze_type=-1"))
+            self.session_metadata = pd.DataFrame((Session * Session.Metadata - "maze_type=-1"))
+        
 
     # def __str__(self):
     #     def get_summary(df):

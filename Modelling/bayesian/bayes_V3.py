@@ -125,7 +125,7 @@ class Bayes:
         elif data is not None:
             if plot: f, ax  = plt.subplots(figsize=(12, 12),)
             ptuple = namedtuple("betaparams", "a b")
-            modes, means, params = {}, {}, {}
+            modes, means, params, sigmas = {}, {}, {},{}
             for expn, (exp, trials) in enumerate(data.items()):
                 # Get number of tirals ad hits per session
                 N, K = [], []
@@ -198,8 +198,9 @@ class Bayes:
                     try:
                         mean =  a2 / (a2 + b2)
                         _mode = (a2 -1)/(a2 + b2 -2)
+                        sigma = math.sqrt((a2 * b2)/((a2+b2)**2 * (a2 + b2 + 1))) # https://math.stackexchange.com/questions/497577/mean-and-variance-of-beta-distributions
                     except: continue
-                    modes[exp], means[exp], params[exp] = _mode, mean, ptuple(a2, b2)
+                    modes[exp], means[exp], params[exp], sigmas[exp] = _mode, mean, ptuple(a2, b2), sigma
                     if plot: ax.axvline(_mode, color=self.colors[expn+1], lw=2, ls="--", alpha=.8)
                     
                 elif mode == "hierarhical":
@@ -209,7 +210,7 @@ class Bayes:
             if plot:
                 ax.set(title="{} bayes".format(mode), ylabel="pdf", xlabel="theta")
                 ax.legend()
-            return modes, means, params
+            return modes, means, params, sigmas
         else:
             raise ValueError("need to pass either condtions or data")
 
