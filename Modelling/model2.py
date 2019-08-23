@@ -10,69 +10,43 @@ pa = PsychometricAnalyser()
 print(pa.paths_lengths)
 
 #%%
-# PLot linear utility function
-f, ax = plt.subplots()
+# Plot utility function 
+fig, ax = create_figure(subplots=False)
 
+# show Psi curve
+npoints = 1000
+# psi = np.zeros((npoints, npoints))
+# for x in np.arange(npoints):
+#     for y in np.arange(npoints):
+#         psi[y, x] = angle_between_points_2d_clockwise([0, 0], [x, y])
+
+pos = ax.imshow(psi, origin="lower", extent=[0, 1500, 0, 1500], cmap="coolwarm")
+# fig.colorbar(pos, ax=ax)
+
+
+# SHow mazes and IC
 ax.scatter([pa.paths_lengths["distance"].values[-1] for i in range(4)], pa.paths_lengths.distance,
-                    color=white)
-
-for i, psi in enumerate(pa.paths_lengths["georatio"].values):
-    if i < 3: 
-        ax.plot([0, 1000], [0, psi*1000], color=red, alpha=0.75)
-    else:
-        ax.plot([0, 1000], [0, psi*1000], color=white, alpha=0.75)
-
-
-ax.set(title="linear utility function", xlim=[200, 900], ylim=[200, 900], xlabel="$l_R$", ylabel="$l_L$")
-#%%
-# PLot NON linear utility function
-# assume that if Lr = 400, all indifference curves pass through the unity line. 
-f, ax = plt.subplots()
-
-ax.scatter([pa.paths_lengths["distance"].values[-1] for i in range(4)], pa.paths_lengths.distance,
-                    color=white)
-
-for i, psi in enumerate(pa.paths_lengths["georatio"].values):
+                    color=black)
+for i, _psi in enumerate(pa.paths_lengths["georatio"].values):
     if i < 3: 
         # ? Fit non linear indifference curve
-        x = [0,  300,       1000, 800, 1200, pa.paths_lengths["distance"].values[-1]]
-        y = [0,  psi*300,      psi*1000, psi*800, psi*1200, psi*pa.paths_lengths["distance"].values[-1]]
-        fit = polyfit(4, x, y)
-
-        ax.scatter(x, y, color=grey)
-
-        x = np.linspace(0, 1200)
-        y = fit(x)
-        ax.plot(x, y, color=red, alpha=0.75)
+        ax.plot([0, 1200], [0, _psi*1200], color=black, alpha=0.75)
     else:
-        ax.plot([0, 1200], [0, psi*1200], color=white, alpha=0.75)
+        ax.plot([0, 1200], [0, _psi*1200], color=black, alpha=0.75)
 
+ax.axvline(pa.paths_lengths["distance"].values[-1], color=[.2, .2, .2], ls="--")
+ax.set(title="$Utility space$", xlim=[0, 1000], ylim=[0, 1000], xlabel="$\mu_R$", ylabel="$\mu_L$")
 
-ax.set(title="non linear steep utility func", xlim=[0, 1100], ylim=[0, 1500], xlabel="$l_R$", ylabel="$l_L$")
+# Take 3 arbitrary vertical and horizzonalt lines
+p = [200, 500, 850]
 
-#%%
-# PLot NON linear utility function with different slope
-# assume that if Lr = 400, all indifference curves pass through the unity line. 
-f, ax = plt.subplots()
+ortholines(ax, [1, 0], [200, 200], color=green)
+ortholines(ax, [1, 0], [500, 500], color=purple)
+ortholines(ax, [1, 0], [850, 850], color=orange)
 
-ax.scatter([pa.paths_lengths["distance"].values[-1] for i in range(4)], pa.paths_lengths.distance,
-                    color=white)
+h = [psi[pp, :].T for pp in p]
+f2, ax2 = create_figure(subplots=False)
 
-for i, psi in enumerate(pa.paths_lengths["georatio"].values):
-    if i < 3: 
-        # ? Fit non linear indifference curve
-        dpsi = psi - 1
-        x = [0, 200, 400, pa.paths_lengths["distance"].values[-1]]
-        y = [0, (1 + dpsi*.5)*200, (1 + dpsi*.75)*400, psi*pa.paths_lengths["distance"].values[-1]]
-        fit = polyfit(5, x, y)
-
-        x = np.linspace(0, 1200)
-        y = fit(x)
-        ax.plot(x, y, color=red, alpha=0.75)
-    else:
-        ax.plot([0, 1200], [0, psi*1200], color=white, alpha=0.75)
-
-
-ax.set(title="non linear utility funciton", xlim=[200, 1100], ylim=[200, 1100], xlabel="$l_R$", ylabel="$l_L$")
+ax.plot(h)
 
 #%%
