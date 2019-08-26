@@ -22,6 +22,18 @@ except:
 
 
 # ! ARRAY NORMALISATION and FUNCTIONS
+def log_transform(im):
+    '''returns log(image) scaled to the interval [0,1]'''
+    try:
+        (min, max) = (im[im > 0].min(), im.max())
+        if (max > min) and (max > 0):
+            return (np.log(im.clip(min, max)) - np.log(min)) / (np.log(max) - np.log(min))
+    except:
+        pass
+    return im
+
+
+
 def find_nearest(a, a0):
 	"Element in nd array `a` closest to the scalar value `a0`"
 	idx = np.abs(a - a0).argmin()
@@ -216,6 +228,9 @@ def remove_tracking_errors(tracking, debug = False):
 
 
 # ! GEOMETRY
+def slope(x1, y1, x2, y2):
+    return (y2-y1)/(x2-x1)
+
 def calc_distance_between_point_and_line(line_points, p3):
 	"""[Calcs the perpendicular distance between a point and a line]
 	

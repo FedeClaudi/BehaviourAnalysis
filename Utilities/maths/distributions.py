@@ -14,14 +14,23 @@ def polyfit(order, x, y):
 	f = np.poly1d(z)
 	return f
 
-# def sigmoid(x, a, b):
-# 	return 1 / (1 + np.exp(-b*(x-a)))
-
 def sigmoid(x, L ,x0, k, b):
+    """
+    L -> shirnks the function on the Y axis. 
+    x0 -> x shift. 
+    k  -> slope. the smaller the flatter. Vals > 5 are good
+    b -> y shift. Shifts thw whole curve up and donw
+    """ 
     y = L / (1 + np.exp(-k*(x-x0)))+b
     return (y)
 
+
+
 def fsigmoid(x, a, b):
+    """
+        a -> slope. The smaller the flatter. Vals > 5 are good
+        b -> center of the slope
+    """
     return 1.0 / (1.0 + np.exp(-a*(x-b)))
 
 def logistic(x, a, b):
