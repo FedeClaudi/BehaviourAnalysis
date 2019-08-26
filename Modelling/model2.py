@@ -27,16 +27,17 @@ for i, xx in enumerate(x):
                         p = 1
                 else:
                         p = 0
+                p = yy - xx  # ! hdxhtcdhgctrcthcgf
                 z[i, ii] = p
 
 f, ax = create_figure(subplots=False)
 
-img = ax.imshow(z, alpha=.5, aspect="equal", origin="lower", extent=[0, 1, 0, 1], cmap="coolwarm")
-# f.colorbar(img)
+img = ax.imshow(z, alpha=1, aspect="equal", origin="lower", extent=[0, 1, 0, 1], cmap="coolwarm")
+f.colorbar(img)
 
 
-for k in [.1, .5, 1, 2.5, 10]:
-        ax.plot(x, x*k, color=[.2, .2, .2])
+# for k in [.1, .5, 1, 2.5, 10]:
+#         ax.plot(x, x*k, color=[.2, .2, .2])
 
 ax.set(title="$\Psi$", xlabel="$d_R$", ylabel="$d_L$", xlim=[0, 1], ylim=[0, 1], xticks=[0, 1], yticks=[0, 1])
 
@@ -54,9 +55,10 @@ PSI = np.zeros_like(Z)
 for i, xx in enumerate(x):
     for ii, yy in enumerate(y):
         # Z[l-i, ii] = fPsi(xx, yy, k=10)
-        psi = yy/xx
+        # psi = yy/xx
+        psi = yy - xx # ! srxdctfyvgbhunjmkl
         PSI[ii, i] = psi
-        Z[ii, i] = sigmoid(psi, L=1, x0=1, k=2, b=0)
+        Z[ii, i] = sigmoid(yy-xx, L=1, x0=0, k=10, b=0)
 
 
 surf = ax.imshow(Z, extent=[0, 1, 0, 1], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=1)
