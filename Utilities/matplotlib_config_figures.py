@@ -5,15 +5,19 @@ if sys.platform == "darwin":
     mpl.use("Qt5Agg")
 
 
-font = {'family' : 'Courier New',
+font = {'family' : 'Computer Modern Roman',
         'weight' : 600,
         'size'   : 12}
 
 mpl.rc('font', **font)
-
+mpl.rcParams['font.family'] = "serif"
+mpl.rcParams['font.serif']  = "Computer Modern Roman"
+mpl.rcParams['mathtext.fontset']  = "cm"
+mpl.rcParams['mathtext.default']  = "regular"
 
 # Set up matplotlib
-mpl.rcParams['text.color'] = "k"
+mpl.rcParams['text.color'] = "r"
+mpl.rcParams['text.usetex'] = False
 
 mpl.rcParams['figure.figsize'] = [20, 16]
 mpl.rcParams['figure.facecolor'] = "w"

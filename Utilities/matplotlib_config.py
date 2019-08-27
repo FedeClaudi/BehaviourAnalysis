@@ -4,72 +4,36 @@ import sys
 if sys.platform == "darwin":
     mpl.use("Qt5Agg")
 
+import matplotlib as mpl
+import sys
 
-font = {'family' : 'Courier New',
-        'weight' : 600,
-        'size'   : 12}
-
-mpl.rc('font', **font)
-
-
-# Set up matplotlib
-mpl.rcParams['text.color'] = "k"
-
-mpl.rcParams['figure.figsize'] = [20, 16]
-mpl.rcParams['figure.facecolor'] = "w"
-mpl.rcParams['figure.autolayout'] = False
-mpl.rcParams['figure.dpi'] = 80
-mpl.rcParams['savefig.dpi'] = 100
-mpl.rcParams['savefig.facecolor'] = "w"
-mpl.rcParams['figure.titlesize'] = 'large'
-mpl.rcParams['figure.titleweight'] = 'bold'
-
-mpl.rcParams['lines.linewidth'] = 2.0
-
-mpl.rcParams['legend.fancybox'] = True
-mpl.rcParams['legend.loc'] = 'best'
-mpl.rcParams['legend.numpoints'] = 1
-mpl.rcParams['legend.fontsize'] = 'small'
-mpl.rcParams['legend.framealpha'] = .8
-mpl.rcParams['legend.scatterpoints'] = 3
-mpl.rcParams['legend.edgecolor'] = "w"
-mpl.rcParams['legend.facecolor'] = "w"
-mpl.rcParams['legend.shadow'] = True
-mpl.rcParams['legend.columnspacing'] = 1
-mpl.rcParams["legend.markerscale"] = 1.0
-
-mpl.rcParams['axes.facecolor'] = "w"
-mpl.rcParams['axes.edgecolor'] = "k"
-mpl.rcParams['axes.linewidth'] = 4
-mpl.rcParams['axes.labelcolor'] = "k"
-mpl.rcParams['axes.labelsize'] = 22
-mpl.rcParams['axes.labelweight'] = "bold"
-mpl.rcParams['axes.spines.top'] = False
-mpl.rcParams['axes.spines.right'] = False
-mpl.rcParams['axes.titlesize'] = 26
-mpl.rcParams['axes.titleweight'] = 800
-mpl.rcParams['axes.titlepad'] = 16.
-
-mpl.rcParams['xtick.color'] = "k"
-mpl.rcParams['xtick.major.size'] = 16
-mpl.rcParams['xtick.major.width'] = 3
-mpl.rcParams['xtick.direction'] = "inout"
-mpl.rcParams['xtick.labelsize'] = 18
-
-mpl.rcParams['ytick.color'] = "k"
-mpl.rcParams['ytick.major.size'] = 16
-mpl.rcParams['ytick.major.width'] = 3
-mpl.rcParams['ytick.direction'] = "inout"
-mpl.rcParams['ytick.labelsize'] = 18
-
-mpl.rcParams['image.aspect'] = "auto"
-
+if sys.platform == "darwin":
+    mpl.use("Qt5Agg")
 
 import matplotlib.pyplot as plt
 import seaborn as sns
+sns.set()
+sns.set_context("talk", font_scale=6)
+
+# plt.style.use(['seaborn-poster'])
+mpl.rc("font", family="Times New Roman")
+mpl.rcParams['text.color'] = "k"
+mpl.rcParams['text.color'] = [.1, .1, .1]
+mpl.rcParams['mathtext.fontset']  = "cm"
+mpl.rcParams['mathtext.default']  = "regular"
+
+mpl.rc('text', usetex=True)
 
 
-
+mpl.rcParams['legend.facecolor'] = [0.80, 0.85, .95]
+mpl.rcParams['legend.shadow'] = False
+mpl.rcParams['legend.shadow'] = True
+mpl.rcParams['legend.fancybox'] = True
+mpl.rcParams['legend.loc'] = 'best'
+mpl.rcParams['legend.scatterpoints'] = 1
+mpl.rcParams['legend.framealpha'] = .8
+mpl.rcParams['legend.borderpad'] = .5
+mpl.rcParams['legend.frameon'] = True
 
 # import matplotlib as mpl
 # import sys

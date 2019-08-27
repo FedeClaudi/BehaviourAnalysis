@@ -408,7 +408,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 		
 		# Get modes on individuals posteriors and grouped bayes
 		modes, means, stds, _ = self.get_hb_modes()
-		grouped_modes, grouped_means, grouped_params, sigmas = self.bayes_by_condition_analytical(mode="grouped", plot=False) 
+		grouped_modes, grouped_means, grouped_params, sigmasquared, pranges = self.bayes_by_condition_analytical(mode="grouped", plot=False) 
 
 		 # Plot each individual's pR and the group mean as a factor of L/R length ratio
 		if ax is None: 
@@ -425,11 +425,11 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 			# 			fmt='o', markeredgecolor=desaturate_color(white, k=.6), markerfacecolor=desaturate_color(white, k=.6), markersize=10, 
 			# 			ecolor=desaturate_color(white, k=.2), elinewidth=3, 
 			# 			capthick=2, alpha=.6, zorder=0)
-			ax.errorbar(x, grouped_modes[condition], yerr=sigmas[condition], 
-						fmt='o', markeredgecolor=self.colors[i+1], markerfacecolor=self.colors[i+1], markersize=5, 
-						ecolor=desaturate_color(self.colors[i+1], k=.7), elinewidth=3, label=condition,
-						capthick=2, alpha=1, zorder=0)             
-			vline_to_point(ax, x, np.mean(y), color=desaturate_color(self.colors[i+1], k=.7), lw=1, ls="--", alpha=.8)
+			ax.errorbar(x, grouped_modes[condition], yerr=2*math.sqrt(sigmasquared[condition]), 
+						fmt='o', markeredgecolor=self.colors[i+1], markerfacecolor=self.colors[i+1], markersize=55, 
+						ecolor=desaturate_color(self.colors[i+1], k=.7), elinewidth=12, label=condition,
+						capthick=2, alpha=1, zorder=20)             
+			vline_to_point(ax, x, np.mean(y), color=[.2, .2, .2], lw=5, ls="--", alpha=.8)
 
 
 			if condition not in exclude_experiments:# ? use the data for curves fitting
@@ -439,20 +439,20 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 				lr_ratios_mean_pr["individuals_y"].append(y)
 				lr_ratios_mean_pr["individuals_y_sigma"].append(stds[condition])
 			else: 
-				del grouped_modes[condition], grouped_means[condition], sigmas[condition]
+				del grouped_modes[condition], grouped_means[condition], sigmasquared[condition]
 
 		# Fix plotting
-		ax.set(ylim=[0, 1], ylabel="p(R)", title="p(R) per mouse per maze", xlabel="Left path length (a.u.)",
+		ax.set(ylim=[0, 1], ylabel="p(R)", title=None, xlabel="Left path length (a.u.)",
 				 xticks = self.paths_lengths[self.ratio].values, xticklabels = self.conditions.keys())
-		make_legend(ax)
+		# make_legend(ax)
 
-		return lr_ratios_mean_pr, grouped_modes, grouped_means, sigmas, modes, means, stds, f, ax, xp, xrange, grouped_params
+		return lr_ratios_mean_pr, grouped_modes, grouped_means, sigmasquared, modes, means, stds, f, ax, xp, xrange, grouped_params
 
 	def plot_pr_by_condition_detailed(self):
 		for bw in [0.02]:
 			f, axarr = create_figure(subplots=True, ncols=5, sharey=False)
 			# plot normal pR
-			lr_ratios_mean_pr, grouped_modes, grouped_means, sigmas,  modes, means, stds, _, ax, xp, xrange, grouped_params = self.pr_by_condition(ax=axarr[0])
+			lr_ratios_mean_pr, grouped_modes, grouped_means, sigmasquared,  modes, means, stds, _, ax, xp, xrange, grouped_params = self.pr_by_condition(ax=axarr[0])
 
 			# Plot a kde of the pR of each mouse on each maze
 			for i, (maze, prs) in enumerate(means.items()):
@@ -499,27 +499,21 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 
 		axarr[4].set(title="mice x maze", xticks=[1, 2, 3, 4], xticklabels=["m4", "m3", "m2", "m1"], ylabel="# mice", xlabel="maze")
 
+
+
+
 	def model_summary(self, exclude_experiments=[None], ax=None):
-		lr_ratios_mean_pr, grouped_modes, grouped_means, sigmas,  modes, means, stds, f, ax, xp, xrange, _ = self.pr_by_condition(exclude_experiments=exclude_experiments, ax=ax)
+		sns.set_context("talk", font_scale=3.75)
 
-		# Plot simulation results   + plotted sigmoid
-		# ? logistic regression on analytical simulation
+		sns.set_style("white", {
+					"axes.grid":"False",
+					"ytick.right":"False",
+					"ytick.left":"True",
+					"xtick.bottom":"True",
+					"text.color": "0"
+		})
 
-		# fitted = []
-		# for i, (nn, col) in enumerate(zip(np.linspace(.05, .2, 2), get_n_colors(10))):
-		# 	self.distance_noise = nn
-		# 	analytical_pr = self.simulate_trials_analytical()
-		# 	pomp = plot_fitted_curve(sigmoid, [m[0] for m in lr_ratios_mean_pr["grouped"]], np.hstack(list(analytical_pr.values())), ax, xrange=xrange, 
-		# 				scatter_kwargs={"alpha":0}, 
-		# 				line_kwargs={"color":desaturate_color(teal), "alpha":0, "lw":2})
-		# 	fitted.append(pomp)
-		# ax.fill_between(xp, sigmoid(xp, *fitted[0]), sigmoid(xp, *fitted[1]),  color=lightblue, alpha=.15, label="model pR - $\sigma : {}-{}$".format(.05, .2))
-
-		# ? Fit sigmoid to median pR of raw data  
-		# plot_fitted_curve(sigmoid, [m[0] for m in lr_ratios_mean_pr["grouped"]], [m[1] for m in lr_ratios_mean_pr["grouped"]], ax, xrange=xrange, 
-		# 						fit_kwargs={"sigma":[m[2] for m in lr_ratios_mean_pr["grouped"]]},
-		# 						scatter_kwargs={"alpha":0}, 
-		# 						line_kwargs={"color":pink, "alpha":.8, "lw":4, "label":"mean raw p(R)"})
+		lr_ratios_mean_pr, grouped_modes, grouped_means, sigmasquared,  modes, means, stds, f, ax, xp, xrange, _ = self.pr_by_condition(exclude_experiments=exclude_experiments, ax=ax)
 
 		# ? Fit logistic regression to mean p(R)+std(p(R))
 		# ? Plot sigmoid filled to psy - mean pR of grouped bayes + std
@@ -529,21 +523,25 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 		print(xdata, ydata)
 		pomp = plot_fitted_curve(sigmoid, xdata, ydata, ax, 
 			xrange=xrange,
-			fit_kwargs={"sigma":list(sigmas.values()), "method":"dogbox", "bounds":([.6, .8, 5, 0],[1, 1.2, 10, 1])},
+			fit_kwargs={"sigma":[2* math.sqrt(s) for s in list(sigmasquared.values())], "method":"dogbox", "bounds":([.6, .8, 5, 0],[1, 1.2, 15, 1])},
 			scatter_kwargs={"alpha":0}, 
-			line_kwargs={"color":black, "alpha":.5, "lw":3, "label":"mean hb p(R)"})
+			line_kwargs={"color":black, "alpha":.85, "lw":10,})
 
-		# ? Plot fitted sigmoid
-		# hbfit = plot_fitted_curve(sigmoid, np.hstack(lr_ratios_mean_pr["individuals_x"]), np.hstack(lr_ratios_mean_pr["individuals_y"]), ax, xrange=xrange,  # ? ind. sigmoid
-		# 						fit_kwargs={"sigma": np.hstack(lr_ratios_mean_pr["individuals_y_sigma"]), }, 
-		# 						scatter_kwargs={"alpha":0}, 
-		# 						line_kwargs={"color":grey, "alpha":.8, "lw":4, "label":"individuals hb p(R)s"})
-
+		rhos = [m[0] for m in lr_ratios_mean_pr["grouped"]]
+		labels = ["$Maze\\ {}$\n $\\rho = {}$".format(1+i, round(r, 2)) for i,r in enumerate(rhos)]
 		# Fix plotting
 		ax.axhline(.5, ls="--", color=grey, lw=.25)
-		ax.set(ylim=[-0.01, 1.05], ylabel="p(R)", title="p(R) per mouse per maze", xlabel="$\psi$",
-				 xticks = self.paths_lengths[self.ratio].values, xticklabels = self.conditions.keys())
-		make_legend(ax)
+		ax.set(ylim=[0, 1], ylabel="p(R)", title=None, xlabel="$\\rho$",
+				 xticks = self.paths_lengths[self.ratio].values, xticklabels = labels)
+		# make_legend(ax)
+
+
+		sns.despine(offset=10, trim=False, left=False, right=True)
+		print(sns.axes_style())
+
+
+
+
 
 	def plot_hierarchical_bayes_effect(self):
 		# Get hierarchical Bayes modes and individual mice p(R)
@@ -562,6 +560,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 		
 		for i, (exp, ax) in enumerate(zip(trace.keys(), axarr)):
 			# Plot mean and errorbar for naive and standard hb
+
 			ax.errorbar(0.1, np.mean(p_r[exp]), yerr=np.std(p_r[exp]),  **white_errorbar)
 			ax.errorbar(0.9, np.mean(means[exp]), yerr=np.std(means[exp]),  **white_errorbar)
 
@@ -673,8 +672,7 @@ if __name__ == "__main__":
 	pa = PsychometricAnalyser()
 
 	# pa.plot_pr_by_condition_detailed()
-	pa.model_summary()  # ! important needto checkthis
-	# TODO the code for the func above needs some serious checking. 
+	pa.model_summary() 
 	# pa.plot_hierarchical_bayes_effect()
 
 	# pa.inspect_rt_metric(load=False)
