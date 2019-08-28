@@ -4,17 +4,10 @@ sys.path.append('./')
 import numpy as np
 from scipy import misc, signal, stats
 import statsmodels.api as sm
+import math
 
-
-# ! FIT MATH FUNCTIONS
-# ? Functions to pass to curve_fit
-def polyfit(order, x, y):
-	#  calculate polynomial
-	z = np.polyfit(x, y, order)
-	f = np.poly1d(z)
-	return f
-
-def sigmoid(x, L ,x0, k, b):
+# ! SIGMOIDS
+def logistic(x, L ,x0, k, b):
     """
     L -> shirnks the function on the Y axis. 
     x0 -> x shift. 
@@ -24,21 +17,62 @@ def sigmoid(x, L ,x0, k, b):
     y = L / (1 + np.exp(-k*(x-x0)))+b
     return (y)
 
-
-
-def fsigmoid(x, a, b):
+def centered_logistic(x, L ,x0, k):
     """
-        a -> slope. The smaller the flatter. Vals > 5 are good
-        b -> center of the slope
+    L -> shirnks the function on the Y axis. 
+    x0 -> x shift. 
+    k  -> slope. the smaller the flatter. Vals > 5 are good
+    """ 
+    b = (1 - L)/2
+    y = L / (1 + np.exp(-k*(x-x0)))+b
+    return (y)
+
+
+"""
+    In these functions "L" is a scaling factor, 
+    "b" is a Y-shift factor
+    "x0" is a X-shift factor
+"""
+
+def hill_function(x, n, L, b): # ? no work
+    return L / (1 + x**-n) + b
+
+def hyperbolic_tangent(x, L=1, b=0, x0=0):
+    return np.tanh(x-x0)/L + b 
+
+def arctangent(x, L=2, b=0, x0=0):
+    return np.arctan(x-x0)/L + b 
+
+def gudermannian(x, L=2, b=0, x0=0):
+    return L*np.arctan(np.tanh((x-x0)/L)) + b
+
+def generalised_logistic(x, a): # ? no work
     """
-    return 1.0 / (1.0 + np.exp(-a*(x-b)))
+        a > 0
+    """
+    if a <= 0: raise ValueError("Paramter 'a' should be > 0")
+    return (1 + np.exp(-(x-x0)))**-a
 
-def logistic(x, a, b):
-	return np.exp(a + b*x)/(1 + np.exp(a + b*x))
+def algebraic_sigmoid(x, L=1, b=0, x0=0):
+    return (x-x0/ (math.sqrt(1 + (x-x0)**2)))/L + b
 
-def half_sigmoid(x, a, b):
-	chance = .5
-	return chance + (1-chance) / (1 + np.exp(-b*(x-a)))
+def error_function(x, x0=0, scale=1, L=1, b=0):
+    norm = stats.norm(x0, scale)
+    return norm.cdf(x)*L +b
+
+def centered_error_function(x, x0=0, scale=1, L=1):
+    b = (1 - L)/2
+    norm = stats.norm(x0, scale)
+    return norm.cdf(x)*L +b
+
+# ! FIT MATH FUNCTIONS
+# ? Functions to pass to curve_fit
+def polyfit(order, x, y):
+	#  calculate polynomial
+	z = np.polyfit(x, y, order)
+	f = np.poly1d(z)
+	return f
+
 
 def linear_func(x, a, b):
 	return x*a + b

@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 from scipy.signal import medfilt as median_filter
 from scipy.interpolate import interp1d
 from collections import namedtuple
+import seaborn as sns
+
 try:
 	from sklearn import preprocessing
 except: pass
@@ -83,7 +85,11 @@ def get_n_colors(n):
 def desaturate_color(c, k=.5):
 	# c needs to be an array of 3 floats that specify RGB color
 	# k needs to be a float between 0 and 1
-	return [cc*k for cc in c]
+	# return [cc*k for cc in c]
+    return sns.desaturate(c, k)
+
+def saturate_color(c, k=.5):
+    return sns.saturate(c, k)
 
 # ! MOMENTS
 def moving_average(arr, window_size):

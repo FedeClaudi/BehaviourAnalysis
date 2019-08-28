@@ -421,13 +421,9 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 
 			y = means[condition]
 			# ? plot HB PR with errorbars
-			# ax.errorbar(np.random.normal(x, 0.005, size=len(y)), y, yerr=stds[condition], 
-			# 			fmt='o', markeredgecolor=desaturate_color(white, k=.6), markerfacecolor=desaturate_color(white, k=.6), markersize=10, 
-			# 			ecolor=desaturate_color(white, k=.2), elinewidth=3, 
-			# 			capthick=2, alpha=.6, zorder=0)
 			ax.errorbar(x, grouped_modes[condition], yerr=2*math.sqrt(sigmasquared[condition]), 
-						fmt='o', markeredgecolor=self.colors[i+1], markerfacecolor=self.colors[i+1], markersize=55, 
-						ecolor=desaturate_color(self.colors[i+1], k=.7), elinewidth=12, label=condition,
+						fmt='o', markeredgecolor=orange, markerfacecolor=orange, markersize=55, 
+						ecolor=desaturate_color(orange, k=.7), elinewidth=12, label=condition,
 						capthick=2, alpha=1, zorder=20)             
 			vline_to_point(ax, x, np.mean(y), color=[.2, .2, .2], lw=5, ls="--", alpha=.8)
 
@@ -503,7 +499,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 
 
 	def model_summary(self, exclude_experiments=[None], ax=None):
-		sns.set_context("talk", font_scale=3.75)
+		sns.set_context("talk", font_scale=4.5)
 
 		sns.set_style("white", {
 					"axes.grid":"False",
@@ -521,7 +517,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 		# p0 = [max(ydata), np.median(xdata), 1, min(ydata)] # this is an mandatory initial guess
 		# p0 = [.9, 1, 1, .5] # this is an mandatory initial guess
 		print(xdata, ydata)
-		pomp = plot_fitted_curve(sigmoid, xdata, ydata, ax, 
+		pomp = plot_fitted_curve(logistic, xdata, ydata, ax, 
 			xrange=xrange,
 			fit_kwargs={"sigma":[2* math.sqrt(s) for s in list(sigmasquared.values())], "method":"dogbox", "bounds":([.6, .8, 5, 0],[1, 1.2, 15, 1])},
 			scatter_kwargs={"alpha":0}, 
