@@ -26,7 +26,6 @@ sns.set_style("white", {
             "text.color": "0"
 })
 mpl.rc('text', usetex=False)
-sns.set_context("talk", font_scale=3)  # was 3 
 
 params = {
     'text.latex.preamble': ['\\usepackage{gensymb}'],
@@ -45,6 +44,7 @@ params = {
     'figure.figsize': [3.39, 2.10],
 }
 mpl.rcParams.update(params)
+sns.set_context("talk", font_scale=3)  # was 3 
 
 
 # %%
@@ -54,8 +54,8 @@ class PsiCalculator:
     good_fit_params = ([0.6, 0.8, 0],[0.9, 10, 2])
 
     def __init__(self):
-        self.R = np.arange(0, 1010, 10)
-        self.L = np.arange(0, 1010, 10)
+        self.R = np.arange(0, 1001, 1)
+        self.L = np.arange(0, 1001, 1)
         self.Psi = np.zeros((len(self.R), len(self.R)))
         self.PsidL, self.PsidR = np.zeros_like(self.Psi), np.zeros_like(self.Psi)
 
@@ -186,13 +186,13 @@ class PsiCalculator:
             lslopes.append(self.PsidL[:, r0idx])
             rslopes.append(self.PsidR[r0idx, :])
 
-        axarr[3].set(xlabel="L", ylabel="$\Psi$", yticks=[0, round(np.nanmin(self.Psi),2), round(np.nanmax(self.Psi),2), 1], xticks=np.arange(0, self.npoints, 10), xticklabels=np.arange(0, self.rmax+1, 100))
-        axarr[4].set(xlabel="L", yticks=[0, round(np.nanmax(lslopes), 3)], xticks=np.arange(0, self.npoints, 10), xticklabels=np.arange(0, self.rmax+1, 100))
-        axarr[5].set(xlabel="R", yticks=[0, round(np.nanmin(rslopes), 3)], xticks=np.arange(0, self.npoints, 10), xticklabels=np.arange(0, self.rmax+1, 100))
+        axarr[3].set(xlabel="$L$", ylabel="$\Psi$", yticks=[0, round(np.nanmin(self.Psi),2), round(np.nanmax(self.Psi),2), 1], xticks=np.arange(0, self.npoints, np.int(250*self.points_conversion_factor)), xticklabels=np.arange(0, self.rmax+1, 100))
+        axarr[4].set(xlabel="$L$", yticks=[0, round(np.nanmax(lslopes), 3)], xticks=np.arange(0, self.npoints, np.int(250*self.points_conversion_factor)), xticklabels=np.arange(0, self.rmax+1, 250))
+        axarr[5].set(xlabel="$R$", yticks=[0, round(np.nanmin(rslopes), 3)], xticks=np.arange(0, self.npoints, np.int(250*self.points_conversion_factor)), xticklabels=np.arange(0, self.rmax+1, 250))
 
-        titles = ["Psi", "partial L", "partial R"]
+        titles = ["$\Psi$", "$\\frac{\\partial \\Psi}{\\partial L}$", "$\\frac{\\partial \\Psi}{\\partial R}$"]
         for ax, t in zip(axarr, titles):
-            ax.set(title=t, xticks=[], yticks=[], xlabel="R", ylabel="L")
+            ax.set(title=t, xticks=[], yticks=[], xlabel="$R$", ylabel="$L$")
 
     def plot_Psi_schematic(self):
         # ? Make figure for upgrade
@@ -267,7 +267,7 @@ class PsiCalculator:
             scatter_kwargs={"alpha":0}, 
             line_kwargs={"color":black, "alpha":1, "lw":2,})
 
-        axarr[0].set(title="Fit", xlim=[0, self.rmax], ylim=[0, 1], xlabel="L", ylabel="p(R)")
+        axarr[0].set(xlim=[0, self.rmax], ylim=[0, 1], xlabel="$L$", ylabel="$\Psi$")
 
         print(""" 
             Fitted sigmoid:
@@ -293,7 +293,7 @@ class PsiCalculator:
         # Look at the slope of the partial over L for different values of R
 
         slopes, colors, x_correct = [], [], []
-        x = np.arange(self.npoints)
+        x = np.arange(0, self.npoints, 10)
 
         for r in x:
             slope = self.PsidL[r, r]
@@ -312,27 +312,35 @@ class PsiCalculator:
             line_kwargs=dict(color=red, lw=4, ls="--")
         
         )
-        ax.set(title="Slope of Partial over L at l=r", xlabel="L", ylabel="slope", xticks=np.arange(0, self.npoints, 10), xticklabels=np.arange(0, self.rmax+1, 100))
+        ax.set(title="$\\left.\\frac{\\partial \\Psi}{\\partial L}\\right|_{L=R}$", xlabel="$L$", ylabel="$Slope$", xticks=np.arange(0, self.npoints, np.int(250*self.points_conversion_factor)), xticklabels=np.arange(0, self.rmax+1, 250))
         sns.despine(fig=f, offset=10, trim=False, left=False, right=True)
 
         self.slope_data = np.zeros((len(slopes), 2))
         self.slope_data[:, 0], self.slope_data[:, 1] = x_correct, slopes
 
 
-calc = PsiCalculator()
-calc.getPsi()
+# calc = PsiCalculator()
+# calc.getPsi()
 
-calc.fit_plot()
-calc.plot_Psy_derivs()
-calc.slope_analysis()
+# calc.fit_plot()
+# calc.plot_Psy_derivs()
+# calc.slope_analysis()
 
 #%%
 if __name__ == "__main__":
     calc = PsiCalculator()
     calc.getPsi()
 
-    calc.fit_plot()
     calc.plot_Psy_derivs()
     calc.slope_analysis()
 
+    calc.plot_Psi()
+    calc.plot_Psi_schematic()
+    calc.plot_mazes()
+
+    calc.fit_plot()
+
+
     plt.show()
+
+#%%
