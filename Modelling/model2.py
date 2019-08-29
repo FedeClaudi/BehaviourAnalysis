@@ -12,7 +12,7 @@ from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-%matplotlib inline
+# %matplotlib inline
 
 # %%
 # set seaborn
@@ -26,7 +26,7 @@ sns.set_style("white", {
             "text.color": "0"
 })
 mpl.rc('text', usetex=False)
-sns.set_context("talk", font_scale=1)  # was 3 
+sns.set_context("talk", font_scale=3)  # was 3 
 
 params = {
     'text.latex.preamble': ['\\usepackage{gensymb}'],
@@ -41,12 +41,11 @@ params = {
     'legend.fontsize': 6, # was 10
     'xtick.labelsize': 8,
     'ytick.labelsize': 8,
-    'text.usetex': False,
+    'text.usetex': True,
     'figure.figsize': [3.39, 2.10],
 }
-matplotlib.rcParams.update(params)
+mpl.rcParams.update(params)
 
-# TODO look at slope relationship with the function
 
 # %%
 class PsiCalculator:
@@ -69,6 +68,8 @@ class PsiCalculator:
 
         self.npoints = len(self.R)
         self.rmax = np.int(np.max(self.R))
+        self.points_conversion_factor = self.rmax/self.npoints
+        self.colorshelper = MplColorHelper("Greens", 0, self.rmax+self.rmax/4, inverse=True)
 
         # Experimental data
         self.prs = [0.78, 0.72, 0.70, 0.47]
@@ -126,9 +127,9 @@ class PsiCalculator:
     @staticmethod
     def dPsy_dR(l, r, o=1, r0=1, s=10):
         # returns the partial derivative of Psi over R at l,r
-        e1 = np.exp(-(s*(l-r)/r))
-        e2 = np.exp(-((l-r)/r))
-        return -((o*l*s*e1)/((r**2)*(1+e2)**2))
+        e = np.exp(-(s*(l-r)/r))
+
+        return -((o*l*s*e)/((r**2)*(1+e)**2))
 
     def getPsi(self):
         for i, r in enumerate(self.R):
@@ -146,7 +147,7 @@ class PsiCalculator:
 
         if ax is None: f, ax = create_figure(subplots=False)
 
-        surf = ax.imshow(self.Psi, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal")
+        surf = ax.imshow(self.Psi, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=1)
         divider = make_axes_locatable(ax)
         cax1 = divider.append_axes("right", size="5%", pad=0.05)
 
@@ -169,19 +170,25 @@ class PsiCalculator:
 
         sns.despine(fig=f, offset=10, trim=False, left=False, right=True)
 
-        for ax in axarr[:3]:
-            # ax.axvline(self.R0, color=black, lw=2, ls="--")
-            ax.set(xlabel="L", ylabel="Val", yticks=[])
-
-        for r0 in np.arange(0, self.rmax, 100):
+        eval_values = np.arange(100, self.rmax, 100)
+        lslopes, rslopes = [], []
+        for r0 in eval_values:
             r0idx = self.get_arr_idx(r0)
-            axarr[1].axvline(r0, color=black, lw=1, ls="--")
-            axarr[2].axvline(r0, color=black, lw=1, ls="--")
-            axarr[0].axvline(r0, color=black, lw=1, ls="--")
+            color = self.colorshelper.get_rgb(r0)
+            axarr[0].axvline(r0, color=color, lw=3, ls="--")
+            axarr[1].axvline(r0, color=color, lw=3, ls="--")
+            axarr[2].axhline(r0, color=color, lw=3, ls="--")
 
-            axarr[3].plot(self.Psi[:, r0idx], color=black, lw=2)
-            axarr[4].plot(self.PsidL[:, r0idx], color=black, lw=2)
-            axarr[5].plot(self.PsidR[:, r0idx], color=black, lw=2)
+            axarr[3].plot(self.Psi[:, r0idx], color=color, lw=2)
+            axarr[4].plot(self.PsidL[:, r0idx], color=color, lw=2)
+            axarr[5].plot(self.PsidR[r0idx, :], color=color, lw=2)
+
+            lslopes.append(self.PsidL[:, r0idx])
+            rslopes.append(self.PsidR[r0idx, :])
+
+        axarr[3].set(xlabel="L", ylabel="$\Psi$", yticks=[0, round(np.nanmin(self.Psi),2), round(np.nanmax(self.Psi),2), 1], xticks=np.arange(0, self.npoints, 10), xticklabels=np.arange(0, self.rmax+1, 100))
+        axarr[4].set(xlabel="L", yticks=[0, round(np.nanmax(lslopes), 3)], xticks=np.arange(0, self.npoints, 10), xticklabels=np.arange(0, self.rmax+1, 100))
+        axarr[5].set(xlabel="R", yticks=[0, round(np.nanmin(rslopes), 3)], xticks=np.arange(0, self.npoints, 10), xticklabels=np.arange(0, self.rmax+1, 100))
 
         titles = ["Psi", "partial L", "partial R"]
         for ax, t in zip(axarr, titles):
@@ -282,16 +289,50 @@ class PsiCalculator:
         for i in range(len(axarr)):
             axarr[i].set_position(gs[i].get_position(f))
 
-# %% test
+    def slope_analysis(self):
+        # Look at the slope of the partial over L for different values of R
+
+        slopes, colors, x_correct = [], [], []
+        x = np.arange(self.npoints)
+
+        for r in x:
+            slope = self.PsidL[r, r]
+            if np.isnan(slope) or np.isinf(slope): continue
+            x_correct.append(r)
+            slopes.append(slope)
+            colors.append(self.colorshelper.get_rgb(r*self.points_conversion_factor))
+
+        f, ax = create_figure(subplots=False)
+
+        # Plot data and fit an exponential
+        params = plot_fitted_curve(exponential, x_correct, slopes, ax,
+            xrange=[0, np.max(x_correct)],
+            fit_kwargs={"method":"dogbox", "max_nfev":1000, "bounds":([0.5, -3, 0, 0], [1, 0, 1, 0.6])},
+            scatter_kwargs=dict(c=colors, edgecolors=black, s=55),
+            line_kwargs=dict(color=red, lw=4, ls="--")
+        
+        )
+        ax.set(title="Slope of Partial over L at l=r", xlabel="L", ylabel="slope", xticks=np.arange(0, self.npoints, 10), xticklabels=np.arange(0, self.rmax+1, 100))
+        sns.despine(fig=f, offset=10, trim=False, left=False, right=True)
+
+        self.slope_data = np.zeros((len(slopes), 2))
+        self.slope_data[:, 0], self.slope_data[:, 1] = x_correct, slopes
+
+
 calc = PsiCalculator()
 calc.getPsi()
-# params = calc.fit_plot(fit_bounds=([0.6, 0.8, 0],[0.9, 10, 2]))
+
+calc.fit_plot()
 calc.plot_Psy_derivs()
-
-
-
+calc.slope_analysis()
 
 #%%
+if __name__ == "__main__":
+    calc = PsiCalculator()
+    calc.getPsi()
 
+    calc.fit_plot()
+    calc.plot_Psy_derivs()
+    calc.slope_analysis()
 
-#%%
+    plt.show()

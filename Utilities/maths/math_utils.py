@@ -78,19 +78,6 @@ def find_hist_peak(arr, bins=None, density=True):
 	return yi, y, x
 
 
-# ! COLORS
-def get_n_colors(n):
-	return [plt.get_cmap("tab20")(i) for i in np.arange(n)]
-
-def desaturate_color(c, k=.5):
-	# c needs to be an array of 3 floats that specify RGB color
-	# k needs to be a float between 0 and 1
-	# return [cc*k for cc in c]
-    return sns.desaturate(c, k)
-
-def saturate_color(c, k=.5):
-    return sns.saturate(c, k)
-
 # ! MOMENTS
 def moving_average(arr, window_size):
 	cumsum_vec = np.cumsum(np.insert(arr, 0, 0)) 

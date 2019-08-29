@@ -6,6 +6,19 @@ from scipy import misc, signal, stats
 import statsmodels.api as sm
 import math
 
+
+# ! EXPONENTIALS AND LOGARITHMS
+
+def fexponential(x, a, b, c):
+    return a * np.exp(-b * x) + c
+
+def exponential(x, a, b, c, d):
+	return  a*np.exp(-c*(x-b))+d
+
+
+def flogarithmic(x, a, b, c):
+  return a * np.log(b * x) + c
+
 # ! SIGMOIDS
 def logistic(x, L ,x0, k, b):
     """
@@ -77,8 +90,6 @@ def polyfit(order, x, y):
 def linear_func(x, a, b):
 	return x*a + b
 
-def exponential(x, a, b, c, d):
-	return  a*np.exp(-c*(x-b))+d
 
 def step_function(x,a, b, c):
 	# Step function
