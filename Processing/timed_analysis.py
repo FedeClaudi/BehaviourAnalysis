@@ -136,9 +136,8 @@ class timedAnalysis:
         make_legend(axarr[leftcol[4]])
         make_legend(axarr[rightcol[-1]])
 
-
     def timed_pr(self):
-        grouped_modes, grouped_means, grouped_params = self.bayes_by_condition_analytical(mode="grouped", plot=False) 
+        grouped_modes, grouped_means, grouped_params, _, _ = self.bayes_by_condition_analytical(mode="grouped", plot=False) 
 
         # crate figure
         f, axarr = create_figure(subplots=True, nrows=4,sharex=True, sharey=True)
@@ -186,3 +185,100 @@ class timedAnalysis:
         axarr[0].set(title="timed grouped bayesian")
         axarr[-1].set(xlabel="time (min)",)
 
+
+    def timed_plots_for_upgrade(self):
+        def plot_fitparams(ax, res):
+           ax.text(0.95, 0.8, '$slope:{}\\ -\\ p:{}\\ -\\ r^2:{}$'.format(round(res.params[1], 5), round(res.pvalues[1], 8), round(res.rsquared, 3)), 
+                        color="k", fontsize=32, transform=ax.transAxes, **text_axaligned)
+            
+        grouped_modes, grouped_means, grouped_params, _, _ = self.bayes_by_condition_analytical(mode="grouped", plot=False) 
+        rtdf = self.inspect_rt_metric(load=True, plot=False)
+
+        # crate figure
+        f, axarr = create_figure(subplots=True, nrows=3, sharex=True)
+
+        # ? Plot timed PR
+        ax = axarr[0]
+        window_size = 20*60  # in seconds
+        magification_factor = 100
+        n_steps = 80
+
+        # loop over experiments
+        for i, (condition, trials) in enumerate(self.conditions.items()):
+            # Get escape arms by time
+            trial_times = trials.stim_frame_session.values / trials.fps.values   # times are in seconds
+            trial_outcomes = np.array([1 if "Right" in t.escape_arm else 0 for i,t in trials.iterrows()])
+
+            trial_outcomes = trial_outcomes[np.argsort(trial_times)]
+            trial_times = np.sort(trial_times)
+
+            # Sweep over time and do windowed analytical bayes
+            means, std = [], []
+
+            times, means, stds = [], [], []
+            # for t in np.linspace(np.min(trial_times), np.max(trial_times), n_steps):
+            _times = np.arange(10*60, 80*60, window_size)
+            for t in _times:   # loop over the whole session takin N s everytime
+
+                in_window = np.where((trial_times > t-window_size/2) & (trial_times < t+window_size/2))
+                if np.any(in_window):
+                    outcomes_in_window = trial_outcomes[in_window]
+
+                    if len(outcomes_in_window) < 5: continue # skip times when there are too few trials
+                    
+                    (a, b, fact), mean, var = self.simple_analytical_bayes(outcomes_in_window)
+                    means.append(mean)
+                    times.append(t)
+
+
+            ax.errorbar(times, means, yerr=None, 
+                fmt='o', markeredgecolor=black, markerfacecolor=self.colors[i+1], markersize=50, 
+                ecolor=desaturate_color(self.colors[i+1], k=.7), elinewidth=12, label=condition,
+                capthick=2, alpha=1, zorder=20, 
+                color=[.2, .2, .2], ls="--", lw=10) 
+
+        ax.set(ylim=[0, 1],  ylabel="$p(R)$", xticks=[x for x in _times], xticklabels=["${}$".format(np.int(x/60)) for x in _times], xlim=[0, 80*60])
+
+
+        # ? Plot timed RT and escape speed
+        all_speeds, all_rts, all_times, all_times2 = [], [], [], []
+        for i, (condition, df) in enumerate(self.conditions.items()):
+            times, times2, ones, zeros, speeds, rts, = [], [], [], [], [], [],
+            # loop over trials
+            for n, (_, trial) in enumerate(df.iterrows()):
+                x = trial.stim_frame_session / trial.fps
+
+                escape_speed = np.mean(line_smoother(trial.tracking_data[:, 2], window_size=51, order=5)) / trial.fps
+                times.append(x)
+                speeds.append(escape_speed)
+
+                # Get reaction time
+                rt = rtdf.loc[rtdf.trialid == trial.trial_id].rt_s.values
+                if np.any(rt): 
+                    if not np.isnan(rt[0]):
+                        times2.append(x)
+                        rts.append(rt[0])
+
+            all_speeds.extend(speeds)
+            all_rts.extend(rts)
+            all_times.extend(times)
+            all_times2.extend(times2)
+
+        # plot
+        # OLS params are ordered: Intercept, slope
+        axarr[1].scatter(all_times, all_speeds, s=25, color=[.2, .2, .2])
+        _, p0, p1, res = linear_regression(all_times, all_speeds, robust=False)
+        plot_fitparams(axarr[1], res)
+        xmax = 90*60
+        axarr[1].plot([np.min(all_times), xmax], [0*p1+p0, xmax*p1+p0], color=red)
+
+        axarr[2].scatter(all_times2, all_rts, s=25, color=[.2, .2, .2])
+        _, p0, p1, res = linear_regression(all_times2, all_rts, robust=False)
+        plot_fitparams(axarr[2], res)
+        axarr[2].plot([np.min(all_times2), xmax], [0*p1+p0, xmax*p1+p0], color=red)
+
+
+        axarr[1].set(title="$\\textrm{Mean escape speed}$", ylabel="$(a.u.)$")
+        axarr[2].set(title="$\\textrm{Reaction time}$", ylabel="$s$", xlabel="$min$")
+
+        sns.despine(fig=f, offset=10, trim=False, left=False, right=True)

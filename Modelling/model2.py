@@ -11,6 +11,7 @@ from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from scipy.optimize import minimize
 
 # %matplotlib inline
 
@@ -40,7 +41,7 @@ params = {
     'legend.fontsize': 6, # was 10
     'xtick.labelsize': 8,
     'ytick.labelsize': 8,
-    'text.usetex': True,
+    'text.usetex': False,        # ! <----- use TEX
     'figure.figsize': [3.39, 2.10],
 }
 mpl.rcParams.update(params)
@@ -50,12 +51,14 @@ sns.set_context("talk", font_scale=3)  # was 3
 # %%
 class PsiCalculator:
     colors = [lightblue, green, purple, magenta]
-
     good_fit_params = ([0.6, 0.8, 0],[0.9, 10, 2])
 
+    lw = 6
+    dotsize = 800
+
     def __init__(self):
-        self.R = np.arange(0, 1001, 1)
-        self.L = np.arange(0, 1001, 1)
+        self.R = np.arange(0, 1001, 50)
+        self.L = np.arange(0, 1001, 50)
         self.Psi = np.zeros((len(self.R), len(self.R)))
         self.PsidL, self.PsidR = np.zeros_like(self.Psi), np.zeros_like(self.Psi)
 
@@ -82,6 +85,7 @@ class PsiCalculator:
         self._rhos = [round(y/self.R0, 2) for y in self.pathlengths]
 
 
+    # ! Utilities
     def update_params(self):
         self.default_params = {
             "o":self.o, 
@@ -96,9 +100,18 @@ class PsiCalculator:
 
 
         self.rhos = [round(y/r0, 2) for y in self.pathlengths]
+    
+    def get_arr_idx(self, x,):
+        # get the index in the value closest to x
+        return np.int(x*self.npoints / self.rmax)
 
     @staticmethod
-    def calc_Psi(l, r, o=1, r0=1, s=10):
+    def clean_axes(f=None):
+        sns.despine(fig=f, offset=10, trim=False, left=False, right=True)
+
+    # ! Calculations on Psi
+    @staticmethod
+    def calc_Psi(l, r, o=1, r0=2, s=10):
         """
         2D logistic
         l, r = values
@@ -138,10 +151,8 @@ class PsiCalculator:
                 self.PsidL[ii, i] = self.dPsy_dL(l, r, **self.default_params)
                 self.PsidR[ii, i] = self.dPsy_dR(l, r, **self.default_params)
 
-    def get_arr_idx(self, x,):
-        # get the index in the value closest to x
-        return np.int(x*self.npoints / self.rmax)
 
+    # ! Plotting
     def plot_Psi(self, calc=False, ax=None, f=None, cbar=True):
         if calc: self.getPsi()
 
@@ -149,50 +160,53 @@ class PsiCalculator:
 
         surf = ax.imshow(self.Psi, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=1)
         divider = make_axes_locatable(ax)
-        cax1 = divider.append_axes("right", size="5%", pad=0.05)
+        cax1 = divider.append_axes("right", size="5%", pad=0.15)
 
         if cbar: 
             f.colorbar(surf, cax=cax1)
 
-        ax.set(title="$\Psi(\\rho)$", xlabel="$R$", ylabel="$L$", xticks=[0, self.rmax], yticks=[0, self.rmax])
-        sns.despine(offset=10, trim=False, left=False, right=True)
+        ax.set(title="$\\Psi(\\rho)$", xlabel="$R$", ylabel="$L$", xticks=[0, self.rmax], yticks=[0, self.rmax])
+        
+        self.clean_axes()
         return ax
 
-    def plot_Psy_derivs(self, calc=False, skip=0):
+    def plot_Psy_derivs(self, calc=False):
         if calc: self.getPsi()
-
-        self.Psi, self.PsidL, self.PsidR = self.Psi[skip:, skip:], self.PsidL[skip:, skip:], self.PsidR[skip:, skip:]
 
         f, axarr = create_figure(subplots=True, ncols=3, nrows=2)
         surf = axarr[0].imshow(self.Psi, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=1)
         surf = axarr[1].imshow(self.PsidL, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=.005)
         surf = axarr[2].imshow(self.PsidR, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmax=0, vmin=-.005)
 
-        sns.despine(fig=f, offset=10, trim=False, left=False, right=True)
-
         eval_values = np.arange(100, self.rmax, 100)
         lslopes, rslopes = [], []
         for r0 in eval_values:
             r0idx = self.get_arr_idx(r0)
             color = self.colorshelper.get_rgb(r0)
-            axarr[0].axvline(r0, color=color, lw=3, ls="--")
-            axarr[1].axvline(r0, color=color, lw=3, ls="--")
-            axarr[2].axhline(r0, color=color, lw=3, ls="--")
+            axarr[0].axvline(r0, color=color, lw=self.lw*0.75, ls="--")
+            axarr[1].axvline(r0, color=color, lw=self.lw*0.75, ls="--")
+            axarr[2].axhline(r0, color=color, lw=self.lw*0.75, ls="--")
 
-            axarr[3].plot(self.Psi[:, r0idx], color=color, lw=2)
-            axarr[4].plot(self.PsidL[:, r0idx], color=color, lw=2)
-            axarr[5].plot(self.PsidR[r0idx, :], color=color, lw=2)
+            axarr[3].plot(self.Psi[:, r0idx], color=color, lw=self.lw)
+            axarr[4].plot(self.PsidL[:, r0idx], color=color, lw=self.lw)
+            axarr[5].plot(self.PsidR[r0idx, :], color=color, lw=self.lw)
 
             lslopes.append(self.PsidL[:, r0idx])
             rslopes.append(self.PsidR[r0idx, :])
 
-        axarr[3].set(xlabel="$L$", ylabel="$\Psi$", yticks=[0, round(np.nanmin(self.Psi),2), round(np.nanmax(self.Psi),2), 1], xticks=np.arange(0, self.npoints, np.int(250*self.points_conversion_factor)), xticklabels=np.arange(0, self.rmax+1, 100))
-        axarr[4].set(xlabel="$L$", yticks=[0, round(np.nanmax(lslopes), 3)], xticks=np.arange(0, self.npoints, np.int(250*self.points_conversion_factor)), xticklabels=np.arange(0, self.rmax+1, 250))
-        axarr[5].set(xlabel="$R$", yticks=[0, round(np.nanmin(rslopes), 3)], xticks=np.arange(0, self.npoints, np.int(250*self.points_conversion_factor)), xticklabels=np.arange(0, self.rmax+1, 250))
+        xticklabels = ["${}$".format(x) for x in np.arange(0, self.rmax+1, 100)]
+        axarr[3].set(xlabel="$L$", ylabel="$\Psi$", yticks=[0, round(np.nanmin(self.Psi),2), round(np.nanmax(self.Psi),2), 1], 
+                        xticks=np.arange(0, self.npoints, np.int(250*self.points_conversion_factor)), xticklabels=["${}$".format(x) for x in np.arange(0, self.rmax+1, 100)])
+        axarr[4].set(xlabel="$R$", yticks=[0, round(np.nanmax(lslopes), 3)], 
+                        xticks=np.arange(0, self.npoints, np.int(250*self.points_conversion_factor)), xticklabels=["${}$".format(x) for x in np.arange(0, self.rmax+1, 250)])
+        axarr[5].set(xlabel="$L$", yticks=[0, round(np.nanmin(rslopes), 3)], 
+                        xticks=np.arange(0, self.npoints, np.int(250*self.points_conversion_factor)), xticklabels=["${}$".format(x) for x in np.arange(0, self.rmax+1, 250)])
 
         titles = ["$\Psi$", "$\\frac{\\partial \\Psi}{\\partial L}$", "$\\frac{\\partial \\Psi}{\\partial R}$"]
         for ax, t in zip(axarr, titles):
             ax.set(title=t, xticks=[], yticks=[], xlabel="$R$", ylabel="$L$")
+
+        self.clean_axes(f=f)
 
     def plot_Psi_schematic(self):
         # ? Make figure for upgrade
@@ -209,26 +223,27 @@ class PsiCalculator:
                                 p = 0
                         z[i, ii] = p
 
-        img = ax.imshow(z, alpha=1, aspect="equal", origin="lower", extent=[0, self.rmax, 0, self.rmax], cmap="coolwarm", vmin=0, vmax=1)
-        f.colorbar(img)
-
-        # for r in [0.5, .2, 1, 1.5, 4.5]:
-        #     ax.plot(x, x*r, color="k", lw=4)
+        surf = ax.imshow(z, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=1)
+        divider = make_axes_locatable(ax)
+        cax1 = divider.append_axes("right", size="5%", pad=0.15)
+        f.colorbar(surf, cax=cax1)
 
         ax.set(title="$\Psi(\\rho)$", xlabel="$R$", ylabel="$L$", xticks=[0, self.rmax], yticks=[0, self.rmax])
-        sns.despine(fig=f, offset=10, trim=False, left=False, right=True)
+        self.clean_axes(f=f)
 
     def plot_mazes_IC(self, ax=None, f=None, cbar=True):
         if ax is None: 
             ax = self.plot_Psi()
         else:
             self.plot_Psi(ax=ax, f=f, cbar=cbar)
-        vline_to_point(ax, self.R0, np.max(self.pathlengths), color=black, ls="--")
+        vline_to_point(ax, self.R0, np.max(self.pathlengths), color=black, lw=self.lw, ls="--")
 
         for L,c in zip(self.pathlengths, self.colors):
-            ax.plot([0, self.rmax], [0, self.rmax*(L/self.R0)], color=c, lw=3)
-            ax.scatter(self.R0, L, color=c, s=120, edgecolors=black, zorder=20)
+            ax.plot([0, self.rmax], [0, self.rmax*(L/self.R0)], color=c, lw=self.lw)
+            ax.scatter(self.R0, L, color=c, s=self.dotsize, edgecolors=black, zorder=20)
         ax.set(title="$\Psi(\\rho)$", xlabel="$R$", ylabel="$L$", xticks=[0,  self.R0, self.rmax], yticks=[0, self.rmax], xlim=[0, self.rmax], ylim=[0, self.rmax])
+        
+        self.clean_axes(f=f)
         return ax
 
     def plot_mazes(self, ax=None, f=None, cbar=True, calc=False):
@@ -237,17 +252,19 @@ class PsiCalculator:
         else:
             self.plot_Psi(ax=ax, f=f, cbar=cbar, calc=calc)
 
-        vline_to_point(ax, self.R0, np.max(self.pathlengths), color=black, ls="--")
+        vline_to_point(ax, self.R0, np.max(self.pathlengths), color=black, lw=self.lw, ls="--")
 
         yticks = [0]
         yticks.extend(list(self.pathlengths))
         yticks.extend([self.rmax])
 
         for L,c in zip(self.pathlengths, self.colors):
-            hline_to_point(ax, self.R0, L, color=c, ls="--")
-            ax.scatter(self.R0, L, color=c, s=120, edgecolors=black, zorder=20)
+            hline_to_point(ax, self.R0, L, color=c, lw=self.lw, ls="--")
+            ax.scatter(self.R0, L, color=c, s=self.dotsize, edgecolors=black, zorder=20)
         ax.set(title="$\Psi(\\rho)$", xlabel="$R$", ylabel="$L$", xticks=[0,  self.R0, self.rmax], 
         yticks=yticks, xlim=[0, self.rmax], ylim=[0, self.rmax])
+
+        self.clean_axes(f=f)
         return ax
 
     def fit_plot(self, fit_bounds=None):
@@ -256,18 +273,26 @@ class PsiCalculator:
         # Plot the fit of the Psi function to the data
         f, axarr = create_figure(subplots=True, ncols=2)
         
-
+        xlbls, ylbls = [0], [0]
         for L, c, pr, yerr in zip(self.pathlengths, self.colors, self.prs, self.yerrs):
-            axarr[0].scatter(L, pr, color=c, s=120, edgecolors=black, zorder=20)
-            hline_to_point(axarr[0], L, pr, color=c, lw=2, ls="--")
+            axarr[0].scatter(L, pr, color=c, s=self.dotsize, edgecolors=black, zorder=20)
+            hline_to_point(axarr[0], L, pr, color=black, lw=self.lw, ls="--")
+            vline_to_point(axarr[0], L, pr, color=c, lw=self.lw, ls="--")
+            xlbls.append(np.int(L))
+            ylbls.append(pr)
+
+        xlbls.append(1000)
+        ylbls.append(1)
 
         params = plot_fitted_curve(self.calc_Psi_slice, self.pathlengths, self.prs, axarr[0], 
             xrange=[0, self.rmax],
             fit_kwargs={"sigma":self.yerrs, "method":"dogbox", "bounds":fit_bounds},
-            scatter_kwargs={"alpha":0}, 
+            scatter_kwargs={"alpha":0, "s":self.dotsize}, 
             line_kwargs={"color":black, "alpha":1, "lw":2,})
 
-        axarr[0].set(xlim=[0, self.rmax], ylim=[0, 1], xlabel="$L$", ylabel="$\Psi$")
+        axarr[0].set(xlim=[0, self.rmax], ylim=[0, 1], xlabel="$L$", ylabel="$\Psi$",
+                        xticks=xlbls, xticklabels=["${}$".format(x) for x in xlbls], yticks=ylbls, yticklabels=["${}$".format(y) for y in ylbls])
+
 
         print(""" 
             Fitted sigmoid:
@@ -289,9 +314,10 @@ class PsiCalculator:
         for i in range(len(axarr)):
             axarr[i].set_position(gs[i].get_position(f))
 
+        self.clean_axes(f=f)
+
     def slope_analysis(self):
         # Look at the slope of the partial over L for different values of R
-
         slopes, colors, x_correct = [], [], []
         x = np.arange(0, self.npoints, 10)
 
@@ -308,39 +334,229 @@ class PsiCalculator:
         params = plot_fitted_curve(exponential, x_correct, slopes, ax,
             xrange=[0, np.max(x_correct)],
             fit_kwargs={"method":"dogbox", "max_nfev":1000, "bounds":([0.5, -3, 0, 0], [1, 0, 1, 0.6])},
-            scatter_kwargs=dict(c=colors, edgecolors=black, s=55),
-            line_kwargs=dict(color=red, lw=4, ls="--")
+            scatter_kwargs=dict(c=colors, edgecolors=black, s=self.dotsize),
+            line_kwargs=dict(color=red, lw=self.lw, ls="--")
         
         )
         ax.set(title="$\\left.\\frac{\\partial \\Psi}{\\partial L}\\right|_{L=R}$", xlabel="$L$", ylabel="$Slope$", xticks=np.arange(0, self.npoints, np.int(250*self.points_conversion_factor)), xticklabels=np.arange(0, self.rmax+1, 250))
-        sns.despine(fig=f, offset=10, trim=False, left=False, right=True)
 
         self.slope_data = np.zeros((len(slopes), 2))
         self.slope_data[:, 0], self.slope_data[:, 1] = x_correct, slopes
+        
+        self.clean_axes(f=f)
 
+    def plot_slices(self):
+        f, axarr = create_figure(subplots=True, ncols=3, nrows=1)
 
-# calc = PsiCalculator()
-# calc.getPsi()
+        surf = axarr[0].imshow(self.Psi, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=1)
 
-# calc.fit_plot()
-# calc.plot_Psy_derivs()
-# calc.slope_analysis()
+        eval_values = np.arange(100, self.rmax, 100)
+        lslopes, rslopes = [], []
+        for r0 in eval_values:
+            r0idx = self.get_arr_idx(r0)
+            color = self.colorshelper.get_rgb(r0)
+            axarr[0].axvline(r0, color=color, lw=self.lw*.75, ls="--")
+            axarr[0].axhline(r0, color=color, lw=self.lw*.75, ls="--")
+
+            axarr[1].plot(self.Psi[:, r0idx], color=color, lw=self.lw)
+            axarr[2].plot(self.Psi[r0idx, :], color=color, lw=self.lw)
+
+        axarr[0].set(title="$\Psi$", xticks=[], yticks=[], xlabel="$R$", ylabel="$L$")
+        axarr[1].set(title="$R\\ constant$",  xlabel="$L$", ylabel="$\Psi$", yticks=[0, round(np.nanmin(self.Psi),2), round(np.nanmax(self.Psi),2), 1], xticks=np.arange(0, self.npoints, np.int(250*self.points_conversion_factor)), xticklabels=np.arange(0, self.rmax+1, 100))
+        axarr[2].set(title="$L\\ constant$",xlabel="$R$", ylabel="$\Psi$", yticks=[0, round(np.nanmin(self.Psi),2), round(np.nanmax(self.Psi),2), 1], xticks=np.arange(0, self.npoints, np.int(250*self.points_conversion_factor)), xticklabels=np.arange(0, self.rmax+1, 100))
+
+        self.clean_axes(f=f)
+
+    def text(self):
+        f, ax = create_figure(subplots=False)
+
+        ax.set(title="$abcdefghilmno-ABCDEFGHIJKLMNOPQRST()$")
+
 
 #%%
-if __name__ == "__main__":
-    calc = PsiCalculator()
-    calc.getPsi()
+# if __name__ == "__main__":
+#     calc = PsiCalculator()
+#     calc.getPsi()
 
-    calc.plot_Psy_derivs()
-    calc.slope_analysis()
+#     # calc.plot_slices()
+#     # calc.plot_Psy_derivs()
+#     # calc.slope_analysis()
+#     # calc.plot_mazes_IC()
+#     # calc.plot_Psi()
+#     # calc.text()
+#     # calc.plot_mazes()
+#     calc.fit_plot()
 
-    calc.plot_Psi()
-    calc.plot_Psi_schematic()
-    calc.plot_mazes()
 
-    calc.fit_plot()
+#     plt.show()
+
+#%%
+class Algomodel:
+    colors = [lightblue, green, purple, magenta]
+    lw = 2
+    dotsize = 300
+
+    sigma_scaling = 4.35 # Determined by fittnig
+
+    def __init__(self):
+        # Experimental data
+        self.prs = dict(
+                        maze1 = 0.78, 
+                        maze2 = 0.72, 
+                        maze3 = 0.70, 
+                        maze4 = 0.47)
+
+        self.yerrs = [0.048042182449778245, 0.0689335245891631, 0.06165147992851076, 0.07914616013894715]
+        self.pathlengths = pa.paths_lengths.distance.values
+        self.R0 = np.min(self.pathlengths)
+        self.rhos = [round(y/self.R0, 2) for y in self.pathlengths]
+        self._pathlengths = pa.paths_lengths.distance.values  # use a copy for scaling
+        self._rhos = [round(y/self.R0, 2) for y in self.pathlengths]
+
+        maze = namedtuple("arms", "l r")
+        self.mazes = dict(
+            maze1 = maze(self.pathlengths[0], self.pathlengths[-1]),
+            maze2 = maze(self.pathlengths[1], self.pathlengths[-1]),
+            maze3 = maze(self.pathlengths[2], self.pathlengths[-1]),
+            maze4 = maze(self.pathlengths[3], self.pathlengths[-1]),
+        )
+        self.model_prs = {k:0 for k,v in self.mazes.items()}
 
 
-    plt.show()
+
+        self.R = np.arange(0, 1001, 1)
+        self.L = np.arange(0, 1001, 1)
+        self.us_prs = np.zeros((len(self.R), len(self.R)))  # p(R) at all locations in utility space
+        self.npoints = len(self.R)
+        self.rmax = np.int(np.max(self.R))
+        self.points_conversion_factor = self.rmax/self.npoints
+        self.colorshelper = MplColorHelper("Greens", 0, self.rmax+self.rmax/4, inverse=True)
+
+    @staticmethod
+    def clean_axes(f=None):
+        sns.despine(fig=f, offset=10, trim=False, left=False, right=True)
+
+    def get_arr_idx(self, x,):
+        # get the index in the value closest to x
+        return np.int(x*self.npoints / self.rmax)
+
+    def calc_variance(self, d):
+        # gives the scale of the normal distribution used to represent path lengths
+        return math.sqrt(d)*self.sigma_scaling
+
+    def calc_maze_pr(self, l, r):
+        ldist, _, _ = get_parametric_distribution("normal", loc=l, scale=self.calc_variance(l))
+        rdist, _, _ = get_parametric_distribution("normal", loc=r, scale=self.calc_variance(r))
+
+        mu = ldist.mean() - rdist.mean()
+        sigma = ldist.std() + rdist.std()
+        phi = stats.norm.cdf(-mu / sigma)
+
+        return 1 - phi
+
+    def calc_probs(self):
+        # Calc p(R) for each maze given the current settings
+        for maze, arm in self.mazes.items():
+            self.model_prs[maze] = self.calc_maze_pr(arm.l, arm.r)
+
+    def get_probs_delta(self):
+        # compute the squared error in pR estimated of the model
+        return np.sum([(self.prs[maze]-self.model_prs[maze])**2 for maze in self.mazes.keys()])
+
+    def test_gradient(self):
+        x = np.arange(0.0001, 100, .1)
+
+        y = np.zeros_like(x).astype(np.float32)
+        for i, p in enumerate(x):
+            self.sigma_scaling = p
+            self.calc_probs()
+            y[i] = self.get_probs_delta()
+
+        min_x, min_y = x[np.argmin(y)], np.min(y)
+
+        f, ax = create_figure(subplots=False)
+        ax.scatter(x, y)
+        ax.scatter(min_x, min_y, color=red, s=200)
+        print("min {} - {}".format(round(min_x, 4), round(min_y, 5)))
+
+
+    def fit_sigma(self):
+        self.minimize_record = [[], []] # store param and error at each iter of minimize
+        def func(fact):
+            self.sigma_scaling = fact[0]
+            self.calc_probs()
+            return self.get_probs_delta()
+
+        def record(params):
+            self.minimize_record[0].append(params[0])
+            self.minimize_record[1].append(self.get_probs_delta())
+            return True
+
+        res = minimize(func, [10], callback=record, options=dict(disp=True), bounds=[[0.00001, 50]])
+
+        print(res)
+        return res
+
+
+    def plot_distances_distributions(self):
+        f, ax = create_figure(subplots=False)
+
+        for d,c in zip(self.pathlengths, self.colors):
+            plot_distribution(d, self.calc_variance(d), dist_type="normal", ax=ax, x_range=[0, 1000], shaded=True, 
+                                plot_kwargs=dict(color=c, lw=5))
+        ax.set(xlim=[0, 1000])
+
+    
+    def calc_utility_space(self, plot=False):
+        x, y = np.meshgrid(a.L, a.R)
+        mu = y- x
+        sigma = np.array([a.calc_variance(xx) + a.calc_variance(yy) for xx,yy in zip(x.flat, y.flat)]).reshape(mu.shape)
+        phi = stats.norm.cdf(-mu / sigma)
+        self.us_prs = 1 - phi
+    
+        if plot:
+            f, ax = create_figure(subplots=False)
+
+            surf = ax.imshow(self.us_prs, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=1)
+            divider = make_axes_locatable(ax)
+            cax1 = divider.append_axes("right", size="5%", pad=0.15)
+            f.colorbar(surf, cax=cax1)
+
+            ax.set(title="$p(R)$", xlabel="$R$", ylabel="$L$", xticks=[0, self.rmax], yticks=[0, self.rmax])
+            
+            self.clean_axes()
+
+    def plot_slices(self):
+        f, axarr = create_figure(subplots=True, ncols=3, nrows=1)
+
+        self.calc_utility_space(plot=False)
+        surf = axarr[0].imshow(self.us_prs, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=1)
+
+        eval_values = np.arange(100, self.rmax, 100)
+        lslopes, rslopes = [], []
+        for r0 in eval_values:
+            r0idx = self.get_arr_idx(r0)
+            color = self.colorshelper.get_rgb(r0)
+            axarr[0].axvline(r0, color=color, lw=self.lw*.75, ls="--")
+            axarr[0].axhline(r0, color=color, lw=self.lw*.75, ls="--")
+
+            axarr[1].plot(self.us_prs[:, r0idx], color=color, lw=self.lw)
+            axarr[2].plot(self.us_prs[r0idx, :], color=color, lw=self.lw)
+
+        axarr[0].set(title="$p(R)$", xticks=[], yticks=[], xlabel="$R$", ylabel="$L$")
+        axarr[1].set(title="$R\\ constant$",  xlabel="$L$", ylabel="$p(R)$", yticks=[0, round(np.nanmin(self.us_prs),2), round(np.nanmax(self.us_prs),2), 1], xticks=np.arange(0, self.npoints, np.int(250*self.points_conversion_factor)), xticklabels=np.arange(0, self.rmax+1, 100))
+        axarr[2].set(title="$L\\ constant$",xlabel="$R$", ylabel="$p(R)$", yticks=[0, round(np.nanmin(self.us_prs),2), round(np.nanmax(self.us_prs),2), 1], xticks=np.arange(0, self.npoints, np.int(250*self.points_conversion_factor)), xticklabels=np.arange(0, self.rmax+1, 100))
+
+        self.clean_axes(f=f)
+
+a = Algomodel()
+# a.test_gradient()
+# m = a.fit_sigma()
+# a.plot_distances_distributions()
+
+a.plot_slices()
+
+
+#%%
 
 #%%

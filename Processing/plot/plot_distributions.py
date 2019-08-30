@@ -8,7 +8,8 @@ from scipy.optimize import curve_fit
 from Processing.plot.plotting_utils import *
 from Utilities.matplotlib_config_figures import *
 
-def plot_distribution(*args, dist_type="logistic", comulative=False, ax=None, shaded=False, x_range=None, plot_kwargs={}, ax_kwargs={},  **kwargs):
+def plot_distribution(*args, dist_type="logistic", comulative=False, ax=None, shaded=False, shade_alpha=.5,
+                            x_range=None, plot_kwargs={}, ax_kwargs={},  **kwargs):
     # Get the distribution
     if dist_type == "logistic":
         dist = stats.logistic(*args, **kwargs)
@@ -16,6 +17,8 @@ def plot_distribution(*args, dist_type="logistic", comulative=False, ax=None, sh
         dist = stats.gamma(*args, **kwargs)
     elif dist_type == "beta":
         dist = stats.beta(*args, **kwargs)
+    elif dist_type == "normal" or dist_type == "gaussian" or dist_type == "norm":
+        dist = stats.norm(*args, **kwargs)
     elif dist_type == "exponential":
         dist = np.exp
     else:
@@ -37,7 +40,7 @@ def plot_distribution(*args, dist_type="logistic", comulative=False, ax=None, sh
     if not shaded:
         ax.plot(x, func(x), **plot_kwargs)
     else: 
-        ax.fill_between(x, 0, func(x), **plot_kwargs)
+        ax.fill_between(x, 0, func(x), alpha=shade_alpha,  **plot_kwargs)
         ax.plot(x, func(x), **plot_kwargs)
 
     ax.set(**ax_kwargs)

@@ -17,6 +17,36 @@ from Processing.timed_analysis import timedAnalysis
 from Processing.timeseries_analysis import TimeSeriesAnalysis
 
 # Define class
+import seaborn as sns
+sns.set()
+sns.set_style("white", {
+            "axes.grid":"False",
+            "ytick.right":"False",
+            "ytick.left":"True",
+            "xtick.bottom":"True",
+            "text.color": "0"
+})
+mpl.rc('text', usetex=False)
+
+params = {
+    'text.latex.preamble': ['\\usepackage{gensymb}'],
+    'image.origin': 'lower',
+    'image.interpolation': 'nearest',
+    'image.cmap': 'gray',
+    'axes.grid': False,
+    'savefig.dpi': 150,  # to adjust notebook inline plot size
+    'axes.labelsize': 8, # fontsize for x and y labels (was 10)
+    'axes.titlesize': 8,
+    'font.size': 8, # was 10
+    'legend.fontsize': 6, # was 10
+    'xtick.labelsize': 8,
+    'ytick.labelsize': 8,
+    'text.usetex': True,        # ! <----- use TEX
+    'figure.figsize': [3.39, 2.10],
+}
+mpl.rcParams.update(params)
+sns.set_context("talk", font_scale=3)  # was 3 
+
 
 class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeSeriesAnalysis):
 	maze_names = {"maze1":"asymmetric_long", "maze2":"asymmetric_mediumlong", "maze3":"asymmetric_mediumshort", "maze4":"symmetric"}
@@ -675,8 +705,8 @@ if __name__ == "__main__":
 
 	# pa.plot_effect_of_time(xaxis_istime=False, robust=False) # ? not useful
 	# pa.plot_effect_of_time(xaxis_istime=True, robust=False)
-
-	# pa.timed_pr()
+# 
+	# pa.timed_plots_for_upgrade()
 
 	# pa.closer_look_at_hb()
 
