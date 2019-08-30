@@ -64,9 +64,13 @@ class PsiCalculator:
         self.PsidL, self.PsidR = np.zeros_like(self.Psi), np.zeros_like(self.Psi)
 
         # ? Psi params
-        self.o = 0.6
+        # self.o = 0.6
+        # self.r0 = 1
+        # self.s = 10
+
+        self.o = 1
         self.r0 = 1
-        self.s = 10
+        self.s = 0.01
 
         self.update_params()
 
@@ -120,20 +124,28 @@ class PsiCalculator:
         s = slope
         """ 
         b = (1 - o)/2  # -> this ensures that the logistic is always centered on z=.5
+
+        l, r = np.meshgrid(l, r)
         if not self.use_diff_rho:
             rho = l/r
         else:
             rho = l - r
-
         delta_rho = rho - r0
-        z = o / (1 + np.exp(-s*(delta_rho)))+b
-        return z
+    
+        return o / (1 + np.exp(s*(delta_rho)))+b
 
     def calc_Psi_slice(self, l, o=1, s=10, r0=1, ):
         """
             Calcs the value of Psi along the vertical slice corresponiding to r0
         """ 
-        return self.calc_Psi(l, self.R0, o=o, r0=r0, s=s)
+        b = (1 - o)/2
+        if not self.use_diff_rho:
+            rho = l/self.R0
+        else:
+            rho = l - self.R0
+        delta_rho = rho - r0
+
+        return o / (1 + np.exp(-s*(delta_rho)))+b
 
     @staticmethod
     def dPsy_dL(l, r, o=1, r0=1, s=10):
@@ -149,11 +161,12 @@ class PsiCalculator:
         return -((o*l*s*e)/((r**2)*(1+e)**2))
 
     def getPsi(self):
-        for i, r in enumerate(self.R):
-            for ii, l in enumerate(self.L):
-                self.Psi[ii, i] = self.calc_Psi(l, r, **self.default_params)
-                self.PsidL[ii, i] = self.dPsy_dL(l, r, **self.default_params)
-                self.PsidR[ii, i] = self.dPsy_dR(l, r, **self.default_params)
+        self.Psi = self.calc_Psi(self.L, self.R, **self.default_params)
+
+        # for i, xx in enumerate(self.R):
+        #     for ii, yy in enumerate(self.L):
+        #         self.PsidL[ii, i] = self.dPsy_dL(self.L, self.R, **self.default_params)
+        #         self.PsidR[ii, i] = self.dPsy_dR(self.L, self.R, **self.default_params)
 
 
     # ! Plotting
@@ -390,9 +403,8 @@ class PsiCalculator:
         ax.set(title="$abcdefghilmno-ABCDEFGHIJKLMNOPQRST()$")
 
 
-#%%
 calc = PsiCalculator()
-calc.getPsi()
+# calc.getPsi()
 
 # calc.plot_slices()
 # calc.plot_Psy_derivs()
@@ -402,17 +414,19 @@ calc.getPsi()
 # calc.text()
 # calc.plot_mazes()
 calc.fit_plot()
+# calc.plot_ICs()
 
 
 # plt.show()
 
 #%%
 class Algomodel:
+    linear= True # make sigma scale linearly with mu
     colors = [lightblue, green, purple, magenta]
     lw = 2
     dotsize = 300
 
-    sigma_scaling = 4.35 # Determined by fittnig
+    sigma_scaling = 0.16597849 # Determined by fittnig
 
     def __init__(self):
         # Experimental data
@@ -438,8 +452,6 @@ class Algomodel:
         )
         self.model_prs = {k:0 for k,v in self.mazes.items()}
 
-
-
         self.R = np.arange(0, 1001, 1)
         self.L = np.arange(0, 1001, 1)
         self.us_prs = np.zeros((len(self.R), len(self.R)))  # p(R) at all locations in utility space
@@ -458,7 +470,11 @@ class Algomodel:
 
     def calc_variance(self, d):
         # gives the scale of the normal distribution used to represent path lengths
-        return math.sqrt(d)*self.sigma_scaling
+
+        if not self.linear:
+            return math.sqrt(d*self.sigma_scaling)
+        else:
+            return d*self.sigma_scaling
 
     def calc_maze_pr(self, l, r):
         ldist, _, _ = get_parametric_distribution("normal", loc=l, scale=self.calc_variance(l))
@@ -480,7 +496,7 @@ class Algomodel:
         return np.sum([(self.prs[maze]-self.model_prs[maze])**2 for maze in self.mazes.keys()])
 
     def test_gradient(self):
-        x = np.arange(0.0001, 100, .1)
+        x = np.arange(0.0001, 2, .001)
 
         y = np.zeros_like(x).astype(np.float32)
         for i, p in enumerate(x):
@@ -495,6 +511,15 @@ class Algomodel:
         ax.scatter(min_x, min_y, color=red, s=200)
         print("min {} - {}".format(round(min_x, 4), round(min_y, 5)))
 
+    def test_sigma_factor(self):
+        f, ax = create_figure(subplots=False)
+
+        y = np.zeros_like(self.R).astype(np.float32)
+        for i,r in enumerate(self.R):
+            y[i] = self.calc_variance(r)
+
+        ax.plot(self.R,  y)
+
 
     def fit_sigma(self):
         self.minimize_record = [[], []] # store param and error at each iter of minimize
@@ -508,7 +533,7 @@ class Algomodel:
             self.minimize_record[1].append(self.get_probs_delta())
             return True
 
-        res = minimize(func, [10], callback=record, options=dict(disp=True), bounds=[[0.00001, 50]])
+        res = minimize(func, [1], callback=record, options=dict(disp=True), bounds=[[0.001, 10]])
 
         print(res)
         return res
@@ -525,7 +550,7 @@ class Algomodel:
     
     def calc_utility_space(self, plot=False):
         x, y = np.meshgrid(a.L, a.R)
-        mu = y- x
+        mu = y - x
         sigma = np.array([a.calc_variance(xx) + a.calc_variance(yy) for xx,yy in zip(x.flat, y.flat)]).reshape(mu.shape)
         phi = stats.norm.cdf(-mu / sigma)
         self.us_prs = 1 - phi
@@ -578,14 +603,24 @@ class Algomodel:
         ax.imshow(self.us_prs, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=1)
 
 
+a = Algomodel()
+
+# a.test_sigma_factor()
+# a.test_gradient()
+
+a.fit_sigma()
+# a.plot_distances_distributions()
+a.calc_utility_space(plot=False)
+# a.plot_ICs()
+
 #%%
 # Compare contours of the two models
-calc = PsiCalculator()
-calc.getPsi()
-calc.plot_slices()
+# calc = PsiCalculator()
+# calc.getPsi()
+# calc.plot_slices()
 
-a = Algomodel()
-a.plot_slices()
+# a = Algomodel()
+# a.plot_slices()
 
 
 f, axarr = create_figure(subplots=True, ncols=2)
@@ -593,12 +628,12 @@ levels = np.arange(-.1, 1.11, .1)
 h = MplColorHelper("gray", -0., 2.11, inverse=False)
 colors = [h.get_rgb(l) for l in levels]
 
-contours = axarr[0].contour(calc.R, calc.L, calc.Psi, levels=levels, colors=colors)
-axarr[0].clabel(contours, inline=1, fontsize=10, colors=colors)
+# contours = axarr[0].contour(calc.R, calc.L, calc.Psi, levels=levels, colors=colors, alpha=.6)
+# axarr[0].clabel(contours, inline=1, fontsize=10, colors=colors)
 axarr[0].imshow(calc.Psi, extent=[0, calc.rmax, 0, calc.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=1)
 
-contours = axarr[1].contour(a.R, a.L, a.us_prs, levels=levels, colors=colors)
-axarr[1].clabel(contours, inline=1, fontsize=10, colors=colors)
+# contours = axarr[1].contour(a.R, a.L, a.us_prs, levels=levels, colors=colors, alpha=.6)
+# axarr[1].clabel(contours, inline=1, fontsize=10, colors=colors)
 axarr[1].imshow(a.us_prs, extent=[0, a.rmax, 0, a.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=1)
 
 
