@@ -50,7 +50,7 @@ sns.set_context("talk", font_scale=1)  # was 3
 
 # %%
 class PsiCalculator:
-    use_diff_rho = False # ! define rho as l-r instead of l/r
+    
     colors = [lightblue, green, purple, magenta]
     good_fit_params = ([0.6, 0.8, 0],[0.9, 10, 2])
 
@@ -58,19 +58,23 @@ class PsiCalculator:
     dotsize = 800
 
     def __init__(self):
-        self.R = np.arange(0, 1001, 1)
-        self.L = np.arange(0, 1001, 1)
+        self.use_diff_rho = False # ! define rho as l-r instead of l/r
+
+
+        self.R = np.arange(0, 1001, 10)
+        self.L = np.arange(0, 1001, 10)
         self.Psi = np.zeros((len(self.R), len(self.R)))
         self.PsidL, self.PsidR = np.zeros_like(self.Psi), np.zeros_like(self.Psi)
 
         # ? Psi params
-        # self.o = 0.6
-        # self.r0 = 1
-        # self.s = 10
-
-        self.o = 1
-        self.r0 = 1
-        self.s = 0.01
+        if not self.use_diff_rho:
+            self.o = 1
+            self.r0 = 1
+            self.s = 6
+        else:
+            self.o = 1
+            self.r0 = 0
+            self.s = 6
 
         self.update_params()
 
@@ -129,7 +133,7 @@ class PsiCalculator:
         if not self.use_diff_rho:
             rho = l/r
         else:
-            rho = l - r
+            rho = -(l-r)/(l+r)
         delta_rho = rho - r0
     
         return o / (1 + np.exp(s*(delta_rho)))+b
@@ -142,7 +146,7 @@ class PsiCalculator:
         if not self.use_diff_rho:
             rho = l/self.R0
         else:
-            rho = l - self.R0
+            rho = -(l-self.R0)/(l+self.R0)
         delta_rho = rho - r0
 
         return o / (1 + np.exp(-s*(delta_rho)))+b
@@ -163,10 +167,10 @@ class PsiCalculator:
     def getPsi(self):
         self.Psi = self.calc_Psi(self.L, self.R, **self.default_params)
 
-        # for i, xx in enumerate(self.R):
-        #     for ii, yy in enumerate(self.L):
-        #         self.PsidL[ii, i] = self.dPsy_dL(self.L, self.R, **self.default_params)
-        #         self.PsidR[ii, i] = self.dPsy_dR(self.L, self.R, **self.default_params)
+        for i, xx in enumerate(self.R):
+            for ii, yy in enumerate(self.L):
+                self.PsidL[ii, i] = self.dPsy_dL(yy, xx, **self.default_params)
+                self.PsidR[ii, i] = self.dPsy_dR(yy, xx, **self.default_params)
 
 
     # ! Plotting
@@ -403,21 +407,6 @@ class PsiCalculator:
         ax.set(title="$abcdefghilmno-ABCDEFGHIJKLMNOPQRST()$")
 
 
-calc = PsiCalculator()
-# calc.getPsi()
-
-# calc.plot_slices()
-# calc.plot_Psy_derivs()
-# calc.slope_analysis()
-# calc.plot_mazes_IC()
-# calc.plot_Psi()
-# calc.text()
-# calc.plot_mazes()
-calc.fit_plot()
-# calc.plot_ICs()
-
-
-# plt.show()
 
 #%%
 class Algomodel:
@@ -426,7 +415,8 @@ class Algomodel:
     lw = 2
     dotsize = 300
 
-    sigma_scaling = 0.16597849 # Determined by fittnig
+    # sigma_scaling = 0.16597849 # Determined by fittnig
+    sigma_scaling = 0.6
 
     def __init__(self):
         # Experimental data
@@ -452,8 +442,8 @@ class Algomodel:
         )
         self.model_prs = {k:0 for k,v in self.mazes.items()}
 
-        self.R = np.arange(0, 1001, 1)
-        self.L = np.arange(0, 1001, 1)
+        self.R = np.arange(0, 1001, 10)
+        self.L = np.arange(0, 1001, 10)
         self.us_prs = np.zeros((len(self.R), len(self.R)))  # p(R) at all locations in utility space
         self.npoints = len(self.R)
         self.rmax = np.int(np.max(self.R))
@@ -590,6 +580,31 @@ class Algomodel:
 
         self.clean_axes(f=f)
 
+    def plot_partials(self):
+        f, axarr = create_figure(subplots=True, ncols=3, nrows=1)
+
+        self.calc_utility_space(plot=False)
+        surf = axarr[0].imshow(self.us_prs, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=1)
+
+        eval_values = np.arange(100, self.rmax, 100)
+        lslopes, rslopes = [], []
+        for r0 in eval_values:
+            r0idx = self.get_arr_idx(r0)
+            color = self.colorshelper.get_rgb(r0)
+            axarr[0].axvline(r0, color=color, lw=self.lw*.75, ls="--")
+            axarr[0].axhline(r0, color=color, lw=self.lw*.75, ls="--")
+
+            axarr[1].plot(np.diff(self.us_prs[:, r0idx]), color=color, lw=self.lw)
+            axarr[2].plot(np.diff(self.us_prs[r0idx, :]), color=color, lw=self.lw)
+
+        axarr[0].set(title="$p(R)$", xticks=[], yticks=[], xlabel="$R$", ylabel="$L$")
+        axarr[1].set(title="$R\\ constant$",  xlabel="$L$", ylabel="$p(R)$", xlim=[0, 1000],
+                            xticks=np.arange(0, self.npoints, np.int(250*self.points_conversion_factor)), xticklabels=np.arange(0, self.rmax+1, 250))
+        axarr[2].set(title="$L\\ constant$",xlabel="$R$", ylabel="$p(R)$",  xlim=[0, 1000],
+                            xticks=np.arange(0, self.npoints, np.int(250*self.points_conversion_factor)), xticklabels=np.arange(0, self.rmax+1, 250))
+
+        self.clean_axes(f=f)
+
 
     def plot_ICs(self):
         f, ax = create_figure(subplots=False)
@@ -603,15 +618,7 @@ class Algomodel:
         ax.imshow(self.us_prs, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=1)
 
 
-a = Algomodel()
 
-# a.test_sigma_factor()
-# a.test_gradient()
-
-a.fit_sigma()
-# a.plot_distances_distributions()
-a.calc_utility_space(plot=False)
-# a.plot_ICs()
 
 #%%
 # Compare contours of the two models
@@ -640,6 +647,23 @@ axarr[1].imshow(a.us_prs, extent=[0, a.rmax, 0, a.rmax], cmap=cm.coolwarm, origi
 titles = ["Psi", "Normal"]
 for ax, t in zip(axarr, titles):
     ax.set(title=t)
+
+
+#%%
+# calc = PsiCalculator()
+# calc.getPsi()
+# calc.fit_plot()
+# calc.plot_Psi()
+# calc.plot_ICs()
+# calc.plot_slices()
+# calc.plot_Psy_derivs()
+
+a = Algomodel()
+a.fit_sigma()
+a.calc_utility_space(plot=True)
+
+# calc.plot_Psy_derivs()
+# a.plot_partials()
 
 
 #%%
