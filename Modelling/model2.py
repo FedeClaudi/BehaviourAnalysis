@@ -45,27 +45,28 @@ params = {
     'figure.figsize': [3.39, 2.10],
 }
 mpl.rcParams.update(params)
-sns.set_context("talk", font_scale=3)  # was 3 
+sns.set_context("talk", font_scale=1)  # was 3 
 
 
 # %%
 class PsiCalculator:
+    use_diff_rho = False # ! define rho as l-r instead of l/r
     colors = [lightblue, green, purple, magenta]
     good_fit_params = ([0.6, 0.8, 0],[0.9, 10, 2])
 
-    lw = 6
+    lw = 2   # 6
     dotsize = 800
 
     def __init__(self):
-        self.R = np.arange(0, 1001, 50)
-        self.L = np.arange(0, 1001, 50)
+        self.R = np.arange(0, 1001, 1)
+        self.L = np.arange(0, 1001, 1)
         self.Psi = np.zeros((len(self.R), len(self.R)))
         self.PsidL, self.PsidR = np.zeros_like(self.Psi), np.zeros_like(self.Psi)
 
         # ? Psi params
-        self.o = 1
+        self.o = 0.6
         self.r0 = 1
-        self.s = 8
+        self.s = 10
 
         self.update_params()
 
@@ -110,8 +111,7 @@ class PsiCalculator:
         sns.despine(fig=f, offset=10, trim=False, left=False, right=True)
 
     # ! Calculations on Psi
-    @staticmethod
-    def calc_Psi(l, r, o=1, r0=2, s=10):
+    def calc_Psi(self, l, r, o=1, r0=2, s=10):
         """
         2D logistic
         l, r = values
@@ -120,7 +120,11 @@ class PsiCalculator:
         s = slope
         """ 
         b = (1 - o)/2  # -> this ensures that the logistic is always centered on z=.5
-        rho = l/r
+        if not self.use_diff_rho:
+            rho = l/r
+        else:
+            rho = l - r
+
         delta_rho = rho - r0
         z = o / (1 + np.exp(-s*(delta_rho)))+b
         return z
@@ -270,6 +274,7 @@ class PsiCalculator:
     def fit_plot(self, fit_bounds=None):
         if fit_bounds is None:
             fit_bounds = self.good_fit_params
+
         # Plot the fit of the Psi function to the data
         f, axarr = create_figure(subplots=True, ncols=2)
         
@@ -367,6 +372,18 @@ class PsiCalculator:
 
         self.clean_axes(f=f)
 
+    def plot_ICs(self):
+        f, ax = create_figure(subplots=False)
+
+        levels = np.arange(-.1, 1.11, .1)
+        h = MplColorHelper("gray", -0., 2.11, inverse=False)
+        colors = [h.get_rgb(l) for l in levels]
+
+        contours = ax.contour(self.R, self.L, self.Psi, levels=levels, colors=colors)
+        ax.clabel(contours, inline=1, fontsize=10, colors=colors)
+        ax.imshow(self.Psi, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=1)
+
+
     def text(self):
         f, ax = create_figure(subplots=False)
 
@@ -374,21 +391,20 @@ class PsiCalculator:
 
 
 #%%
-# if __name__ == "__main__":
-#     calc = PsiCalculator()
-#     calc.getPsi()
+calc = PsiCalculator()
+calc.getPsi()
 
-#     # calc.plot_slices()
-#     # calc.plot_Psy_derivs()
-#     # calc.slope_analysis()
-#     # calc.plot_mazes_IC()
-#     # calc.plot_Psi()
-#     # calc.text()
-#     # calc.plot_mazes()
-#     calc.fit_plot()
+# calc.plot_slices()
+# calc.plot_Psy_derivs()
+# calc.slope_analysis()
+# calc.plot_mazes_IC()
+# calc.plot_Psi()
+# calc.text()
+# calc.plot_mazes()
+calc.fit_plot()
 
 
-#     plt.show()
+# plt.show()
 
 #%%
 class Algomodel:
@@ -549,14 +565,46 @@ class Algomodel:
 
         self.clean_axes(f=f)
 
-a = Algomodel()
-# a.test_gradient()
-# m = a.fit_sigma()
-# a.plot_distances_distributions()
 
-a.plot_slices()
+    def plot_ICs(self):
+        f, ax = create_figure(subplots=False)
+
+        levels = np.arange(-.1, 1.11, .1)
+        h = MplColorHelper("gray", -0., 2.11, inverse=False)
+        colors = [h.get_rgb(l) for l in levels]
+
+        contours = ax.contour(self.R, self.L, self.us_prs, levels=levels, colors=colors)
+        ax.clabel(contours, inline=1, fontsize=10, colors=colors)
+        ax.imshow(self.us_prs, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=1)
 
 
 #%%
+# Compare contours of the two models
+calc = PsiCalculator()
+calc.getPsi()
+calc.plot_slices()
+
+a = Algomodel()
+a.plot_slices()
+
+
+f, axarr = create_figure(subplots=True, ncols=2)
+levels = np.arange(-.1, 1.11, .1)
+h = MplColorHelper("gray", -0., 2.11, inverse=False)
+colors = [h.get_rgb(l) for l in levels]
+
+contours = axarr[0].contour(calc.R, calc.L, calc.Psi, levels=levels, colors=colors)
+axarr[0].clabel(contours, inline=1, fontsize=10, colors=colors)
+axarr[0].imshow(calc.Psi, extent=[0, calc.rmax, 0, calc.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=1)
+
+contours = axarr[1].contour(a.R, a.L, a.us_prs, levels=levels, colors=colors)
+axarr[1].clabel(contours, inline=1, fontsize=10, colors=colors)
+axarr[1].imshow(a.us_prs, extent=[0, a.rmax, 0, a.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=1)
+
+
+titles = ["Psi", "Normal"]
+for ax, t in zip(axarr, titles):
+    ax.set(title=t)
+
 
 #%%
