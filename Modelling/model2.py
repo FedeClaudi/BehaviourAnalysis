@@ -13,7 +13,7 @@ from matplotlib.gridspec import GridSpec
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.optimize import minimize
 
-# %matplotlib inline
+%matplotlib inline
 
 # %%
 # set seaborn
@@ -58,7 +58,7 @@ class PsiCalculator:
     dotsize = 800
 
     def __init__(self):
-        self.use_diff_rho = False # ! define rho as l-r instead of l/r
+        self.use_diff_rho = True # ! define rho as l-r instead of l/r
 
 
         self.R = np.arange(0, 1001, 10)
@@ -133,7 +133,7 @@ class PsiCalculator:
         if not self.use_diff_rho:
             rho = l/r
         else:
-            rho = -(l-r)/(l+r)
+            rho = (l-r)/(l+r) 
         delta_rho = rho - r0
     
         return o / (1 + np.exp(s*(delta_rho)))+b
@@ -146,7 +146,7 @@ class PsiCalculator:
         if not self.use_diff_rho:
             rho = l/self.R0
         else:
-            rho = -(l-self.R0)/(l+self.R0)
+            rho = (l-self.R0)/(l+self.R0)
         delta_rho = rho - r0
 
         return o / (1 + np.exp(-s*(delta_rho)))+b
@@ -174,6 +174,25 @@ class PsiCalculator:
 
 
     # ! Plotting
+    def plot_rho(self):
+        l, r = np.meshgrid(self.L, self.R)
+        if not self.use_diff_rho:
+            rho = np.divide(l, r)
+        else:
+            rho = (l-r)/(l+r) 
+        rho = rho.T
+        f, ax = create_figure(subplots=False)
+
+        levels = np.arange(-1, 1, .1)
+        h = MplColorHelper("gray", -0., 10, inverse=False)
+        colors = [h.get_rgb(l) for l in levels]
+
+        contours = ax.contour(self.R, self.L, rho, levels=levels, colors=colors)
+        ax.clabel(contours, inline=1, fontsize=10, colors=colors)
+        ax.imshow(rho, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal")
+        ax.set(title="$\\rho$")
+
+
     def plot_Psi(self, calc=False, ax=None, f=None, cbar=True):
         if calc: self.getPsi()
 
@@ -400,7 +419,6 @@ class PsiCalculator:
         ax.clabel(contours, inline=1, fontsize=10, colors=colors)
         ax.imshow(self.Psi, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=1)
 
-
     def text(self):
         f, ax = create_figure(subplots=False)
 
@@ -416,9 +434,13 @@ class Algomodel:
     dotsize = 300
 
     # sigma_scaling = 0.16597849 # Determined by fittnig
-    sigma_scaling = 0.6
+    sigma_scaling = 0.16
 
     def __init__(self):
+        self.o = 10000
+        self.d0 = 0
+        self.s = 0.001
+
         # Experimental data
         self.prs = dict(
                         maze1 = 0.78, 
@@ -460,9 +482,11 @@ class Algomodel:
 
     def calc_variance(self, d):
         # gives the scale of the normal distribution used to represent path lengths
-
         if not self.linear:
-            return math.sqrt(d*self.sigma_scaling)
+        #     return math.sqrt(d*self.sigma_scaling)
+                b = (1 - self.o)/2
+
+                return self.o / (1 + np.exp(-self.s**self.sigma_scaling*(d - self.d0)))+b
         else:
             return d*self.sigma_scaling
 
@@ -484,6 +508,22 @@ class Algomodel:
     def get_probs_delta(self):
         # compute the squared error in pR estimated of the model
         return np.sum([(self.prs[maze]-self.model_prs[maze])**2 for maze in self.mazes.keys()])
+
+    def calcus(self, l, r, ):
+        x, y = np.meshgrid(l, r)
+        mu = x-y    
+        mu = mu.T
+        sigma = np.array([a.calc_variance(xx) + a.calc_variance(yy) for xx,yy in zip(x.flat, y.flat)]).reshape(mu.shape)
+        phi = stats.norm.cdf(-mu / sigma)
+        self.us_prs = 1 - phi
+
+    def calcus_slice(self, l):
+        sl = []
+        for ll in l:
+            mu = ll - self.R0
+            sigma = a.calc_variance(ll) + a.calc_variance(self.R0)
+            sl.append(1 - stats.norm.cdf(-mu / sigma))
+        return sl
 
     def test_gradient(self):
         x = np.arange(0.0001, 2, .001)
@@ -525,7 +565,24 @@ class Algomodel:
 
         res = minimize(func, [1], callback=record, options=dict(disp=True), bounds=[[0.001, 10]])
 
-        print(res)
+        f, ax = create_figure(subplots=False, ncols=1)
+        
+        xlbls, ylbls = [0], [0]
+        for L, c, pr, yerr in zip(self.pathlengths, self.colors, self.prs.values(), self.yerrs):
+            ax.scatter(L, pr, color=c, s=self.dotsize, edgecolors=black, zorder=20)
+            hline_to_point(ax, L, pr, color=black, lw=self.lw, ls="--")
+            vline_to_point(ax, L, pr, color=c, lw=self.lw, ls="--")
+            xlbls.append(np.int(L))
+            ylbls.append(pr)
+
+        xlbls.append(1000)
+        ylbls.append(1)
+
+        sl = self.calcus_slice(self.L)
+        ax.plot(self.L, sl, color=black, lw=self.lw)
+        ax.set(xlim=[0, self.rmax], ylim=[0, 1], xlabel="$L$", ylabel="$\Psi$",
+                xticks=xlbls, xticklabels=["${}$".format(x) for x in xlbls], yticks=ylbls, yticklabels=["${}$".format(y) for y in ylbls])
+
         return res
 
 
@@ -537,18 +594,13 @@ class Algomodel:
                                 plot_kwargs=dict(color=c, lw=5))
         ax.set(xlim=[0, 1000])
 
-    
     def calc_utility_space(self, plot=False):
-        x, y = np.meshgrid(a.L, a.R)
-        mu = y - x
-        sigma = np.array([a.calc_variance(xx) + a.calc_variance(yy) for xx,yy in zip(x.flat, y.flat)]).reshape(mu.shape)
-        phi = stats.norm.cdf(-mu / sigma)
-        self.us_prs = 1 - phi
+        self.calcus(self.L, self.R)
     
         if plot:
             f, ax = create_figure(subplots=False)
 
-            surf = ax.imshow(self.us_prs, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=1)
+            surf = ax.imshow(self.us_prs, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal")
             divider = make_axes_locatable(ax)
             cax1 = divider.append_axes("right", size="5%", pad=0.15)
             f.colorbar(surf, cax=cax1)
@@ -561,7 +613,7 @@ class Algomodel:
         f, axarr = create_figure(subplots=True, ncols=3, nrows=1)
 
         self.calc_utility_space(plot=False)
-        surf = axarr[0].imshow(self.us_prs, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=1)
+        surf = axarr[0].imshow(self.us_prs, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal")
 
         eval_values = np.arange(100, self.rmax, 100)
         lslopes, rslopes = [], []
@@ -571,12 +623,18 @@ class Algomodel:
             axarr[0].axvline(r0, color=color, lw=self.lw*.75, ls="--")
             axarr[0].axhline(r0, color=color, lw=self.lw*.75, ls="--")
 
-            axarr[1].plot(self.us_prs[:, r0idx], color=color, lw=self.lw)
-            axarr[2].plot(self.us_prs[r0idx, :], color=color, lw=self.lw)
+            axarr[1].plot(self.L, self.us_prs[:, r0idx], color=color, lw=self.lw)
+            axarr[2].plot(self.L, self.us_prs[r0idx, :], color=color, lw=self.lw)
 
         axarr[0].set(title="$p(R)$", xticks=[], yticks=[], xlabel="$R$", ylabel="$L$")
-        axarr[1].set(title="$R\\ constant$",  xlabel="$L$", ylabel="$p(R)$", yticks=[0, round(np.nanmin(self.us_prs),2), round(np.nanmax(self.us_prs),2), 1], xticks=np.arange(0, self.npoints, np.int(250*self.points_conversion_factor)), xticklabels=np.arange(0, self.rmax+1, 100))
-        axarr[2].set(title="$L\\ constant$",xlabel="$R$", ylabel="$p(R)$", yticks=[0, round(np.nanmin(self.us_prs),2), round(np.nanmax(self.us_prs),2), 1], xticks=np.arange(0, self.npoints, np.int(250*self.points_conversion_factor)), xticklabels=np.arange(0, self.rmax+1, 100))
+        axarr[1].set(title="$R\\ constant$",  xlabel="$L$", ylabel="$p(R)$", 
+                yticks=[0, round(np.nanmin(self.us_prs),2), round(np.nanmax(self.us_prs),2), 1], 
+                xticks=np.arange(0, self.rmax+1, 250), 
+                xticklabels=["${}$".format(x) for x in np.arange(0, self.rmax+1, 250)])
+        axarr[2].set(title="$L\\ constant$",xlabel="$R$", ylabel="$p(R)$", 
+                yticks=[0, round(np.nanmin(self.us_prs),2), round(np.nanmax(self.us_prs),2), 1], 
+                xticks=np.arange(0, self.rmax+1, 250), 
+                xticklabels=["${}$".format(x) for x in np.arange(0, self.rmax+1, 250)])
 
         self.clean_axes(f=f)
 
@@ -584,7 +642,7 @@ class Algomodel:
         f, axarr = create_figure(subplots=True, ncols=3, nrows=1)
 
         self.calc_utility_space(plot=False)
-        surf = axarr[0].imshow(self.us_prs, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=1)
+        surf = axarr[0].imshow(self.us_prs, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal")
 
         eval_values = np.arange(100, self.rmax, 100)
         lslopes, rslopes = [], []
@@ -594,17 +652,20 @@ class Algomodel:
             axarr[0].axvline(r0, color=color, lw=self.lw*.75, ls="--")
             axarr[0].axhline(r0, color=color, lw=self.lw*.75, ls="--")
 
-            axarr[1].plot(np.diff(self.us_prs[:, r0idx]), color=color, lw=self.lw)
-            axarr[2].plot(np.diff(self.us_prs[r0idx, :]), color=color, lw=self.lw)
+            axarr[1].plot(self.L[1:], np.diff(self.us_prs[:, r0idx]), color=color, lw=self.lw)
+            axarr[2].plot(self.R[1:], np.diff(self.us_prs[r0idx, :]), color=color, lw=self.lw)
+            lslopes.append(np.diff(self.us_prs[:, r0idx])); rslopes.append(np.diff(self.us_prs[r0idx, :]))
 
         axarr[0].set(title="$p(R)$", xticks=[], yticks=[], xlabel="$R$", ylabel="$L$")
-        axarr[1].set(title="$R\\ constant$",  xlabel="$L$", ylabel="$p(R)$", xlim=[0, 1000],
-                            xticks=np.arange(0, self.npoints, np.int(250*self.points_conversion_factor)), xticklabels=np.arange(0, self.rmax+1, 250))
-        axarr[2].set(title="$L\\ constant$",xlabel="$R$", ylabel="$p(R)$",  xlim=[0, 1000],
-                            xticks=np.arange(0, self.npoints, np.int(250*self.points_conversion_factor)), xticklabels=np.arange(0, self.rmax+1, 250))
-
+        axarr[1].set(title="$R\\ constant$", xlabel="$L$", ylabel="$Val$", xlim=[0, 1000],
+                            yticks=[0, round(np.max(lslopes), 3)], yticklabels = ["{}".format(x) for x in [0, round(np.max(lslopes), 3)]],
+                            xticks=np.arange(0, self.rmax+1, 250), 
+                            xticklabels=["${}$".format(x) for x in np.arange(0, self.rmax+1, 250)])
+        axarr[2].set(title="$L\\ constant$", xlabel="$R$", ylabel="$Val$",  xlim=[0, 1000],
+                            yticks=[0, round(np.min(rslopes), 3)], yticklabels = ["{}".format(x) for x in [0, round(np.min(rslopes), 3)]],
+                            xticks=np.arange(0, self.rmax+1, 250), 
+                            xticklabels=["${}$".format(x) for x in np.arange(0, self.rmax+1, 250)])
         self.clean_axes(f=f)
-
 
     def plot_ICs(self):
         f, ax = create_figure(subplots=False)
@@ -615,55 +676,28 @@ class Algomodel:
 
         contours = ax.contour(self.R, self.L, self.us_prs, levels=levels, colors=colors)
         ax.clabel(contours, inline=1, fontsize=10, colors=colors)
-        ax.imshow(self.us_prs, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=1)
-
-
-
-
-#%%
-# Compare contours of the two models
-# calc = PsiCalculator()
-# calc.getPsi()
-# calc.plot_slices()
-
-# a = Algomodel()
-# a.plot_slices()
-
-
-f, axarr = create_figure(subplots=True, ncols=2)
-levels = np.arange(-.1, 1.11, .1)
-h = MplColorHelper("gray", -0., 2.11, inverse=False)
-colors = [h.get_rgb(l) for l in levels]
-
-# contours = axarr[0].contour(calc.R, calc.L, calc.Psi, levels=levels, colors=colors, alpha=.6)
-# axarr[0].clabel(contours, inline=1, fontsize=10, colors=colors)
-axarr[0].imshow(calc.Psi, extent=[0, calc.rmax, 0, calc.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=1)
-
-# contours = axarr[1].contour(a.R, a.L, a.us_prs, levels=levels, colors=colors, alpha=.6)
-# axarr[1].clabel(contours, inline=1, fontsize=10, colors=colors)
-axarr[1].imshow(a.us_prs, extent=[0, a.rmax, 0, a.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=1)
-
-
-titles = ["Psi", "Normal"]
-for ax, t in zip(axarr, titles):
-    ax.set(title=t)
-
+        ax.imshow(self.us_prs, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal")
 
 #%%
 # calc = PsiCalculator()
+# calc.plot_rho()
 # calc.getPsi()
-# calc.fit_plot()
+# calc.fit_plot(fit_bounds=([0.6, 2, -1],[1, 25, 1]))
 # calc.plot_Psi()
 # calc.plot_ICs()
 # calc.plot_slices()
 # calc.plot_Psy_derivs()
 
 a = Algomodel()
-a.fit_sigma()
-a.calc_utility_space(plot=True)
+# a.fit_sigma()
+a.calc_utility_space(plot=False)
+# a.plot_ICs()
+a.plot_slices()
+a.plot_partials()
 
-# calc.plot_Psy_derivs()
-# a.plot_partials()
+
+     
+#%%
 
 
 #%%
