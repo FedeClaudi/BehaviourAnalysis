@@ -192,7 +192,7 @@ class timedAnalysis:
                         color="k", fontsize=32, transform=ax.transAxes, **text_axaligned)
             
         grouped_modes, grouped_means, grouped_params, _, _ = self.bayes_by_condition_analytical(mode="grouped", plot=False) 
-        rtdf = self.inspect_rt_metric(load=True, plot=False)
+        rtdf = self.inspect_rt_metric(load=False, plot=False)
 
         # crate figure
         f, axarr = create_figure(subplots=True, nrows=3, sharex=True)

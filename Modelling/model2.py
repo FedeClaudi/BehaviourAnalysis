@@ -41,11 +41,11 @@ params = {
     'legend.fontsize': 6, # was 10
     'xtick.labelsize': 8,
     'ytick.labelsize': 8,
-    'text.usetex': False,        # ! <----- use TEX
+    'text.usetex': True,        # ! <----- use TEX
     'figure.figsize': [3.39, 2.10],
 }
 mpl.rcParams.update(params)
-sns.set_context("talk", font_scale=1)  # was 3 
+sns.set_context("talk", font_scale=2)  # was 3 
 
 
 # %%
@@ -422,7 +422,8 @@ class PsiCalculator:
     def text(self):
         f, ax = create_figure(subplots=False)
 
-        ax.set(title="$abcdefghilmno-ABCDEFGHIJKLMNOPQRST()$")
+        ax.set(title="$\psi \Psi \phi$")
+        # ax.set()
 
 
 
@@ -430,11 +431,11 @@ class PsiCalculator:
 class Algomodel:
     linear= True # make sigma scale linearly with mu
     colors = [lightblue, green, purple, magenta]
-    lw = 2
-    dotsize = 300
+    lw = 3
+    dotsize = 200
 
     # sigma_scaling = 0.16597849 # Determined by fittnig
-    sigma_scaling = 0.16
+    sigma_scaling = 0.2
 
     def __init__(self):
         self.o = 10000
@@ -464,8 +465,8 @@ class Algomodel:
         )
         self.model_prs = {k:0 for k,v in self.mazes.items()}
 
-        self.R = np.arange(0, 1001, 10)
-        self.L = np.arange(0, 1001, 10)
+        self.R = np.arange(0, 1001, 1)
+        self.L = np.arange(0, 1001, 1)
         self.us_prs = np.zeros((len(self.R), len(self.R)))  # p(R) at all locations in utility space
         self.npoints = len(self.R)
         self.rmax = np.int(np.max(self.R))
@@ -567,11 +568,13 @@ class Algomodel:
 
         f, ax = create_figure(subplots=False, ncols=1)
         
+        colors = MplColorHelper("Purples", 0, 5, inverse=True)
+
         xlbls, ylbls = [0], [0]
-        for L, c, pr, yerr in zip(self.pathlengths, self.colors, self.prs.values(), self.yerrs):
-            ax.scatter(L, pr, color=c, s=self.dotsize, edgecolors=black, zorder=20)
+        for i, (L, c, pr, yerr) in enumerate(zip(self.pathlengths, self.colors, self.prs.values(), self.yerrs)):
+            ax.scatter(L, pr, color=colors.get_rgb(i), s=self.dotsize, edgecolors=black, zorder=20)
             hline_to_point(ax, L, pr, color=black, lw=self.lw, ls="--")
-            vline_to_point(ax, L, pr, color=c, lw=self.lw, ls="--")
+            vline_to_point(ax, L, pr, color=colors.get_rgb(i), lw=self.lw, ls="--")
             xlbls.append(np.int(L))
             ylbls.append(pr)
 
@@ -579,9 +582,11 @@ class Algomodel:
         ylbls.append(1)
 
         sl = self.calcus_slice(self.L)
-        ax.plot(self.L, sl, color=black, lw=self.lw)
-        ax.set(xlim=[0, self.rmax], ylim=[0, 1], xlabel="$L$", ylabel="$\Psi$",
+        colors = MplColorHelper("coolwarm", 0, 1000, inverse=False)
+        ax.scatter(self.L, sl, color=[colors.get_rgb(x) for x in self.L])
+        ax.set(xlim=[0, self.rmax], ylim=[0, 1], xlabel="$L$", ylabel="$\phi$",
                 xticks=xlbls, xticklabels=["${}$".format(x) for x in xlbls], yticks=ylbls, yticklabels=["${}$".format(y) for y in ylbls])
+        self.clean_axes()
 
         return res
 
@@ -593,6 +598,7 @@ class Algomodel:
             plot_distribution(d, self.calc_variance(d), dist_type="normal", ax=ax, x_range=[0, 1000], shaded=True, 
                                 plot_kwargs=dict(color=c, lw=5))
         ax.set(xlim=[0, 1000])
+        self.clean_axes()
 
     def calc_utility_space(self, plot=False):
         self.calcus(self.L, self.R)
@@ -600,12 +606,12 @@ class Algomodel:
         if plot:
             f, ax = create_figure(subplots=False)
 
-            surf = ax.imshow(self.us_prs, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal")
+            surf = ax.imshow(self.us_prs, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal", vmin=0, vmax=1)
             divider = make_axes_locatable(ax)
             cax1 = divider.append_axes("right", size="5%", pad=0.15)
             f.colorbar(surf, cax=cax1)
 
-            ax.set(title="$p(R)$", xlabel="$R$", ylabel="$L$", xticks=[0, self.rmax], yticks=[0, self.rmax])
+            ax.set(title="$\phi$", xlabel="$R$", ylabel="$L$", xticks=[0, self.rmax], yticks=[0, self.rmax])
             
             self.clean_axes()
 
@@ -637,6 +643,7 @@ class Algomodel:
                 xticklabels=["${}$".format(x) for x in np.arange(0, self.rmax+1, 250)])
 
         self.clean_axes(f=f)
+        f.tight_layout()
 
     def plot_partials(self):
         f, axarr = create_figure(subplots=True, ncols=3, nrows=1)
@@ -657,15 +664,16 @@ class Algomodel:
             lslopes.append(np.diff(self.us_prs[:, r0idx])); rslopes.append(np.diff(self.us_prs[r0idx, :]))
 
         axarr[0].set(title="$p(R)$", xticks=[], yticks=[], xlabel="$R$", ylabel="$L$")
-        axarr[1].set(title="$R\\ constant$", xlabel="$L$", ylabel="$Val$", xlim=[0, 1000],
-                            yticks=[0, round(np.max(lslopes), 3)], yticklabels = ["{}".format(x) for x in [0, round(np.max(lslopes), 3)]],
+        axarr[1].set(title="$R\\ constant$", xlabel="$L$", ylabel="$\\partial_R \\phi$", xlim=[0, 1000],
+                            yticks=[0, round(np.max(lslopes), 3)], yticklabels = ["${}$".format(x) for x in [0, round(np.max(lslopes), 3)]],
                             xticks=np.arange(0, self.rmax+1, 250), 
                             xticklabels=["${}$".format(x) for x in np.arange(0, self.rmax+1, 250)])
-        axarr[2].set(title="$L\\ constant$", xlabel="$R$", ylabel="$Val$",  xlim=[0, 1000],
-                            yticks=[0, round(np.min(rslopes), 3)], yticklabels = ["{}".format(x) for x in [0, round(np.min(rslopes), 3)]],
+        axarr[2].set(title="$L\\ constant$", xlabel="$R$", ylabel="$\\partial_L \\phi$",  xlim=[0, 1000],
+                            yticks=[0, round(np.min(rslopes), 3)], yticklabels = ["${}$".format(x) for x in [0, round(np.min(rslopes), 3)]],
                             xticks=np.arange(0, self.rmax+1, 250), 
                             xticklabels=["${}$".format(x) for x in np.arange(0, self.rmax+1, 250)])
         self.clean_axes(f=f)
+        f.tight_layout()
 
     def plot_ICs(self):
         f, ax = create_figure(subplots=False)
@@ -678,26 +686,85 @@ class Algomodel:
         ax.clabel(contours, inline=1, fontsize=10, colors=colors)
         ax.imshow(self.us_prs, extent=[0, self.rmax, 0, self.rmax], cmap=cm.coolwarm, origin="lower", aspect="equal")
 
+
+    def slope_analysis(self):
+        # Look at the slope of the partial over L for different values of R
+        slopes, colors, x_correct = [], [], []
+
+        f, ax = create_figure(subplots=False)
+
+        # eval_values = np.arange(1, np.int(self.rmax/2), 5)
+        eval_values = np.arange(100, self.rmax, 15)
+        for r0 in eval_values:
+            r0idx = self.get_arr_idx(r0)
+            colors.append(self.colorshelper.get_rgb(r0))
+            x_correct.append(r0)
+
+            partial = np.diff(self.us_prs[:, r0idx])
+            slopes.append(partial[r0idx])
+
+        # Plot data and fit an exponential
+        params = plot_fitted_curve(exponential, x_correct, slopes, ax,
+            xrange=[0, np.max(x_correct)],
+            fit_kwargs={"method":"dogbox", "max_nfev":1000, "bounds":([0.01, 0, 0, 0], [1, 1000, 1, 0.1])},
+            scatter_kwargs=dict(c=colors, edgecolors=black, s=self.dotsize),
+            line_kwargs=dict(color=red, lw=self.lw, ls="--"))
+
+        ylim = [0, round(np.max(slopes), 3)]
+        ax.set(title="$\\left.\\frac{\\partial \\Psi}{\\partial L}\\right|_{L=R}$", xlabel="$L$", ylabel="$Slope$", 
+        ylim=ylim, yticks=ylim, yticklabels = ["${}$".format(y) for y in ylim],
+        xticks=np.arange(0, self.npoints, np.int(250*self.points_conversion_factor)), xticklabels=["${}$".format(x) for x in np.arange(0, self.rmax+1, 250)])
+
+        self.clean_axes(f=f)
+
+
+
 #%%
-# calc = PsiCalculator()
+calc = PsiCalculator()
 # calc.plot_rho()
-# calc.getPsi()
+calc.getPsi()
+calc.plot_mazes()
 # calc.fit_plot(fit_bounds=([0.6, 2, -1],[1, 25, 1]))
 # calc.plot_Psi()
 # calc.plot_ICs()
 # calc.plot_slices()
 # calc.plot_Psy_derivs()
+# calc.text()
 
-a = Algomodel()
+# a = Algomodel()
 # a.fit_sigma()
-a.calc_utility_space(plot=False)
+# a.calc_utility_space(plot=False)
 # a.plot_ICs()
-a.plot_slices()
-a.plot_partials()
+# a.plot_slices()
+# a.plot_partials()
+# a.slope_analysis()
 
 
      
 #%%
+
+
+#%%
+
+
+prs = [0.47, 0.70, 0.72, 0.78]
+qrs = [1, 1, 1, 1]
+n_possible_bits = 2
+
+def KLdivergence(p):
+    summa = - p*math.log(1/p)  - (1-p)*math.log(1/(1-p))
+    return summa
+
+
+
+def I(p):
+    i = - (pr*math.log(p, 2) + (1-p)*math.log((1-p), 2))
+    return round(i, 3)
+
+for i, pr in enumerate(prs):
+    information = KLdivergence(pr)
+    print("Maze {} - pR: {} - KL: {}".format(i, round(pr,2), information))
+
 
 
 #%%

@@ -13,6 +13,33 @@ from Modelling.maze_solvers.gradient_agent import GradientAgent
 import pickle
 import pymc3 as pm
 
+
+sns.set_style("white", {
+            "axes.grid":"False",
+            "ytick.right":"False",
+            "ytick.left":"True",
+            "xtick.bottom":"True",
+            "text.color": "0"
+})
+mpl.rc('text', usetex=False)
+
+params = {
+    'text.latex.preamble': ['\\usepackage{gensymb}'],
+    'image.origin': 'lower',
+    'image.interpolation': 'nearest',
+    'image.cmap': 'gray',
+    'axes.grid': False,
+    'savefig.dpi': 150,  # to adjust notebook inline plot size
+    'axes.labelsize': 8, # fontsize for x and y labels (was 10)
+    'axes.titlesize': 8,
+    'font.size': 8, # was 10
+    'legend.fontsize': 6, # was 10
+    'xtick.labelsize': 8,
+    'ytick.labelsize': 8,
+    'text.usetex': False,        # ! <----- use TEX
+    'figure.figsize': [3.39, 2.10],
+}
+
 # %%
 # Define class
 class ExperimentsAnalyser(Bayes):
@@ -37,10 +64,10 @@ class ExperimentsAnalyser(Bayes):
         
         if sys.platform != "darwin":
             self.conditions = dict(
-                        maze1 =  self.get_sessions_trials(maze_design=1, naive=None, lights=None, escapes=None, escapes_dur=1),
-                        maze2 =  self.get_sessions_trials(maze_design=2, naive=None, lights=None, escapes=None, escapes_dur=1),
-                        maze3 =  self.get_sessions_trials(maze_design=3, naive=None, lights=None, escapes=None, escapes_dur=1),
-                        maze4 =  self.get_sessions_trials(maze_design=4, naive=None, lights=None, escapes=None, escapes_dur=1),
+                        maze1 =  self.get_sessions_trials(maze_design=1, naive=None, lights=1, escapes=None, escapes_dur=1),
+                        maze2 =  self.get_sessions_trials(maze_design=2, naive=None, lights=1, escapes=None, escapes_dur=1),
+                        maze3 =  self.get_sessions_trials(maze_design=3, naive=None, lights=1, escapes=None, escapes_dur=1),
+                        maze4 =  self.get_sessions_trials(maze_design=4, naive=None, lights=1, escapes=None, escapes_dur=1),
                     )
 
             self.session_metadata = pd.DataFrame((Session * Session.Metadata - "maze_type=-1"))
@@ -439,19 +466,19 @@ class ExperimentsAnalyser(Bayes):
 
 if __name__ == "__main__":
     ea = ExperimentsAnalyser()
-    print(ea)
-
 
     # ea.get_arms_lengths_with_agent()
 
-    ea.save_trials_to_pickle()
-    ea.tracking_custom_plot()
-    ea.bayes_by_condition(conditions=None,  load=False, tracefile="psychometric_individual_bayes.pkl", plot=True)
+    # ea.save_trials_to_pickle()
+    # ea.tracking_custom_plot()
+    # ea.bayes_by_condition(conditions=None,  load=False, tracefile="psychometric_individual_bayes.pkl", plot=True)
 
     # ea.escape_definition_investigation()
     # ea.escape_thershold_effect()
 
     # ea.plot_pr_vs_time()
+
+    ea.plot_escape_duration_by_arm()
 
     
 

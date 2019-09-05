@@ -20,32 +20,32 @@ from Processing.timeseries_analysis import TimeSeriesAnalysis
 import seaborn as sns
 sns.set()
 sns.set_style("white", {
-            "axes.grid":"False",
-            "ytick.right":"False",
-            "ytick.left":"True",
-            "xtick.bottom":"True",
-            "text.color": "0"
+			"axes.grid":"False",
+			"ytick.right":"False",
+			"ytick.left":"True",
+			"xtick.bottom":"True",
+			"text.color": "0"
 })
 mpl.rc('text', usetex=False)
 
 params = {
-    'text.latex.preamble': ['\\usepackage{gensymb}'],
-    'image.origin': 'lower',
-    'image.interpolation': 'nearest',
-    'image.cmap': 'gray',
-    'axes.grid': False,
-    'savefig.dpi': 150,  # to adjust notebook inline plot size
-    'axes.labelsize': 8, # fontsize for x and y labels (was 10)
-    'axes.titlesize': 8,
-    'font.size': 8, # was 10
-    'legend.fontsize': 6, # was 10
-    'xtick.labelsize': 8,
-    'ytick.labelsize': 8,
-    'text.usetex': True,        # ! <----- use TEX
-    'figure.figsize': [3.39, 2.10],
+	'text.latex.preamble': ['\\usepackage{gensymb}'],
+	'image.origin': 'lower',
+	'image.interpolation': 'nearest',
+	'image.cmap': 'gray',
+	'axes.grid': False,
+	'savefig.dpi': 150,  # to adjust notebook inline plot size
+	'axes.labelsize': 8, # fontsize for x and y labels (was 10)
+	'axes.titlesize': 8,
+	'font.size': 8, # was 10
+	'legend.fontsize': 6, # was 10
+	'xtick.labelsize': 8,
+	'ytick.labelsize': 8,
+	'text.usetex': False,        # ! <----- use TEX
+	'figure.figsize': [3.39, 2.10],
 }
 mpl.rcParams.update(params)
-sns.set_context("talk", font_scale=3)  # was 3 
+sns.set_context("talk", font_scale=1)  # was 3 
 
 
 class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeSeriesAnalysis):
@@ -444,18 +444,24 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 		if ax is None: 
 			f, ax = create_figure(subplots=False)
 		else: f = None
-			
+		
+		colors_helper = MplColorHelper("Purples", 0, 5, inverse=True)
+		colors = [colors_helper.get_rgb(i) for i in range(len(p_r.keys()))]
+
 		lr_ratios_mean_pr = {"grouped":[], "individuals_x":[], "individuals_y":[], "individuals_y_sigma":[]}
+		yticks=[0]
 		for i, (condition, pr) in enumerate(p_r.items()):
-			x = self.paths_lengths.loc[self.paths_lengths.maze == condition][self.ratio].values
+			yticks.append(grouped_modes[condition])
+			x = self.paths_lengths.loc[self.paths_lengths.maze == condition]["distance"].values
 
 			y = means[condition]
 			# ? plot HB PR with errorbars
 			ax.errorbar(x, grouped_modes[condition], yerr=2*math.sqrt(sigmasquared[condition]), 
-						fmt='o', markeredgecolor=orange, markerfacecolor=orange, markersize=55, 
-						ecolor=desaturate_color(orange, k=.7), elinewidth=12, label=condition,
+						fmt='o', markeredgecolor=colors[i], markerfacecolor=colors[i], markersize=25, 
+						ecolor=desaturate_color(colors[i], k=.7), elinewidth=12, label=condition,
 						capthick=2, alpha=1, zorder=20)             
-			vline_to_point(ax, x, np.mean(y), color=[.2, .2, .2], lw=5, ls="--", alpha=.8)
+			vline_to_point(ax, x, grouped_modes[condition], color=colors[1], lw=5, ls="--", alpha=.8)
+			hline_to_point(ax, x, grouped_modes[condition], color=black, lw=5, ls="--", alpha=.8)
 
 
 			if condition not in exclude_experiments:# ? use the data for curves fitting
@@ -466,11 +472,14 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 				lr_ratios_mean_pr["individuals_y_sigma"].append(stds[condition])
 			else: 
 				del grouped_modes[condition], grouped_means[condition], sigmasquared[condition]
+		yticks.append(1)
 
 		# Fix plotting
-		ax.set(ylim=[0, 1], ylabel="p(R)", title=None, xlabel="Left path length (a.u.)",
-				 xticks = self.paths_lengths[self.ratio].values, xticklabels = self.conditions.keys())
+		ax.set(ylim=[0, 1], xlim=[0, 1000], ylabel="$p(R)$", title=None, xlabel="$L$",
+				xticks = self.paths_lengths["distance"].values, xticklabels = ["${}$".format(np.int(x)) for x in self.paths_lengths["distance"].values], 
+				yticks=np.array(yticks), yticklabels=["${}$".format(round(y, 2)) for y in yticks])
 		# make_legend(ax)
+		sns.despine(fig=f, offset=10, trim=False, left=False, right=True)
 
 		return lr_ratios_mean_pr, grouped_modes, grouped_means, sigmasquared, modes, means, stds, f, ax, xp, xrange, grouped_params
 
@@ -525,9 +534,6 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 
 		axarr[4].set(title="mice x maze", xticks=[1, 2, 3, 4], xticklabels=["m4", "m3", "m2", "m1"], ylabel="# mice", xlabel="maze")
 
-
-
-
 	def model_summary(self, exclude_experiments=[None], ax=None):
 		sns.set_context("talk", font_scale=4.5)
 
@@ -544,30 +550,28 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 		# ? Fit logistic regression to mean p(R)+std(p(R))
 		# ? Plot sigmoid filled to psy - mean pR of grouped bayes + std
 		xdata, ydata = [m[0] for m in lr_ratios_mean_pr["grouped"]], list(grouped_modes.values())
-		# p0 = [max(ydata), np.median(xdata), 1, min(ydata)] # this is an mandatory initial guess
-		# p0 = [.9, 1, 1, .5] # this is an mandatory initial guess
-		print(xdata, ydata)
-		pomp = plot_fitted_curve(logistic, xdata, ydata, ax, 
-			xrange=xrange,
-			fit_kwargs={"sigma":[2* math.sqrt(s) for s in list(sigmasquared.values())], "method":"dogbox", "bounds":([.6, .8, 5, 0],[1, 1.2, 15, 1])},
-			scatter_kwargs={"alpha":0}, 
+
+		colors_helper = MplColorHelper("Purples", 0, 5, inverse=True)
+		colors = [colors_helper.get_rgb(i) for i in range(len(xdata))]
+
+		pomp = plot_fitted_curve(centered_logistic, xdata, ydata, ax, 
+			xrange=[0, 1000],
+			fit_kwargs={"sigma":[2* math.sqrt(s) for s in list(sigmasquared.values())], 
+							"method":"dogbox", "bounds":([0.99, 0, 0.01],[1, 1000, 0.3])},
+			scatter_kwargs={"alpha":0, "c":colors}, 
 			line_kwargs={"color":black, "alpha":.85, "lw":10,})
 
 		rhos = [m[0] for m in lr_ratios_mean_pr["grouped"]]
 		labels = ["$Maze\\ {}$\n $\\rho = {}$".format(1+i, round(r, 2)) for i,r in enumerate(rhos)]
 		# Fix plotting
-		ax.axhline(.5, ls="--", color=grey, lw=.25)
-		ax.set(ylim=[0, 1], ylabel="p(R)", title=None, xlabel="$\\rho$",
-				 xticks = self.paths_lengths[self.ratio].values, xticklabels = labels)
+		# ax.axhline(.5, ls="--", color=grey, lw=.25)
+		# ax.set(ylim=[0, 1], ylabel="p(R)", title=None, xlabel="$\\rho$",
+		# 		 xticks = self.paths_lengths[self.ratio].values, xticklabels = labels)
 		# make_legend(ax)
 
 
 		sns.despine(offset=10, trim=False, left=False, right=True)
 		print(sns.axes_style())
-
-
-
-
 
 	def plot_hierarchical_bayes_effect(self):
 		# Get hierarchical Bayes modes and individual mice p(R)
@@ -686,19 +690,50 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 		ax2.set(title="p(R) vs distance from unity line", xlabel="distance", ylabel="p(R)")
 
 		plt.show()
-		a =1 
+
 
 	
 
+	
+	def plot_escape_duration_by_arm(self):
+		def get_mean_escape_speed(df, key=None):
+			if key is not None:
+				df = df.loc[df.maze == key]
+			distance = [np.sum(r.tracking_data[:, 2]) for i,r in df.iterrows()]
+			return distance
+
+		for maze, df in self.conditions.items():
+			df["maze"] = maze
+		escapes = pd.concat([df.loc[df["is_escape"]=="true"] for df in self.conditions.values()])
+
+		resc, lescs = escapes.loc[escapes.escape_arm == "Right_Medium"], escapes.loc[escapes.escape_arm != "Right_Medium"]
+		
+		arms = sorted(set(escapes.maze))
+		durations, mean_speeds = {arm:[] for arm in arms}, {arm:[] for arm in arms}
+
+		for arm in arms:
+			durations[arm].extend(list(lescs.loc[lescs.maze == arm].escape_duration))		
+			mean_speeds[arm].extend(get_mean_escape_speed(lescs, arm))
 
 
+		f, ax = plt.subplots()
+		colors = MplColorHelper("tab10", 0, 5, inverse=True)
+
+		for i, ((k, d), (k2, s)) in enumerate(zip(durations.items(), mean_speeds.items())):
+			ax.scatter(s, d, color=colors.get_rgb(i), s=100)
+		
+		ax.set(ylabel="$duration (s)$", xlabel="$distance (a.u.)$", xlim=[0, 1400], ylim=[0, 12])
+
+		# ax.set(xlabel="$Maze$", xticks=np.arange(4), xticklabels=["$Maze\:{}$".format(i) for i in np.arange(4)],
+		# 		ylabel="$Duration\:(s)$", yticks=np.arange(0, 10, 2), yticklabels=["${}$".format(i) for i in np.arange(0, 10, 2)])
 
 
 if __name__ == "__main__":
 	pa = PsychometricAnalyser()
 
 	# pa.plot_pr_by_condition_detailed()
-	pa.model_summary() 
+	# pa.model_summary() 
+	pa.plot_escape_duration_by_arm()
 	# pa.plot_hierarchical_bayes_effect()
 
 	# pa.inspect_rt_metric(load=False)

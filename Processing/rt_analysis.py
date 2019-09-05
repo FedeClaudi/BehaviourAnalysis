@@ -31,7 +31,7 @@ class rtAnalysis:
             bodyth, snouth, rtth = 6, 6, 2.5
 
             data = self.merge_conditions_trials(list(self.conditions.values()))
-
+            data = data.loc[data.is_escape == "true"]
             if plot:
                 f = plt.subplots(sharex=True)
 

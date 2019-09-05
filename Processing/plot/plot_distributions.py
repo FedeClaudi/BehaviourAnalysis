@@ -60,13 +60,15 @@ def plot_fitted_curve(func, xdata, ydata, ax, *args, xrange=None, print_fit=Fals
         if print_fit: print(popt)
         y = func(x, *popt)
         to_return = popt
+
     else:
-        func = func(numpy_polyfit, xdata, ydata)
+        func = np.poly1d(np.polyfit(xdata, ydata, numpy_polyfit))
         y = func(x)
         to_return = func
-
     ax.scatter(xdata, ydata, **scatter_kwargs)
     ax.plot(x, y, **line_kwargs)
+
+    
 
     return to_return
 
