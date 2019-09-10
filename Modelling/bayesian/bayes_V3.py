@@ -143,24 +143,22 @@ class Bayes:
                     # Because Beta is a conjugate prior to the Binomial, the posterior is a Beta with
                     # a2 = a1 - 1 + k and b2 = b1 - 1 + n - k and the whole thing is multiplied by
                     # binomial factor n!/(k!(n-k)!)
-                    for k, n in zip(K, N):
-                        a2, b2 = a - 1 + k, b - 1 + n - k
-                        if plot: 
-                            plot_distribution(a2, b2, dist_type="beta", ax=ax,
-                                                    plot_kwargs=dict(color=self.colors[expn+1], 
-                                                                    alpha=.5), 
-                                                    ax_kwargs=dict(xlim=[-0.1, 1.1], 
-                                                                    ylim=[0, 10]), )
-                    
-                    if plot:
-                        if expn == 0:
-                            plot_distribution(a, b,dist_type="beta", ax=ax,
-                                                    plot_kwargs=dict(color="w", 
-                                                                    alpha=.5,
-                                                                    label="prior"), 
-                                                    ax_kwargs=dict(xlim=[-0.1, 1.1], 
-                                                                    ylim=[0, 15],
-                                                                    title=exp))
+                    # for k, n in zip(K, N):
+                    #     a2, b2 = a - 1 + k, b - 1 + n - k
+                    #     if plot: 
+                    #         plot_distribution(a2, b2, dist_type="beta", ax=ax,
+                    #                                 plot_kwargs=dict(color=self.colors[expn+1], 
+                    #                                 ax_kwargs=dict(xlim=[-0.1, 1.1], 
+                    #                                                 ylim=[0, 10]), )
+                    pass
+                    # if plot:
+                    #     if expn == 0:
+                    #         plot_distribution(a, b,dist_type="beta", ax=ax,
+                    #                                 plot_kwargs=dict(color="w", 
+                    #                                                 label="prior"), 
+                    #                                 ax_kwargs=dict(xlim=[-0.1, 1.1], 
+                    #                                                 ylim=[0, 15],
+                    #                                                 title=exp))
                 elif mode == "grouped":
                     # Compute the likelihood function (product of each mouse's likelihood)and plg that into bayes theorem
                     # the likelihood function will be a Binomial with the binomial factor being the product of all the factors, 
@@ -178,16 +176,14 @@ class Bayes:
                     b2 = b - 1 + dnk
                     if plot:
                         if expn == 0:
-                            plot_distribution(a2, b2, dist_type="beta", ax=ax, shaded=True, 
+                            plot_distribution(a2, b2, dist_type="beta", ax=ax, shaded=True,  shade_alpha=.8,
                                             plot_kwargs=dict(color="w",  lw=3,
-                                                            alpha=.2,
                                                             label="prior"), 
                                             ax_kwargs=dict(xlim=[-0.1, 1.1], 
                                                             ylim=[0, 15],))
 
-                        plot_distribution(a2, b2, dist_type="beta", ax=ax, shaded=True,
+                        plot_distribution(a2, b2, dist_type="beta", ax=ax, shaded=True, shade_alpha=.8,
                                                 plot_kwargs=dict(color=self.colors[expn+1], lw=2, 
-                                                                alpha=.4,
                                                                 label=exp), 
                                                 ax_kwargs=dict(xlim=[-0.1, 1.1], 
                                                                 ylim=[0, 15],

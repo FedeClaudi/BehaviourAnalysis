@@ -339,7 +339,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 
 			y = means[condition]
 			# ? plot HB PR with errorbars
-			ax.errorbar(x, grouped_modes[condition], yerr=2*math.sqrt(sigmasquared[condition]), 
+			ax.errorbar(x, grouped_means[condition], yerr=(pranges[condition].low - pranges[condition].high)/2, 
 						fmt='o', markeredgecolor=colors[i], markerfacecolor=colors[i], markersize=25, 
 						ecolor=desaturate_color(colors[i], k=.7), elinewidth=12, label=condition,
 						capthick=2, alpha=1, zorder=20)             
@@ -439,8 +439,8 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 
 		pomp = plot_fitted_curve(centered_logistic, xdata, ydata, ax, 
 			xrange=[0, 1000],
-			fit_kwargs={"sigma":[2* math.sqrt(s) for s in list(sigmasquared.values())], 
-							"method":"dogbox", "bounds":([0.99, 0, 0.01],[1, 1000, 0.3])},
+			fit_kwargs={"sigma":[math.sqrt(s) for s in list(sigmasquared.values())], 
+							"method":"dogbox", "bounds":([0.99, 585, 0.01],[1, 595, 0.3])},
 			scatter_kwargs={"alpha":0, "c":colors}, 
 			line_kwargs={"color":black, "alpha":.85, "lw":10,})
 
@@ -555,7 +555,7 @@ if __name__ == "__main__":
 
 	# pa.plot_pr_by_condition_detailed()
 	# pa.model_summary() 
-	pa.plot_escape_duration_by_arm()
+	# pa.plot_escape_duration_by_arm()
 	# pa.plot_hierarchical_bayes_effect()
 
 	# pa.inspect_rt_metric(load=False)
@@ -563,7 +563,7 @@ if __name__ == "__main__":
 	# pa.plot_effect_of_time(xaxis_istime=False, robust=False) # ? not useful
 	# pa.plot_effect_of_time(xaxis_istime=True, robust=False)
 # 
-	# pa.timed_plots_for_upgrade()
+	pa.timed_plots_for_upgrade()
 
 	# pa.closer_look_at_hb()
 

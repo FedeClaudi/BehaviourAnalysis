@@ -2,7 +2,6 @@
 import sys
 sys.path.append('./')   # <- necessary to import packages from other directories within the project
 
-# if __name__ == "__main__": # avoid re importing the tables for every core in during bayesian modeeling
 from Utilities.imports import *
 
 
@@ -34,44 +33,20 @@ class ExperimentsAnalyser(Bayes):
     else:
         metadata_folder = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/analysis_metadata/Psychometric"
 
-    def __init__(self):
+    def __init__(self, naive=None, lights=None, escapes=None, escapes_dur=None):
         Bayes.__init__(self)
         
         if sys.platform != "darwin":
             self.conditions = dict(
-                        maze1 =  self.get_sessions_trials(maze_design=1, naive=None, lights=1, escapes=None, escapes_dur=1),
-                        maze2 =  self.get_sessions_trials(maze_design=2, naive=None, lights=1, escapes=None, escapes_dur=1),
-                        maze3 =  self.get_sessions_trials(maze_design=3, naive=None, lights=1, escapes=None, escapes_dur=1),
-                        maze4 =  self.get_sessions_trials(maze_design=4, naive=None, lights=1, escapes=None, escapes_dur=1),
+                        maze1 =  self.get_sessions_trials(maze_design=1, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur),
+                        maze2 =  self.get_sessions_trials(maze_design=2, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur),
+                        maze3 =  self.get_sessions_trials(maze_design=3, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur),
+                        maze4 =  self.get_sessions_trials(maze_design=4, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur),
                     )
 
             self.session_metadata = pd.DataFrame((Session * Session.Metadata - "maze_type=-1"))
         
 
-    # def __str__(self):
-    #     def get_summary(df):
-    #         summary = dict(maze=[], tot_mice=[], naive=[])
-    #         for maze_id, maze_name in self.maze_designs.items():
-    #             if maze_id == -1: continue
-                    
-    #             maze_data = df.loc[df.maze_type == maze_id]
-
-    #             summary["maze"].append(maze_name)
-    #             summary["tot_mice"].append(len(maze_data))
-    #             summary["naive"].append(len(maze_data.loc[maze_data.naive == 1]))
-
-    #         summary = pd.DataFrame(summary)
-    #         return summary
-
-    #     data = self.session_metadata
-    #     summary = get_summary(data)
-    #     print("Sessions per experiment\n", summary)
-    #     print()
-    #     return ""
-
-    # def __repr__(self): 
-    #     self.__str__()
-    #     return ""
 
     """
     ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
@@ -292,7 +267,6 @@ class ExperimentsAnalyser(Bayes):
         print("{} of trials have matching definition".format(np.mean(same)))
         print(same_detailed)
 
-
     def escape_thershold_effect(self):
         f, axarr = plt.subplots(nrows=5)
 
@@ -439,25 +413,23 @@ class ExperimentsAnalyser(Bayes):
             f.tight_layout()
 
 
+
+# %%
+# %matplotlib inline
 if __name__ == "__main__":
-    ea = ExperimentsAnalyser()
+    ea = ExperimentsAnalyser(naive=None, lights=1, escapes=True, escapes_dur=True)
 
-    # ea.get_arms_lengths_with_agent()
 
-    # ea.save_trials_to_pickle()
-    # ea.tracking_custom_plot()
-    # ea.bayes_by_condition(conditions=None,  load=False, tracefile="psychometric_individual_bayes.pkl", plot=True)
+    ea.save_trials_to_pickle()
+    res = ea.bayes_by_condition_analytical(load=True, mode="grouped", plot=False)
 
-    # ea.escape_definition_investigation()
-    # ea.escape_thershold_effect()
-
-    # ea.plot_pr_vs_time()
-
-    ea.plot_escape_duration_by_arm()
-
+    # ea.plot_pr_by_condition()
     
 
 
     plt.show()
 
 
+
+
+#%%

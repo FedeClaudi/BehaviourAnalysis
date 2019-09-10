@@ -60,7 +60,6 @@ class PsiCalculator:
     def __init__(self):
         self.use_diff_rho = True # ! define rho as l-r instead of l/r
 
-
         self.R = np.arange(0, 1001, 10)
         self.L = np.arange(0, 1001, 10)
         self.Psi = np.zeros((len(self.R), len(self.R)))
@@ -84,7 +83,7 @@ class PsiCalculator:
         self.colorshelper = MplColorHelper("Greens", 0, self.rmax+self.rmax/4, inverse=True)
 
         # Experimental data
-        self.prs = [0.78, 0.72, 0.70, 0.47]
+        self.prs = [0.85, 0.81, 0.74, 0.50]
         # yerr: [2* math.sqrt(s) for s in list(sigmasquared.values())]
         self.yerrs = [0.048042182449778245, 0.0689335245891631, 0.06165147992851076, 0.07914616013894715]
         self.pathlengths = pa.paths_lengths.distance.values
@@ -444,10 +443,10 @@ class Algomodel:
 
         # Experimental data
         self.prs = dict(
-                        maze1 = 0.78, 
-                        maze2 = 0.72, 
-                        maze3 = 0.70, 
-                        maze4 = 0.47)
+                        maze1 = 0.85, 
+                        maze2 = 0.81, 
+                        maze3 = 0.74, 
+                        maze4 = 0.50)
 
         self.yerrs = [0.048042182449778245, 0.0689335245891631, 0.06165147992851076, 0.07914616013894715]
         self.pathlengths = pa.paths_lengths.distance.values
@@ -552,7 +551,7 @@ class Algomodel:
         ax.plot(self.R,  y)
 
 
-    def fit_sigma(self):
+    def fit_sigma(self, bounds=None, initial_guess=None):
         self.minimize_record = [[], []] # store param and error at each iter of minimize
         def func(fact):
             self.sigma_scaling = fact[0]
@@ -564,7 +563,9 @@ class Algomodel:
             self.minimize_record[1].append(self.get_probs_delta())
             return True
 
-        res = minimize(func, [1], callback=record, options=dict(disp=True), bounds=[[0.001, 10]])
+        if bounds is None: bounds = [[0.001, 5]]
+        if initial_guess is None: initial_guess = [.1]
+        res = minimize(func, initial_guess, callback=record, options=dict(disp=True), bounds=[[0.001, 10]])
 
         f, ax = create_figure(subplots=False, ncols=1)
         
@@ -584,7 +585,7 @@ class Algomodel:
         sl = self.calcus_slice(self.L)
         colors = MplColorHelper("coolwarm", 0, 1000, inverse=False)
         ax.scatter(self.L, sl, color=[colors.get_rgb(x) for x in self.L])
-        ax.set(xlim=[0, self.rmax], ylim=[0, 1], xlabel="$L$", ylabel="$\phi$",
+        ax.set(xlim=[0, self.rmax], ylim=[-0.1, 1.1], xlabel="$L$", ylabel="$\phi$",
                 xticks=xlbls, xticklabels=["${}$".format(x) for x in xlbls], yticks=ylbls, yticklabels=["${}$".format(y) for y in ylbls])
         self.clean_axes()
 
@@ -720,10 +721,10 @@ class Algomodel:
 
 
 #%%
-calc = PsiCalculator()
+# calc = PsiCalculator()
 # calc.plot_rho()
-calc.getPsi()
-calc.plot_mazes()
+# calc.getPsi()
+# calc.plot_mazes()
 # calc.fit_plot(fit_bounds=([0.6, 2, -1],[1, 25, 1]))
 # calc.plot_Psi()
 # calc.plot_ICs()
@@ -731,8 +732,8 @@ calc.plot_mazes()
 # calc.plot_Psy_derivs()
 # calc.text()
 
-# a = Algomodel()
-# a.fit_sigma()
+a = Algomodel()
+a.fit_sigma(initial_guess=[.1], bounds=[[0.001, 0.1]])
 # a.calc_utility_space(plot=False)
 # a.plot_ICs()
 # a.plot_slices()
