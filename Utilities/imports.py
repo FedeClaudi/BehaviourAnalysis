@@ -68,8 +68,8 @@ params = {
     'legend.fontsize': 6, # was 10
     'xtick.labelsize': 8,
     'ytick.labelsize': 8,
-    'text.usetex': True,        # ! <----- use TEX
+    'text.usetex': False,        # ! <----- use TEX
     'figure.figsize': [3.39, 2.10],
 }
 mpl.rcParams.update(params)
-sns.set_context("talk", font_scale=2)  # was 3 
+sns.set_context("talk", font_scale=1)  # was 3 

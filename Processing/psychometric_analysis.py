@@ -28,8 +28,8 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 	#  ! important param
 	ratio = "georatio"  # ? Use  either georatio or ratio for estimating L/R length ratio
 
-	def __init__(self):
-		ExperimentsAnalyser.__init__(self)
+	def __init__(self, naive=None, lights=1, escapes=True, escapes_dur=True):
+		ExperimentsAnalyser.__init__(self, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur)
 		# rtAnalysis.__init__(self)
 
 		self.conditions = self.load_trials_from_pickle()

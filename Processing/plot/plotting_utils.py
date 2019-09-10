@@ -7,6 +7,7 @@ from matplotlib.colors import Normalize
 
 # ! COLORS
 
+
 class InvertedNormalize(Normalize):
     def __call__(self, *args, **kwargs):
         return 1 - super(InvertedNormalize, self).__call__(*args, **kwargs)
@@ -40,27 +41,10 @@ def saturate_color(c, k=.5):
     return sns.saturate(c, k)
 
 
-def get_bps_as_points_dict(frame_pose):
-    '''get_bps_as_points_dict [turns the pose pd.Series into a dictionary, easier to handle]
-    
-    Arguments:
-        frame_pose {[pd.Series]} -- [pose at one frame from DLC]
-    
-    Returns:
-        [dict] -- [dictionary of x,y position of each bodypart in the frame]
-    '''
-    names = []
-    pointsdict = {}
-    bodyparts = frame_pose.index.levels[1]
-    scorer = frame_pose.index.levels[0]
-    for bpname in bodyparts:
-        if bpname in names:  # dont take twice
-            continue
-        else:
-            names.append(bpname)
-            bp_pos = frame_pose[scorer[0], bpname]
-            pointsdict[bpname] = np.int32([bp_pos.x, bp_pos.y])
-    return pointsdict
+
+# ! other stuf
+def clean_axes(f):
+    sns.despine(fig=f, offset=10, trim=False, left=False, right=True)
 
 def save_all_open_figs(target_fld=False, name=False, format=False, exclude_number=False):
     open_figs = plt.get_fignums()
@@ -108,6 +92,9 @@ def make_legend(ax):
     for text in l.get_texts():
         text.set_color([.7, .7, .7])
 
+
+
+# ! plotting functions
 def ortholines(ax, orientations, values, color=[.7, .7, .7], lw=3, alpha=.5, ls="--",  **kwargs):
     """[makes a set of vertical and horizzontal lines]
     

@@ -36,6 +36,8 @@ class ExperimentsAnalyser(Bayes):
     def __init__(self, naive=None, lights=None, escapes=None, escapes_dur=None):
         Bayes.__init__(self)
         
+        self.naive, self.lights, self.escapes, self.escapes_dur = naive, lights, escapes, escapes_dur
+
         if sys.platform != "darwin":
             self.conditions = dict(
                         maze1 =  self.get_sessions_trials(maze_design=1, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur),
@@ -54,7 +56,7 @@ class ExperimentsAnalyser(Bayes):
     ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
     """
 
-    def get_sessions_by_condition(self, maze_design=None, naive=None, lights=None, df=False):
+    def get_sessions_by_condition(self, maze_design=None, naive=None, lights=None, escapes=None, df=False):
         data = Session * Session.Metadata  - 'experiment_name="Foraging"'  - "maze_type=-1"
 
         if maze_design is not None:
@@ -66,16 +68,33 @@ class ExperimentsAnalyser(Bayes):
         if lights is not None:
             data = (data & "lights={}".format(lights))
 
+        if escapes is not None:
+            data = (data & "is_escape='{}'".format(true))
+
         if df:
             return pd.DataFrame((data).fetch())
         else: return data
 
-    def get_sessions_tracking(self, bp="body",  maze_design=None, naive=None, lights=None):
-        data = self.get_sessions_by_condition(maze_design, naive, lights, df=False)
+    def get_sessions_tracking(self, bp="body", maze_design=None, naive=None, lights=None, escapes=None, escapes_dur=None):
+        if naive is None: naive=self.naive
+        if lights is None: lights=self.lights
+        if escapes_dur is None: escapes_dur = self.escapes_dur
+        if escapes is None: escapes = self.escapes
+
+
+        data = self.get_sessions_by_condition(maze_design=maze_design, naive=naive, lights=lights, escapes=escapes, 
+                                                df=False)
         andtracking = (data * TrackingData.BodyPartData & "bpname='{}'".format(bp))
         return pd.DataFrame(andtracking.fetch())
 
+
+
     def get_sessions_trials(self, maze_design=None, naive=None, lights=None, escapes=False, escapes_dur=True):
+        if naive is None: naive= self.naive
+        if lights is None: lights= self.lights
+        if escapes_dur is None: escapes_dur = self.escapes_dur
+        if escapes is None: escapes = self.escapes
+
         # Given a dj query with the relevant sessions, fetches the corresponding trials from AllTrials
         sessions = self.get_sessions_by_condition(maze_design, naive, lights, df=True)
         ss = set(sorted(sessions.uid.values))
@@ -89,10 +108,6 @@ class ExperimentsAnalyser(Bayes):
             all_trials = all_trials.loc[all_trials.escape_duration <= self.max_duration_th]
             
         trials = all_trials.loc[all_trials.session_uid.isin(ss)]
-
-        # n sessions in trials:
-        # len(set(trials.session_uid))
-
         return trials
 
     def get_binary_trials_per_condition(self, conditions):
