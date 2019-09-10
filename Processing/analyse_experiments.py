@@ -14,31 +14,6 @@ import pickle
 import pymc3 as pm
 
 
-sns.set_style("white", {
-            "axes.grid":"False",
-            "ytick.right":"False",
-            "ytick.left":"True",
-            "xtick.bottom":"True",
-            "text.color": "0"
-})
-mpl.rc('text', usetex=False)
-
-params = {
-    'text.latex.preamble': ['\\usepackage{gensymb}'],
-    'image.origin': 'lower',
-    'image.interpolation': 'nearest',
-    'image.cmap': 'gray',
-    'axes.grid': False,
-    'savefig.dpi': 150,  # to adjust notebook inline plot size
-    'axes.labelsize': 8, # fontsize for x and y labels (was 10)
-    'axes.titlesize': 8,
-    'font.size': 8, # was 10
-    'legend.fontsize': 6, # was 10
-    'xtick.labelsize': 8,
-    'ytick.labelsize': 8,
-    'text.usetex': False,        # ! <----- use TEX
-    'figure.figsize': [3.39, 2.10],
-}
 
 # %%
 # Define class

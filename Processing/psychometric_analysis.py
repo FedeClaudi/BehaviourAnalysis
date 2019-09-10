@@ -16,37 +16,6 @@ from Processing.rt_analysis import rtAnalysis
 from Processing.timed_analysis import timedAnalysis
 from Processing.timeseries_analysis import TimeSeriesAnalysis
 
-# Define class
-import seaborn as sns
-sns.set()
-sns.set_style("white", {
-			"axes.grid":"False",
-			"ytick.right":"False",
-			"ytick.left":"True",
-			"xtick.bottom":"True",
-			"text.color": "0"
-})
-mpl.rc('text', usetex=False)
-
-params = {
-	'text.latex.preamble': ['\\usepackage{gensymb}'],
-	'image.origin': 'lower',
-	'image.interpolation': 'nearest',
-	'image.cmap': 'gray',
-	'axes.grid': False,
-	'savefig.dpi': 150,  # to adjust notebook inline plot size
-	'axes.labelsize': 8, # fontsize for x and y labels (was 10)
-	'axes.titlesize': 8,
-	'font.size': 8, # was 10
-	'legend.fontsize': 6, # was 10
-	'xtick.labelsize': 8,
-	'ytick.labelsize': 8,
-	'text.usetex': False,        # ! <----- use TEX
-	'figure.figsize': [3.39, 2.10],
-}
-mpl.rcParams.update(params)
-sns.set_context("talk", font_scale=1)  # was 3 
-
 
 class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeSeriesAnalysis):
 	maze_names = {"maze1":"asymmetric_long", "maze2":"asymmetric_mediumlong", "maze3":"asymmetric_mediumshort", "maze4":"symmetric"}
@@ -215,14 +184,6 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 						ecolor=desaturate_color(self.colors[i+1], k=.7), elinewidth=3, 
 						capthick=2, alpha=1, zorder=0)             
 
-		# ? Fit model with lmfit
-		# def residual(params, ytrue):
-		#     self.distance_noise = params["sigma"].value
-
-		#     analytical_pr = self.simulate_trials_analytical()
-		#     # return analytical_pr
-		#     return np.sum((np.array(list(analytical_pr.values())) - ytrue)**2)
-
 		def residual(distances, sigma):
 			self.distance_noise = sigma
 			analytical_pr = self.simulate_trials_analytical()
@@ -241,39 +202,11 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 		print(result.params["sigma"].value)
 		a = 1
 
-		# params = Parameters()
-		# params.add("sigma", min=1.e-10, max=.5, brute_step=.01)
-		# 
-		# out = minimize(residual, params, args=(ytrue,)) #, method="brute")
-		# print(out.params["sigma"])
-		# a = 1
-	
-		# # ? Fit the model with a range of params and plot the results
-		# fitted = {k:[]  for k in self.conditions.keys()}
-		# mserr = []
-		# minsigma, maxsigma = 0.05, .2
-		# sigma_range = np.linspace(minsigma, maxsigma, 100)
-		# ytrue = [np.mean(m) for m in means.values()]
-		# for sigma in sigma_range:
-		#     self.distance_noise = sigma
-		#     analytical_pr = self.simulate_trials_analytical()
-		#     simulation = self.simulate_trials_analytical()
-		#     {fitted[k].append(pr) for k,pr in simulation.items()}
-		#     mserr.append(MSE(ytrue, list(simulation.values())))
-   
-		# # ? Plot mean square error
-		# for s in sigma_range[::5]:
-		#     vline_to_curve(mseax, s, sigma_range, mserr, color=desaturate_color(teal), lw=2)
-		# mseax.plot(sigma_range, mserr, color=teal, lw=4)
-		# mseax.axhline(0, color=white, lw=4)
 
 		# ? Plot best fit
 		# best_sigma = sigma_range[np.argmin(mserr)]
 		best_sigma = result.params["sigma"].value
 		self.distance_noise = best_sigma
-		# lowest_err = mserr[np.argmin(mserr)]
-		# vline_to_curve(mseax, best_sigma, sigma_range, mserr, color=white, lw=6)
-		# hline_to_curve(mseax, lowest_err, sigma_range, mserr, color=white, lw=6)
 
 		analytical_pr = self.simulate_trials_analytical()
 		pomp = plot_fitted_curve(sigmoid, self.paths_lengths[self.ratio].values, np.hstack(list(analytical_pr.values())), ax, xrange=xrange, 
@@ -286,62 +219,12 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 		ortholines(ax, [0, 0,], [1, 0], ls=":", lw=1, alpha=.3)
 		ax.set(title="best fit logistic regression", ylim=[-0.01, 1.05], ylabel="p(R)", xlabel="Left path length (a.u.)",
 				 xticks = self.paths_lengths[self.ratio].values, xticklabels = self.conditions.keys())
-		# mseax.set(title="Fit error", ylabel="MSE", xlabel="$\sigma$", xlim=[minsigma, maxsigma], ylim=[0, max(mserr)])
 		make_legend(ax)
 		
 
 	"""
 		||||||||||||||||||||||||||||    BAYES     |||||||||||||||||||||
 	"""
-
-	def sigmoid_bayes(self, plot=True, load=False, robust=False):
-		tracename = os.path.join(self.metadata_folder, "robust_sigmoid_bayes.pkl")
-		if not load:
-			# Get data
-			allhits, ntrials, p_r, n_mice = self.get_binary_trials_per_condition(self.conditions)
-			
-			# Clean data and plot scatterplot
-			if plot: f, ax = plt.subplots(figsize=large_square_fig)
-			x_data, y_data = [], []
-			for i, (condition, hits) in enumerate(allhits.items()):
-				failures = [ntrials[condition][ii]-hits[ii] for ii in np.arange(n_mice[condition])]            
-				x = self.paths_lengths.loc[self.paths_lengths.maze == condition][self.ratio].values[0]
-
-				xxh, xxf = [x for h in hits for _ in np.arange(h)],   [x for f in failures for _ in np.arange(f)]
-				yyh, yyf = [1 for h in hits for _ in np.arange(h)],   [0 for f in failures for _ in np.arange(f)]
-
-				x_data += xxh + xxf
-				y_data += yyh + yyf
-
-			if plot:
-				ax.scatter(x_data, [y + np.random.normal(0, 0.07, size=1) for y in y_data], color=white, s=250, alpha=.3)
-				ax.axvline(1, color=grey, alpha=.8, ls="--", lw=3)
-				ax.axhline(.5, color=grey, alpha=.8, ls="--", lw=3)
-				ax.axhline(1, color=grey, alpha=.5, ls=":", lw=1)
-				ax.axhline(0, color=grey, alpha=.5, ls=":", lw=1)
-
-			# Get bayesian logistic fit + plot
-			xp = np.linspace(np.min(x_data)-.2, np.max(x_data)  +.2, 100)
-			if not robust:
-				trace = self.bayesian_logistic_regression(x_data, y_data) # ? naive
-			else:
-				trace = self.robust_bayesian_logistic_regression(x_data, y_data) # ? robust
-
-			b0, b0_std = np.mean(trace.get_values("beta0")), np.std(trace.get_values("beta0"))
-			b1, b1_std = np.mean(trace.get_values("beta1")), np.std(trace.get_values("beta1"))
-			if plot:
-				ax.plot(xp, logistic(xp, b0, b1), color=red, lw=3)
-				ax.fill_between(xp, logistic(xp, b0-b0_std, b1-b1_std), logistic(xp, b0+b0_std, b1+b1_std),  color=red, alpha=.15)
-		
-				ax.set(title="Logistic regression", yticks=[0, 1], yticklabels=["left", "right"], ylabel="escape arm", xlabel="L/R length ratio",
-							xticks=self.paths_lengths[self.ratio].values, xticklabels=self.paths_lengths[self.ratio].values)
-
-			df = pd.DataFrame.from_dict(dict(b0=trace.get_values("beta0"), b1=trace.get_values("beta1")))
-			df.to_pickle(tracename)
-		else:
-			df = pd.read_pickle(tracename)
-		return df
-
 	def closer_look_at_hb(self):
 		# Get paths length ratios and p(R) by condition
 		hits, ntrials, p_r, n_mice, trials = self.get_binary_trials_per_condition(self.conditions)
@@ -621,111 +504,50 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 			ortholines(ax, [0,], [.5])
 			ax.set(title=exp, xlim=[-.1, 3.1], ylim=[-.02, 1.02], xticks=[0, 1, 2], xticklabels=["Raw", "hb means", "hb_v2"], ylabel="p(R)")
 
-	def plot_utility_function(self):
-		def get_utility_matrix():
-			n_cols = 500
-			x = np.linspace(0, 2, n_cols)
-			y = np.linspace(0, 2, n_cols)
-
-			u = np.reshape([2 - (xx-yy) for xx in x for yy in y], (n_cols, n_cols)).T
-			up_tr = np.triu(u) 
-			up_tr[np.tril_indices(n_cols)] = np.nan
-			return np.rot90(up_tr.T, 1)
-
-
-		print(self.paths_lengths)
-		
-		f, axarr = create_figure(subplots=True, ncols=2)
-		ax, ax2 = axarr[0], axarr[1]
-
-		# Get background image and show
-		util = get_utility_matrix()
-		ax.imshow(util, extent=[.8, 1.6, .8, 1.6], alpha=.9)
-
-		# Plt arms combinations
-		distances = {}
-		for i, row in self.paths_lengths.iterrows():
-			maze_dist = calc_distance_between_point_and_line([[.8, .8], [1.6, 1.6]], [self.short_arm_len, row[self.ratio]])
-			ax.scatter(self.short_arm_len, row[self.ratio], color=self.colors[i+1], label=row.maze + " - {}".format(round(maze_dist, 4)), **big_dot)
-			distances[row.maze] = maze_dist
-			c = row[self.ratio] - self.short_arm_len
-			ax.plot([0.5, 1.75], [.5+c, 1.75+c], color=self.colors[i+1], lw=3, ls="--", alpha=.25)
-
-			if i < 3: 
-				maze_dist2 = calc_distance_between_point_and_line([[.8, .8], [1.6, 1.6]], [row[self.ratio], self.long_arm_len])
-				ax.scatter(row[self.ratio], self.long_arm_len, color=random.choice(get_n_colors(10)), label=round(maze_dist2, 4),  **big_dot)
-
-		ax.plot([0.5, 1.75], [.5, 1.75], **grey_line)
-
-		make_legend(ax)
-		ax.set(title="utility function", xlabel="Right arm length (a.u.)", ylabel="Left arm length (a.u.)",
-				xlim=[.8, 1.6], ylim=[.8, 1.6])
-
-		# Plot p(R) vs distance from line
-		hits, ntrials, p_r, n_mice = self.get_binary_trials_per_condition(self.conditions)
-		modes, means, stds = self.get_hb_modes()
-		for_fitting = {"x":[], "y":[], "e":[]}
-		for i, (maze, pr) in enumerate(p_r.items()):
-			x, y, e = np.random.normal(distances[maze], 0.005, size=len(means[maze])), means[maze], stds[maze]
-			ax2.errorbar(x, y, yerr=e, 
-						fmt='o', markeredgecolor=self.colors[i+1], markerfacecolor=self.colors[i+1], markersize=10, 
-						ecolor=desaturate_color(self.colors[i+1], k=.4), elinewidth=3,  capthick=2, alpha=.8, zorder=0)
-			for_fitting["x"].append(x)
-			for_fitting["y"].append(y)
-			for_fitting["e"].append(e)
-
-
-		# ? Fit logistic regression to mean p(R)+std(p(R))
-		# pomp = plot_fitted_curve(sigmoid, [np.mean(a) for a in for_fitting["x"]], [np.mean(a) for a in for_fitting["y"]], ax2, xrange=[-.01, .45], 
-		#     fit_kwargs={"sigma":[np.mean(a) for a in for_fitting["e"]]},
-		#     scatter_kwargs={"alpha":1, "color":lightblue}, 
-		#     line_kwargs={"color":lightblue, "alpha":1, "lw":4}) 
-
-		pomp = plot_fitted_curve(sigmoid, np.hstack(for_fitting["x"]), np.hstack(for_fitting["y"]), ax2, xrange=[-.01, .45], 
-			fit_kwargs={"sigma":np.hstack(for_fitting["e"])},
-			scatter_kwargs={"alpha":0}, 
-			line_kwargs={"color":white, "alpha":1, "lw":4}) 
-
-		ortholines(ax2, [0, 0.5,], [.5, 0], ls="--", lw=3, alpha=.3)
-		ax2.set(title="p(R) vs distance from unity line", xlabel="distance", ylabel="p(R)")
-
-		plt.show()
-
-
-	
-
-	
 	def plot_escape_duration_by_arm(self):
-		def get_mean_escape_speed(df, key=None):
+		def get_escape_distance(df, key=None):
 			if key is not None:
 				df = df.loc[df.maze == key]
 			distance = [np.sum(r.tracking_data[:, 2]) for i,r in df.iterrows()]
 			return distance
 
+		def get_mean_escape_speed(df, key=None):
+			if key is not None:
+				df = df.loc[df.maze == key]
+			distance = [np.mean(r.tracking_data[:, 2]) for i,r in df.iterrows()]
+			return distance			
+
 		for maze, df in self.conditions.items():
 			df["maze"] = maze
 		escapes = pd.concat([df.loc[df["is_escape"]=="true"] for df in self.conditions.values()])
 
-		resc, lescs = escapes.loc[escapes.escape_arm == "Right_Medium"], escapes.loc[escapes.escape_arm != "Right_Medium"]
+		# resc, lescs = escapes.loc[escapes.escape_arm == "Right_Medium"], escapes.loc[escapes.escape_arm != "Right_Medium"]
 		
 		arms = sorted(set(escapes.maze))
-		durations, mean_speeds = {arm:[] for arm in arms}, {arm:[] for arm in arms}
+		durations, mean_speeds, distances = {arm:[] for arm in arms}, {arm:[] for arm in arms}, {arm:[] for arm in arms}
 
 		for arm in arms:
-			durations[arm].extend(list(lescs.loc[lescs.maze == arm].escape_duration))		
-			mean_speeds[arm].extend(get_mean_escape_speed(lescs, arm))
+			durations[arm].extend(list(escapes.loc[escapes.maze == arm].escape_duration))		
+			mean_speeds[arm].extend(get_mean_escape_speed(escapes, arm))
+			distances[arm].extend(get_escape_distance(escapes, arm))   
 
 
 		f, ax = plt.subplots()
 		colors = MplColorHelper("tab10", 0, 5, inverse=True)
 
-		for i, ((k, d), (k2, s)) in enumerate(zip(durations.items(), mean_speeds.items())):
-			ax.scatter(s, d, color=colors.get_rgb(i), s=100)
-		
-		ax.set(ylabel="$duration (s)$", xlabel="$distance (a.u.)$", xlim=[0, 1400], ylim=[0, 12])
+		all_durations = np.hstack(durations.values())
+		all_speeds = np.hstack(mean_speeds.values())
+		all_distances = np.hstack(distances.values())
 
-		# ax.set(xlabel="$Maze$", xticks=np.arange(4), xticklabels=["$Maze\:{}$".format(i) for i in np.arange(4)],
-		# 		ylabel="$Duration\:(s)$", yticks=np.arange(0, 10, 2), yticklabels=["${}$".format(i) for i in np.arange(0, 10, 2)])
+		colormap = plt.cm.Reds #or any other colormap
+		normalize = mpl.colors.Normalize(vmin=0, vmax=np.max(all_speeds))
+		ax.scatter(all_distances, all_durations, c=all_speeds, s=300, cmap="Reds", norm=normalize, edgecolors=black)
+		
+		ax.set(ylabel="$duration (s)$", xlabel="$distance (a.u.)$", xlim=[0, 1400], ylim=[0, 12],
+				xticks=np.arange(0, 1400, 200), xticklabels=["${}$".format(x) for x in np.arange(0, 1400, 200)],
+				yticks=np.arange(0, 12, 2), yticklabels=["${}$".format(y) for y in np.arange(0, 12, 2)])
+
+		sns.despine(fig=f, offset=10, trim=False, left=False, right=True)
 
 
 if __name__ == "__main__":
