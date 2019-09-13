@@ -41,7 +41,7 @@ params = {
     'legend.fontsize': 6, # was 10
     'xtick.labelsize': 8,
     'ytick.labelsize': 8,
-    'text.usetex': True,        # ! <----- use TEX
+    'text.usetex': False,        # ! <----- use TEX
     'figure.figsize': [3.39, 2.10],
 }
 mpl.rcParams.update(params)
@@ -428,13 +428,14 @@ class PsiCalculator:
 
 #%%
 class Algomodel:
-    linear= True # make sigma scale linearly with mu
+    linear= False # make sigma scale linearly with mu
     colors = [lightblue, green, purple, magenta]
     lw = 3
     dotsize = 200
 
     # sigma_scaling = 0.16597849 # Determined by fittnig
     sigma_scaling = 0.2
+    non_linear_sigma_scaling = 150
 
     def __init__(self):
         self.o = 10000
@@ -464,8 +465,8 @@ class Algomodel:
         )
         self.model_prs = {k:0 for k,v in self.mazes.items()}
 
-        self.R = np.arange(0, 1001, 1)
-        self.L = np.arange(0, 1001, 1)
+        self.R = np.arange(0, 1001, 10)
+        self.L = np.arange(0, 1001, 10)
         self.us_prs = np.zeros((len(self.R), len(self.R)))  # p(R) at all locations in utility space
         self.npoints = len(self.R)
         self.rmax = np.int(np.max(self.R))
@@ -482,11 +483,12 @@ class Algomodel:
 
     def calc_variance(self, d):
         # gives the scale of the normal distribution used to represent path lengths
-        if not self.linear:
-        #     return math.sqrt(d*self.sigma_scaling)
-                b = (1 - self.o)/2
-
-                return self.o / (1 + np.exp(-self.s**self.sigma_scaling*(d - self.d0)))+b
+        if self.linear is None:
+            return self.non_linear_sigma_scaling
+        elif not self.linear:
+            # b = (1 - self.o)/2
+            # return self.o / (1 + np.exp(-self.s**self.sigma_scaling*(d - self.d0)))+b
+            return 5*np.sqrt(d)
         else:
             return d*self.sigma_scaling
 
@@ -549,7 +551,6 @@ class Algomodel:
             y[i] = self.calc_variance(r)
 
         ax.plot(self.R,  y)
-
 
     def fit_sigma(self, bounds=None, initial_guess=None):
         self.minimize_record = [[], []] # store param and error at each iter of minimize
@@ -718,6 +719,29 @@ class Algomodel:
 
         self.clean_axes(f=f)
 
+    def compare_ICs(self):
+        f, ax = create_figure(subplots=False)
+
+        # Plot ICs for different sigma scaling functions
+        for linear, color, func in zip([True, False, None], ["b", "r", "g"], ["lin", "sqrt", "const"]):
+            self.linear = linear
+            self.calc_utility_space(plot=False)
+
+            levels = np.arange(-.1, 1.11, .1)
+            contours = ax.contour(self.R, self.L, self.us_prs, levels=levels, colors=color, alpha=.6)
+            ax.clabel(contours, inline=1, fontsize=10, colors=color)
+
+        ax.set(facecolor=[.2, .2, .2])
+        ax.legend()
+
+
+        # Plot mazes for reference
+        vline_to_point(ax, self.R0, np.max(self.pathlengths), color=grey, lw=self.lw, ls="--")
+
+        for L,c in zip(self.pathlengths, self.colors):
+            ax.scatter(self.R0, L, color=c, s=self.dotsize, edgecolors=black, zorder=20)
+
+        return contours
 
 
 #%%
@@ -733,12 +757,13 @@ class Algomodel:
 # calc.text()
 
 a = Algomodel()
-a.fit_sigma(initial_guess=[.1], bounds=[[0.001, 0.1]])
+# a.fit_sigma(initial_guess=[.1], bounds=[[0.001, 0.1]])
 # a.calc_utility_space(plot=False)
-# a.plot_ICs()
+# a.plot_ICs() 
 # a.plot_slices()
 # a.plot_partials()
 # a.slope_analysis()
+c = a.compare_ICs()
 
 
      
@@ -765,6 +790,20 @@ def I(p):
 for i, pr in enumerate(prs):
     information = KLdivergence(pr)
     print("Maze {} - pR: {} - KL: {}".format(i, round(pr,2), information))
+
+
+
+#%%
+ps = np.arange(0.000001, 1, .001)
+
+H = np.zeros_like(ps)
+for i, p in enumerate(ps):
+    H[i] = -p*math.log(p, 2) - (1 - p)*math.log(1-p, 2)
+
+
+f, axarr = create_figure(subplots=True, ncols=2, sharey=True)
+axarr[0].plot(ps, H, color=black)
+axarr[1].plot(ps, np.cumsum(H)/len(ps), color=black)
 
 
 

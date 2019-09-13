@@ -266,6 +266,9 @@ class AllTrials(dj.Manual):
 		recording_uid: varchar(128)
 		experiment_name: varchar(128)
 		tracking_data: longblob
+        snout_tracking_data: longblob
+		tail_tracking_data: longblob
+
 		outward_tracking_data: longblob
 
 		stim_frame: int
@@ -285,6 +288,7 @@ class AllTrials(dj.Manual):
 
 		threat_exits: longblob
 	"""
+
 
 
 

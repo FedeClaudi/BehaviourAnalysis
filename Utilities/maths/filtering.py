@@ -3,7 +3,12 @@ sys.path.append('./')
 
 from Utilities.imports import *
 
-from scipy.signal import butter, lfilter, freqz
+from scipy.signal import butter, lfilter, freqz, resample
+
+def upsample_signal(start_fps, goal_fps, signal):
+    n_seconds = len(signal)/start_fps
+    goal_n_samples = np.int(n_seconds * goal_fps)
+    return (resample(signal, goal_n_samples))
 
 
 def line_smoother(y, window_size=31, order=5, deriv=0, rate=1):

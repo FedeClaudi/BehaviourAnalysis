@@ -25,14 +25,14 @@ except:
 
 # ! ARRAY NORMALISATION and FUNCTIONS
 def log_transform(im):
-    '''returns log(image) scaled to the interval [0,1]'''
-    try:
-        (min, max) = (im[im > 0].min(), im.max())
-        if (max > min) and (max > 0):
-            return (np.log(im.clip(min, max)) - np.log(min)) / (np.log(max) - np.log(min))
-    except:
-        pass
-    return im
+	'''returns log(image) scaled to the interval [0,1]'''
+	try:
+		(min, max) = (im[im > 0].min(), im.max())
+		if (max > min) and (max > 0):
+			return (np.log(im.clip(min, max)) - np.log(min)) / (np.log(max) - np.log(min))
+	except:
+		pass
+	return im
 
 
 
@@ -222,7 +222,7 @@ def remove_tracking_errors(tracking, debug = False):
 
 # ! GEOMETRY
 def slope(x1, y1, x2, y2):
-    return (y2-y1)/(x2-x1)
+	return (y2-y1)/(x2-x1)
 
 def calc_distance_between_point_and_line(line_points, p3):
 	"""[Calcs the perpendicular distance between a point and a line]
@@ -396,9 +396,11 @@ def calc_angle_between_points_of_vector(v):
 	for i in range(v.shape[0]):
 		try: # Get current and previous time points coordinates
 			p0, p1 = v[i-1,:], v[i, :]
+			if np.any(np.isnan(p0)) or np.any(np.isnan(p1)): raise ValueError
 		except:
 			thetas[i] = 0
 		else:
+
 			d = calc_distance_between_points_2d(p0, p1)
 			if d >= 1:
 				try:

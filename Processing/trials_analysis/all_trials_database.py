@@ -85,16 +85,20 @@ class analyse_all_trals:
             # Def get the tracking for each recording
             bps = ['body', 'snout',  'neck', 'tail_base']
             recordings = set([s['recording_uid'] for s in session_stims])
-            recs_trackins = {}
+            recs_trackins, snout_trackins, tail_trackins = {}, {}, {}
             try:
                 for r in recordings:
                     recs_trackins[r] = (TrackingData.BodyPartData & "bpname='body'" & "recording_uid='{}'".format(r)).fetch1("tracking_data")
+                    snout_trackins[r]= (TrackingData.BodyPartData & "bpname='snout'" & "recording_uid='{}'".format(r)).fetch1("tracking_data")
+                    tail_trackins[r]= (TrackingData.BodyPartData & "bpname='tail_base'" & "recording_uid='{}'".format(r)).fetch1("tracking_data")
+
             except:
                 print("Smth went wrong while getting tracking data, maybe there is no data there, maybe smth else is wrong")
                 continue
 
             # Get the number of samples before each rec
             recs_trackins = collections.OrderedDict(sorted(recs_trackins.items()))
+            snout_trackins, tail_trackins = collections.OrderedDict(sorted(snout_trackins.items())), collections.OrderedDict(sorted(tail_trackins.items()))
             recs_lengths = {k:v.shape[0] for k,v in recs_trackins.items()}
             cumlens = np.cumsum(list(recs_lengths.values()))
             cl = [0]
@@ -106,6 +110,7 @@ class analyse_all_trals:
 
                 # Get the tracking data for the stimulus recordings        
                 rec_tracking = recs_trackins[stim['recording_uid']]
+                tail_tracking, snout_tracking = tail_trackins[stim['recording_uid']], snout_trackins[stim['recording_uid']]
 
                 # Get video FPS
                 if uid < 184: fps = 30
@@ -147,7 +152,7 @@ class analyse_all_trals:
 
                 # Okay get the tracking data between provisory start and stop
                 trial_tracking = remove_tracking_errors(rec_tracking[start:stop, :]) 
-
+                snout_trial_tracking, tail_trial_tracking = remove_tracking_errors(snout_tracking[start:stop, :]) , remove_tracking_errors(tail_tracking[start:stop, :]) 
                 # Now get shelter enters-exits from that tracking
                 shelter_enters, shelter_exits = get_roi_enters_exits(trial_tracking[:, -1], 0)
 
@@ -161,6 +166,8 @@ class analyse_all_trals:
                     except:
                         at_shelt = shelter_enters[0]
                     trial_tracking = trial_tracking[:at_shelt, :] 
+                    snout_trial_tracking = snout_trial_tracking[:at_shelt, :] 
+                    tail_trial_tracking = tail_trial_tracking[:at_shelt, :] 
 
                 # Get threat enters and exits
                 threat_enters, threat_exits = get_roi_enters_exits(trial_tracking[:, -1], 1)
@@ -222,6 +229,8 @@ class analyse_all_trals:
                     recording_uid = stim['recording_uid'],
                     experiment_name = exp,
                     tracking_data = trial_tracking,
+                    snout_tracking_data = snout_trial_tracking,
+                    tail_tracking_data = tail_trial_tracking,
                     outward_tracking_data = out_trip_tracking, 
                     stim_frame = start,
                     stim_frame_session = start + cumulative_lengths[stim['recording_uid']],
