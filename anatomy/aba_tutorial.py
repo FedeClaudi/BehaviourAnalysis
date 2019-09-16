@@ -63,7 +63,8 @@ pd.DataFrame(oapi.get_structure_sets(structure_set_ids))
 #%%
 # From the above table, "Mouse Connectivity - Summary" has id 167587189
 summary_structures = structure_tree.get_structures_by_set_id([167587189])
-pd.DataFrame(summary_structures)
+pd.DataFrame(summary_structures).name
+
 
 #%% [markdown]
 # This is how you can filter experiments by transgenic line:
