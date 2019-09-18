@@ -39,12 +39,27 @@ class ConnectivityAnalyzer:
         summary_structures = [s for s in summary_structures if s["acronym"] not in self.excluded_regions]
         self.structures = pd.DataFrame(summary_structures)
 
+        # Other structures sets
+        all_sets = pd.DataFrame(oapi.get_structure_sets())
+        sets = ["Summary structures of the pons", "Summary structures of the thalamus", "Summary structures of the hypothalamus", "List of structures for ABA Fine Structure Search",
+                    "Structures representing the major divisions of the mouse brain", "Summary structures of the midbrain", "Structures whose surfaces are represented by a precomputed mesh"]
+        self.other_sets = {}
+        for set_name in sets:
+            set_id = all_sets.loc[all_sets.description == set_name].id.values[0]
+            self.other_sets[set_name] = pd.DataFrame(self.structure_tree.get_structures_by_set_id([set_id]))
+
         # get reference space
         self.space = ReferenceSpaceApi()
 
         # save folder for experiments pickle data
         self.save_fld = os.path.join(self.fld, "fc_experiments_unionized")
 
+
+        # Get some metadata about experiments
+        self.all_experiments = self.mcc.get_experiments(dataframe=True)
+
+        self.strains = sorted([x for x in set(self.all_experiments.strain) if x is not None])
+        self.transgenic_lines = sorted(set([x for x in set(self.all_experiments.transgenic_line) if x is not None]))
 
 
     def load_all_experiments(self):
@@ -141,7 +156,9 @@ class ConnectivityAnalyzer:
 
 
     def plot_structures_3d(self, structures_acronyms, default_colors=True, verbose=False, target=None, target_color=[.4, .4, .4], others_color=[.4, .4, .4],
-                        sagittal_slice=False, neurons_file=None, render=True, neurons_kwargs={}, specials=[]):
+                        others_alpha=1, sagittal_slice=False, neurons_file=None, render=True, neurons_kwargs={}, specials=[], notebook=False):
+        if structures_acronyms is None: structures_acronyms = []
+        
         # Download OBJ files
         for structure_id in structures_acronyms:
             structure = self.structure_tree.get_structures_by_acronym([structure_id])
@@ -188,7 +205,7 @@ class ConnectivityAnalyzer:
                 color = "steelblue"
                 alpha = 1
             else:
-                alpha = 0.1
+                alpha = others_alpha
 
             obj_path = os.path.join(self.models_fld, "{}.obj".format(structure[0]["acronym"]))
             mesh = vp.load(obj_path, c=color, alpha=alpha) 
@@ -228,7 +245,10 @@ class ConnectivityAnalyzer:
         vp.showInset(inset, pos=(0.9,0.2))
 
         if render:
-            show(*vp.actors, *neurons_actors, interactive=True, roll=180, azimuth=-35, elevation=-25)  
+            if notebook:
+                plt.show()
+            else:
+                show(*vp.actors, *neurons_actors, interactive=True, roll=180, azimuth=-35, elevation=-25)  
         else:
             show(*vp.actors, *neurons_actors, interactive=0, offscreen=True, roll=180)  
             return vp
@@ -243,7 +263,7 @@ class ConnectivityAnalyzer:
         
         for i  in range(80):
             vp.show()  # render the scene first
-            vp.camera.Elevation(5)  # rotate by 5 deg at each iteration
+            vp.camera.Azimuth(2)  # rotate by 5 deg at each iteration
             # vp.camera.Zoom(i/40)
             video.addFrame()
         video.close()  # merge all the recorded frames
@@ -260,10 +280,13 @@ if __name__ == "__main__":
 
     analyzer = ConnectivityAnalyzer()
 
-    SOI = "GRN"
+
+    SOI = "CA1"
+    n_structures = 10
+
     neurons = os.path.join(analyzer.neurons_fld, "axons_in_Gi.json")
     efferents = analyzer.analyze_efferents(SOI, projection_metric="normalized_projection_volume")
-    analyzer.plot_structures_3d(efferents.acronym.values[-30:], verbose=True, sagittal_slice=False,
+    analyzer.plot_structures_3d(efferents.acronym.values[-n_structures:], verbose=True, sagittal_slice=False,
                                     default_colors=False,
                                     target = SOI,
                                     target_color="red",
