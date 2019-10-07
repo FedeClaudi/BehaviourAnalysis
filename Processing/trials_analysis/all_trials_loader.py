@@ -75,18 +75,6 @@ class Trials:
 					break
 			if not check: grouped_exp_names.append(e)
 		trials['grouped_experiment_name'] = grouped_exp_names
-
-
-		# flip the tracking of each tryal along the Y axis
-		# fixed_tracking = []
-		# for trial in trials.tracking_data.values:
-		# 	new = trial.copy()
-		# 	diff = np.subtract(500, trial[:, 1])
-		# 	new[:, 1] = np.subtract(diff, 500)+1000
-		# 	fixed_tracking.append(new)
-		# trials['tracking_data'] = fixed_tracking
-
-
 		return trials
 
 	def save_trials(self, save_path):

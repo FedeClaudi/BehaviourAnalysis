@@ -265,8 +265,6 @@ class analyse_all_trals:
                 print('||| Could not insert  |||', key['session_uid'], ' - ', key['recording_uid'])
 
 
-
-
 def check_arm_assignment():
     arms = ['Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'Right2', 'Left2']
     f, axs = plt.subplots(4, 2)
