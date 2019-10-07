@@ -61,8 +61,6 @@ class timedAnalysis:
 						times2.append(x)
 						rts.append(rt[0])
 
-
-
 				# plot
 				ax.scatter(x, y, color=colors[i], s=50, alpha=.5)
 

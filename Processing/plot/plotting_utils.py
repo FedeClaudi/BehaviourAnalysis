@@ -40,8 +40,6 @@ def desaturate_color(c, k=.5):
 def saturate_color(c, k=.5):
     return sns.saturate(c, k)
 
-
-
 # ! other stuf
 def clean_axes(f):
     sns.despine(fig=f, offset=10, trim=False, left=False, right=True)

@@ -1,2 +1,0 @@
-
-    # calc.fit_plot()

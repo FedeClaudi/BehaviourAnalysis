@@ -109,7 +109,6 @@ class Bayes:
         
         self.save_bayes_trace(trace, os.path.join(self.metadata_folder, "test_hb_trace.pkl"))
 
-
     def analytical_bayes_individuals(self, conditions=None, data=None, mode="individuals", plot=True):
         """
             Solve bayesian model analytically without the need for MCMC.
