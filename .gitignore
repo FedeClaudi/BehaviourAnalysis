@@ -15,3 +15,6 @@ deeplabcut/pose_estimation_tensorflow/models/pretrained/resnet_v1_50.ckpt
 Users/
 deeplabcut/pose_estimation_tensorflow/models/pretrained/resnet_v1_101.ckpt
 deeplabcut/pose_estimation_tensorflow/models/pretrained/resnet_v1_50.ckpt
+
+*/__pycache__
+__pycache__

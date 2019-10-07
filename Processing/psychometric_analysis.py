@@ -553,7 +553,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 if __name__ == "__main__":
 	pa = PsychometricAnalyser()
 
-	# pa.plot_pr_by_condition_detailed()
+	pa.plot_pr_by_condition_detailed()
 	# pa.model_summary() 
 	# pa.plot_escape_duration_by_arm()
 	# pa.plot_hierarchical_bayes_effect()
@@ -563,7 +563,7 @@ if __name__ == "__main__":
 	# pa.plot_effect_of_time(xaxis_istime=False, robust=False) # ? not useful
 	# pa.plot_effect_of_time(xaxis_istime=True, robust=False)
 # 
-	pa.timed_plots_for_upgrade()
+	# pa.timed_plots_for_upgrade()
 
 	# pa.closer_look_at_hb()
 
