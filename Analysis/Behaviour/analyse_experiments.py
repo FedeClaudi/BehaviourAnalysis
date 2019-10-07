@@ -1,11 +1,9 @@
-# %%
 import sys
 sys.path.append('./')   # <- necessary to import packages from other directories within the project
 
 from Utilities.imports import *
 
-
-from Modelling.bayesian.bayes_V3 import Bayes
+from Modelling.bayes import Bayes
 from Modelling.maze_solvers.gradient_agent import GradientAgent
 
 # %matplotlib inline
@@ -14,10 +12,15 @@ import pymc3 as pm
 
 
 
-# %%
 # Define class
 class ExperimentsAnalyser(Bayes):
-    maze_designs = {0:"three_arms", 1:"asymmetric_long", 2:"asymmetric_mediumlong", 3:"asymmetric_mediumshort", 4:"symmetric", -1:"nan"}
+    maze_designs = {0:"three_arms", 
+                    1:"asymmetric_long", 
+                    2:"asymmetric_mediumlong", 
+                    3:"asymmetric_mediumshort", 
+                    4:"symmetric", 
+                    -1:"nan"}
+
     naive_lookup = {0: "experienced", 1:"naive", -1:"nan"}
     lights_lookup = {0: "off", 1:"on", 2:"on_trials", 3:"on_exploration", -1:"nan"}
 
@@ -32,6 +35,7 @@ class ExperimentsAnalyser(Bayes):
         metadata_folder = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis_metadata\\Psychometric"
     else:
         metadata_folder = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/analysis_metadata/Psychometric"
+
 
     def __init__(self, naive=None, lights=None, escapes=None, escapes_dur=None):
         Bayes.__init__(self)
@@ -81,13 +85,10 @@ class ExperimentsAnalyser(Bayes):
         if escapes_dur is None: escapes_dur = self.escapes_dur
         if escapes is None: escapes = self.escapes
 
-
         data = self.get_sessions_by_condition(maze_design=maze_design, naive=naive, lights=lights, escapes=escapes, 
                                                 df=False)
         andtracking = (data * TrackingData.BodyPartData & "bpname='{}'".format(bp))
         return pd.DataFrame(andtracking.fetch())
-
-
 
     def get_sessions_trials(self, maze_design=None, naive=None, lights=None, escapes=False, escapes_dur=True):
         if naive is None: naive= self.naive
@@ -177,7 +178,6 @@ class ExperimentsAnalyser(Bayes):
 
     def merge_conditions_trials(self, dfs):
         # dfs is a list of dataframes with the trials for each condition
-
         merged = dfs[0]
         for df in dfs[1:]:
             merged = merged.append(df)
@@ -199,7 +199,7 @@ class ExperimentsAnalyser(Bayes):
 
     """
     ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-                         ANALYSE STUFF
+                         BAYES
     ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
     """
     def bayes_by_condition_analytical(self, load=True, mode="grouped", plot=True):
@@ -238,77 +238,6 @@ class ExperimentsAnalyser(Bayes):
             plt.show()
 
         return condition_traces
-
-    """
-    ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-                         ANALYSE STUFF
-    ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-    """
-    def escape_definition_investigation(self):
-        conditions = dict(
-                    maze1 =  self.get_sessions_trials(maze_design=1, naive=None, lights=None, escapes=None, escapes_dur=True),
-                    maze2 =  self.get_sessions_trials(maze_design=2, naive=None, lights=None, escapes=None, escapes_dur=True),
-                    maze3 =  self.get_sessions_trials(maze_design=3, naive=None, lights=None, escapes=None, escapes_dur=True),
-                    maze4 =  self.get_sessions_trials(maze_design=4, naive=None, lights=None, escapes=None, escapes_dur=True),
-                )
-
-        f,ax = plt.subplots()
-        same, same_detailed = [], {"yy":0, "yn":0, "ny":0, "nn":0}
-        for condition, df in conditions.items():
-            sess_same = []
-            for i, trial in df.iterrows():
-                if trial.is_escape == "true":
-                    if trial.escape_duration <= 10: 
-                        sess_same.append(1)
-                        same_detailed["yy"] += 1
-                    else: 
-                        sess_same.append(0)
-                        same_detailed["yn"] += 1
-                else:
-                    if trial.escape_duration <= 10: 
-                        sess_same.append(0)
-                        same_detailed["ny"] += 1
-                    else: 
-                        sess_same.append(1)    
-                        same_detailed["nn"] += 1
-            same.extend(sess_same)
-
-            ax.hist(df.loc[df.escape_arm == "Right_Medium"].escape_duration, color=red, alpha=.5,  bins=20, density=False)
-            ax.hist(df.loc[df.escape_arm == "Left_Medium"].escape_duration, color=green, alpha=.5, bins=20, density=False)
-            ax.hist(df.loc[df.escape_arm == "Left_Far"].escape_duration, color=green, alpha=.5, bins=20, density=False)
-
-        ax.axvline(self.max_duration_th, color="m", lw=3)
-        make_legend(ax)
-        print("{} of trials have matching definition".format(np.mean(same)))
-        print(same_detailed)
-
-    def escape_thershold_effect(self):
-        f, axarr = plt.subplots(nrows=5)
-
-        ths = np.linspace(0, 20, 41)
-
-        for th in tqdm(ths):
-            self.max_duration_th = th
-            conditions = dict(
-                    maze1 =  self.get_sessions_trials(maze_design=1, naive=None, lights=None, escapes=None, escapes_dur=True),
-                    maze2 =  self.get_sessions_trials(maze_design=2, naive=None, lights=None, escapes=None, escapes_dur=True),
-                    maze3 =  self.get_sessions_trials(maze_design=3, naive=None, lights=None, escapes=None, escapes_dur=True),
-                    maze4 =  self.get_sessions_trials(maze_design=4, naive=None, lights=None, escapes=None, escapes_dur=True),
-                )
-
-            hits, ntrials, p_r, n_trials = self.get_binary_trials_per_condition(conditions)
-            for i, (condition, pr) in enumerate(p_r.items()):
-                axarr[i].scatter([th for _ in np.arange(len(pr))], pr, alpha=.7, color=self.colors[i+1], s=100)
-                # axarr[i].errorbar(i, np.mean(pr), yerr=np.std(pr),  **white_errorbar)
-
-            self.save_trials_to_pickle()
-            modes, means = self.bayes_by_condition_analytical(load=True, plot=False)
-            for i, (maze, m) in enumerate(means.items()):
-                axarr[4].scatter(th, m, color=self.colors[i+1], s=200)
-
-        titles = list(conditions.keys()) + ["grouped bayes means"]
-        for ax, ttl in zip(axarr, titles):
-            ax.set(title=ttl, ylim=[-0.1, 1.1])
 
     """
     ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
@@ -428,23 +357,3 @@ class ExperimentsAnalyser(Bayes):
             f.tight_layout()
 
 
-
-# %%
-# %matplotlib inline
-if __name__ == "__main__":
-    ea = ExperimentsAnalyser(naive=None, lights=1, escapes=True, escapes_dur=True)
-
-
-    ea.save_trials_to_pickle()
-    res = ea.bayes_by_condition_analytical(load=True, mode="grouped", plot=False)
-
-    # ea.plot_pr_by_condition()
-    
-
-
-    plt.show()
-
-
-
-
-#%%

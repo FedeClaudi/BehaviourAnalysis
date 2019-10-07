@@ -18,7 +18,10 @@ from Processing.timeseries_analysis import TimeSeriesAnalysis
 
 
 class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeSeriesAnalysis):
-	maze_names = {"maze1":"asymmetric_long", "maze2":"asymmetric_mediumlong", "maze3":"asymmetric_mediumshort", "maze4":"symmetric"}
+	maze_names = {"maze1":"asymmetric_long", 
+                    "maze2":"asymmetric_mediumlong", 
+                    "maze3":"asymmetric_mediumshort", 
+                    "maze4":"symmetric"}
 
 	# DT simulation params
 	speed_mu, speed_sigma = 5, 2.5
@@ -30,7 +33,7 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 
 	def __init__(self, naive=None, lights=1, escapes=True, escapes_dur=True):
 		ExperimentsAnalyser.__init__(self, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur)
-		# rtAnalysis.__init__(self)
+		rtAnalysis.__init__(self)
 
 		self.conditions = self.load_trials_from_pickle()
 		self.maze_names_r = {v:k for k,v in self.maze_names.items()}
@@ -221,7 +224,6 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 				 xticks = self.paths_lengths[self.ratio].values, xticklabels = self.conditions.keys())
 		make_legend(ax)
 		
-
 	"""
 		||||||||||||||||||||||||||||    BAYES     |||||||||||||||||||||
 	"""
@@ -549,31 +551,6 @@ class PsychometricAnalyser(ExperimentsAnalyser, rtAnalysis, timedAnalysis, TimeS
 
 		sns.despine(fig=f, offset=10, trim=False, left=False, right=True)
 
-
-if __name__ == "__main__":
-	pa = PsychometricAnalyser()
-
-	pa.plot_pr_by_condition_detailed()
-	# pa.model_summary() 
-	# pa.plot_escape_duration_by_arm()
-	# pa.plot_hierarchical_bayes_effect()
-
-	# pa.inspect_rt_metric(load=False)
-
-	# pa.plot_effect_of_time(xaxis_istime=False, robust=False) # ? not useful
-	# pa.plot_effect_of_time(xaxis_istime=True, robust=False)
-# 
-	# pa.timed_plots_for_upgrade()
-
-	# pa.closer_look_at_hb()
-
-	# pa.test_hierarchical_bayes_v2()
-	# pa.test()
-	# pa.inspect_hbv2()
-
-	print(pa.paths_lengths)
-
-	plt.show()
 
 
 

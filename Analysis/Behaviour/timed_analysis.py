@@ -183,7 +183,6 @@ class timedAnalysis:
 		axarr[0].set(title="timed grouped bayesian")
 		axarr[-1].set(xlabel="time (min)",)
 
-
 	def timed_plots_for_upgrade(self):
 		def plot_fitparams(ax, res):
 		   ax.text(0.95, 0.8, '$slope:{}\\ -\\ p:{}\\ -\\ r^2:{}$'.format(round(res.params[1], 5), round(res.pvalues[1], 8), round(res.rsquared, 3)), 
