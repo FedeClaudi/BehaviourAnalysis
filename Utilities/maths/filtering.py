@@ -3,7 +3,10 @@ sys.path.append('./')
 
 from Utilities.imports import *
 
-from scipy.signal import butter, lfilter, freqz, resample
+from scipy.signal import butter, lfilter, freqz, resample, wiener, gaussian
+from scipy.ndimage import filters
+
+
 
 def upsample_signal(start_fps, goal_fps, signal):
     n_seconds = len(signal)/start_fps

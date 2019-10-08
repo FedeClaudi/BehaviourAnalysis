@@ -7,7 +7,7 @@ from Utilities.imports import *
 import pickle
 import pymc3 as pm
 import statsmodels.api as sm
-from scipy.signal import find_peaks, resample
+from scipy.signal import find_peaks, resample, medfilt
 
 from Modelling.bayes import Bayes
 from Modelling.maze_solvers.gradient_agent import GradientAgent
@@ -83,7 +83,6 @@ class ExperimentsAnalyser(Bayes, Environment):
 		Environment.__init__(self, grid_size=1000, maze_design="PathInt2_old.png")
 		self.maze = np.rot90(self.maze, 2)
 
-		self.prep_trials_data()
 
 
 	"""
@@ -137,7 +136,7 @@ class ExperimentsAnalyser(Bayes, Environment):
 			data = (data & "lights={}".format(lights))
 
 		if escapes is not None:
-			data = (data & "is_escape='{}'".format(true))
+			data = (data & "is_escape='{}'".format(escapes))
 
 		if df:
 			return pd.DataFrame((data).fetch())
@@ -1233,33 +1232,54 @@ class ExperimentsAnalyser(Bayes, Environment):
 		||||||||||||||||||||||||||||    THREAT PLTFORM ANALYSIS     |||||||||||||||||||||
 	"""
 
-	def prep_tplatf_trials_data(self):
+	def prep_tplatf_trials_data(self, filt=True, fwindow=31, remove_errors=False):
 		"""
 			Get the trials for all conditions and get, the tracking specific to the threat, 
 			the time at which the mouse leaves T, the speed at which the mouse leaves T
+
+			if true, threat tracking data are passed through a median filter to eliminate errors
 		"""
 		self.trials={}
-		for condition, data in self.conditions.items():
+		for condition, data in tqdm(self.conditions.items()):
 			out_of_ts, threat_trackings, s_threat_trackings, t_threat_trackings, speeds_at_out_t = [], [], [],  [], []
+			maze_ids = []
 
 			trials = self.get_sessions_trials(maze_design=int(condition[-1]), naive=None, lights=1, escapes=True, escapes_dur=True)
 			
 			for i, trial in trials.iterrows():
 				out_of_t = np.int(trial.time_out_of_t*trial.fps)
-				tracking = trial.tracking_data[:out_of_t, :3]
-				s_tracking = trial.snout_tracking_data[:out_of_t, :3]
-				t_tracking = trial.tail_tracking_data[:out_of_t, :3]
+				if not filt:
+					tracking = trial.tracking_data[:out_of_t, :3].copy()
+					s_tracking = trial.snout_tracking_data[:out_of_t, :3].copy()
+					t_tracking = trial.tail_tracking_data[:out_of_t, :3].copy()
+				else:
+					tracking = medfilt(trial.tracking_data[:out_of_t, :3].copy(), [fwindow, 1])
+					s_tracking = medfilt(trial.snout_tracking_data[:out_of_t, :3].copy(), [fwindow, 1])
+					t_tracking = medfilt(trial.tail_tracking_data[:out_of_t, :3].copy(), [fwindow, 1])
+
+				if remove_errors: # Remove errors from threat tracking
+					tracking[(tracking[:, 0] >= 520) & (tracking[:, 1] <= 250)] = np.nan
+					s_tracking[(s_tracking[:, 0] >= 520) & (s_tracking[:, 1] <= 250)] = np.nan
+					t_tracking[(t_tracking[:, 0] >= 520) & (t_tracking[:, 1] <= 250)] = np.nan
 
 				out_of_ts.append(out_of_t)
 				threat_trackings.append(tracking)
 				s_threat_trackings.append(s_tracking); t_threat_trackings.append(t_tracking)
 				speeds_at_out_t.append(tracking[-1, -1])
+				maze_ids.append(int(condition[-1]))
 
 			trials["frame_out_of_t"] = out_of_ts
 			trials["threat_tracking"] = threat_trackings
 			trials["snout_threat_tracking"], trials["tail_threat_tracking"] = s_threat_trackings, t_threat_trackings
 			trials["speed_at_out_t"] = speeds_at_out_t
+			trials["maze_id"] = maze_ids
 
 			self.trials[condition] = trials
 
 		self.all_trials_tplatf = pd.concat(list(self.trials.values()))
+
+
+if __name__ == "__main__":
+	ea = ExperimentsAnalyser(load=True,  naive=None, lights=1, escapes=True, escapes_dur=True)
+
+	ea.prep_tplatf_trials_data()

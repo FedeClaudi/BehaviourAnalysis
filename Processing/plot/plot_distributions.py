@@ -7,6 +7,7 @@ from scipy.optimize import curve_fit
 
 from Processing.plot.plotting_utils import *
 from Utilities.matplotlib_config_figures import *
+from Utilities.maths.distributions import fit_kde
 
 def plot_distribution(*args, dist_type="logistic", comulative=False, ax=None, shaded=False, shade_alpha=.5,
                             x_range=None, plot_kwargs={}, ax_kwargs={},  **kwargs):
@@ -79,13 +80,15 @@ def dist_plot(dist, ax=None, **kwargs):
     x = np.linspace(dist.ppf(0.0001), dist.ppf(0.99999), 100)
     ax.plot(x, dist.pdf(x), **kwargs)
     
-def plot_kde(ax, kde, z, invert=False, vertical=False, normto=None, label=None, **kwargs):
+def plot_kde(ax, z, kde=None, data=None, invert=False, vertical=False, normto=None, label=None,**kde_kwargs, **kwargs):
     """[Plots a KDE distribution. Plots first the shaded area and then the outline. 
        KDE can be oriented vertically, inverted, normalised...]
     
     Arguments:
         ax {[plt.axis]} -- [ax onto which to plot]
-        kde {[type]} -- [KDE fitted with statsmodels]
+        kde {[type]} -- [KDE fitted with statsmodels, optional. Either KDE or data must be passed]
+        data {[type]} -- [2d numpy array with data, optional. Either KDE or data must be passed]
+
         z {[type]} -- [value used to shift the curve, for a horizontal KDE z=0 means the curve is on the x axis. ]
     
     Keyword Arguments:
@@ -97,6 +100,10 @@ def plot_kde(ax, kde, z, invert=False, vertical=False, normto=None, label=None, 
     Returns:
         ax, kde
     """
+    if kde is None:
+        if data is None: raise ValueError("either KDE or data must be passed")
+        kde = fit_kde(data, **kde_kwargs)
+
     if vertical:
         x = kde.density
         y = kde.support
@@ -121,5 +128,6 @@ def plot_kde(ax, kde, z, invert=False, vertical=False, normto=None, label=None, 
         
 
 if __name__ == "__main__":
-    plot_distribution(1.00, 1.00, dist_type="beta", shaded="True", ax_kwargs={"ylim":[0, 1.1]}, plot_kwargs={"color":[.4, .8, .2]})
+    f, ax = plt.subplots()
+    plot_distribution(1.00, 1.00, ax=ax, dist_type="normal", shaded="True", ax_kwargs={"ylim":[0, 1.1]}, plot_kwargs={"color":[.4, .8, .2]})
     plt.show()
