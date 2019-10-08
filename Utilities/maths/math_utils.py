@@ -62,11 +62,8 @@ def normalise_to_val_at_idx(arr, idx):
 	return arr / arr[idx]
 
 def normalise_1d(arr):
-	arr = np.array(arr)
-	nan_idxs = [i for i,x in enumerate(arr) if np.isnan(x)]
-	arr = np.delete(arr, nan_idxs)
-	min_max_scaler = preprocessing.MinMaxScaler()
-	normed = min_max_scaler.fit_transform(arr.reshape(-1, 1))
+	arr = np.nan_to_num(arr)
+	normed = (arr - np.min(arr))/np.ptp(arr)
 	return normed
 
 def find_hist_peak(arr, bins=None, density=True):

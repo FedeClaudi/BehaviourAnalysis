@@ -80,7 +80,7 @@ def dist_plot(dist, ax=None, **kwargs):
     x = np.linspace(dist.ppf(0.0001), dist.ppf(0.99999), 100)
     ax.plot(x, dist.pdf(x), **kwargs)
     
-def plot_kde(ax, z, kde=None, data=None, invert=False, vertical=False, normto=None, label=None,**kde_kwargs, **kwargs):
+def plot_kde(ax, z, kde=None, data=None, invert=False, vertical=False, normto=None, label=None, kde_kwargs={}, **kwargs):
     """[Plots a KDE distribution. Plots first the shaded area and then the outline. 
        KDE can be oriented vertically, inverted, normalised...]
     
