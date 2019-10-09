@@ -1232,13 +1232,23 @@ class ExperimentsAnalyser(Bayes, Environment):
 		||||||||||||||||||||||||||||    THREAT PLTFORM ANALYSIS     |||||||||||||||||||||
 	"""
 
-	def prep_tplatf_trials_data(self, filt=True, fwindow=31, remove_errors=False):
+	def prep_tplatf_trials_data(self, filt=False, fwindow=31, remove_errors=False, speed_th=None):
 		"""
 			Get the trials for all conditions and get, the tracking specific to the threat, 
 			the time at which the mouse leaves T, the speed at which the mouse leaves T
 
 			if true, threat tracking data are passed through a median filter to eliminate errors
 		"""
+
+		def cleanup(d, speed_th):
+			bad_idx = np.where((d[:, 0] >= 530) & (d[:, 1] <= 255))[0]
+			d[bad_idx] = np.nan
+
+			if speed_th is not None:
+				fast_idx = np.where(d[:, 2] >= speed_th)
+				d[fast_idx] = np.nan
+			return d
+
 		self.trials={}
 		for condition, data in tqdm(self.conditions.items()):
 			out_of_ts, threat_trackings, s_threat_trackings, t_threat_trackings, speeds_at_out_t = [], [], [],  [], []
@@ -1258,9 +1268,9 @@ class ExperimentsAnalyser(Bayes, Environment):
 					t_tracking = medfilt(trial.tail_tracking_data[:out_of_t, :3].copy(), [fwindow, 1])
 
 				if remove_errors: # Remove errors from threat tracking
-					tracking[(tracking[:, 0] >= 520) & (tracking[:, 1] <= 250)] = np.nan
-					s_tracking[(s_tracking[:, 0] >= 520) & (s_tracking[:, 1] <= 250)] = np.nan
-					t_tracking[(t_tracking[:, 0] >= 520) & (t_tracking[:, 1] <= 250)] = np.nan
+					tracking = cleanup(tracking, speed_th)
+					s_tracking = cleanup(s_tracking, speed_th)
+					t_tracking = cleanup(t_tracking, speed_th)
 
 				out_of_ts.append(out_of_t)
 				threat_trackings.append(tracking)
@@ -1282,4 +1292,4 @@ class ExperimentsAnalyser(Bayes, Environment):
 if __name__ == "__main__":
 	ea = ExperimentsAnalyser(load=True,  naive=None, lights=1, escapes=True, escapes_dur=True)
 
-	ea.prep_tplatf_trials_data()
+	ea.prep_tplatf_trials_data(remove_errors=True)
