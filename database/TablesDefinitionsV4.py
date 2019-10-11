@@ -26,7 +26,7 @@ class Session(dj.Manual):
 	definition = """
 	# A session is one behavioural experiment performed on one mouse on one day
 	uid: smallint     # unique number that defines each session
-	session_name:           varchar(128)        # unique name that defines each session - YYMMDD_MOUSEID
+session_name:           varchar(128)        # unique name that defines each session - YYMMDD_MOUSEID
 	mouse_id: varchar(128)                        # unique mouse id
 	---
 	date:                   date                # date in the YYYY-MM-DD format
@@ -42,6 +42,16 @@ class Session(dj.Manual):
 		naive: int      # was the mouse naive
 		lights: int     # light on, off, na, or part on part off
 		"""
+
+	class Shelter(dj.Part):
+		definition = """
+		-> Session
+		---
+		shelter: int  # 0 if there is no shelter 1 otherwise
+
+		"""
+
+
 	def get_experiments_in_table(self):
 		return set(Session.fetch("experiment_name"))
 @schema
@@ -266,13 +276,13 @@ class AllTrials(dj.Manual):
 		recording_uid: varchar(128)
 		experiment_name: varchar(128)
 		tracking_data: longblob
-        snout_tracking_data: longblob
+		snout_tracking_data: longblob
 		tail_tracking_data: longblob
 
 		outward_tracking_data: longblob
 
 		stim_frame: int
-        stim_frame_session: int  # stim frame relative to the start of the session and not the start of the recording
+		stim_frame_session: int  # stim frame relative to the start of the session and not the start of the recording
 		stim_type: enum('audio', 'visual')
 		stim_duration: int
 

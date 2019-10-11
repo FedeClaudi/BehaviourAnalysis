@@ -58,20 +58,20 @@ class ExperimentsAnalyser(Bayes, Environment):
 
 
 
-	def __init__(self, load=False,  naive=None, lights=None, escapes=None, escapes_dur=None):
+	def __init__(self, load=False,  naive=None, lights=None, escapes=None, escapes_dur=None, shelter=True):
 		Bayes.__init__(self) # Get functions from bayesian modelling class
 		
 		# store params
-		self.naive, self.lights, self.escapes, self.escapes_dur = naive, lights, escapes, escapes_dur
+		self.naive, self.lights, self.escapes, self.escapes_dur, self.shelter = naive, lights, escapes, escapes_dur, shelter
 
 		# Get trials for the subset of experiments that match the criteria above
 		if not load:
 			if sys.platform != "darwin": # only do it on windows because that's where the data are saved
 				self.conditions = dict(
-							maze1 =  self.get_sessions_trials(maze_design=1, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur),
-							maze2 =  self.get_sessions_trials(maze_design=2, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur),
-							maze3 =  self.get_sessions_trials(maze_design=3, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur),
-							maze4 =  self.get_sessions_trials(maze_design=4, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur),
+							maze1 =  self.get_sessions_trials(maze_design=1, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur, shelter=shelter),
+							maze2 =  self.get_sessions_trials(maze_design=2, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur, shelter=shelter),
+							maze3 =  self.get_sessions_trials(maze_design=3, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur, shelter=shelter),
+							maze4 =  self.get_sessions_trials(maze_design=4, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur, shelter=shelter),
 						)
 			else:
 				self.conditions = None
@@ -91,7 +91,7 @@ class ExperimentsAnalyser(Bayes, Environment):
 	||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 	"""
 	# ? Get trials (and tracking) from AllTrials table based on conditions:
-	def get_sessions_trials(self, maze_design=None, naive=None, lights=None, escapes=False, escapes_dur=True):
+	def get_sessions_trials(self, maze_design=None, naive=None, lights=None, escapes=None, escapes_dur=None, shelter=None):
 		"""[Given a number of criteria, load the trials that match tehse criteria]
 		
 		Keyword Arguments:
@@ -106,9 +106,10 @@ class ExperimentsAnalyser(Bayes, Environment):
 		if lights is None: lights= self.lights
 		if escapes_dur is None: escapes_dur = self.escapes_dur
 		if escapes is None: escapes = self.escapes
+		if shelter is None: shelter = self.shelter
 
 		# Given a dj query with the relevant sessions, fetches the corresponding trials from AllTrials
-		sessions = self.get_sessions_by_condition(maze_design, naive, lights, df=True)
+		sessions = self.get_sessions_by_condition(maze_design=maze_design, naive=naive, lights=lights,shelter=shelter, df=True)
 		ss = set(sorted(sessions.uid.values))
 
 		all_trials = pd.DataFrame(AllTrials.fetch())
@@ -122,9 +123,9 @@ class ExperimentsAnalyser(Bayes, Environment):
 		trials = all_trials.loc[all_trials.session_uid.isin(ss)]
 		return trials
 
-	def get_sessions_by_condition(self, maze_design=None, naive=None, lights=None, escapes=None, df=False):
+	def get_sessions_by_condition(self, maze_design=None, naive=None, lights=None,  shelter=None, df=False):
 		""" Query the DJ database table AllTrials for the trials that match the conditions """
-		data = Session * Session.Metadata  - 'experiment_name="Foraging"'  - "maze_type=-1"
+		data = Session * Session.Metadata * Session.Shelter  - 'experiment_name="Foraging"'  - "maze_type=-1"
 
 		if maze_design is not None:
 			data = (data & "maze_type={}".format(maze_design))
@@ -135,12 +136,18 @@ class ExperimentsAnalyser(Bayes, Environment):
 		if lights is not None:
 			data = (data & "lights={}".format(lights))
 
-		if escapes is not None:
-			data = (data & "is_escape='{}'".format(escapes))
+		if shelter is not None:
+			if shelter:
+				data = (data & "shelter={}".format(1))
+			else:
+				data = (data & "shelter={}".format(0))
+				
+		if not len(data): print("Query didn't yield any results!")
 
 		if df:
 			return pd.DataFrame((data).fetch())
-		else: return data
+		else: 
+			return data
 
 	def get_sessions_tracking(self, bp="body", maze_design=None, naive=None, lights=None, escapes=None, escapes_dur=None):
 		""" Get tracking data for session that match the criteria"""
@@ -398,9 +405,6 @@ class ExperimentsAnalyser(Bayes, Environment):
 		x = self.paths_lengths[self.ratio].values
 
 		result = model.fit(ytrue, distances=x, params=params)
-		print(result.params["sigma"].value)
-		a = 1
-
 
 		# ? Plot best fit
 		# best_sigma = sigma_range[np.argmin(mserr)]
@@ -886,7 +890,7 @@ class ExperimentsAnalyser(Bayes, Environment):
 	||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 	"""
 	def plot_trials_tracking(self):
-		trials = self.get_sesions_trials(escapes=True)
+		trials = self.get_sessions_trials()
 		self.plot_tracking(trials, origin=False)
 
 	def plot_sessions_tracking(self):
@@ -1013,6 +1017,8 @@ class ExperimentsAnalyser(Bayes, Environment):
 		lr_ratios_mean_pr = {"grouped":[], "individuals_x":[], "individuals_y":[], "individuals_y_sigma":[]}
 		yticks=[0]
 		for i, (condition, pr) in enumerate(p_r.items()):
+			if condition not in grouped_modes.keys(): continue 
+
 			yticks.append(grouped_modes[condition])
 			x = self.paths_lengths.loc[self.paths_lengths.maze == condition]["distance"].values
 
@@ -1290,6 +1296,6 @@ class ExperimentsAnalyser(Bayes, Environment):
 
 
 if __name__ == "__main__":
-	ea = ExperimentsAnalyser(load=True,  naive=None, lights=1, escapes=True, escapes_dur=True)
+	ea = ExperimentsAnalyser(load=False,  naive=None, lights=1, escapes=False, escapes_dur=False, shelter=False)
 
-	ea.prep_tplatf_trials_data(remove_errors=True)
+	# ea.prep_tplatf_trials_data(remove_errors=True)

@@ -27,7 +27,7 @@ class analyse_all_trals:
         self.naughty_experiments = ['Lambda Maze',  'FlipFlop Maze', 'FlipFlop2 Maze', 'TwoArmsLong Maze', "FourArms Maze", "Foraging"]
 
         self.good_experiments = ["Psychometric - short", "Psychometric - long", "PathInt2", "PathInt2-L", "PathInt2-D", "PathInt2-L",
-                                "PathInt2 L", "Square Maze", "TwoAndahalf Maze", "PathInt",  "PathInt2 D"]
+                                "PathInt2 L", "Square Maze", "TwoAndahalf Maze", "PathInt",  "PathInt2 D", "noshelter m1", "shortexploration m1"]
 
         if fill_in_table:  # Get tracking data
             self.table = AllTrials()
@@ -194,6 +194,9 @@ class analyse_all_trals:
                 # Get the tracking data up to the stim frame so that we can extract arm of origin
                 out_trip_tracking = rec_tracking[:start, :]
                 out_shelter_enters, out_shelter_exits = get_roi_enters_exits(out_trip_tracking[:, -1], 0)
+                if not(np.any(out_shelter_exits)): 
+                    print("No shelter enter/exit found, skipping")
+                    continue
                 out_trip_tracking = out_trip_tracking[out_shelter_exits[-1]:, :]
 
                 # Get arm of origin
@@ -212,7 +215,7 @@ class analyse_all_trals:
                         else:
                             is_escape = "false"
                     except KeyError:
-                        raise warning.warn("you need to populate exploration tables first dummy")
+                        raise warnings.warn("you need to populate exploration tables first dummy")
                     
                 else:
                     is_escape = 'false'
@@ -298,7 +301,7 @@ if __name__ == "__main__":
     print(AllTrials())
 
 
-
+    print(pd.DataFrame(AllTrials().fetch()).tail())
 
 
 
