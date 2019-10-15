@@ -220,7 +220,7 @@ f, ax = create_figure(subplots=False, facecolor=white, figsize=(15,15))
 yth = 200
 sth, high_sth =  4, 5
 
-median_speed, max_speed = [], []
+median_speed, max_speed, all_speeds = [], [], []
 for i, trial in aligned_trials.iterrows():
     if "left" == trial.escape_side:
         x, y, s = 500 + (500 - trial.tracking[:, 0]), trial.tracking[:, 1], trial.tracking[:, 2]
@@ -238,6 +238,7 @@ for i, trial in aligned_trials.iterrows():
     fast_idx = np.where(s[below_yth:] >= high_sth)[0]+below_yth
     median_speed.append(np.nanmedian(s))
     max_speed.append(np.max(s))
+    all_speeds.extend([x for x in s if not np.isnan(x)])
 
     ax.plot(x[:above_yth], y[:above_yth], color=[.6, .6, .6], lw=1)
     ax.plot(x[above_yth:], y[above_yth:], color=white, lw=1)
@@ -251,8 +252,9 @@ ax.axhline(yth, color=white, lw=2)
 _ = ax.set(title="red=slow, green=fast", facecolor=[.2, .2, .2],  xlim=[400, 600], ylim=[120, 375])
 
 
-kdeax, _, = plot_kde(data=median_speed, kde_kwargs={"bw":.25}, fig_kwargs={'facecolor':white},  color=red)
-kdeax, _, = plot_kde(ax=kdeax, data=max_speed, kde_kwargs={"bw":.25}, color=green)
+kdeax, _, = plot_kde(data=all_speeds, kde_kwargs={"bw":.25}, fig_kwargs={'facecolor':white},  color=white)
+# kdeax, _, = plot_kde(ax=kdeax, data=max_speed, kde_kwargs={"bw":.25}, color=green)
+# kdeax, _, = plot_kde(ax=kdeax, data=max_speed, kde_kwargs={"bw":.25}, color=green)
 
 kdeax.axvline(sth, color=red)
 kdeax.axvline(high_sth, color=green)
