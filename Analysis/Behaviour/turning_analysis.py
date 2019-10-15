@@ -4,31 +4,30 @@ sys.path.append('./')
 
 from Utilities.imports import *
 from Analysis.Behaviour.experiments_analyser import ExperimentsAnalyser
+from Analysis.Behaviour.torosity import Torosity
+
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from mpl_toolkits.mplot3d import Axes3D
 from scipy.signal import find_peaks
 
+import plotly
+import plotly.graph_objs as go
+import colorlover as cl
 
-"""
-    For now this script finds the "bending" point of the threat traces by drawing a straight line between
-    the mouse position at stim onset and where it leaves T. The bending point then is the point of the tracking
-    trace at the highest distance from theat line. 
-"""
-
-# TODO clean up tracking errors
-# TODO Get speed before and after turn data
-# TODO Heatmap of turning locations
-
-# %%
-ea = ExperimentsAnalyser(load=False,  naive=None, lights=1, escapes=True, escapes_dur=True)
-# Get Threat Platform data
-ea.prep_tplatf_trials_data(filt=False, remove_errors=True, speed_th=None)
 %matplotlib inline
 
+# %%
+# Getting data
+ea = ExperimentsAnalyser(load=False,  naive=None, lights=1, escapes=True, escapes_dur=True,  shelter=True)
+
+# Get Threat Platform data
+ea.prep_tplatf_trials_data(filt=False, remove_errors=True, speed_th=None)
+
+# Get Torosity Utils
+tor = Torosity()
 
 #%%
-# Plot centered tracking traces
-f, axarr = create_figure(subplots=True, ncols=3, facecolor=white, figsize=(24,24))
-
+# ! Get aligned tracking data
 xth, yth, thetath = 10, 50, 5
 upfps = 1000
 
@@ -61,7 +60,6 @@ for i, (condition, trials) in enumerate(ea.trials.items()):
         else:
             left = False
 
-
         # get time
         t = np.arange(len(x))
         upt = upsample_signal(40, upfps, t)
@@ -77,21 +75,6 @@ for i, (condition, trials) in enumerate(ea.trials.items()):
                         for _x,_y in zip(x, y)]
         mdist = np.argmax(dist)
 
-        # if mdist == 0: 
-        #     print("0")
-        #     continue
-        # if not np.any(~np.isnan(x-x[mdist])): 
-        #     print("cacca")
-        #     continue
-
-        # plot
-        # plot tracking
-        # axarr[0].plot(rawx, rawy, color=ch.get_rgb(n),  alpha=.4)
-        # axarr[1].plot(x, y, color=ch.get_rgb(n),  alpha=.4)
-
-        # axarr[2].plot(x[:mdist]-x[mdist], y[:mdist]-y[mdist], color=red,  alpha=.4)
-        # axarr[2].plot(x[mdist:]-x[mdist], y[mdist:]-y[mdist], color=white,  alpha=.4)
-
         aligned_trials['trial_id'].append(trial['trial_id'])
         aligned_trials['tracking'].append(np.vstack([rawx, rawy, s]).T)
         aligned_trials['tracking_centered'].append(np.vstack([x, y, s]).T)
@@ -100,19 +83,13 @@ for i, (condition, trials) in enumerate(ea.trials.items()):
         
         if left:  
             aligned_trials['escape_side'].append("left")
-            print("l2")
         else:
             aligned_trials['escape_side'].append("right")
-
-for ax, ttl in zip(axarr, ['tracking', 'aligned-start', 'aligned-turn']):
-    ax.set(title=ttl, facecolor=[.2, .2, .2])
-
-
 
 aligned_trials = pd.DataFrame.from_dict(aligned_trials)
 aligned_trials
 #%%
-# PLot a bunch of KDE for all trials
+# ! PLot a bunch of KDE for all trials
 f, axarr = create_triplot(facecolor=white, figsize=(15,15))
 
 
@@ -137,32 +114,75 @@ axarr.y.set(facecolor=[.2, .2, .2], ylim=[120, 375])
 
 axarr.x.legend()
 #%%
-# Plot KDE for left vs right trials and p(R) vs 
-f, axarr = create_triplot(facecolor=white, figsize=(15,15))
+# ! Plot trackings
+f, axarr = create_figure(subplots=True, ncols=3, facecolor=white, figsize=(15,15))
 
-
-mean_speed_pre, mean_speed_post, y_at_turn = {'left':[], 'right':[]},  {'left':[], 'right':[]},  {'left':[], 'right':[]}
 for i, trial in aligned_trials.iterrows():
-    # axarr.main.scatter(trial.tracking[trial.turning_frame, 0], trial.tracking[trial.turning_frame, 1], color=red, alpha=.8, zorder=99)
-    # axarr.main.plot(trial.tracking[:, 0], trial.tracking[:, 1], color=white, alpha=.2, lw=3)
+    axarr[0].scatter(trial.tracking[trial.turning_frame, 0], trial.tracking[trial.turning_frame, 1], color=red, alpha=.8, zorder=99)
+    axarr[0].plot(trial.tracking[:, 0], trial.tracking[:, 1], color=white, alpha=.2, lw=3)
 
-    mean_speed_pre[trial.escape_side].append(np.mean(trial.tracking[:trial.turning_frame, 2]))
-    mean_speed_post[trial.escape_side].append(np.mean(trial.tracking[trial.turning_frame:, 2]))
-    y_at_turn[trial.escape_side].append((trial.tracking[trial.turning_frame, 1]))
+    axarr[1].scatter(trial.tracking_centered[trial.turning_frame, 0], trial.tracking_centered[trial.turning_frame, 1], color=red, alpha=.8, zorder=99)
+    axarr[1].plot(trial.tracking_centered[:, 0], trial.tracking_centered[:, 1], color=white, alpha=.2, lw=3)
 
-
-# plot_kde(axarr.x, 0, data=mean_speed_pre, color=red, kde_kwargs={"bw":0.25}, label="pre")
-# plot_kde(axarr.x, 0, data=mean_speed_post, color=white, kde_kwargs={"bw":0.25}, label="post")
-plot_kde(axarr.y, 0, data=y_at_turn['left'], color=white, vertical=True, kde_kwargs={"bw":5}, label="left")
-plot_kde(axarr.y, 0, data=y_at_turn['right'], color=red, vertical=True, kde_kwargs={"bw":5}, label="right")
+    axarr[2].scatter(trial.tracking_turn[trial.turning_frame, 0], trial.tracking_turn[trial.turning_frame, 1], color=red, alpha=.8, zorder=99)
+    axarr[2].plot(trial.tracking_turn[:, 0], trial.tracking_turn[:, 1], color=white, alpha=.2, lw=3)
 
 
+#%%
+# ? WIP
+# Configure Plotly to be rendered inline in the notebook.
+plotly.offline.init_notebook_mode()
 
-axarr.main.set(facecolor=[.2, .2, .2], xlim=[400, 600], ylim=[120, 375])
-axarr.x.set(facecolor=[.2, .2, .2])
-axarr.y.set(facecolor=[.2, .2, .2], ylim=[120, 375])
 
-axarr.x.legend()
-axarr.y.legend()
+yth = 200
+
+colorhelper = MplColorHelper("Greens", 0, 10)
+
+plot_data = []
+for i, trial in aligned_trials.iterrows():
+    try:
+        below_yth = np.where(trial.tracking[:, 1] <= yth)[0][-1]
+    except: 
+        above_yth = 0
+    else:
+        above_yth = below_yth + 1
+
+    # small_tracking = tor.smallify_tracking(trial.tracking[above_yth:, :])
+
+    # ax.plot(trial.tracking[above_yth:, 0], trial.tracking[above_yth:, 1], trial.tracking[above_yth:, 2], lw=2)
+    
+    color = colorhelper.get_rgb(np.nanmedian(trial.tracking[:, 2]))
+    # Configure the trace.
+    trace = go.Scatter3d(
+        x=trial.tracking[above_yth:, 0],  # <-- Put your data instead
+        y=trial.tracking[above_yth:, 1],  # <-- Put your data instead
+        z=trial.tracking[above_yth:, 2],  # <-- Put your data instead
+        # mode='markers',
+        marker={
+            'size': 1,
+            'opacity': 0.8,
+        },
+        line=dict(
+        color = color,
+        width=4
+        )
+    )
+    plot_data.append(trace)
+
+    # trial_torosity = tor.process_one_trial(tracking=np.int32(small_tracking))
+
+    if i > 20: break
+
+layout = go.Layout(
+    margin={'l': 0, 'r': 0, 'b': 0, 't': 0}
+)
+plot_figure = go.Figure(data=plot_data, layout=layout)
+plotly.offline.iplot(plot_figure)
+
+# ax.axhline(yth*tor.scale_factor, color=white, lw=2)
+# ax.set(facecolor=[.2, .2, .2],  xlim=[400, 600], ylim=[120, 375])
+
+
+
 
 #%%

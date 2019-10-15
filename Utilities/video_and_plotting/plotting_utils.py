@@ -3,44 +3,9 @@ import os
 import numpy as np
 from Utilities.maths.math_utils import find_nearest
 from matplotlib import cm
-from matplotlib.colors import Normalize
 from matplotlib import gridspec
 from collections import namedtuple
 
-# ! COLORS
-
-
-class InvertedNormalize(Normalize):
-	def __call__(self, *args, **kwargs):
-		return 1 - super(InvertedNormalize, self).__call__(*args, **kwargs)
-
-class MplColorHelper:
-	"""
-		Usage: instantiate the class with the CMAP to be used and the coors range. Then pass it values to get the RGB value of the color.
-		"inverse" gives the possibility to invert the order of the colors in the cmap
-	"""
-	def __init__(self, cmap_name, start_val, stop_val, inverse=False):
-		self.cmap_name = cmap_name
-		self.cmap = plt.get_cmap(cmap_name)
-
-		if not inverse:
-			self.norm = mpl.colors.Normalize(vmin=start_val, vmax=stop_val)
-		else:
-			self.norm = InvertedNormalize(vmin=start_val, vmax=stop_val)
-		self.scalarMap = cm.ScalarMappable(norm=self.norm, cmap=self.cmap)
-
-	def get_rgb(self, val):
-		return self.scalarMap.to_rgba(val)
-
-def get_n_colors(n, cmap="tab20"):
-	return [plt.get_cmap(cmap)(i) for i in np.arange(n)]
-
-def desaturate_color(c, k=.5):
-
-	return sns.desaturate(c, k)
-
-def saturate_color(c, k=.5):
-	return sns.saturate(c, k)
 
 # ! other stuf
 def clean_axes(f):

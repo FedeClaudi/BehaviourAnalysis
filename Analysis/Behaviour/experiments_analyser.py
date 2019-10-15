@@ -58,7 +58,7 @@ class ExperimentsAnalyser(Bayes, Environment):
 
 
 
-	def __init__(self, load=False,  naive=None, lights=None, escapes=None, escapes_dur=None, shelter=True):
+	def __init__(self, load=False,  naive=None, lights=None, escapes=None, escapes_dur=None, shelter=True, agent_params=None):
 		Bayes.__init__(self) # Get functions from bayesian modelling class
 		
 		# store params
@@ -80,7 +80,10 @@ class ExperimentsAnalyser(Bayes, Environment):
 
 		self.get_paths_lengths()
 
-		Environment.__init__(self, grid_size=1000, maze_design="PathInt2_old.png")
+		if agent_params is None:
+			self.agent_params = dict(grid_size=1000, maze_design="PathInt2_old.png")
+		else: self.agent_params = agent_params
+		Environment.__init__(self, **self.agent_params )
 		self.maze = np.rot90(self.maze, 2)
 
 

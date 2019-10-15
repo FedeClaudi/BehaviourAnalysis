@@ -5,7 +5,7 @@ from scipy import stats
 import numpy as np
 from scipy.optimize import curve_fit
 
-from Processing.plot.plotting_utils import *
+from Utilities.video_and_plotting.plotting_utils import *
 from Utilities.matplotlib_config_figures import *
 from Utilities.maths.distributions import fit_kde
 

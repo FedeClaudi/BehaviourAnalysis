@@ -41,9 +41,9 @@ from Utilities.maths.distributions import *
 from Utilities.maths.filtering import *
 from Utilities.constants import *
 
-from Processing.plot.plotting_utils import *
-from Processing.plot.plot_distributions import *
-
+from Utilities.video_and_plotting.plotting_utils import *
+from Utilities.video_and_plotting.plot_distributions import *
+from Utilities.video_and_plotting.colors import *
 
 
 sns.set_style("white", {
