@@ -3,6 +3,9 @@ import sys
 import random
 import vtk 
 import matplotlib.pyplot as plt
+from matplotlib import cm
+from matplotlib import gridspec
+
 # The following code and colors list is from vtkplotter.color : https://github.com/marcomusy/vtkplotter/blob/master/vtkplotter/colors.py
 # The code is copied here just to make it easier to look up and change colros
 try:
@@ -31,7 +34,7 @@ class MplColorHelper:
 		self.rgb255 = rgb255
 
 		if not inverse:
-			self.norm = mpl.colors.Normalize(vmin=start_val, vmax=stop_val)
+			self.norm = matplotlib.colors.Normalize(vmin=start_val, vmax=stop_val)
 		else:
 			self.norm = InvertedNormalize(vmin=start_val, vmax=stop_val)
 		self.scalarMap = cm.ScalarMappable(norm=self.norm, cmap=self.cmap)
@@ -40,7 +43,7 @@ class MplColorHelper:
 		if not self.rgb255:
 			return self.scalarMap.to_rgba(val)[:-1]
 		else:
-			return [floor(255*c) for c in  self.scalarMap.to_rgba(val)[:-1]]
+			return [np.int(np.floor(255*c)) for c in  self.scalarMap.to_rgba(val)[:-1]]
 
 def get_n_colors(n, cmap="tab20"):
 	return [plt.get_cmap(cmap)(i) for i in np.arange(n)]

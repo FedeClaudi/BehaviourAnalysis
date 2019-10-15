@@ -136,8 +136,9 @@ plotly.offline.init_notebook_mode()
 
 yth = 200
 
-colorhelper = MplColorHelper("Greens", 0, 10)
+colorhelper = MplColorHelper("viridis", 0, 2, rgb255=True)
 
+fig = go.Figure()
 plot_data = []
 for i, trial in aligned_trials.iterrows():
     try:
@@ -163,7 +164,7 @@ for i, trial in aligned_trials.iterrows():
             'opacity': 0.8,
         },
         line=dict(
-        color = color,
+        color = [color for i in range(len(trial.tracking[above_yth:, 0]))],
         width=4
         )
     )
@@ -171,18 +172,92 @@ for i, trial in aligned_trials.iterrows():
 
     # trial_torosity = tor.process_one_trial(tracking=np.int32(small_tracking))
 
-    if i > 20: break
+    # if i > 20: break
 
-layout = go.Layout(
-    margin={'l': 0, 'r': 0, 'b': 0, 't': 0}
+
+fig = go.Figure(data=plot_data, layout=layout)
+
+camera = dict(
+    eye=dict(x=0., y=0., z=2.5)
 )
-plot_figure = go.Figure(data=plot_data, layout=layout)
-plotly.offline.iplot(plot_figure)
+scene =dict(
+            xaxis = dict(
+                    backgroundcolor="rgb(55, 55, 55)",
+                    gridcolor="white",
+                    showbackground=True,
+                    zerolinecolor="white",),
+            yaxis = dict(
+                backgroundcolor="rgb(55, 55, 55)",
+                gridcolor="white",
+                showbackground=True,
+                zerolinecolor="white"),
+            zaxis = dict(
+                backgroundcolor="rgb(55, 55, 55)",
+                gridcolor="white",
+                showbackground=True,
+                zerolinecolor="white",
+                range=[0, 10]),
+            xaxis_title='X AXIS TITLE',
+            yaxis_title='Y AXIS TITLE',
+            zaxis_title='Z AXIS TITLE',
+            )
+
+fig.update_layout(scene = scene, scene_camera=camera,
+                    width=700,
+                    margin=dict(r=10, l=10,b=10, t=10),
+                  )
+
+plotly.offline.iplot(fig)
 
 # ax.axhline(yth*tor.scale_factor, color=white, lw=2)
 # ax.set(facecolor=[.2, .2, .2],  xlim=[400, 600], ylim=[120, 375])
 
 
+
+
+#%%
+f, ax = create_figure(subplots=False, facecolor=white, figsize=(15,15))
+yth = 200
+sth, high_sth =  4, 5
+
+median_speed, max_speed = [], []
+for i, trial in aligned_trials.iterrows():
+    if "left" == trial.escape_side:
+        x, y, s = 500 + (500 - trial.tracking[:, 0]), trial.tracking[:, 1], trial.tracking[:, 2]
+    else:
+        x, y, s = trial.tracking[:, 0], trial.tracking[:, 1], trial.tracking[:, 2]
+
+    try:
+        below_yth = np.where(y <= yth)[0][-1]
+    except: 
+        above_yth = 0
+    else:
+        above_yth = below_yth + 1
+
+    slow_idx = np.where(s[below_yth:] < sth)[0]+below_yth
+    fast_idx = np.where(s[below_yth:] >= high_sth)[0]+below_yth
+    median_speed.append(np.nanmedian(s))
+    max_speed.append(np.max(s))
+
+    ax.plot(x[:above_yth], y[:above_yth], color=[.6, .6, .6], lw=1)
+    ax.plot(x[above_yth:], y[above_yth:], color=white, lw=1)
+    ax.scatter(x[slow_idx], y[slow_idx], color=red, s=30, zorder=99, alpha=.5)
+    ax.scatter(x[fast_idx], y[fast_idx], color=green, s=30, zorder=99, alpha=.5)
+
+    # if i > 20: break
+
+
+ax.axhline(yth, color=white, lw=2)
+_ = ax.set(title="red=slow, green=fast", facecolor=[.2, .2, .2],  xlim=[400, 600], ylim=[120, 375])
+
+
+kdeax, _, = plot_kde(data=median_speed, kde_kwargs={"bw":.25}, fig_kwargs={'facecolor':white},  color=red)
+kdeax, _, = plot_kde(ax=kdeax, data=max_speed, kde_kwargs={"bw":.25}, color=green)
+
+kdeax.axvline(sth, color=red)
+kdeax.axvline(high_sth, color=green)
+
+_ = kdeax.set(title="KDE of median speed", facecolor=[.2, .2, .2], xlim=[0, 15])
 
 
 #%%
