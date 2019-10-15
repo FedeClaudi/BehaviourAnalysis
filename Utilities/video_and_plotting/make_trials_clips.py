@@ -31,7 +31,7 @@ class TrialClipsMaker(Editor):
     Raises:
         NotImplementedError: [description]
     """
-    def __init__(self, process_recs_in_range=None, add_threat_video=False, overlay_pose=False, overlay_text=False):
+    def __init__(self, process_recs_in_range=None, add_threat_video=False, overlay_pose=False, overlay_text=False, clean=False, save_fld=None):
         """[Creates a clip with all the trial for one recording]
         
         Keyword Arguments:
@@ -44,7 +44,11 @@ class TrialClipsMaker(Editor):
         Editor.__init__(self)
 
         # Get all the saved videos in the dstination folder
-        self.save_folder = self.paths['trials_clips']
+        if save_fld is None:
+            self.save_folder = self.paths['trials_clips']
+        else:
+            if not os.path.isdir(save_fld): raise FileNotFoundError
+            self.save_folder = save_fld
         self.clips_in_save_folder = [f for f in os.listdir(self.save_folder)]
 
         # Get the relevant tables from the database
@@ -55,19 +59,34 @@ class TrialClipsMaker(Editor):
         self.add_threat_video = add_threat_video
         self.overlay_pose = overlay_pose
         self.overlay_text = overlay_text
+        self.clean = clean
+
+
+        # Define parameters for decorations on video
+        if not clean:
+            self.video_decoration_params = {
+                "pre_stim_interval": 1,
+                "post_stim_interval": 20, # ? number of seconds before and after the stimulus to include in the clip
+                "border_size":20,
+                "color_on": [100, 255, 100],
+                "color_off": [20,20,20],
+            }
+        else:
+            self.video_decoration_params = {
+                "pre_stim_interval": 5,
+                "post_stim_interval": 20, # ? number of seconds before and after the stimulus to include in the clip
+                "border_size":0,
+                "color_on": [100, 255, 100],
+                "color_off": [20,20,20],
+            } 
+            self.overlay_pose = False
+            self.overlay_text = False
+
 
         # get a copy of the original params to restore them if they get changed during processing
         self._add_threat_video = add_threat_video
         self._overlay_pose = overlay_pose
 
-        # Define parameters for decorations on video
-        self.video_decoration_params = {
-            "pre_stim_interval": 1,
-            "post_stim_interval": 20, # ? number of seconds before and after the stimulus to include in the clip
-            "border_size":20,
-            "color_on": [100, 255, 100],
-            "color_off": [20,20,20],
-        }
 
     def restore_settings(self):
         self.add_threat_video = self._add_threat_video
@@ -80,7 +99,7 @@ class TrialClipsMaker(Editor):
         self.data = (Recording * Stimuli)
 
 
-    def loop_over_recordings(self):
+    def loop_over_recordings(self, skip_every=None):
         """[ Loop over all recordings in table, see which one needs processing and extract the corresponding stimuli,
         file paths and metadata]
         
@@ -90,7 +109,10 @@ class TrialClipsMaker(Editor):
         """
         r = namedtuple("r", "recording_uid uid session_name software ai_file_path")
 
-        for recuid in sorted(set(self.data.fetch("recording_uid"))):
+        for recn, recuid in enumerate(sorted(set(self.data.fetch("recording_uid")))):
+            if skip_every is not None:
+                if not recn % skip_every == 0: continue
+
             self.restore_settings()
             
             _rec = (Recording & "recording_uid='{}'".format(recuid)).fetch1()
@@ -111,7 +133,6 @@ class TrialClipsMaker(Editor):
 
             # Get the stimuli for this recording
             if rec.software == 'behaviour':
-                a = 1
                 continue
             else:
                 self.stimuli = pd.DataFrame((self.data & _rec).fetch())
@@ -122,7 +143,7 @@ class TrialClipsMaker(Editor):
 
             if "video" in self.stimuli.stim_type or "visual" in self.stimuli.stim_type: 
                 warnings.warn("Not implement for visual stimuli ??")
-                # raise NotImplementedError
+                continue
 
             # Get videopath for this recording
             self.rec_paths = pd.DataFrame(Recording.FilePaths & _rec)
@@ -330,9 +351,11 @@ class TrialClipsMaker(Editor):
 
 
 if __name__ == "__main__":
-    tcm = TrialClipsMaker(process_recs_in_range = [200, 1000], 
-                            add_threat_video    = True, 
-                            overlay_pose        = True, 
-                            overlay_text        = True)
-    tcm.loop_over_recordings()
+    tcm = TrialClipsMaker(process_recs_in_range = [40, 1000], 
+                            add_threat_video    = False, 
+                            overlay_pose        = False, 
+                            overlay_text        = False,
+                            clean=True, 
+                            save_fld="Z:\\branco\\Federico\\raw_behaviour\\maze\\_overview_training_clips")
+    tcm.loop_over_recordings(skip_every=10)
 

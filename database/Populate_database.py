@@ -263,7 +263,7 @@ if __name__ == '__main__':
         
     # ? These tables population is fast and largely automated
     # p.populate_mice_table()   # ! mice recordings, components... 
-    p.populate_sessions_table()
+    # p.populate_sessions_table()
 
     # p.recording.populate(display_progress=True) 
     # p.recording.make_paths(p) 
@@ -280,10 +280,10 @@ if __name__ == '__main__':
     # p.stimuli.make_metadata() # ? only used for visual stims
 
 
-    if errors: raise ValueError([print("\n\n", e) for e in errors])
+    # if errors: raise ValueError([print("\n\n", e) for e in errors])
 
     # ? Show database content and progress
-    # print(p.trackingdata.get_experiments_in_table())
+    print(p.recording.fetch("uid"))
     # p.show_progress()
 
 
