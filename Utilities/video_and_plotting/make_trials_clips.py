@@ -12,8 +12,8 @@ from functools import partial
 from Utilities.file_io.files_load_save import *
 from Utilities.video_and_plotting.video_editing import Editor
 
-from Processing.plot.plotting_utils import *
-from Processing.plot.video_plotting_toolbox import *
+from Utilities.video_and_plotting.plotting_utils import *
+from Utilities.video_and_plotting.video_plotting_toolbox import *
 from skimage.transform import resize
 
 

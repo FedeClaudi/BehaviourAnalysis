@@ -5,7 +5,7 @@ import os
 from collections import namedtuple
 import matplotlib.pyplot as plt
 
-from Processing.plot.plotting_utils import *
+from Utilities.video_and_plotting.plotting_utils import *
 
 
 def cv2_plot_mouse_bps(frame, points_dict, color_dict=None, s=2):
