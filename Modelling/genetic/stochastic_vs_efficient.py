@@ -59,8 +59,9 @@ class Scene:
 	max_agents = 200 
 	n_generations = 400+1
 
-	def __init__(self, params_dict=None, **kwargs):
+	def __init__(self, verbose=False, **kwargs):
 		self.set_params(**kwargs)
+		self.verbose = verbose
 
 		# initialise agents
 		self.agents = [Agent(i, self, g0=True) for i in np.arange(self.n_agents)]
@@ -97,7 +98,7 @@ class Scene:
 		self.traces = dict(pR=[], predator_bias=[], n_agents=[], deaths=[], kills=[], births=[])
 		self.dead_agents = []
 
-		for gennum in np.arange(self.n_generations):
+		for gennum in tqdm(np.arange(self.n_generations)):
 			lefts, rights, deaths, kills = 0, 0, 0, 0
 			survivors = []
 			# Loop over agents 
@@ -138,7 +139,8 @@ class Scene:
 				self.agents.extend(next_gen)
 
 			# Summary
-			print("[{}] -- {} agents. {} deaths {} kills {} births".format(gennum, len(self.agents), deaths, kills, births))
+			if self.verbose:
+				print("[{}] -- {} agents. {} deaths {} kills {} births".format(gennum, len(self.agents), deaths, kills, births))
 			
 			if len(self.agents):
 				self.traces["pR"].append(rights/(rights+lefts))
@@ -166,6 +168,7 @@ class Scene:
 		ax.axhline(0.5, color=black)
 		ax.legend()
 		ax.set(title="predator prey interaction", ylabel="p(R)", xlabel="# generations", ylim=[-0.1, 1.1])
+		return ax
 
 
 class Agent():
