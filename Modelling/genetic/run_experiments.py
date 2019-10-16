@@ -8,52 +8,21 @@ from Utilities.imports import *
 
 from Modelling.genetic.stochastic_vs_efficient import *
 
-%matplotlib inline
+# if __name__ == '__main__':
+# 	%matplotlib inline
 
 # %%
 save_fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\plots\\Efficiency_vs_Stochasticity"
 # %%
 # Base params
 # mazes paths lengths
-mazes = dict(
-	m1 = (1.7, 1.),
-	m2 = None,
-	m3 = None,
-	m4 = (1., 1.)
-)
-
-def get_params(maze, **kwargs):
-	params = {}
-	params["left_l"] = mazes[maze][0]
-	params["right_l"] = mazes[maze][1]
-
-	params['danger'] = kwargs.pop('danger', danger)
-	params['predator_memory'] = kwargs.pop('predator_memory', predator_memory)
-	params['predator_risk_factor'] = kwargs.pop('predator_risk_factor', predator_risk_factor)
-	params['reproduction'] = kwargs.pop('reproduction', reproduction)
-	params['mutation_rate'] = kwargs.pop('mutation_rate', mutation_rate)
-	params['n_agents'] = kwargs.pop('n_agents', n_agents)
-	params['max_agents'] = kwargs.pop('max_agents', max_agents)
-	params['n_generations'] = kwargs.pop('n_generations', n_generations)
-	return params
-
-def restore_params():
-	left_l =  1.7
-	right_l = 1
-	danger = .1 
-	predator_memory = 500
-	predator_risk_factor = .03 
-	reproduction = .5
-	mutation_rate = .001
-	n_agents = 100
-	max_agents = 200 
-	n_generations = 600+1
-
-	return left_l, right_l, danger, predator_memory, predator_risk_factor, reproduction, mutation_rate, n_agents, max_agents, n_generations
+from Modelling.genetic.ga_utils import *
 
 left_l, right_l, danger, predator_memory, predator_risk_factor, reproduction, mutation_rate, n_agents, max_agents, n_generations = restore_params()
 
 # %%
+if __name__ == "__main__":
+
 # Run simulation with base params in asym maze
 left_l, right_l, danger, predator_memory, predator_risk_factor, reproduction, mutation_rate, n_agents, max_agents, n_generations = restore_params()
 
@@ -135,8 +104,8 @@ left_l, right_l, danger, predator_memory, predator_risk_factor, reproduction, mu
 
 #%%
 # Vary both params
-SF_values = [0.0, 0.05, 0.1]
-EF_values = [0.0, 0.1, 0.2]
+SF_values = [0.0, 0.025, 0.05,]
+EF_values = [0.0, 0.1, 0.2, 0.3]
 repeats = 3
 
 n_exps = repeats * len(SF_values) * len(EF_values)
@@ -164,25 +133,42 @@ ax.set(title="varying both pressures in M1", xlabel="stochasticity pressure", yl
 ax.legend()
 
 
+"""
+? this code should run stuff in parallel but it doesnt seem to work in ipython
+
+SF_values = [0.0, 0.025, 0.05, 0.075, 0.1]
+EF_values = [0.0, 0.1, 0.2, 0.3]
+repeats = 3
+
+n_exps = len(SF_values) * len(EF_values)
+curexp = 1
+
+ch = MplColorHelper("Greens", 0, 1)
+f, ax = create_figure(subplots=False, facecolor=white, figsize=(16, 16))
+pR_values = []
+for SF in SF_values: # varying stochasticity pressure
+	for EF in EF_values: # varying efficiency pressure
+		mean_pR = 0
+		print("Running {}/{}".format(curexp, n_exps))
+		curexp += 1
+
+		# run scenes in parallel
+		scenes = [Scene(**get_params("m1", predator_risk_factor=SF, risk=EF)) for i in range(repeats)]
+		results = run_scenes_in_parallel(scenes)
+		
+		mean_pR = np.mean([np.mean(traces.predator_bias.values[-100:]) for traces, params in results])
+		pR_values.append((SF, EF, mean_pR))
+		ax.scatter(SF, EF, color=ch.get_rgb(mean_pR), s=1000*mean_pR, label="SF{},EF{},p(R):{}".format(SF, EF, round(mean_pR, 2)))
+		
+
+ax.set(title="varying both pressures in M1", xlabel="stochasticity pressure", ylabel="efficiency pressure", facecolor=[.2, .2, .2],)
+ax.legend()
+
+"""
+
 #%%
 # Fit 2d polinomial to parameters space
 
-def polyfit2d(x, y, z, order=3):
-    ncols = (order + 1)**2
-    G = np.zeros((x.size, ncols))
-    ij = itertools.product(range(order+1), range(order+1))
-    for k, (i,j) in enumerate(ij):
-        G[:,k] = x**i * y**j
-    m, _, _, _ = np.linalg.lstsq(G, z)
-    return m
-
-def polyval2d(x, y, m):
-    order = int(np.sqrt(len(m))) - 1
-    ij = itertools.product(range(order+1), range(order+1))
-    z = np.zeros_like(x)
-    for a, (i,j) in zip(m, ij):
-        z += a * x**i * y**j
-    return z
 
 # organize Data...
 x = np.array([p[0] for p in pR_values])
@@ -212,9 +198,10 @@ ax.set(xlabel="stochasticity pressure", ylabel="efficiency pressure")
 # Run simulation with selected params
 left_l, right_l, danger, predator_memory, predator_risk_factor, reproduction, mutation_rate, n_agents, max_agents, n_generations = restore_params()
 
-scene = Scene(**get_params("m1", danger=0.2, predator_risk_factor=0.05))
+scene = Scene(**get_params("m1", danger=0.1, predator_risk_factor=0.05))
 scene.run()
 ax = scene.plot_summary()
 ax.set(facecolor=[.2, .2, .2], xlabel="# generations", ylabel="p(R)", ylim=[0, 1])
 
 #%%
+# Test params on different mazes
