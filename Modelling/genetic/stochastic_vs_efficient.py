@@ -31,7 +31,7 @@ class Scene:
     # ? Population params
     n_agents = 100
     max_agents = 400 
-    n_generations = 500+1
+    n_generations = 1000+1
 
     def __init__(self):
         # initialise agents
@@ -121,10 +121,11 @@ class Scene:
         axes[1].set(ylim=[0, 1])
         axes[-1].set(xlabel="generation #")
 
-        f, ax = create_figure(subplots=False, colorface=white, figsize=(16, 16))
-        ax.plot(self.traces.pR, color=green, legend="preys' pR")
-        ax.plot(self.traces.predator_bias, color=red, legend="predator pR")
+        f, ax = create_figure(subplots=False, facecolor=white, figsize=(16, 16))
+        ax.plot(self.traces.pR, color=green, label="preys' pR")
+        ax.plot(self.traces.predator_bias, color=red, label="predator pR")
         ax.axhline(0.5, color=black)
+        ax.legend()
         ax.set(title="predator prey interaction", ylabel="p(R)", xlabel="# generations")
 
 
