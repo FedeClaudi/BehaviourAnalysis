@@ -12,28 +12,57 @@ from Utilities.imports import *
     manner. p(death) is proportional to the length of each path and if theyir behaviour becomes too
     predictable they also die. 
 """
+parameters = dict(
+        maze4 = dict(
+                left_l =  1,
+                right_l = 1,
+                danger = .1 ,
+                predator_memory = 800 ,
+                predator_risk_factor = .04 ,
+                reproduction = .14 , # ! different!!
+                mutation_rate = .001,
+                n_agents = 100,
+                max_agents = 200 ,
+                n_generations = 1400+1,
+        ), 
+        maze1 = dict(
+                left_l =  1.7,
+                right_l = 1,
+                danger = .1 ,
+                predator_memory = 800,
+                predator_risk_factor = .0 ,
+                reproduction = .3 , # ! different!!
+                mutation_rate = .001,
+                n_agents = 100,
+                max_agents = 200 ,
+                n_generations = 600+1,
+        ), 
+)
 
 class Scene:
     # ! params
     # ? maze setup
-    left_l =  1.7
+    left_l =  1
     right_l = 1
 
     # ? danger rates
     danger = .1 # probability of death for .1 unit length of path
-    predator_memory = 1000 # number of trials in the predator's memory 
-    predator_risk_factor = .1 # reduce lethality of a predator that correctly anticipate the prey's behaviour
+    predator_memory = 800 # number of trials in the predator's memory 
+    predator_risk_factor = .04 # reduce lethality of a predator that correctly anticipate the prey's behaviour
     
     # ? reproduction rates
-    reproduction = .2 # probability that any agent will reproduce in a given generation
+    reproduction = .14 # probability that any agent will reproduce in a given generation
     mutation_rate = .001
 
     # ? Population params
     n_agents = 100
-    max_agents = 400 
-    n_generations = 1000+1
+    max_agents = 200 
+    n_generations = 400+1
 
-    def __init__(self):
+    def __init__(self, params_dict=None):
+        # initialise params
+        self.set_params(params_dict)
+
         # initialise agents
         self.agents = [Agent(i, self, g0=True) for i in np.arange(self.n_agents)]
 
@@ -45,6 +74,19 @@ class Scene:
         for k,v in self.risks.items():
             if v > 1:
                 raise ValueError("risk too large, p_death > 1, reduce danger")
+
+    def set_params(self, params_dict):
+        if params_dict is not None:
+                self.left_l = params_dict['left_l']
+                self.right_l = params_dict['right_l']
+                self.danger = params_dict['danger']
+                self.predator_memory = params_dict['predator_memory']
+                self.predator_risk_factor = params_dict['predator_risk_factor']
+                self.reproduction = params_dict['reproduction']
+                self.mutation_rate = params_dict['mutation_rate']
+                self.n_agents = params_dict['n_agents']
+                self.max_agents = params_dict['max_agents']
+                self.n_generations = params_dict['n_generations']
 
     def get_agents_ids(self):
         return [agent.id for agent in self.agents]
@@ -108,25 +150,24 @@ class Scene:
                 self.traces["births"].append(births)
                 self.traces["predator_bias"].append(self.predator.risk)
             else:
-                self.traces["pR"].append(0)
                 break
         self.traces = pd.DataFrame(self.traces)
 
 
     def plot_summary(self):
-        axes = self.traces.plot.line(subplots=True)
-        axes[0].axhline(0.5, color=black)
-        axes[0].set(ylim=[0, 1])
-        axes[1].axhline(0.5, color=black)
-        axes[1].set(ylim=[0, 1])
-        axes[-1].set(xlabel="generation #")
+        # axes = self.traces.plot.line(subplots=True)
+        # axes[0].axhline(0.5, color=black)
+        # axes[0].set(ylim=[0, 1])
+        # axes[1].axhline(0.5, color=black)
+        # axes[1].set(ylim=[0, 1])
+        # axes[-1].set(xlabel="generation #")
 
         f, ax = create_figure(subplots=False, facecolor=white, figsize=(16, 16))
         ax.plot(self.traces.pR, color=green, label="preys' pR")
         ax.plot(self.traces.predator_bias, color=red, label="predator pR")
         ax.axhline(0.5, color=black)
         ax.legend()
-        ax.set(title="predator prey interaction", ylabel="p(R)", xlabel="# generations")
+        ax.set(title="predator prey interaction", ylabel="p(R)", xlabel="# generations", ylim=[0, 1])
 
 
 class Agent():
@@ -186,18 +227,22 @@ class Predator():
         self.estimate_danger()
 
         if self.risk < .5 and not choice: # going left and correctly anticipated
-            p_kill = 1 - self.risk
+            pass
         elif self.risk > .5 and choice: # going right and correctly anticipated
-            p_kill = self.risk
+            pass
         else:
             return 0
         
-        killed = bernoulli.rvs(p_kill*self.scene.predator_risk_factor, size=1)[0]
+        killed = bernoulli.rvs(self.scene.predator_risk_factor, size=1)[0]
         return killed
 
 
-if __name__ == "__main__":
-    scene = Scene()
+def experiments(exp):
+    scene = Scene(params_dict=parameters[exp])
     scene.run()
     scene.plot_summary()
     plt.show()
+
+
+if __name__ == "__main__":
+    experiments("maze1")
