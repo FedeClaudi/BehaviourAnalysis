@@ -65,7 +65,7 @@ class TrialClipsMaker(Editor):
         # Define parameters for decorations on video
         if not clean:
             self.video_decoration_params = {
-                "pre_stim_interval": 1,
+                "pre_stim_interval": 5,
                 "post_stim_interval": 20, # ? number of seconds before and after the stimulus to include in the clip
                 "border_size":20,
                 "color_on": [100, 255, 100],
@@ -81,7 +81,6 @@ class TrialClipsMaker(Editor):
             } 
             self.overlay_pose = False
             self.overlay_text = False
-
 
         # get a copy of the original params to restore them if they get changed during processing
         self._add_threat_video = add_threat_video
@@ -346,16 +345,15 @@ class TrialClipsMaker(Editor):
 
                 # Save to file
                 self.writer.write(frame)
-            break
 
 
 
 if __name__ == "__main__":
-    tcm = TrialClipsMaker(process_recs_in_range = [40, 1000], 
+    tcm = TrialClipsMaker(process_recs_in_range = [0, 5000], 
                             add_threat_video    = False, 
                             overlay_pose        = False, 
-                            overlay_text        = False,
-                            clean=True, 
-                            save_fld="Z:\\branco\\Federico\\raw_behaviour\\maze\\_overview_training_clips")
-    tcm.loop_over_recordings(skip_every=10)
+                            overlay_text        = True,
+                            clean=False, 
+                            save_fld="Z:\\branco\\Federico\\raw_behaviour\\maze\\trials_clips")
+    tcm.loop_over_recordings()
 
