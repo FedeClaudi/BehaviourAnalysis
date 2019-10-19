@@ -14,11 +14,11 @@ from Modelling.maze_solvers.world import World
 class Environment(World):
 	"""[Creates the environment an agent acts in, subclass of the world class]
 	"""
-	def __init__(self, grid_size=None, **kwargs):
+	def __init__(self, grid_size=None, kernel_size=25, model_path=None, **kwargs):
 		World.__init__(self, grid_size=grid_size, **kwargs)
 
 		# Define maze
-		self.maze, self.free_states = self.get_maze_from_image()
+		self.maze, self.free_states = self.get_maze_from_image(model_path=model_path, kernel_size=kernel_size)
 
 		# Define available actions
 		self.actions = {
@@ -74,8 +74,14 @@ class Environment(World):
 		if model_path is None:
 			model = cv2.imread(os.path.join(self.maze_models_folder, self.maze_design))
 		else:
+			if not os.path.isfile(model_path):
+				# try searching for it in the maze models folder
+				model_path = os.path.join(self.maze_models_folder, model_path)
 			model = cv2.imread(model_path)
-			
+		
+		if model is None: 
+			raise FileExistsError("Could not load model image with path: {0}".format(model_path))
+
 		# blur to remove imperfections
 		model = cv2.blur(model, (kernel_size, kernel_size))
 
@@ -232,8 +238,8 @@ class Environment(World):
 
 
 if __name__ == "__main__":
-	envs = Environment()
-	envs.act(2)  # move up
+	envs = Environment(kernel_size=25, model_path='PathInt2_old.png')
+	# envs.act(2)  # move up
 	envs.plot_maze(plot_free_states=False)
 	plt.show()
 

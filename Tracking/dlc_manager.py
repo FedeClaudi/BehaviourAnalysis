@@ -12,8 +12,6 @@ import matplotlib.pyplot as plt
 import deeplabcut
 import yaml
 
-import Processing.plot.video_plotting_toolbox as pl
-
 print(' ... ready!')
 
 
@@ -131,26 +129,6 @@ class DLCManager:
         if trajectory:
             deeplabcut.plot_trajectories(self.dlc_paths['cfg_path'], videos, filtered=filtered)
 
-    def create_labeled_videos_fc(self, videos=None):
-        if videos is None:
-            videos = self.sel_videos_in_folder()
-        else: 
-            if not isinstance(videos, list):
-                videos = [videos]
-
-        for video in videos:
-            fld, vid = os.path.split(video)
-            posename = [f for f in os.listdir(fld) if vid.split('.')[0] in f and '.h5' in f]
-
-            if not posename:
-                print('Pose data not found')
-                continue
-            
-            pose = os.path.join(fld, posename[0])
-            savepath = os.path.join(fld, vid.split('.')[0]+'_labeled.mp4')
-
-            pl.overlay_tracking_on_video(videopath=video, posepath=pose,  output_format = 'mp4', savepath=savepath, plot_points=True,
-                                plot_poly=False, poly_mode='lines', plot_custom=True)
 
     def extract_outliers(self, videos=None):
         if videos is None: videos = self.sel_videos_in_folder()
@@ -220,33 +198,44 @@ class DLCManager:
 
 
 if __name__ == "__main__":
-    manager = DLCManager()
+    # manager = DLCManager()
 
 
-    fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\ants\\dlc_vids_edited"
+    # fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\ants\\dlc_vids_edited"
 
 
-    vids = manager.sel_videos_in_folder(all=True, min_n=3, dr=fld)
+    # vids = manager.sel_videos_in_folder(all=True, min_n=3, dr=fld)
 
-    # manager.create_project()
-    # manager.extract_frames()
+    # # manager.create_project()
+    # # manager.extract_frames()
 
-    # manager.label_frames()
+    # # manager.label_frames()
 
-    # manager.analyze_videos(videos=vids)
-    manager.create_labeled_videos(videos=vids, trajectory=True)
+    # # manager.analyze_videos(videos=vids)
+    # manager.create_labeled_videos(videos=vids, trajectory=True)
 
-    # manager.filter_data(vids)
-    # manager.create_labeled_videos(videos=vids, trajectory=False, filtered=True, dr=None)
+    # # manager.filter_data(vids)
+    # # manager.create_labeled_videos(videos=vids, trajectory=False, filtered=True, dr=None)
 
-    # manager.extract_outliers(videos=vids)
-    # manager.refine_labels() 
+    # # manager.extract_outliers(videos=vids)
+    # # manager.refine_labels() 
 
-    # manager.update_training_video_list()
-    # manager.merge_datasets()
-    # manager.check_labels()
+    # # manager.update_training_video_list()
+    # # manager.merge_datasets()
+    # # manager.check_labels()
 
-    # manager.create_training_dataset()
-    # manager.train_network()
+    # # manager.create_training_dataset()
+    # # manager.train_network()
 
-    plt.show()
+    # plt.show()
+
+    cfg = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Nets\\DecisionMaze-Federico-2019-10-15\\config.yaml"
+
+    new_vids = ["D:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Training_videos\\old\\180823_CA2952_2_audio-4626.mp4",
+                "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Training_videos\\old\\180907_CA3114_1_audio-39468.mp4",
+                "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\DLC_nets\\Training_videos\\old\\181012_CA3284_2_visual-26542.mp4",
+                "Z:\\branco\\Federico\\raw_behaviour\\maze\\_overview_training_clips\\190201_CA419_all_trials.mp4",
+                "Z:\\branco\\Federico\\raw_behaviour\\maze\\_overview_training_clips\\190425_CA531_all_trials.mp4",
+                "Z:\\branco\\Federico\\raw_behaviour\\maze\\_overview_training_clips\\190219_CA415_all_trials.mp4"]
+
+    deeplabcut.add_new_videos(cfg, new_vids, copy_videos=True)

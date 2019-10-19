@@ -18,13 +18,14 @@ import colorlover as cl
 
 # %%
 # Getting data
-ea = ExperimentsAnalyser(load=False,  naive=None, lights=1, escapes=True, escapes_dur=True,  shelter=True)
+ea = ExperimentsAnalyser(load=False,  naive=None, lights=1, escapes=True, escapes_dur=True,  shelter=True, 
+                    agent_params={'kernel_size':3, 'model_path':'PathInt2_old.png', 'grid_size':1000})
 
 # Get Threat Platform data
 ea.prep_tplatf_trials_data(filt=False, remove_errors=True, speed_th=None)
 
-# Get Torosity Utils
-tor = Torosity()
+# # Get Torosity Utils
+# tor = Torosity()
 
 #%%
 # ! Get aligned tracking data
@@ -88,178 +89,77 @@ for i, (condition, trials) in enumerate(ea.trials.items()):
 
 aligned_trials = pd.DataFrame.from_dict(aligned_trials)
 aligned_trials
+
+
 #%%
-# ! PLot a bunch of KDE for all trials
+# Plot tracking and highlight fast and slow frames
 f, axarr = create_triplot(facecolor=white, figsize=(15,15))
 
-
-mean_speed_pre, mean_speed_post, y_at_turn = [], [], []
-for i, trial in aligned_trials.iterrows():
-    axarr.main.scatter(trial.tracking[trial.turning_frame, 0], trial.tracking[trial.turning_frame, 1], color=red, alpha=.8, zorder=99)
-    axarr.main.plot(trial.tracking[:, 0], trial.tracking[:, 1], color=white, alpha=.2, lw=3)
-    mean_speed_pre.append(np.mean(trial.tracking[:trial.turning_frame, 2]))
-    mean_speed_post.append(np.mean(trial.tracking[trial.turning_frame:, 2]))
-    y_at_turn.append((trial.tracking[trial.turning_frame, 1]))
-
-
-plot_kde(axarr.x, 0, data=mean_speed_pre, color=red, kde_kwargs={"bw":0.25}, label="pre")
-plot_kde(axarr.x, 0, data=mean_speed_post, color=white, kde_kwargs={"bw":0.25}, label="post")
-plot_kde(axarr.y, 0, data=y_at_turn, color=white, vertical=True, kde_kwargs={"bw":5}, label="post")
-
-
-
-axarr.main.set(facecolor=[.2, .2, .2], xlim=[400, 600], ylim=[120, 375])
-axarr.x.set(facecolor=[.2, .2, .2])
-axarr.y.set(facecolor=[.2, .2, .2], ylim=[120, 375])
-
-axarr.x.legend()
-#%%
-# ! Plot trackings
-f, axarr = create_figure(subplots=True, ncols=3, facecolor=white, figsize=(15,15))
-
-for i, trial in aligned_trials.iterrows():
-    axarr[0].scatter(trial.tracking[trial.turning_frame, 0], trial.tracking[trial.turning_frame, 1], color=red, alpha=.8, zorder=99)
-    axarr[0].plot(trial.tracking[:, 0], trial.tracking[:, 1], color=white, alpha=.2, lw=3)
-
-    axarr[1].scatter(trial.tracking_centered[trial.turning_frame, 0], trial.tracking_centered[trial.turning_frame, 1], color=red, alpha=.8, zorder=99)
-    axarr[1].plot(trial.tracking_centered[:, 0], trial.tracking_centered[:, 1], color=white, alpha=.2, lw=3)
-
-    axarr[2].scatter(trial.tracking_turn[trial.turning_frame, 0], trial.tracking_turn[trial.turning_frame, 1], color=red, alpha=.8, zorder=99)
-    axarr[2].plot(trial.tracking_turn[:, 0], trial.tracking_turn[:, 1], color=white, alpha=.2, lw=3)
-
-
-#%%
-# ? WIP
-# Configure Plotly to be rendered inline in the notebook.
-plotly.offline.init_notebook_mode()
-
-
+# thresholds
 yth = 200
+sth, high_sth =  2, 4
+cdth = 100
 
-colorhelper = MplColorHelper("viridis", 0, 2, rgb255=True)
-
-fig = go.Figure()
-plot_data = []
+median_speed, max_speed, all_speeds, cum_dist_from_line_l = [], [], [], []
 for i, trial in aligned_trials.iterrows():
-    try:
-        below_yth = np.where(trial.tracking[:, 1] <= yth)[0][-1]
-    except: 
-        above_yth = 0
-    else:
-        above_yth = below_yth + 1
-
-    # small_tracking = tor.smallify_tracking(trial.tracking[above_yth:, :])
-
-    # ax.plot(trial.tracking[above_yth:, 0], trial.tracking[above_yth:, 1], trial.tracking[above_yth:, 2], lw=2)
-    
-    color = colorhelper.get_rgb(np.nanmedian(trial.tracking[:, 2]))
-    # Configure the trace.
-    trace = go.Scatter3d(
-        x=trial.tracking[above_yth:, 0],  # <-- Put your data instead
-        y=trial.tracking[above_yth:, 1],  # <-- Put your data instead
-        z=trial.tracking[above_yth:, 2],  # <-- Put your data instead
-        # mode='markers',
-        marker={
-            'size': 1,
-            'opacity': 0.8,
-        },
-        line=dict(
-        color = [color for i in range(len(trial.tracking[above_yth:, 0]))],
-        width=4
-        )
-    )
-    plot_data.append(trace)
-
-    # trial_torosity = tor.process_one_trial(tracking=np.int32(small_tracking))
-
-    # if i > 20: break
-
-
-fig = go.Figure(data=plot_data, layout=layout)
-
-camera = dict(
-    eye=dict(x=0., y=0., z=2.5)
-)
-scene =dict(
-            xaxis = dict(
-                    backgroundcolor="rgb(55, 55, 55)",
-                    gridcolor="white",
-                    showbackground=True,
-                    zerolinecolor="white",),
-            yaxis = dict(
-                backgroundcolor="rgb(55, 55, 55)",
-                gridcolor="white",
-                showbackground=True,
-                zerolinecolor="white"),
-            zaxis = dict(
-                backgroundcolor="rgb(55, 55, 55)",
-                gridcolor="white",
-                showbackground=True,
-                zerolinecolor="white",
-                range=[0, 10]),
-            xaxis_title='X AXIS TITLE',
-            yaxis_title='Y AXIS TITLE',
-            zaxis_title='Z AXIS TITLE',
-            )
-
-fig.update_layout(scene = scene, scene_camera=camera,
-                    width=700,
-                    margin=dict(r=10, l=10,b=10, t=10),
-                  )
-
-plotly.offline.iplot(fig)
-
-# ax.axhline(yth*tor.scale_factor, color=white, lw=2)
-# ax.set(facecolor=[.2, .2, .2],  xlim=[400, 600], ylim=[120, 375])
-
-
-
-
-#%%
-f, ax = create_figure(subplots=False, facecolor=white, figsize=(15,15))
-yth = 200
-sth, high_sth =  4, 5
-
-median_speed, max_speed, all_speeds = [], [], []
-for i, trial in aligned_trials.iterrows():
+    # Get right aligned tracking data
     if "left" == trial.escape_side:
         x, y, s = 500 + (500 - trial.tracking[:, 0]), trial.tracking[:, 1], trial.tracking[:, 2]
+        x_cent, y_cent = 500 + (500 - trial.tracking_centered[:, 0]), trial.tracking_centered[:, 1]
     else:
         x, y, s = trial.tracking[:, 0], trial.tracking[:, 1], trial.tracking[:, 2]
+        x_cent, y_cent = trial.tracking_centered[:, 0], trial.tracking_centered[:, 1]
 
+    # Get when mouse goes over the y threshold
     try:
         below_yth = np.where(y <= yth)[0][-1]
     except: 
+        below_yth = 0
         above_yth = 0
     else:
         above_yth = below_yth + 1
 
+    # get fast and slow frames
     slow_idx = np.where(s[below_yth:] < sth)[0]+below_yth
     fast_idx = np.where(s[below_yth:] >= high_sth)[0]+below_yth
     median_speed.append(np.nanmedian(s))
     max_speed.append(np.max(s))
     all_speeds.extend([x for x in s if not np.isnan(x)])
 
-    ax.plot(x[:above_yth], y[:above_yth], color=[.6, .6, .6], lw=1)
-    ax.plot(x[above_yth:], y[above_yth:], color=white, lw=1)
-    ax.scatter(x[slow_idx], y[slow_idx], color=red, s=30, zorder=99, alpha=.5)
-    ax.scatter(x[fast_idx], y[fast_idx], color=green, s=30, zorder=99, alpha=.5)
-
-    # if i > 20: break
-
-
-ax.axhline(yth, color=white, lw=2)
-_ = ax.set(title="red=slow, green=fast", facecolor=[.2, .2, .2],  xlim=[400, 600], ylim=[120, 375])
+    # Get comulative distance between tracking and a straight line going
+    # between the mouse location when it gets above yth and when it leaves T
+    p0, p1 = [x[above_yth], y[above_yth]], [x[-1], y[-1]]
+    cumdist = np.sum(np.array(cals_distance_between_vector_and_line([p0, p1], np.vstack([x[above_yth:], y[above_yth:]]).T))**2)/len(x[above_yth:])
+    cum_dist_from_line_l.append(cumdist)
 
 
-kdeax, _, = plot_kde(data=all_speeds, kde_kwargs={"bw":.25}, fig_kwargs={'facecolor':white},  color=white)
-# kdeax, _, = plot_kde(ax=kdeax, data=max_speed, kde_kwargs={"bw":.25}, color=green)
-# kdeax, _, = plot_kde(ax=kdeax, data=max_speed, kde_kwargs={"bw":.25}, color=green)
+    # plot tracking
+    if cumdist < cdth:
+        color = red
+    else:
+        color = green
 
+    axarr.main.plot(x[:above_yth], y[:above_yth], color=desaturate_color(color), lw=1)
+    axarr.main.plot(x[above_yth:], y[above_yth:], color=color, lw=1)
+
+    # Highlight fast and slow frames
+    # axarr.main.scatter(x[slow_idx], y[slow_idx], color=red, s=30, zorder=99, alpha=.5)
+    # axarr.main.scatter(x[fast_idx], y[fast_idx], color=green, s=30, zorder=99, alpha=.5)
+
+# Plot kde of speeds distributions
+kdeax, _, = plot_kde(data=all_speeds, kde_kwargs={"bw":.1}, fig_kwargs={'facecolor':white},  color=white)
 kdeax.axvline(sth, color=red)
 kdeax.axvline(high_sth, color=green)
 
+# plot KDE of comulative line distances
+_, _, = plot_kde(data=cum_dist_from_line_l, ax=axarr.x, kde_kwargs={"bw":10}, color=white)
+axarr.x.axvline(cdth, color=green)
+
+# Set axes props
+axarr.main.axhline(yth, color=white, lw=2)
+_ = axarr.main.set(title="red=slow, green=fast", facecolor=[.2, .2, .2],  ylim=[120, 370], xlim=[475, 575]) # 
 _ = kdeax.set(title="KDE of median speed", facecolor=[.2, .2, .2], xlim=[0, 15])
+_= axarr.x.set(title="comulative line distance", facecolor=[.2, .2, .2], xlim=[-500, 750])
 
 
 #%%

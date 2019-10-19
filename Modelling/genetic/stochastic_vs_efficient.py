@@ -4,43 +4,19 @@ sys.path.append('./')
 import numpy as np
 import random
 from scipy.stats import bernoulli
+import multiprocessing as mp
 
 from Utilities.imports import *
+
 
 """
 	Simulate the scenario in which agents can escape on two paths of different lengths in a probabilistic
 	manner. p(death) is proportional to the length of each path and if theyir behaviour becomes too
 	predictable they also die. 
 """
-parameters = dict(
-		maze4 = dict(
-				left_l =  1,
-				right_l = 1,
-				danger = .1 ,
-				predator_memory = 800 ,
-				predator_risk_factor = .04 ,
-				reproduction = .14 , # ! different!!
-				mutation_rate = .001,
-				n_agents = 100,
-				max_agents = 200 ,
-				n_generations = 1400+1,
-		), 
-		maze1 = dict(
-				left_l =  1.3,
-				right_l = 1,
-				danger = .1 ,
-				predator_memory = 800,
-				predator_risk_factor = .04 ,
-				reproduction = .3 , # ! different!!
-				mutation_rate = .001,
-				n_agents = 100,
-				max_agents = 200 ,
-				n_generations = 600+1,
-		), 
-)
 
 class Scene:
-	# ! params
+	# ! default params
 	# ? maze setup
 	left_l =  1
 	right_l = 1
@@ -59,8 +35,9 @@ class Scene:
 	max_agents = 200 
 	n_generations = 400+1
 
-	def __init__(self, params_dict=None, **kwargs):
+	def __init__(self, verbose=False, **kwargs):
 		self.set_params(**kwargs)
+		self.verbose = verbose
 
 		# initialise agents
 		self.agents = [Agent(i, self, g0=True) for i in np.arange(self.n_agents)]
@@ -86,6 +63,21 @@ class Scene:
 		self.max_agents = kwargs.pop('max_agents', self.max_agents)
 		self.n_generations = kwargs.pop('n_generations', self.n_generations)
 
+	def get_params(self):
+		params = {}
+		params['left_l'] = self.left_l
+		params['right_l'] = self.right_l
+		params['danger'] = self.danger
+		params['predator_memory'] = self.predator_memory
+		params['predator_risk_factor'] = self.predator_risk_factor
+		params['reproduction'] = self.reproduction
+		params['mutation_rate'] = self.mutation_rate
+		params['n_agents'] = self.n_agents
+		params['max_agents'] = self.max_agents
+		params['n_generations'] = self.n_generations
+		return params
+
+
 	def get_agents_ids(self):
 		return [agent.id for agent in self.agents]
 
@@ -97,7 +89,7 @@ class Scene:
 		self.traces = dict(pR=[], predator_bias=[], n_agents=[], deaths=[], kills=[], births=[])
 		self.dead_agents = []
 
-		for gennum in np.arange(self.n_generations):
+		for gennum in tqdm(np.arange(self.n_generations)):
 			lefts, rights, deaths, kills = 0, 0, 0, 0
 			survivors = []
 			# Loop over agents 
@@ -138,7 +130,8 @@ class Scene:
 				self.agents.extend(next_gen)
 
 			# Summary
-			print("[{}] -- {} agents. {} deaths {} kills {} births".format(gennum, len(self.agents), deaths, kills, births))
+			if self.verbose:
+				print("[{}] -- {} agents. {} deaths {} kills {} births".format(gennum, len(self.agents), deaths, kills, births))
 			
 			if len(self.agents):
 				self.traces["pR"].append(rights/(rights+lefts))
@@ -150,6 +143,7 @@ class Scene:
 			else:
 				break
 		self.traces = pd.DataFrame(self.traces)
+		return self.traces, self.get_params()
 
 
 	def plot_summary(self):
@@ -166,6 +160,7 @@ class Scene:
 		ax.axhline(0.5, color=black)
 		ax.legend()
 		ax.set(title="predator prey interaction", ylabel="p(R)", xlabel="# generations", ylim=[-0.1, 1.1])
+		return ax
 
 
 class Agent():
@@ -235,12 +230,28 @@ class Predator():
 		return killed
 
 
-def experiments(exp):
-	scene = Scene(**parameters[exp])
-	scene.run()
-	scene.plot_summary()
-	plt.show()
+
+
+def run_scenes_in_parallel(scenes):
+	# Define callback function to collect the output in `results`
+	global results
+	results = []
+	def collect_result(result):
+		global results
+		results.append(result)
+
+	if len(scenes) > mp.cpu_count(): print("Warning, too manu scenes for the number of CPUs")
+	pool = mp.Pool(mp.cpu_count())
+
+	print("Ready to run {} scenes in parallel".format(len(scenes)))
+	for i, scene in enumerate(scenes):
+		pool.apply_async(scene.run, args=(), callback=collect_result)
+	pool.close()
+	pool.join() # postpones the execution of next line of code until all processes in the queue are done.
+
+	return results
 
 
 if __name__ == "__main__":
-	experiments("maze1")
+	scenes = [Scene() for i in range(3)]
+	res = run_scenes_in_parallel(scenes)
