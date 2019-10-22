@@ -29,7 +29,7 @@ if sys.platform != "darwin":
         except:
             print("Could not connect to database")
         else:
-            print("Importing tables")
+            # print("Importing tables")
             from database.TablesDefinitionsV4 import *
 
 from Utilities.matplotlib_config_figures import *

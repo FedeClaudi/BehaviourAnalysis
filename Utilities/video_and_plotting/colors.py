@@ -1,6 +1,7 @@
 import numpy as np
 import sys
 import random
+import seaborn as sns
 
 import matplotlib.pyplot as plt
 from matplotlib import cm
@@ -49,7 +50,6 @@ def get_n_colors(n, cmap="tab20"):
 	return [plt.get_cmap(cmap)(i) for i in np.arange(n)]
 
 def desaturate_color(c, k=.5):
-
 	return sns.desaturate(c, k)
 
 def saturate_color(c, k=.5):

@@ -221,6 +221,7 @@ def remove_tracking_errors(tracking, debug = False):
 def slope(x1, y1, x2, y2):
 	return (y2-y1)/(x2-x1)
 
+
 def calc_distance_between_point_and_line(line_points, p3):
 	"""[Calcs the perpendicular distance between a point and a line]
 	
@@ -231,6 +232,18 @@ def calc_distance_between_point_and_line(line_points, p3):
 	p1, p2 = np.array(line_points[0]), np.array(line_points[1])
 	return np.cross(p2-p1,p3-p1)/np.linalg.norm(p2-p1)
 	
+def cals_distance_between_vector_and_line(line_points, v):
+    dist = []
+    if v.shape[1] > v.shape[0]:
+        raise ValueError("This function expects and NxM array with N being the number of frames and N>M, ideally M=2")
+
+    for i in range(v.shape[0]):
+        p = [v[i, 0], v[i, 1]]
+        dist.append(calc_distance_between_point_and_line(line_points, p))
+    return dist
+
+
+
 def calc_distance_between_points_2d(p1, p2):
 	'''calc_distance_between_points_2d [summary]
 	
