@@ -66,7 +66,7 @@ class TrialClipsMaker(Editor):
         if not clean:
             self.video_decoration_params = {
                 "pre_stim_interval": 5,
-                "post_stim_interval": 20, # ? number of seconds before and after the stimulus to include in the clip
+                "post_stim_interval": 12, # ? number of seconds before and after the stimulus to include in the clip
                 "border_size":20,
                 "color_on": [100, 255, 100],
                 "color_off": [20,20,20],

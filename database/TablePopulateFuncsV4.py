@@ -186,8 +186,6 @@ def make_commoncoordinatematrices_table(table, key):
 	and stores transform matrix for future use]
 
 	"""
-	# TODO make this work for THREAT camera too
-
 	# Get the maze model template according to the experiment being processed
 	if int(key["uid"]<248) or int(key["uid"]>301):
 		old_mode = True
@@ -203,21 +201,24 @@ def make_commoncoordinatematrices_table(table, key):
 	try:
 		videopath = (Recording.FilePaths & key).fetch("overview_video")[0]
 	except:
+		print("While populating CCM, could not find video, make sure to run recording.make_paths")
 		warnings.warn("did not pupulate CCM for : {}".format(key))
 		return
-	if not videopath: return
+		
+	if not videopath: 
+		print("While populating CCM, could not find video, make sure to run recording.make_paths")
+		return
 
 	# Apply the transorm [Call function that prepares data to feed to Philip's function]
 	""" 
 		The correction code is from here: https://github.com/BrancoLab/Common-Coordinate-Behaviour
 	"""
-	# TODO make it work for old and new maze template
+
 	matrix, points, top_pad, side_pad = get_matrix(videopath, maze_model=maze_model, old_mode=old_mode)
 	if matrix is None:   # somenthing went wrong and we didn't get the matrix
 		# Maybe the videofile wasn't there
 		print('Did not extract matrix for video: ', videopath)
 		return
-
 
 	# Return the updated key
 	key['maze_model'] 			= maze_model

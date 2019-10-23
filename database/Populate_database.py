@@ -266,12 +266,12 @@ if __name__ == '__main__':
     # p.populate_sessions_table()
 
     # p.recording.populate(display_progress=True) 
-    # p.recording.make_paths(p) 
+    p.recording.make_paths(p) 
     # p.recording.make_aligned_frames()  # ? was used for alignign threat and overview cameras
     # p.mazecomponents.populate(display_progress=True)  # ? this will require input for new experiments
 
     # ? This slower and will require some input
-    # p.ccm.populate(display_progress=True)  # ! ccm
+    p.ccm.populate(display_progress=True)  # ! ccm
 
     # ? this is considerably slower but should be automated
     # errors = p.trackingdata.populate(display_progress=True, suppress_errors=False, return_exception_objects =True) # ! tracking data
@@ -283,8 +283,8 @@ if __name__ == '__main__':
     # if errors: raise ValueError([print("\n\n", e) for e in errors])
 
     # ? Show database content and progress
-    print(p.recording.fetch("uid"))
-    # p.show_progress()
+    print(p.ccm.tail())
+    p.show_progress()
 
 
 

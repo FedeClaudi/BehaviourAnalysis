@@ -85,12 +85,13 @@ class analyse_all_trals:
             # Def get the tracking for each recording
             bps = ['body', 'snout',  'neck', 'tail_base']
             recordings = set([s['recording_uid'] for s in session_stims])
-            recs_trackins, snout_trackins, tail_trackins = {}, {}, {}
+            recs_trackins, snout_trackins, tail_trackins, neck_trackins = {}, {}, {}, {}
             try:
                 for r in recordings:
                     recs_trackins[r] = (TrackingData.BodyPartData & "bpname='body'" & "recording_uid='{}'".format(r)).fetch1("tracking_data")
                     snout_trackins[r]= (TrackingData.BodyPartData & "bpname='snout'" & "recording_uid='{}'".format(r)).fetch1("tracking_data")
                     tail_trackins[r]= (TrackingData.BodyPartData & "bpname='tail_base'" & "recording_uid='{}'".format(r)).fetch1("tracking_data")
+                    neck_trackins[r]= (TrackingData.BodyPartData & "bpname='neck'" & "recording_uid='{}'".format(r)).fetch1("tracking_data")
 
             except:
                 print("Smth went wrong while getting tracking data, maybe there is no data there, maybe smth else is wrong")
@@ -99,6 +100,7 @@ class analyse_all_trals:
             # Get the number of samples before each rec
             recs_trackins = collections.OrderedDict(sorted(recs_trackins.items()))
             snout_trackins, tail_trackins = collections.OrderedDict(sorted(snout_trackins.items())), collections.OrderedDict(sorted(tail_trackins.items()))
+            neck_trackins = collections.OrderedDict(sorted(neck_trackins.items()))
             recs_lengths = {k:v.shape[0] for k,v in recs_trackins.items()}
             cumlens = np.cumsum(list(recs_lengths.values()))
             cl = [0]
@@ -111,6 +113,7 @@ class analyse_all_trals:
                 # Get the tracking data for the stimulus recordings        
                 rec_tracking = recs_trackins[stim['recording_uid']]
                 tail_tracking, snout_tracking = tail_trackins[stim['recording_uid']], snout_trackins[stim['recording_uid']]
+                neck_tracking = neck_trackins[stim['recording_uid']]
 
                 # Get video FPS
                 if uid < 184: fps = 30
@@ -153,6 +156,8 @@ class analyse_all_trals:
                 # Okay get the tracking data between provisory start and stop
                 trial_tracking = remove_tracking_errors(rec_tracking[start:stop, :]) 
                 snout_trial_tracking, tail_trial_tracking = remove_tracking_errors(snout_tracking[start:stop, :]) , remove_tracking_errors(tail_tracking[start:stop, :]) 
+                neck_trial_tracking = remove_tracking_errors(neck_tracking[start:stop, :])
+
                 # Now get shelter enters-exits from that tracking
                 shelter_enters, shelter_exits = get_roi_enters_exits(trial_tracking[:, -1], 0)
 
@@ -168,6 +173,7 @@ class analyse_all_trals:
                     trial_tracking = trial_tracking[:at_shelt, :] 
                     snout_trial_tracking = snout_trial_tracking[:at_shelt, :] 
                     tail_trial_tracking = tail_trial_tracking[:at_shelt, :] 
+                    neck_trial_tracking = neck_trial_tracking[:at_shelt, :]
 
                 # Get threat enters and exits
                 threat_enters, threat_exits = get_roi_enters_exits(trial_tracking[:, -1], 1)
@@ -189,7 +195,6 @@ class analyse_all_trals:
                     time_to_exit = threat_exits[0]/fps
                 else:
                     time_to_exit = -1
-
 
                 # Get the tracking data up to the stim frame so that we can extract arm of origin
                 out_trip_tracking = rec_tracking[:start, :]
@@ -233,6 +238,7 @@ class analyse_all_trals:
                     experiment_name = exp,
                     tracking_data = trial_tracking,
                     snout_tracking_data = snout_trial_tracking,
+                    neck_tracking_data = neck_trial_tracking,
                     tail_tracking_data = tail_trial_tracking,
                     outward_tracking_data = out_trip_tracking, 
                     stim_frame = start,
@@ -249,7 +255,6 @@ class analyse_all_trals:
                     threat_exits = threat_exits,
                     escape_duration = trial_duration,
                 )
-
                 session_trials.append(key)
 
             self.insert_in_table(session_trials)
@@ -298,10 +303,10 @@ def check_arm_assignment():
 if __name__ == "__main__":
     # a = analyse_all_trals(erase_table=True, fill_in_table=False)
     a = analyse_all_trals(erase_table=False, fill_in_table=True)
-    print(AllTrials())
+    # print(AllTrials())
 
 
-    print(pd.DataFrame(AllTrials().fetch()).tail())
+    # print(pd.DataFrame(AllTrials().fetch()).tail())
 
 
 

@@ -1260,7 +1260,7 @@ class ExperimentsAnalyser(Bayes, Environment):
 
 		self.trials={}
 		for condition, data in tqdm(self.conditions.items()):
-			out_of_ts, threat_trackings, s_threat_trackings, t_threat_trackings, speeds_at_out_t = [], [], [],  [], []
+			out_of_ts, threat_trackings, s_threat_trackings, t_threat_trackings, n_threat_trackings, speeds_at_out_t = [], [], [], [], [], []
 			maze_ids = []
 
 			trials = self.get_sessions_trials(maze_design=int(condition[-1]), naive=None, lights=1, escapes=True, escapes_dur=True)
@@ -1270,26 +1270,31 @@ class ExperimentsAnalyser(Bayes, Environment):
 				if not filt:
 					tracking = trial.tracking_data[:out_of_t, :3].copy()
 					s_tracking = trial.snout_tracking_data[:out_of_t, :3].copy()
+					n_tracking = trial.neck_tracking_data[:out_of_t, :3].copy()
 					t_tracking = trial.tail_tracking_data[:out_of_t, :3].copy()
 				else:
 					tracking = medfilt(trial.tracking_data[:out_of_t, :3].copy(), [fwindow, 1])
 					s_tracking = medfilt(trial.snout_tracking_data[:out_of_t, :3].copy(), [fwindow, 1])
 					t_tracking = medfilt(trial.tail_tracking_data[:out_of_t, :3].copy(), [fwindow, 1])
+					n_tracking = trial.neck_tracking_data[:out_of_t, :3].copy()
 
 				if remove_errors: # Remove errors from threat tracking
 					tracking = cleanup(tracking, speed_th)
 					s_tracking = cleanup(s_tracking, speed_th)
 					t_tracking = cleanup(t_tracking, speed_th)
+					n_tracking = cleanup(n_tracking, speed_th)
 
 				out_of_ts.append(out_of_t)
 				threat_trackings.append(tracking)
 				s_threat_trackings.append(s_tracking); t_threat_trackings.append(t_tracking)
+				n_threat_trackings.append(n_tracking)
 				speeds_at_out_t.append(tracking[-1, -1])
 				maze_ids.append(int(condition[-1]))
 
 			trials["frame_out_of_t"] = out_of_ts
 			trials["threat_tracking"] = threat_trackings
 			trials["snout_threat_tracking"], trials["tail_threat_tracking"] = s_threat_trackings, t_threat_trackings
+			trials['neck_threat_tracking'] = n_threat_trackings
 			trials["speed_at_out_t"] = speeds_at_out_t
 			trials["maze_id"] = maze_ids
 

@@ -7,6 +7,7 @@ import pandas as pd
 from scipy.spatial import distance
 from math import factorial, atan2, degrees, acos, sqrt, pi
 import math
+from math import atan2,degrees
 import matplotlib.pyplot as plt
 from scipy.signal import medfilt as median_filter
 from scipy.interpolate import interp1d

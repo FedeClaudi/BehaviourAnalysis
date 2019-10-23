@@ -275,9 +275,11 @@ class AllTrials(dj.Manual):
 		session_uid: int
 		recording_uid: varchar(128)
 		experiment_name: varchar(128)
+
 		tracking_data: longblob
 		snout_tracking_data: longblob
-		tail_tracking_data: longblob
+		neck_tracking_data: longblob
+        tail_tracking_data: longblob
 
 		outward_tracking_data: longblob
 
@@ -306,7 +308,7 @@ class AllTrials(dj.Manual):
 
 
 
-if __name__ == "__main__":
-	AllTrials.drop()
-	# print_erd()
+if __name__ == "__main__": 
+	# AllTrials.drop()
+	print_erd()
 	# plt.show()
