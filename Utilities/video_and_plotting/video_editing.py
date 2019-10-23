@@ -111,14 +111,17 @@ class VideoConverter:
             """
             print('Extracting metadata...', videotdms)
             # Find the tdms video
-            paths = load_yaml('paths.yml')
+            paths = load_yaml('paths_spike1.yml')
             
             metadata_fld = os.path.join(paths['raw_data_folder'], paths['raw_metadata_folder'])
 
             videoname = os.path.split(videotdms)[-1]
-            metadata_file = [os.path.join(metadata_fld, f) for f in os.listdir(metadata_fld)
-                                if videoname in f][0]
-
+            try:
+                metadata_file = [os.path.join(metadata_fld, f) for f in os.listdir(metadata_fld)
+                                    if videoname in f][0]
+            except:
+                print("Could not load metadata for {} in folder {}".format(videoname, metadata_fld))
+                raise ValueError("Could not load metadata for {} in folder {}".format(videoname, metadata_fld))
             # Get info about the video data
             # video = TdmsFile(videotdms)
             # video_bytes = video.object('cam0', 'data').data
