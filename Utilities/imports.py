@@ -46,13 +46,13 @@ from Utilities.video_and_plotting.plot_distributions import *
 from Utilities.video_and_plotting.colors import *
 
 
-sns.set_style("white", {
-            "axes.grid":"False",
-            "ytick.right":"False",
-            "ytick.left":"True",
-            "xtick.bottom":"True",
-            "text.color": "0"
-})
+# sns.set_style("white", {
+#             "axes.grid":"False",
+#             "ytick.right":"False",
+#             "ytick.left":"True",
+#             "xtick.bottom":"True",
+#             "text.color": "0"
+# })
 mpl.rc('text', usetex=False)
 
 params = {
@@ -62,14 +62,13 @@ params = {
     'image.cmap': 'gray',
     'axes.grid': False,
     'savefig.dpi': 150,  # to adjust notebook inline plot size
-    'axes.labelsize': 8, # fontsize for x and y labels (was 10)
-    'axes.titlesize': 8,
-    'font.size': 8, # was 10
+    'axes.labelsize': 12, # fontsize for x and y labels (was 10)
+    'axes.titlesize': 12,
+    'font.size': 12, # was 10
     'legend.fontsize': 6, # was 10
-    'xtick.labelsize': 8,
-    'ytick.labelsize': 8,
+    'xtick.labelsize': 12,
+    'ytick.labelsize': 12,
     'text.usetex': False,        # ! <----- use TEX
-    'figure.figsize': [3.39, 2.10],
 }
 mpl.rcParams.update(params)
-sns.set_context("talk", font_scale=1)  # was 3 
+# sns.set_context("talk", font_scale=1)  # was 3 

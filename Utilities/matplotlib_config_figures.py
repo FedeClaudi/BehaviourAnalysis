@@ -16,7 +16,7 @@ mpl.rcParams['mathtext.fontset']  = "cm"
 mpl.rcParams['mathtext.default']  = "regular"
 
 # Set up matplotlib
-mpl.rcParams['text.color'] = "r"
+mpl.rcParams['text.color'] = "k"
 mpl.rcParams['text.usetex'] = False
 
 mpl.rcParams['figure.figsize'] = [20, 16]
@@ -46,25 +46,25 @@ mpl.rcParams['axes.facecolor'] = "w"
 mpl.rcParams['axes.edgecolor'] = "k"
 mpl.rcParams['axes.linewidth'] = 4
 mpl.rcParams['axes.labelcolor'] = "k"
-mpl.rcParams['axes.labelsize'] = 22
+mpl.rcParams['axes.labelsize'] = 12
 mpl.rcParams['axes.labelweight'] = "bold"
 mpl.rcParams['axes.spines.top'] = False
 mpl.rcParams['axes.spines.right'] = False
-mpl.rcParams['axes.titlesize'] = 26
+mpl.rcParams['axes.titlesize'] = 14
 mpl.rcParams['axes.titleweight'] = 800
-mpl.rcParams['axes.titlepad'] = 16.
+mpl.rcParams['axes.titlepad'] = 6.
 
 mpl.rcParams['xtick.color'] = "k"
 mpl.rcParams['xtick.major.size'] = 16
 mpl.rcParams['xtick.major.width'] = 3
 mpl.rcParams['xtick.direction'] = "inout"
-mpl.rcParams['xtick.labelsize'] = 18
+mpl.rcParams['xtick.labelsize'] = 12
 
 mpl.rcParams['ytick.color'] = "k"
 mpl.rcParams['ytick.major.size'] = 16
 mpl.rcParams['ytick.major.width'] = 3
 mpl.rcParams['ytick.direction'] = "inout"
-mpl.rcParams['ytick.labelsize'] = 18
+mpl.rcParams['ytick.labelsize'] = 12
 
 mpl.rcParams['image.aspect'] = "auto"
 

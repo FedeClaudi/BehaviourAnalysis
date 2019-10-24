@@ -40,7 +40,6 @@ def create_triplot(**kwargs):
 	axes = namedtuple("axes","main x y")
 	return fig, axes(ax0, ax2, ax1)
 
-
 def create_figure(subplots=True, **kwargs):
 	if "figsize" not in kwargs.keys():
 		kwargs["figsize"] = (12, 8)
@@ -53,10 +52,8 @@ def create_figure(subplots=True, **kwargs):
 
 def show(): plt.show()
 
-
 def ticksrange(start, stop, step):
 	return np.arange(start, stop + step, step)
-
 
 def save_figure(f, path):
 	f.savefig(path)
@@ -68,7 +65,6 @@ def make_legend(ax):
 	l = ax.legend()
 	for text in l.get_texts():
 		text.set_color([.7, .7, .7])
-
 
 
 # ! plotting functions
@@ -151,3 +147,60 @@ def plot_shaded_withline(ax, x, y, z=None, label=None, alpha=.15,  **kwargs):
 		ax.fill_betweenx(y, x, alpha=alpha, **kwargs)
 
 	ax.plot(x, y, alpha=1, label=label, **kwargs)
+
+
+def rose_plot(ax, angles, bins=16, density=None, offset=0, lab_unit="degrees",
+			  start_zero=False, **kwargs):
+	"""
+	from https://stackoverflow.com/questions/22562364/circular-histogram-for-python
+	Plot polar histogram of angles on ax. ax must have been created using
+	subplot_kw=dict(projection='polar'). Angles are expected in radians.
+	"""
+	# parse kwargs
+	edge_color = kwargs.pop("edge_color", "g")
+	fill = kwargs.pop("fill", False)
+	linewidth = kwargs.pop("linewidth", 2)
+	xticks = kwargs.pop("xticks", True)
+
+	# Wrap angles to [-pi, pi)
+	angles = (angles + np.pi) % (2*np.pi) - np.pi
+
+	# Set bins symetrically around zero
+	if start_zero:
+		# To have a bin edge at zero use an even number of bins
+		if bins % 2:
+			bins += 1
+		bins = np.linspace(-np.pi, np.pi, num=bins+1)
+
+	# Bin data and record counts
+	count, bin = np.histogram(angles, bins=bins)
+
+	# Compute width of each bin
+	widths = np.diff(bin)
+
+	# By default plot density (frequency potentially misleading)
+	if density is None or density is True:
+		# Area to assign each bin
+		area = count / angles.size
+		# Calculate corresponding bin radius
+		radius = (area / np.pi)**.5
+	else:
+		radius = count
+
+	# Plot data on ax
+	ax.bar(bin[:-1], radius, zorder=1, align='edge', width=widths,
+		   edgecolor=edge_color, fill=fill, linewidth=linewidth)
+
+	# Set the direction of the zero angle
+	ax.set_theta_offset(offset)
+
+	# Remove ylabels, they are mostly obstructive and not informative
+	ax.set_yticks([])
+
+	if not xticks:
+		ax.set_xticks([])
+
+	if lab_unit == "radians":
+		label = ['$0$', r'$\pi/4$', r'$\pi/2$', r'$3\pi/4$',
+				  r'$\pi$', r'$5\pi/4$', r'$3\pi/2$', r'$7\pi/4$']
+		ax.set_xticklabels(label)

@@ -18,7 +18,15 @@ def get_angles(x, y, sx, sy, nx, ny, tx, ty):
 
     return head_angles, body_angles
 
-def get_T_data(median_filter=False):
+def get_T_data(load=False, median_filter=False):
+    if sys.platform == "darwin":
+        savename = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/analysis_metadata/threatplatform/aligned_T_tracking.pkl"
+    else:
+        savename = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis_metadata\\threatplatform\\aligned_T_tracking.pkl"
+
+    if load:
+        return pd.read_pickle(savename)
+
     # Getting data
     ea = ExperimentsAnalyser(load=False,  naive=None, lights=1, escapes=True, escapes_dur=True,  shelter=True, 
                         agent_params={'kernel_size':3, 'model_path':'PathInt2_old.png', 'grid_size':1000})
@@ -102,15 +110,18 @@ def get_T_data(median_filter=False):
     aligned_trials = pd.DataFrame.from_dict(aligned_trials)
 
     # save df to file
-    savename = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis_metadata\\threatplatform\\aligned_T_tracking.pkl"
     aligned_trials.to_pickle(savename)
     return aligned_trials
 
-
 def save_T_tracking_plot(aligned_trials):
-    save_fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\plots\\Tplatf\\Trials"
+    if sys.platform == "darwin":
+        save_fld = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/plots/Tplatf/Trials"
+    else:
+        save_fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\plots\\Tplatf\\Trials"
+
+    
     # thresholds
-    yth = 200
+    yth = 250
 
     for counter, (i, trial) in tqdm(enumerate(aligned_trials.iterrows())):
         # setup figure
@@ -119,7 +130,6 @@ def save_T_tracking_plot(aligned_trials):
 
         tracking_ax = plt.subplot(gs[0, 0])
         polax = plt.subplot(gs[0, 1], projection='polar')
-
 
         # Get right aligned tracking data
         x, y, s = trial.tracking[:, 0], trial.tracking[:, 1], trial.tracking[:, 2]
@@ -170,15 +180,26 @@ def save_T_tracking_plot(aligned_trials):
         
         # Set axes props
         tracking_ax.axhline(yth, color=white, lw=2)
-        _ = tracking_ax.set(title="Trcking. Escape on {}".format(trial.escape_side), facecolor=[.2, .2, .2],  ylim=[120, 370], xlim=[425, 575]) 
+        _ = tracking_ax.set(title="Trcking. Escape on {}".format(trial.escape_side), 
+                            facecolor=[.2, .2, .2],  ylim=[120, 370], xlim=[425, 575]) 
         _ = polax.set(ylim=[0, above_yth],facecolor=[.2, .2, .2], title="Angle of body over time, below Yth")
         polax.grid(False)
 
         save_figure(f, os.path.join(save_fld, "{}.png".format(counter)))
         close_figure(f)
 
+def get_above_yth(y, yth):
+    try:
+        below_yth = np.where(y <= yth)[0][-1]
+    except: 
+        below_yth = 0
+        above_yth = 0
+    else:
+        above_yth = below_yth + 1
+
+    return below_yth, above_yth
 
 
 if __name__ == "__main__":
-    aligned_trials  = get_T_data(median_filter=True)
+    aligned_trials  = get_T_data(load=True, median_filter=True)
     save_T_tracking_plot(aligned_trials)
