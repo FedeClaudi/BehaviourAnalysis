@@ -263,15 +263,16 @@ if __name__ == '__main__':
         
     # ? These tables population is fast and largely automated
     # p.populate_mice_table()   # ! mice recordings, components... 
-    # p.populate_sessions_table()
+    p.populate_sessions_table()
 
-    # p.recording.populate(display_progress=True) 
-    p.recording.make_paths(p) 
+    p.recording.populate(display_progress=True) 
+    # p.recording.make_paths(p) 
     # p.recording.make_aligned_frames()  # ? was used for alignign threat and overview cameras
-    # p.mazecomponents.populate(display_progress=True)  # ? this will require input for new experiments
+    p.mazecomponents.populate(display_progress=True)  # ? this will require input for new experiments
 
     # ? This slower and will require some input
-    p.ccm.populate(display_progress=True)  # ! ccm
+    # Before populating CCM you need to have done the tracking and have ran recording.make_paths
+    # p.ccm.populate(display_progress=True)  # ! ccm
 
     # ? this is considerably slower but should be automated
     # errors = p.trackingdata.populate(display_progress=True, suppress_errors=False, return_exception_objects =True) # ! tracking data

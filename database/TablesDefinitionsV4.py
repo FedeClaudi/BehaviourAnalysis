@@ -26,7 +26,7 @@ class Session(dj.Manual):
 	definition = """
 	# A session is one behavioural experiment performed on one mouse on one day
 	uid: smallint     # unique number that defines each session
-session_name:           varchar(128)        # unique name that defines each session - YYMMDD_MOUSEID
+	session_name:           varchar(128)        # unique name that defines each session - YYMMDD_MOUSEID
 	mouse_id: varchar(128)                        # unique mouse id
 	---
 	date:                   date                # date in the YYYY-MM-DD format
@@ -111,7 +111,7 @@ class CCM(dj.Imported):
 class Recording(dj.Imported):
 	definition = """
 		# Within one session one may perform several recordings. Each recording has its own video and metadata files
-			uid: smallint     # unique number that defines each session
+		uid: smallint     # unique number that defines each session
 		session_name:           varchar(128)        # unique name that defines each session - YYMMDD_MOUSEID
 		mouse_id: varchar(128)   
 		---
@@ -217,7 +217,6 @@ class Stimuli(dj.Imported):
 	def make_metadata(self):
 		make_visual_stimuli_metadata(self)	
 			
-
 @schema
 class TrackingData(dj.Imported):
 	experiments_to_skip = ['FlipFlop Maze', 'FlipFlop2 Maze', 'FourArms Maze', 'Lambda Maze', 
@@ -279,7 +278,7 @@ class AllTrials(dj.Manual):
 		tracking_data: longblob
 		snout_tracking_data: longblob
 		neck_tracking_data: longblob
-        tail_tracking_data: longblob
+		tail_tracking_data: longblob
 
 		outward_tracking_data: longblob
 
@@ -302,13 +301,40 @@ class AllTrials(dj.Manual):
 	"""
 
 
+@schema
+class Homings(dj.Manual):
+	definition = """
+		homing_id: varchar(128) # recording_uid + t_enter time
+		---
+		-> Session
+		-> Recording
+		stim_id:  varchar(128)  			# stimulus_uid entry in Stimuli table, if it was spontaneous = "none"
+		stim_frame: int						# stim frame relative to threat enter
+		fps: int  
+		is_trial: enum("true", "false")
+		tracking_data: longblob 			# Mx2x4 array with tracking data for each frame, X,Y each body part (snout, neck, body, tail)
+		outward_tracking_data: longblob		# same as above, but for shelter -> threat platform
+		threat_tracking_data: longblob	    # just tracking when on threat
+		
+		homing_arm: varchar(128) 					# 0 for left and 1 for right
+		outward_arm: varchar(128) 					# 0 for left and 1 for right
+		
+		time_out_of_t: float 				# time in seconds out of the threat platform
+		frame_out_of_t: int 				# time in frames out of the threat platform
+		homing_duration: float 				# homing duration in seconds
 
+		last_shelter_exit: int  			# frame at which it exited the shelter
+		threat_enter: int 					# frame at which it entered the threat
+		last_t_exit: int 					# frame at which it last left the threat platform
+		first_s_enter: int 					# frame at which it first got back in the shelter
+	"""
 
 
 
 
 
 if __name__ == "__main__": 
-	# AllTrials.drop()
-	print_erd()
+	# Homings.drop()
+	print(Homings())
+	# print_erd()
 	# plt.show()

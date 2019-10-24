@@ -22,8 +22,6 @@ class analyse_all_trals:
         if erase_table:
             self.erase_table()
 
-        
-
         self.naughty_experiments = ['Lambda Maze',  'FlipFlop Maze', 'FlipFlop2 Maze', 'TwoArmsLong Maze', "FourArms Maze", "Foraging"]
 
         self.good_experiments = ["Psychometric - short", "Psychometric - long", "PathInt2", "PathInt2-L", "PathInt2-D", "PathInt2-L",
