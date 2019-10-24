@@ -219,6 +219,37 @@ def remove_tracking_errors(tracking, debug = False):
 
 
 # ! GEOMETRY
+
+def average_angles(angles):
+    """Average (mean) of angles
+
+    Return the average of an input sequence of angles. The result is between
+    ``0`` and ``2 * math.pi``.
+    If the average is not defined (e.g. ``average_angles([0, math.pi]))``,
+    a ``ValueError`` is raised.
+    """
+
+    x = sum(math.cos(a) for a in angles)
+    y = sum(math.sin(a) for a in angles)
+
+    if x == 0 and y == 0:
+        raise ValueError(
+            "The angle average of the inputs is undefined: %r" % angles)
+
+    # To get outputs from -pi to +pi, delete everything but math.atan2() here.
+    return math.fmod(math.atan2(y, x) + 2 * math.pi, 2 * math.pi)
+
+
+def subtract_angles(lhs, rhs):
+    """Return the signed difference between angles lhs and rhs
+
+    Return ``(lhs - rhs)``, the value will be within ``[-math.pi, math.pi)``.
+    Both ``lhs`` and ``rhs`` may either be zero-based (within
+    ``[0, 2*math.pi]``), or ``-pi``-based (within ``[-math.pi, math.pi]``).
+    """
+
+    return math.fmod((lhs - rhs) + math.pi * 3, 2 * math.pi) - math.pi
+
 def slope(x1, y1, x2, y2):
 	return (y2-y1)/(x2-x1)
 

@@ -149,8 +149,9 @@ def plot_shaded_withline(ax, x, y, z=None, label=None, alpha=.15,  **kwargs):
 	ax.plot(x, y, alpha=1, label=label, **kwargs)
 
 
-def rose_plot(ax, angles, bins=16, density=None, offset=0, lab_unit="degrees",
-			  start_zero=False, **kwargs):
+def rose_plot(ax, angles, nbins=16, theta_min=0, theta_max=360, 
+				density=None, offset=0, lab_unit="degrees",
+				start_zero=False, **kwargs):
 	"""
 	from https://stackoverflow.com/questions/22562364/circular-histogram-for-python
 	Plot polar histogram of angles on ax. ax must have been created using
@@ -168,27 +169,29 @@ def rose_plot(ax, angles, bins=16, density=None, offset=0, lab_unit="degrees",
 	# Set bins symetrically around zero
 	if start_zero:
 		# To have a bin edge at zero use an even number of bins
-		if bins % 2:
-			bins += 1
-		bins = np.linspace(-np.pi, np.pi, num=bins+1)
+		if nbins % 2:
+			nbins += 1
+		bins = np.linspace(-np.pi, np.pi, num=nbins+1)
+	else:
+		bins = np.linspace(np.radians(theta_min), np.radians(theta_max), num=nbins+1)
 
 	# Bin data and record counts
-	count, bin = np.histogram(angles, bins=bins)
+	count, bins = np.histogram(angles, bins=bins)
 
-	# Compute width of each bin
-	widths = np.diff(bin)
+	# Compute width of each bins
+	widths = np.diff(bins)
 
 	# By default plot density (frequency potentially misleading)
 	if density is None or density is True:
-		# Area to assign each bin
+		# Area to assign each bins
 		area = count / angles.size
-		# Calculate corresponding bin radius
+		# Calculate corresponding bins radius
 		radius = (area / np.pi)**.5
 	else:
 		radius = count
 
 	# Plot data on ax
-	ax.bar(bin[:-1], radius, zorder=1, align='edge', width=widths,
+	ax.bar(bins[:-1], radius, zorder=1, align='edge', width=widths,
 		   edgecolor=edge_color, fill=fill, linewidth=linewidth)
 
 	# Set the direction of the zero angle
