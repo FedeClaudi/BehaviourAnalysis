@@ -12,40 +12,20 @@ from scipy.signal import find_peaks, resample, medfilt
 from Modelling.bayes import Bayes
 from Modelling.maze_solvers.gradient_agent import GradientAgent
 from Modelling.maze_solvers.environment import Environment
+from Analysis.Behaviour.utils.trials_data_loader import TrialsLoader
+from Analysis.Behaviour.utils.path_lengths import PathLengthsEstimator
 
 
 """[This class facilitates the loading of experiments trials data + collects a number of methods for the analysis. ]
 """
 
 
-class ExperimentsAnalyser(Bayes, Environment):
+class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator):
 	# ! important 
 	max_duration_th = 19 # ? only trials in which the mice reach the shelter within this number of seconds are considered escapes (if using escapes == True)
-	ratio = "georatio"  # ? Use  either georatio or ratio for estimating L/R length ratio
+	
 
 	# Variables look ups
-	maze_designs = {0:"three_arms", 
-					1:"asymmetric_long", 
-					2:"asymmetric_mediumlong", 
-					3:"asymmetric_mediumshort", 
-					4:"symmetric", 
-					-1:"nan"}
-
-	naive_lookup = {0: "experienced", 1:"naive", -1:"nan"}
-	lights_lookup = {0: "off", 1:"on", 2:"on_trials", 3:"on_exploration", -1:"nan"}
-
-	colors = {0:blue, 1:red, 2:green, 3:magenta, 4:orange, -1:white}
-	arms_colors = {"Left_Far":green, "Left_Medium":green, "Right_Medium":red, "Right_Far":red, "Centre":magenta}
-
-	maze_names = {"maze1":"asymmetric_long", 
-					"maze2":"asymmetric_mediumlong", 
-					"maze3":"asymmetric_mediumshort", 
-					"maze4":"symmetric"}
-	maze_names_r = {"asymmetric_long":"maze1", 
-					"asymmetric_mediumlong":"maze2", 
-					"asymmetric_mediumshort":"maze3", 
-					"symmetric":"maze4"}
-	# Folders
 	if sys.platform != "darwin": # folder in which the pickled trial data are saved
 		metadata_folder = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis_metadata\\Psychometric"
 	else:
@@ -57,200 +37,25 @@ class ExperimentsAnalyser(Bayes, Environment):
 	distance_noise = .1
 
 
-
-	def __init__(self, load=False,  naive=None, lights=None, escapes=None, escapes_dur=None, shelter=True, agent_params=None):
+	def __init__(self, naive=None, lights=None, escapes=None, escapes_dur=None, shelter=True, 
+			agent_params=None, **kwargs):
+		# Initiate some parent classes
 		Bayes.__init__(self) # Get functions from bayesian modelling class
+		PathLengthsEstimator.__init__(self)
 		
 		# store params
 		self.naive, self.lights, self.escapes, self.escapes_dur, self.shelter = naive, lights, escapes, escapes_dur, shelter
 
-		# Get trials for the subset of experiments that match the criteria above
-		if not load:
-			if sys.platform != "darwin": # only do it on windows because that's where the data are saved
-				self.conditions = dict(
-							maze1 =  self.get_sessions_trials(maze_design=1, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur, shelter=shelter),
-							maze2 =  self.get_sessions_trials(maze_design=2, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur, shelter=shelter),
-							maze3 =  self.get_sessions_trials(maze_design=3, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur, shelter=shelter),
-							maze4 =  self.get_sessions_trials(maze_design=4, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur, shelter=shelter),
-						)
-			else:
-				self.conditions = None
-		else:
-			self.conditions = self.load_trials_from_pickle()
+		# Get trials data
+		TrialsLoader.__init__(self, **kwargs)
 
-		self.get_paths_lengths()
-
+		# Load geodesic agent
 		if agent_params is None:
 			self.agent_params = dict(grid_size=1000, maze_design="PathInt2_old.png")
 		else: self.agent_params = agent_params
 		Environment.__init__(self, **self.agent_params )
 		self.maze = np.rot90(self.maze, 2)
 
-
-
-	"""
-	||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-						 DATA IO
-	||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-	"""
-	# ? Get trials (and tracking) from AllTrials table based on conditions:
-	def get_sessions_trials(self, maze_design=None, naive=None, lights=None, escapes=None, escapes_dur=None, shelter=None):
-		"""[Given a number of criteria, load the trials that match tehse criteria]
-		
-		Keyword Arguments:
-			maze_design {[int]} -- [Number of maze of experiment] (default: {None})
-			naive {[int]} -- [1 for naive only mice] (default: {None})
-			lights {[int]} -- [1 for light on only experiments] (default: {None})
-			escapes {bool} -- [if true only escape trials are used] (default: {False})
-			escapes_dur {bool} -- [If true only trials in which the escapes terminate within the duraiton th are used] (default: {True})
-		"""
-
-		if naive is None: naive= self.naive
-		if lights is None: lights= self.lights
-		if escapes_dur is None: escapes_dur = self.escapes_dur
-		if escapes is None: escapes = self.escapes
-		if shelter is None: shelter = self.shelter
-
-		# Given a dj query with the relevant sessions, fetches the corresponding trials from AllTrials
-		sessions = self.get_sessions_by_condition(maze_design=maze_design, naive=naive, lights=lights,shelter=shelter, df=True)
-		ss = set(sorted(sessions.uid.values))
-
-		all_trials = pd.DataFrame(AllTrials.fetch())
-
-		if escapes:
-			all_trials = all_trials.loc[all_trials.is_escape == "true"]
-
-		if escapes_dur:
-			all_trials = all_trials.loc[all_trials.escape_duration <= self.max_duration_th]
-			
-		trials = all_trials.loc[all_trials.session_uid.isin(ss)]
-		return trials
-
-	def get_sessions_by_condition(self, maze_design=None, naive=None, lights=None,  shelter=None, df=False):
-		""" Query the DJ database table AllTrials for the trials that match the conditions """
-		data = Session * Session.Metadata * Session.Shelter  - 'experiment_name="Foraging"'  - "maze_type=-1"
-
-		if maze_design is not None:
-			data = (data & "maze_type={}".format(maze_design))
-
-		if naive is not None:
-			data = (data & "naive={}".format(naive))
-
-		if lights is not None:
-			data = (data & "lights={}".format(lights))
-
-		if shelter is not None:
-			if shelter:
-				data = (data & "shelter={}".format(1))
-			else:
-				data = (data & "shelter={}".format(0))
-				
-		if not len(data): print("Query didn't yield any results!")
-
-		if df:
-			return pd.DataFrame((data).fetch())
-		else: 
-			return data
-
-	def get_sessions_tracking(self, bp="body", maze_design=None, naive=None, lights=None, escapes=None, escapes_dur=None):
-		""" Get tracking data for session that match the criteria"""
-		if naive is None: naive=self.naive
-		if lights is None: lights=self.lights
-		if escapes_dur is None: escapes_dur = self.escapes_dur
-		if escapes is None: escapes = self.escapes
-
-		data = self.get_sessions_by_condition(maze_design=maze_design, naive=naive, lights=lights, escapes=escapes, 
-												df=False)
-		andtracking = (data * TrackingData.BodyPartData & "bpname='{}'".format(bp))
-		return pd.DataFrame(andtracking.fetch())
-
-	# ? Load trials data previously pickled (and corresponding save function)
-	def load_trials_from_pickle(self):
-		names = ["maze1", "maze2", "maze3", "maze4"]
-		return {n:load_df(os.path.join(self.metadata_folder, n+".pkl")) for n in names}	
-
-	def save_trials_to_pickle(self):
-		for k, df in self.conditions.items():
-			save_df(df, os.path.join(self.metadata_folder, k+".pkl"))
-
-
-	# ? Geodesic agent arm lengths estimates and data loader
-	# Use agent to calc path lengths
-	def get_arms_lengths_with_agent(self, load=False):
-		if not load:
-			# Get Gradiend Agent and maze arms images
-			agent = GradientAgent(grid_size=1000, start_location=[515, 208], goal_location=[515, 720])
-
-			if sys.platform == "darwin":
-				maze_arms_fld = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/analysis_metadata/maze_solvers/good_single_arms"
-			else:
-				maze_arms_fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis_metadata\\maze_solvers\\good_single_arms"
-			
-			arms = [os.path.join(maze_arms_fld, a) for a in os.listdir(maze_arms_fld) if "jpg" in a or "png" in a]
-			arms_data = dict(maze=[], n_steps=[], torosity=[], distance=[])
-			# Loop over each arm
-			for arm in arms:
-				if "centre" in arm: continue
-				print("getting geo distance for arm: ",arm)
-				# ? get maze, geodesic and walk
-				agent.maze, agent.free_states = agent.get_maze_from_image(model_path=arm)
-				agent.geodesic_distance = agent.geodist(agent.maze, agent.goal_location)
-				walk = agent.walk()
-				agent.plot_walk(walk)
-
-
-				# Process walks to get lengths and so on
-				arms_data["maze"].append(os.path.split(arm)[1].split(".")[0])
-				arms_data["n_steps"].append(len(walk))
-				arms_data["distance"].append(round(np.sum(calc_distance_between_points_in_a_vector_2d(np.array(walk)))))
-				threat_shelter_dist = calc_distance_between_points_2d(agent.start_location, agent.goal_location)
-				arms_data["torosity"].append(np.sum(calc_distance_between_points_in_a_vector_2d(np.array(walk))) / threat_shelter_dist)
-			
-			arms_data = pd.DataFrame(arms_data)
-			print(arms_data)
-			arms_data.to_pickle(os.path.join(self.metadata_folder, "geoagent_paths.pkl"))
-			plt.show()
-			return arms_data
-		else:
-			return pd.read_pickle(os.path.join(self.metadata_folder, "geoagent_paths.pkl"))
-
-	# Load pickled path lengths data
-	def get_paths_lengths(self, load=True):
-		if not load:
-			# Loop over each maze design and get the path lenght (from the tracking data)
-			summary = dict(maze=[], left=[], right=[], ratio=[])
-			for i in np.arange(4):
-				mazen = i +1
-				trials = self.get_sesions_trials(maze_design=mazen, naive=None, lights=None, escapes=True)
-
-				# Get the length of each escape
-				lengths = []
-				for _, trial in trials.iterrows():
-					lengths.append(np.sum(calc_distance_between_points_in_a_vector_2d(trial.tracking_data[:, :2])))
-				trials["lengths"] = lengths
-
-				left_trials, right_trials = [t.trial_id for i,t in trials.iterrows() if "left" in t.escape_arm.lower()], [t.trial_id for i,t in trials.iterrows() if "right" in t.escape_arm.lower()]
-				left, right = trials.loc[trials.trial_id.isin(left_trials)], trials.loc[trials.trial_id.isin(right_trials)]
-
-				# Make dict for summary df
-				l, r  = percentile_range(left.lengths, low=10).low, percentile_range(right.lengths, low=10).low
-				summary["maze"].append(self.maze_names_r[self.maze_designs[mazen]])
-				summary["left"].append(round(l, 2))
-				summary["right"].append(round(r, 2))
-				summary["ratio"].append(round(l / r, 4))
-
-			self.paths_lengths = pd.DataFrame.from_dict(summary)
-			self.paths_lengths.to_pickle(os.path.join(self.metadata_folder, "path_lengths.pkl"))
-		else:
-			self.paths_lengths = pd.read_pickle(os.path.join(self.metadata_folder, "path_lengths.pkl"))
-
-		geopaths = self.get_arms_lengths_with_agent(load=True)
-		self.paths_lengths = pd.merge(self.paths_lengths, geopaths)
-		short_arm_dist = self.paths_lengths.loc[self.paths_lengths.maze=="maze4"].distance.values[0]
-		self.paths_lengths["georatio"] = [round(x / short_arm_dist, 4) for x in self.paths_lengths.distance.values]
-
-		self.short_arm_len = self.paths_lengths.loc[self.paths_lengths.maze=="maze4"][self.ratio].values[0]
-		self.long_arm_len = self.paths_lengths.loc[self.paths_lengths.maze=="maze1"][self.ratio].values[0]
 
 	"""
 	||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
@@ -889,49 +694,6 @@ class ExperimentsAnalyser(Bayes, Environment):
 
 	"""
 	||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-						 PLOT STUFF
-	||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-	"""
-	def plot_trials_tracking(self):
-		trials = self.get_sessions_trials()
-		self.plot_tracking(trials, origin=False)
-
-	def plot_sessions_tracking(self):
-		tracking = self.get_sessions_tracking()
-		self.plot_tracking(tracking, maxT=10000)
-
-	def plot_tracking(self, tracking, ax=None, colorby=None, color="w", origin=False, minT=0, maxT=-1):
-		if ax is None: f, ax = plt.subplots()
-
-		for i, trial in tracking.iterrows():
-			if not origin: tr = trial.tracking_data
-			else: tr = trial.outward_tracking_data
-
-			if colorby == "arm": 
-				kwargs = {"color":self.arms_colors[trial.escape_arm]}
-			elif colorby == "speed": 
-				kwargs = {"c":tr[minT:maxT, 2], "cmap":"gray"}
-			else: 
-				kwargs = {"color":color}
-				
-			ax.scatter(tr[minT:maxT, 0], tr[minT:maxT, 1], alpha=.25, s=10, **kwargs) 
-		ax.set(facecolor=[.05, .05, .05])
-
-	def tracking_custom_plot(self):
-		f, axarr = plt.subplots(ncols=3)
-		
-		for i in np.arange(4):
-			mazen = i + 1
-			tracking = self.get_sessions_trials(maze_design=mazen, lights=1, escapes=True)
-			self.plot_tracking(tracking, ax=axarr[0], colorby=None, color=self.colors[mazen])
-			self.plot_tracking(tracking, ax=axarr[1], colorby="speed", color=self.colors[mazen])
-			self.plot_tracking(tracking, ax=axarr[2], colorby="arm", color=self.colors[mazen])
-
-		for ax in axarr:
-			ax.set(xlim=[100, 720], ylim=[100, 720])
-
-	"""
-	||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 						 PLOT P(R)
 	||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 	"""
@@ -1302,8 +1064,3 @@ class ExperimentsAnalyser(Bayes, Environment):
 
 		self.all_trials_tplatf = pd.concat(list(self.trials.values()))
 
-
-if __name__ == "__main__":
-	ea = ExperimentsAnalyser(load=False,  naive=None, lights=1, escapes=False, escapes_dur=False, shelter=False)
-
-	# ea.prep_tplatf_trials_data(remove_errors=True)
