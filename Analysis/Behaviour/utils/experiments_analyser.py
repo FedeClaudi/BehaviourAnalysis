@@ -14,13 +14,13 @@ from Modelling.maze_solvers.gradient_agent import GradientAgent
 from Modelling.maze_solvers.environment import Environment
 from Analysis.Behaviour.utils.trials_data_loader import TrialsLoader
 from Analysis.Behaviour.utils.path_lengths import PathLengthsEstimator
-
+from Analysis.Behaviour.plotting.plot_trials_tracking import TrialsPlotter
 
 """[This class facilitates the loading of experiments trials data + collects a number of methods for the analysis. ]
 """
 
 
-class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator):
+class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator, TrialsPlotter):
 	# ! important 
 	max_duration_th = 19 # ? only trials in which the mice reach the shelter within this number of seconds are considered escapes (if using escapes == True)
 	
@@ -42,6 +42,7 @@ class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator
 		# Initiate some parent classes
 		Bayes.__init__(self) # Get functions from bayesian modelling class
 		PathLengthsEstimator.__init__(self)
+		TrialsPlotter.__init__(self)
 		
 		# store params
 		self.naive, self.lights, self.escapes, self.escapes_dur, self.shelter = naive, lights, escapes, escapes_dur, shelter

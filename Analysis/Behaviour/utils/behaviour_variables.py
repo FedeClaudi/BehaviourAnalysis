@@ -1,3 +1,7 @@
+import sys
+sys.path.append("./")
+from Utilities.constants import *
+
 maze_designs = {0:"three_arms", 
                 1:"asymmetric_long", 
                 2:"asymmetric_mediumlong", 

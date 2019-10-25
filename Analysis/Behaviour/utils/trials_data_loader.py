@@ -17,13 +17,13 @@ class TrialsLoader:
 
 		if load_psychometric:
 			self.trials = dict(
-								maze1 =  self.get_sessions_trials(maze_design=1, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur, shelter=shelter),
-								maze2 =  self.get_sessions_trials(maze_design=2, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur, shelter=shelter),
-								maze3 =  self.get_sessions_trials(maze_design=3, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur, shelter=shelter),
-								maze4 =  self.get_sessions_trials(maze_design=4, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur, shelter=shelter),
+								maze1 =  self.load_trials_by_condition(maze_design=1, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur, shelter=shelter),
+								maze2 =  self.load_trials_by_condition(maze_design=2, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur, shelter=shelter),
+								maze3 =  self.load_trials_by_condition(maze_design=3, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur, shelter=shelter),
+								maze4 =  self.load_trials_by_condition(maze_design=4, naive=naive, lights=lights, escapes=escapes, escapes_dur=escapes_dur, shelter=shelter),
 							)
 
-	def load_trials_condition(self, maze_design=None, naive=None, lights=None, escapes=None, escapes_dur=None, shelter=None):
+	def load_trials_by_condition(self, maze_design=None, naive=None, lights=None, escapes=None, escapes_dur=None, shelter=None):
 		"""[Given a number of criteria, load the trials that match these criteria]
 		
 		Keyword Arguments:
