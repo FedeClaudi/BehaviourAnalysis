@@ -35,7 +35,6 @@ for counter, (i, trial) in tqdm(enumerate(aligned_trials.iterrows())):
     if trial.escape_side == "left":
         x, sx, tx, ns = 500 + (500 - x), 500 + (500 - sx), 500 + (500 - tx), 500 + (500 - nx)
 
-
     # Get when mouse goes over the y threshold
     try:
         below_yth = np.where(y <= yth)[0][-1]
@@ -49,6 +48,8 @@ for counter, (i, trial) in tqdm(enumerate(aligned_trials.iterrows())):
     escape_angle = angle_between_points_2d_clockwise([x[0], y[0]], [x[-1], y[-1]])
     # same but for other escape arm
     escape_angle_opposite = angle_between_points_2d_clockwise([x[0], y[0]], [500 + (500 - x)[-1], y[-1]])
+    # same but for shelter
+    shelter_angle = angle_between_points_2d_clockwise([x[0], y[0]], shelter_location)
 
     # plot tracking
     frames = np.arange(0, 20, 5)
@@ -57,9 +58,10 @@ for counter, (i, trial) in tqdm(enumerate(aligned_trials.iterrows())):
     tracking_ax.plot([nx, sx], [ny, sy], color=red, lw=1, zorder=50)
     tracking_ax.scatter(sx, sy, color=red, zorder=99, s=15, alpha=.8)
 
-    # plot lines to escape arms
+    # plot lines to escape arms and shelter
     tracking_ax.plot([x[0], x[-1]], [y[0], y[-1]], color=green, lw=2)
     tracking_ax.plot([x[0], 500 + (500 - x)[-1]], [y[0], y[-1]], color=lilla, lw=2)
+    tracking_ax.plot([x[0], shelter_location[0]], [y[0], shelter_location[1]], color=blue, lw=2)
 
     # plot angles
     time, maxt = np.arange(len(trial['body_orientation'])), len(trial['body_orientation'])
@@ -70,17 +72,22 @@ for counter, (i, trial) in tqdm(enumerate(aligned_trials.iterrows())):
     polax.plot([np.radians(escape_angle), np.radians(escape_angle)], [0, maxt], lw=2, color=green)
     polax.plot([np.radians(escape_angle+180), np.radians(escape_angle+180)], [0, maxt], lw=2, color=green)
 
-    polax.plot([np.radians(escape_angle_opposite), np.radians(escape_angle_opposite)], [0, maxt], lw=2, color=pink)
+    polax.plot([np.radians(escape_angle_opposite), np.radians(escape_angle_opposite)], [0, maxt], lw=2, color=orange)
     polax.plot([np.radians(escape_angle_opposite+180), np.radians(escape_angle_opposite+180)], [0, maxt], lw=2, color=orange)
+
+    polax.plot([np.radians(shelter_angle), np.radians(shelter_angle)], [0, maxt], lw=2, color=blue)
+    polax.plot([np.radians(shelter_angle+180), np.radians(shelter_angle+180)], [0, maxt], lw=2, color=blue)
+
 
     # Plot a line representing the animals initial orientation
     polax.plot([np.radians(trial['body_orientation'][0]), np.radians(trial['body_orientation'][0])], [0, 10], lw=8, color=red, zorder=99)
 
 # Set tracking_axes props
 tracking_ax.axhline(yth, color=white, lw=2)
-_ = tracking_ax.set(title="Tracking. Escape on {}".format(trial.escape_side), facecolor=[.2, .2, .2],  ylim=[120, 370], xlim=[425, 575]) 
+_ = tracking_ax.set(title="Tracking. Escape on {}".format(trial.escape_side), facecolor=[.2, .2, .2],  ylim=[200, 500], xlim=[425, 575]) 
 _ = polax.set(ylim=[0, above_yth],facecolor=[.2, .2, .2], title="Angle of body over time, below Yth")
 polax.grid(False)
+
 
 
 # %%

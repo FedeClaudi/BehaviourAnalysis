@@ -6,7 +6,7 @@ from Utilities.imports import *
 
 from scipy import signal
 
-from Analysis.Behaviour.experiments_analyser import ExperimentsAnalyser
+from Analysis.Behaviour.utils.experiments_analyser import ExperimentsAnalyser
 
 
 def get_angles(x, y, sx, sy, nx, ny, tx, ty):
@@ -18,7 +18,7 @@ def get_angles(x, y, sx, sy, nx, ny, tx, ty):
 
     return head_angles, body_angles
 
-def get_T_data(load=False, median_filter=False):
+def get_T_data(load=False, median_filter=False, ea=None):
     if sys.platform == "darwin":
         savename = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/analysis_metadata/threatplatform/aligned_T_tracking.pkl"
     else:
@@ -28,8 +28,9 @@ def get_T_data(load=False, median_filter=False):
         return pd.read_pickle(savename)
 
     # Getting data
-    ea = ExperimentsAnalyser(load=False,  naive=None, lights=1, escapes=True, escapes_dur=True,  shelter=True, 
-                        agent_params={'kernel_size':3, 'model_path':'PathInt2_old.png', 'grid_size':1000})
+    if ea is None:
+        ea = ExperimentsAnalyser(naive=None, lights=1, escapes=True, escapes_dur=True,  shelter=True, load_psychometric=True,
+                            agent_params={'kernel_size':3, 'model_path':'PathInt2_old.png', 'grid_size':1000})
 
     # Get Threat Platform data
     ea.prep_tplatf_trials_data(filt=False, remove_errors=True, speed_th=None)
@@ -39,7 +40,7 @@ def get_T_data(load=False, median_filter=False):
 
     aligned_trials = {'trial_id':[], "tracking":[], "tracking_centered":[], "tracking_turn":[], "turning_frame":[], "direction_of_movement":[],
                         "escape_side":[], "body_orientation":[], "body_angvel":[], "head_orientation":[],
-                        "s_tracking":[], "n_tracking":[], "t_tracking":[]}
+                        "s_tracking":[], "n_tracking":[], "t_tracking":[], "condition":[]}
 
     for i, (condition, trials) in enumerate(ea.trials.items()):
         if condition == "maze1" or condition == "maze4": continue  # Only work on trials with the catwalk
@@ -60,10 +61,6 @@ def get_T_data(load=False, median_filter=False):
                 x -= x
                 sx -= sx
                 tx -= tx
-                left = True
-            else:
-                left = False
-
 
             if median_filter:
                 x, y = signal.medfilt(x, kernel_size=5), signal.medfilt(y, kernel_size=5)
@@ -101,11 +98,18 @@ def get_T_data(load=False, median_filter=False):
             aligned_trials['body_orientation'].append(body_angles)
             aligned_trials['head_orientation'].append(head_angles)
             aligned_trials['body_angvel'].append(calc_ang_velocity(body_angles))
+            aligned_trials['condition'].append(condition)
 
-            if left:  
+            if "left" in trial.escape_arm.lower():  
                 aligned_trials['escape_side'].append("left")
-            else:
+            elif "right" in trial.escape_arm.lower():  
                 aligned_trials['escape_side'].append("right")
+            elif "center" in trial.escape_arm.lower():  
+                aligned_trials['escape_side'].append("center")
+            elif "centre" in trial.escape_arm.lower():  
+                aligned_trials['escape_side'].append("centre")
+            else:
+                raise ValueError("Unrecognized escape arm: {}".format(trial.escape_arm))
 
     aligned_trials = pd.DataFrame.from_dict(aligned_trials)
 
@@ -113,15 +117,12 @@ def get_T_data(load=False, median_filter=False):
     aligned_trials.to_pickle(savename)
     return aligned_trials
 
-def save_T_tracking_plot(aligned_trials):
+def save_T_tracking_plot(aligned_trials, yth=250, shelter_location = [500, 800],
+                    ax_kwargs=dict(ylim=[120, 370], xlim=[425, 575])):
     if sys.platform == "darwin":
         save_fld = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/plots/Tplatf/Trials"
     else:
         save_fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\plots\\Tplatf\\Trials"
-
-    
-    # thresholds
-    yth = 250
 
     for counter, (i, trial) in tqdm(enumerate(aligned_trials.iterrows())):
         # setup figure
@@ -152,6 +153,8 @@ def save_T_tracking_plot(aligned_trials):
         escape_angle = angle_between_points_2d_clockwise([x[0], y[0]], [x[-1], y[-1]])
         # same but for other escape arm
         escape_angle_opposite = angle_between_points_2d_clockwise([x[0], y[0]], [500 + (500 - x)[-1], y[-1]])
+        # same but for shelter
+        shelter_angle = angle_between_points_2d_clockwise([x[0], y[0]], shelter_location)
         
         # plot tracking
         frames = np.arange(0, 20, 5)
@@ -160,32 +163,36 @@ def save_T_tracking_plot(aligned_trials):
         tracking_ax.plot([nx, sx], [ny, sy], color=red, lw=1, zorder=50)
         tracking_ax.scatter(sx, sy, color=red, zorder=99, s=15, alpha=.8)
 
-        # Plot line between start and end location
+        # Plot line between start and escape locations + shelter
         tracking_ax.plot([x[0], x[-1]], [y[0], y[-1]], color=green, lw=2)
         tracking_ax.plot([x[0], 500 + (500 - x)[-1]], [y[0], y[-1]], color=orange, lw=2)
+        tracking_ax.plot([x[0], shelter_location[0]], [y[0], shelter_location[1]], color=blue, lw=2)
 
         # plot angles
         time, maxt = np.arange(len(trial['body_orientation'])), len(trial['body_orientation'])
         polax.plot(np.radians(trial['body_orientation']), time, lw=4, color=white, zorder=98)
-        # polax.scatter(np.radians(trial['head_orientation']), time, s=15, color=red, zorder=99)
 
         # Plot line towards the escape
         polax.plot([np.radians(escape_angle), np.radians(escape_angle)], [0, maxt], lw=2, color=green)
         polax.plot([np.radians(escape_angle+180), np.radians(escape_angle+180)], [0, maxt], lw=2, color=green)
+        
         polax.plot([np.radians(escape_angle_opposite), np.radians(escape_angle_opposite)], [0, maxt], lw=2, color=orange)
         polax.plot([np.radians(escape_angle_opposite+180), np.radians(escape_angle_opposite+180)], [0, maxt], lw=2, color=orange)
-
+        
+        polax.plot([np.radians(shelter_angle), np.radians(shelter_angle)], [0, maxt], lw=2, color=blue)
+        polax.plot([np.radians(shelter_angle+180), np.radians(shelter_angle+180)], [0, maxt], lw=2, color=blue)
+        
         # Plot a line representing the animals initial orientation
         polax.plot([np.radians(trial['body_orientation'][0]), np.radians(trial['body_orientation'][0])], [0, 10], lw=8, color=magenta, zorder=99)
         
         # Set axes props
         tracking_ax.axhline(yth, color=white, lw=2)
         _ = tracking_ax.set(title="Trcking. Escape on {}".format(trial.escape_side), 
-                            facecolor=[.2, .2, .2],  ylim=[120, 370], xlim=[425, 575]) 
+                            facecolor=[.2, .2, .2],  **ax_kwargs) 
         _ = polax.set(ylim=[0, above_yth],facecolor=[.2, .2, .2], title="Angle of body over time, below Yth")
         polax.grid(False)
 
-        save_figure(f, os.path.join(save_fld, "{}.png".format(counter)))
+        save_figure(f, os.path.join(save_fld, "{}_{}.png".format(trial.condition, counter)))
         close_figure(f)
 
 def get_above_yth(y, yth):
@@ -201,5 +208,5 @@ def get_above_yth(y, yth):
 
 
 if __name__ == "__main__":
-    aligned_trials  = get_T_data(load=True, median_filter=True)
+    aligned_trials  = get_T_data(load=False, median_filter=True)
     save_T_tracking_plot(aligned_trials)

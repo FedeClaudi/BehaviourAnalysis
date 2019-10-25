@@ -48,7 +48,8 @@ class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator
 		self.naive, self.lights, self.escapes, self.escapes_dur, self.shelter = naive, lights, escapes, escapes_dur, shelter
 
 		# Get trials data
-		TrialsLoader.__init__(self, **kwargs)
+		TrialsLoader.__init__(self, naive=self.naive, lights=self.lights, 
+                        escapes=self.escapes, escapes_dur=self.escapes_dur, shelter=self.shelter, **kwargs)
 
 		# Load geodesic agent
 		if agent_params is None:
@@ -1022,12 +1023,9 @@ class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator
 			return d
 
 		self.trials={}
-		for condition, data in tqdm(self.conditions.items()):
+		for condition, trials in tqdm(self.conditions.items()):
 			out_of_ts, threat_trackings, s_threat_trackings, t_threat_trackings, n_threat_trackings, speeds_at_out_t = [], [], [], [], [], []
-			maze_ids = []
-
-			trials = self.get_sessions_trials(maze_design=int(condition[-1]), naive=None, lights=1, escapes=True, escapes_dur=True)
-			
+			maze_ids = []			
 			for i, trial in trials.iterrows():
 				out_of_t = np.int(trial.time_out_of_t*trial.fps)
 				if not filt:
