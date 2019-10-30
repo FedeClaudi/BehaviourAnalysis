@@ -219,10 +219,8 @@ class Stimuli(dj.Imported):
 			
 @schema
 class TrackingData(dj.Imported):
-	experiments_to_skip = ['FlipFlop Maze', 'FlipFlop2 Maze', 'FourArms Maze', 'Lambda Maze', 
-							'Model Based', 
-							'PathInt2 Close', 
-							'TwoArmsLong Maze', "Foraging"]
+	experiments_to_skip = ['Lambda Maze', 'Model Based', 
+							'PathInt2 Close', "Foraging"]
 
 	bodyparts = ['snout', 'neck', 'body', 'tail_base',]
 
@@ -334,7 +332,8 @@ class Homings(dj.Manual):
 
 
 if __name__ == "__main__": 
-	# Homings.drop()
-	print(Homings())
-	# print_erd()
+    pass
+	# TrackingData.drop()
+	# print(Homings())
+	# print_erd() 
 	# plt.show()

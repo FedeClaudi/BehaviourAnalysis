@@ -1,12 +1,7 @@
 import sys
 sys.path.append('./') 
-# Add Philip's script to path
-sys.path.append('C:\\Users\\Federico\\Documents\\GitHub\\CommonCoordinateBehaviour')
-# THIS: https://github.com/BrancoLab/Common-Coordinate-Behaviour
-if sys.platform != "darwin":
-    try:
-        from video_funcs import register_arena
-    except: pass
+
+from Utilities.CCB.video_funcs import register_arena
 import os 
 import numpy as np
 import cv2
@@ -61,7 +56,7 @@ def run(videopath, maze_model=None, old_mode=False):
     padded = cv2.copyMakeBorder(frame, top_pad,  top_pad, side_pad, side_pad,
                                 cv2.BORDER_CONSTANT,value=[0, 0, 0])
     try:
-        padded = cv2.cv2.cvtColor(padded,cv2.COLOR_RGB2GRAY)
+        padded = cv2.cvtColor(padded,cv2.COLOR_RGB2GRAY)
     except:
         raise ValueError(frame.shape)
 

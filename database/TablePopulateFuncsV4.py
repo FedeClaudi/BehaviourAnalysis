@@ -195,7 +195,7 @@ def make_commoncoordinatematrices_table(table, key):
 		maze_model = cv2.imread('Utilities\\video_and_plotting\\mazemodel_old.png')
 
 	maze_model = cv2.resize(maze_model, (1000, 1000))
-	maze_model = cv2.cv2.cvtColor(maze_model, cv2.COLOR_RGB2GRAY)
+	maze_model = cv2.cvtColor(maze_model, cv2.COLOR_RGB2GRAY)
 
 	# Get path to video of first recording
 	try:
@@ -491,22 +491,36 @@ def make_trackingdata_table(table, key):
 		# print("Skipping experiment: ", experiment)
 		return
 
-	# TODO make this work with threat vieos
-
 	# Get videos and CCM
 	try:
 		vid = (Recording.FilePaths & key).fetch1("overview_video")
 	except:
-		print("Could not fetch video for: ", key)
-		return
+		# Try alternative names for the recording UID
+		alt_uids = [key['recording_uid']+"Overview", key['recording_uid']+"_1Overview"]
+		vid = None
+		for uid in alt_uids:
+			newkey = key.copy()
+			newkey['recording_uid'] = uid
+			try:
+				vid = (Recording.FilePaths & newkey).fetch1("overview_video")
+			except:
+				continue
+	
+		if vid is None:
+			print("Could not fetch video for: ", key)
+			return
 	ccm = (CCM & key).fetch(format="frame")
 
 	# load pose data
 	pose_file  = (Recording.FilePaths & key).fetch1("overview_pose")
-	posedata = pd.read_hdf(pose_file)
+	try:
+		posedata = pd.read_hdf(pose_file)
+	except:
+		print("Could not find {}".format(pose_file))
+		return
 
 	# Insert entry into MAIN CLASS for this videofile
-	key['camera'] = 'overview' # TODO
+	key['camera'] = 'overview' 
 	table.insert1(key)
 
 	# Get the scorer name and the name of the bodyparts
@@ -520,17 +534,17 @@ def make_trackingdata_table(table, key):
 	bp_data = {}
 	for bp in bodyparts:
 		if bp not in table.bodyparts: continue  # skip unwanted body parts
-		# ? plt.plot(corrected_data.x, corrected_data.y)
-		# ? plt.scatter(corrected_data.x, corrected_data.y, c=like)
-
 		# Get XY pose and correct with CCM matrix
 		xy = posedata[scorer[0], bp].values[:, :2]
-		corrected_data = correct_tracking_data(xy, ccm['correction_matrix'][0], ccm['top_pad'][0], ccm['side_pad'][0], experiment, key['uid'])
+		try:
+			corrected_data = correct_tracking_data(xy, ccm['correction_matrix'][0], ccm['top_pad'][0], ccm['side_pad'][0], experiment, key['uid'])
+		except:
+			raise ValueError("Something went wrong while trying to correct tracking data, are you sure you have the CCM for this recording? {}".format(key))
 		corrected_data = pd.DataFrame.from_dict({'x':corrected_data[:, 0], 'y':corrected_data[:, 1]})
 
 		# Correct the data
 		like = posedata[scorer[0], bp].values[:, 2]
-		corrected_data[like < .99999] = np.nan
+		corrected_data[like < .999999] = np.nan
 		corrected_data.x = interpolate_nans(corrected_data.x.values)
 		corrected_data.y = interpolate_nans(corrected_data.y.values)
 		

@@ -57,7 +57,7 @@ mpl.rc('text', usetex=False)
 
 params = {
     'text.latex.preamble': ['\\usepackage{gensymb}'],
-    'image.origin': 'lower',
+    # 'image.origin': 'lower',
     'image.interpolation': 'nearest',
     'image.cmap': 'gray',
     'axes.grid': False,
