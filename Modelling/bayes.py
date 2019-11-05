@@ -7,7 +7,7 @@ import pymc3 as pm
 from math import factorial as fact
 from scipy.special import binom
 import pickle
-import pymc3 as pm
+# import pymc3 as pm
 import pydot
 
 class Bayes:

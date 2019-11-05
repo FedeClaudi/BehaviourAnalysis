@@ -427,8 +427,11 @@ def make_visual_stimuli_metadata(table):
 		key = dict(stim)
 		if key['stimulus_uid'] in stims_already_in_table: continue # ? dont process it agian you fool
 
-		stim_type = (table & key).fetch1("stim_type")
-
+		try:
+			stim_type = (table & key).fetch1("stim_type")
+		except:
+			a = 1
+			
 		if stim_type == "audio": 
 			continue # this is only for visualz
 
@@ -542,17 +545,19 @@ def make_trackingdata_table(table, key):
 			raise ValueError("Something went wrong while trying to correct tracking data, are you sure you have the CCM for this recording? {}".format(key))
 		corrected_data = pd.DataFrame.from_dict({'x':corrected_data[:, 0], 'y':corrected_data[:, 1]})
 
-		# Correct the data
-		like = posedata[scorer[0], bp].values[:, 2]
-		corrected_data[like < .999999] = np.nan
-		corrected_data.x = interpolate_nans(corrected_data.x.values)
-		corrected_data.y = interpolate_nans(corrected_data.y.values)
-		
 		# get velocity
 		vel = calc_distance_between_points_in_a_vector_2d(corrected_data.values)
 
 		# Add new vals
 		corrected_data['velocity'] = vel
+
+		# Correct the data
+		like = posedata[scorer[0], bp].values[:, 2]
+		corrected_data[like < .99] = np.nan
+		# corrected_data.x = interpolate_nans(corrected_data.x.values)
+		# corrected_data.y = interpolate_nans(corrected_data.y.values)
+		
+
 
 		# If bp is body get the position on the maze
 		if 'body' in bp:
@@ -574,11 +579,3 @@ def make_trackingdata_table(table, key):
 
 		table.BodyPartData.insert1(bpkey)
 
-
-
-
-
-
-
-if __name__ == "__main__":
-	a = 1

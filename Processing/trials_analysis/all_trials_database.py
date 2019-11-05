@@ -25,7 +25,7 @@ class analyse_all_trals:
         self.naughty_experiments = ['Lambda Maze',  'FlipFlop Maze', 'FlipFlop2 Maze', 'TwoArmsLong Maze', "FourArms Maze", "Foraging"]
 
         self.good_experiments = ["Psychometric - short", "Psychometric - long", "PathInt2", "PathInt2-L", "PathInt2-D", "PathInt2-L",
-                                "PathInt2 L", "Square Maze", "TwoAndahalf Maze", "PathInt",  "PathInt2 D", "noshelter m1", "shortexploration m1"]
+                                "PathInt2 L", "Square Maze", "TwoAndahalf Maze", "PathInt",  "PathInt2 D", "noshelter m1", "shortexploration m1", "narrowbridge m5"]
 
         if fill_in_table:  # Get tracking data
             self.table = AllTrials()
@@ -305,6 +305,7 @@ if __name__ == "__main__":
 
 
     # print(pd.DataFrame(AllTrials().fetch()).tail())
+
 
 
 

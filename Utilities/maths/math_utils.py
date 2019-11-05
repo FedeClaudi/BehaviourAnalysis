@@ -18,10 +18,10 @@ try:
 	from sklearn import preprocessing
 except: pass
 
-try:
-	import skfmm
-except:
-	print("didnt import skfmm")
+# try:
+import skfmm
+# except:
+# 	print("didnt import skfmm")
 
 
 # ! ARRAY NORMALISATION and FUNCTIONS
@@ -193,7 +193,7 @@ def calc_prob_item_in_list(ls, it):
 # ! ERROR CORRECTION
 def correct_speed(speed):
 	speed = speed.copy()
-	perc99 = np.percentile(speed, 99.5)
+	perc99 = np.nanpercentile(speed, 99.5)
 	speed[speed>perc99] = perc99
 	return median_filter(speed, 31)
 
@@ -204,8 +204,6 @@ def remove_tracking_errors(tracking, debug = False):
 	filtered = np.zeros(tracking.shape)
 	for i in np.arange(tracking.shape[1]):
 		temp = tracking[:, i].copy()
-		if i <2:
-			temp[temp < 10] = np.nan
 		filtered[:, i] = signal.medfilt(temp, kernel_size  = 5)
 
 		if debug:

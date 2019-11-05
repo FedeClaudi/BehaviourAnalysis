@@ -7,13 +7,14 @@ import sys
 sys.path.append('./')
 
 from Utilities.imports import *
-from Analysis.Behaviour.experiments_analyser import ExperimentsAnalyser
-from Analysis.Behaviour.T_utils import get_T_data
+from Analysis.Behaviour.utils.experiments_analyser import ExperimentsAnalyser
+from Analysis.Behaviour.utils.T_utils import get_T_data
 %matplotlib inline
 
 # %%
 # Getting data
-aligned_trials  = get_T_data(median_filter=True)
+aligned_trials  = get_T_data(load=False, median_filter=False)
+
 
 # %%
 # Plot slow frames or those in which the angular velocity was above a certiain threshold

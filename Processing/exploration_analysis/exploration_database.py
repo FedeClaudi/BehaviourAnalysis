@@ -12,7 +12,7 @@ from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 
 
 class AllExplorationsPopulate:
-	experiments_to_include = ["Psychometric - short", "Psychometric - long", "PathInt2", "PathInt2-L", "PathInt2-D", "PathInt2-DL", "PathInt2-L",
+	experiments_to_include = ["Psychometric - short", "Psychometric - long", "PathInt2", "PathInt2-L", "PathInt2-D", "PathInt2-DL", "PathInt2-L", "narrowbridge m5",
 							"PathInt2 L", "Square Maze", "TwoAndahalf Maze", "PathInt",  "PathInt2 D", "PathInt2 DL",  "noshelter m1", "shortexploration m1"]
 	
 	def __init__(self, erase_table=False, fill_in_table=False):
@@ -144,7 +144,7 @@ class AllExplorationsPopulate:
 		time_on_t =np.where(data[:, -1]==1)[0].shape[0]/fps
 
 		# Calc total distance covered
-		distance_covered = np.sum(data[:, 2])
+		distance_covered = np.nansum(data[:, 2])
 
 		# Calc duration in seconds
 		duration = data.shape[0]/fps
