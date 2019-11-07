@@ -17,11 +17,19 @@ aligned_trials  = get_T_data(load=False, median_filter=False)
 
 
 # %%
+
+"""
+    Finds frames in which the mice are stop for a moment in after they got above the Y threshold but
+    before they left the T platform. 
+
+"""
+
+
 # Plot slow frames or those in which the angular velocity was above a certiain threshold
 f, axarr = create_triplot(facecolor=white, figsize=(15,15))
 
 # thresholds
-yth = 200
+yth = 180
 sth =  2
 avelth = 5
 
@@ -50,7 +58,7 @@ for i, trial in tqdm(aligned_trials.iterrows()):
     # plot tracking
     axarr.main.plot(x, y, color=grey, lw=1)
     axarr.main.scatter(x[slow_idx], y[slow_idx], color=green, zorder=99, s=15, alpha=.8)
-    axarr.main.scatter(x[slow_angle_idx], y[slow_angle_idx], color=red, zorder=99, s=15, alpha=.8)
+    # axarr.main.scatter(x[slow_angle_idx], y[slow_angle_idx], color=red, zorder=99, s=15, alpha=.8)
 
 # Set axes props
 axarr.main.axhline(yth, color=white, lw=2)
@@ -60,7 +68,14 @@ _ = axarr.main.set(title="red=slow, green=fast", facecolor=[.2, .2, .2],  ylim=[
 
 
 #%%
-# Plot tracking and highlight fast and slow frames
+
+"""
+    Distinguishes trials between two classes, the direct and indirect escapes. 
+    Take the straight line between the coordiantes at which the mouse gets above the 
+    y threshold and where it leaves the threat platform. Direct trials have a low distance
+    from thi line while indirect have a higher distance
+
+"""
 f, axarr = create_triplot(facecolor=white, figsize=(15,15))
 f2, axarr2 = create_figure(subplots=True, ncols=2, facecolor=white, figsize=(15,15))
 
