@@ -725,8 +725,6 @@ class Editor:
                     frames_file.close()
                     sys.exit()
 
-
-
                 try:
                         frame = get_selected_frame(cap, show_frame)
                         print('Showing frame {} of {}'.format(show_frame, number_of_frames))
