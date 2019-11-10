@@ -3,7 +3,7 @@ sys.path.append('./')
 import shutil
 import os
 print('Importing dlc takes a while')
-from deeplabcut import analyze_videos
+# from deeplabcut import analyze_videos, filterpredictions
 import yaml
 import pandas as pd
 import cv2
@@ -74,13 +74,7 @@ class SetUpTracking:
             print('Processing video {} of {}'.format(i+1, len(self.video_to_process)))
 
             # Get the DLC model config path
-            if 'overview' in video.lower():
-                camera = 'overview'
-                config_path = os.path.join(self.nets_folder, "maze_joined-Federico-2019-02-22\\config.yaml")
-                    
-            elif 'threat' in video.lower():
-                camera = 'threat'
-                config_path = os.path.join(self.nets_folder, "threat_camera-Federico-2019-05-13\\config.yaml")
+            config_path = os.path.join(self.nets_folder, "DecisionMaze-Federico-2019-10-15\\config.yaml")
                 
             # Move video to local HD: otherwise analysis breaks if internet connection is unstable
             complete_path = os.path.join(self.video_folder, video)
@@ -120,10 +114,9 @@ class SetUpTracking:
             # Run DLC analysis
             print("""
             Video:  {}
-            Camera: {}
             Config: {}
             
-            """.format(move_video_path, camera, config_path))
+            """.format(move_video_path, config_path))
 
 
             analyze_videos(config_path, [move_video_path], gputouse=0, save_as_csv=False)
