@@ -2,17 +2,20 @@ import sys
 sys.path.append('./')
 import shutil
 import os
+
+from Utilities.file_io.files_load_save import load_yaml
+
+
 print('Importing dlc takes a while')
-# from deeplabcut import analyze_videos, filterpredictions
+from deeplabcut import analyze_videos, filterpredictions
 import yaml
 import pandas as pd
 import cv2
 import warnings
 import os
 
-from Utilities.file_io.files_load_save import load_yaml
 
-computer = "desk"
+computer = "spike"
 if computer == "desk":
     from database.TablesDefinitionsV4 import *
 
@@ -120,15 +123,16 @@ class SetUpTracking:
 
 
             analyze_videos(config_path, [move_video_path], gputouse=0, save_as_csv=False)
-            
+            filterpredictions(config_path, [move_video_path], videotype="mp4", save_as_csv=False, filtertype='median')
+
             # Rename and move .h5 and .pickle
-            analysis_output = [f for f in os.listdir(self.temp_fld) if '.pickle' in f or '.h5' in f]
+            analysis_output = [f for f in os.listdir(self.temp_fld) if 'filtered.h5' in f]
 
 
             for f in analysis_output:
                 origin = os.path.join(self.temp_fld, f)
                 name, ext = f.split('.')
-                correct_name = f.split('Deep')[0]+'_pose'
+                correct_name = f.split('DLC')[0]+'_pose'
                 dest = os.path.join(self.pose_folder, correct_name+'.'+ext)
                 try:
                     shutil.move(origin, dest)

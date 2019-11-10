@@ -18,11 +18,10 @@ try:
 	from sklearn import preprocessing
 except: pass
 
-# try:
-import skfmm
-# except:
-# 	print("didnt import skfmm")
-
+try:
+	import skfmm
+except:
+	print("didnt import skfmm")
 
 # ! ARRAY NORMALISATION and FUNCTIONS
 def log_transform(im):
