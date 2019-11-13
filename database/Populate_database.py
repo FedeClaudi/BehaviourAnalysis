@@ -7,6 +7,9 @@ from Utilities.video_and_plotting.video_editing import *
 from Utilities.dbase.stim_times_loader import *
 from database.database_fetch import *
 
+import datajoint as dj
+dj.config["enable_python_native_blobs"] = True
+
 def disable_pandas_warnings():
     import warnings
     warnings.resetwarnings()  # Maybe somebody else is messing with the warnings system?
@@ -80,25 +83,20 @@ class PopulateDatabase:
             print('     ... inserted {} in table'.format(dataname))
         except:
             if dataname in list(table.fetch(checktag)):
-                if overwrite:
-                    q = input('Recording entry already in table.\nDo you wish to overwrite? [Y/N]')
-                    if q.lower() == 'y':
-                        raise ValueError('Feature not implemented yet, overwriting')
-                    else:
-                        return
-                else:
                     print('Entry with id: {} already in table'.format(dataname))
             else:
                 print(table)
                 raise ValueError('Failed to add data entry {}-{} to {} table'.format(checktag, dataname, table.full_table_name))
 
     def delete_wrong_entries(self):
-        sessions_to_delete = np.arange(347, 358)
+        # query = (Session & "uid > {}".format(429) & "uid < {}".format(444))
+        # query.delete()
 
+        sessions_to_delete = np.arange(429, 444)
         for s in sessions_to_delete:
-            (Session & "uid={}".format(s)).delete()
+            (TrackingData & "uid={}".format(s)).delete()
 
-        a = 1
+        # a = 1
 
 
     def remove_table(self, tablename):
@@ -194,7 +192,8 @@ class PopulateDatabase:
                 uid=session_data["uid"],
                 maze_type= int(session["Maze type"]),
                 naive = int(session["Naive"]),
-                lights = int(session["Lights"])
+                lights = int(session["Lights"]),
+                mouse_id=original_idd,
             )
 
             self.insert_entry_in_table(part_dat['session_name'], 'session_name', part_dat, self.session.Metadata)
@@ -204,6 +203,7 @@ class PopulateDatabase:
                 session_name=session_data["session_name"],
                 uid=session_data["uid"],
                 shelter= int(session["Shelter"]),
+                mouse_id=original_idd,
 
             )
 
@@ -264,10 +264,9 @@ if __name__ == '__main__':
     # ? These tables population is fast and largely automated
     # p.populate_mice_table()   # ! mice recordings, components... 
     # p.populate_sessions_table()
-
+# 
     # p.recording.populate(display_progress=True) 
     # p.recording.make_paths(p) 
-    # p.recording.make_aligned_frames()  # ? was used for alignign threat and overview cameras
     # p.mazecomponents.populate(display_progress=True)  # ? this will require input for new experiments
 
     # ? This slower and will require some input

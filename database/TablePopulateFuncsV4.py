@@ -157,7 +157,7 @@ def fill_in_recording_paths(recordings, populator):
 
 		del key["software"]
 
-		recordings.FilePaths.insert1(key, allow_direct_insert=True)
+		recordings.FilePaths.insert1(key)
 
 def fill_in_aligned_frames(recordings):
 	from Utilities.dbase.db_data_alignment import ThreatDataProcessing
@@ -512,7 +512,7 @@ def make_trackingdata_table(table, key):
 		if vid is None:
 			print("Could not fetch video for: ", key)
 			return
-	ccm = (CCM & key).fetch(format="frame")
+	ccm = pd.DataFrame((CCM & key).fetch())
 
 	# load pose data
 	pose_file  = (Recording.FilePaths & key).fetch1("overview_pose")
@@ -564,7 +564,7 @@ def make_trackingdata_table(table, key):
 			# Get position of maze templates - and shelter
 			rois = pd.DataFrame((MazeComponents & key).fetch())
 
-			del rois['uid'], rois['session_name'], 
+			del rois['uid'], rois['session_name'], rois['mouse_id']
 
 			# Calcualate in which ROI the body is at each frame - and distance from the shelter
 			corrected_data['roi_at_each_frame'] = get_roi_at_each_frame(experiment, key['recording_uid'], corrected_data, dict(rois))  # ? roi name

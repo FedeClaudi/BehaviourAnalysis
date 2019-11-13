@@ -90,7 +90,6 @@ class MazeComponents(dj.Imported):
 		if new_key is not None:
 			self.insert1(new_key)
 
-
 @schema
 class CCM(dj.Imported):
 	definition = """
@@ -111,9 +110,8 @@ class CCM(dj.Imported):
 class Recording(dj.Imported):
 	definition = """
 		# Within one session one may perform several recordings. Each recording has its own video and metadata files
-		uid: smallint     # unique number that defines each session
-		session_name:           varchar(128)        # unique name that defines each session - YYMMDD_MOUSEID
-		mouse_id: varchar(128)   
+		recording_uid: varchar(128)
+        -> Session
 		---
 		software:           enum('behaviour', 'mantis')
 		ai_file_path:       varchar(256)
@@ -332,8 +330,9 @@ class Homings(dj.Manual):
 
 
 if __name__ == "__main__": 
-    pass
-	# TrackingData.drop()
+    # pass
+	TrackingData.drop()
 	# print(Homings())
-	# print_erd() 
-	# plt.show()
+    # print_erd() 
+    # plt.show()
+    # Recording.drop()
