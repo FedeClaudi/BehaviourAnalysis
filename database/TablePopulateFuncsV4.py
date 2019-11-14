@@ -5,10 +5,10 @@ from Utilities.imports import *
 from database.database_toolbox import ToolBox
 from database.TablesDefinitionsV4 import *
 
-cur_dir = os.getcwd()
-os.chdir("C:\\Users\\Federico\\Documents\\GitHub\\VisualStimuli")
-from Utils.contrast_calculator import Calculator as ContrastCalc
-os.chdir(cur_dir)
+# cur_dir = os.getcwd()
+# os.chdir("C:\\Users\\Federico\\Documents\\GitHub\\VisualStimuli")
+# from Utils.contrast_calculator import Calculator as ContrastCalc
+# os.chdir(cur_dir)
 
 import scipy.signal as signal
 from collections import OrderedDict

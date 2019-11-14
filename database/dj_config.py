@@ -3,6 +3,11 @@ try:
 except:
     pass
 
+import sys
+if sys.platform == "darwin":
+    ip = "192.168.241.87"
+else:
+    ip = "127.18.0.1" 
 
 def start_connection():
     """
@@ -20,7 +25,7 @@ def start_connection():
     dbname = 'DatabaseV4'    # Name of the database subfolder with data
     if dj.config['database.user'] != "root":
         try:
-            dj.config['database.host'] = "127.18.0.1" 
+            dj.config['database.host'] = ip
         except:
             print("Could not connect to database")
             return None, None
