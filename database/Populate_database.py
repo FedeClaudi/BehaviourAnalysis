@@ -283,8 +283,8 @@ if __name__ == '__main__':
     # p.stimuli.make_metadata() # ? only used for visual stims
 
     # ? Should be fast but needs the stuff above to be done
-    p.explorations.populate(display_progress=True, suppress_errors=False, return_exception_objects =True)
-
+    # p.explorations.populate(display_progress=True, suppress_errors=False, return_exception_objects =True)
+    p.trials.populate(display_progress=True, suppress_errors=False, return_exception_objects =True)
 
     # if errors: raise ValueError([print("\n\n", e) for e in errors])
 

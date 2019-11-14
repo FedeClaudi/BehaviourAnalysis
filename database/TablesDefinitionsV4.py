@@ -284,7 +284,7 @@ class Explorations(dj.Imported):
 
 
 @schema
-class Trials(dj.Manual):
+class Trials(dj.Imported):
 	definition = """
 		-> Stimuli
 		---
@@ -300,8 +300,6 @@ class Trials(dj.Manual):
 		time_out_of_t: float
 
 		stim_frame_session: int  # stim frame relative to the start of the session and not the start of the recording
-		stim_type: enum('audio', 'visual')
-		stim_duration: int
 
 		number_of_trials_in_session: int
 		trial_number: int
@@ -310,9 +308,10 @@ class Trials(dj.Manual):
 		origin_arm:  enum('left', "center", "right")        
 
 		fps: int
-		threat_exits: longblob
 	"""
 
+	def make(self, key):
+		make_trials_table(self, key)
 
 @schema
 class Homings(dj.Manual):
@@ -348,7 +347,7 @@ class Homings(dj.Manual):
 
 if __name__ == "__main__": 
 	# pass
-	Explorations.drop()
+	Trials.drop()
 	# print(Homings())
 	# print_erd() 
 	# plt.show()

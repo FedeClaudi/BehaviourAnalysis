@@ -668,3 +668,58 @@ def make_exploration_table(table, key):
 
 	table.insert1(key)
 
+
+
+
+def make_trials_table(table, key):
+	def get_time_at_roi(tracking, roi, frame, when="next"):
+		if when == "last":
+			in_roi = np.where(tracking[:frame, -1] == roi)[0]
+			default = 0
+			relevant_idx = -1
+		else:
+			in_roi = np.where(tracking[frame:, -1] == roi)[0]
+			default = tracking.shape[0]
+			relevant_idx = 0
+
+		if np.any(in_roi):
+			in_roi = last_at_shelt[relevant_idx]
+		else:
+			last_at_shelt = default
+
+		return last_at_shelt
+
+
+	from database.TablesDefinitionsV4 import Session, TrackingData, Stimuli
+	if key['uid'] < 184: fps = 30 # ! hardcoded
+	else: fps = 40
+
+	# Get tracking and stimuli data
+	try:
+		data = pd.DataFrame(Session * TrackingData.BodyPartData * Stimuli & key).sort_values(['recording_uid'])
+	except:
+		print("\nCould not load tracking data for session {} - can't compute exploration".format(key))
+		return
+
+	# Get the last next time that the mouse reaches the shelter and threat
+	stim_frame = data.overview_frame.values[0]
+	body_tracking = data.loc[data.bpname == "body"].tracking_data.values[0]
+
+	last_at_shelt = get_time_at_roi(body_tracking, 0.0, stim_frame, when="last")
+	next_at_shelt = get_time_at_roi(body_tracking, 0.0, stim_frame, when="next")
+	last_at_threat = get_time_at_roi(body_tracking, 1.0, stim_frame, when="last")
+	next_at_threat = get_time_at_roi(body_tracking, 1.0, stim_frame, when="next")
+
+	# TODO
+	# Get arm of escape
+	escape_rois = convert_roi_id_to_tag(trial_tracking[t:, -1]) # ? only look at arm taken since last departure from T
+	if not  escape_rois: 
+		raise ValueError("No escape rois detected", t)
+	escape_arm = get_arm_given_rois(escape_rois, 'in')
+
+	# Get arm of origin
+	origin_rois = convert_roi_id_to_tag(out_trip_tracking[:, -1])
+	if not origin_rois: raise ValueError
+	origin_arm = get_arm_given_rois(origin_rois, 'out')
+
+	# TODO compute stuff
