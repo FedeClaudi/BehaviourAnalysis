@@ -761,7 +761,6 @@ class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator
 	"""
 		||||||||||||||||||||||||||||    PLOTTERS     |||||||||||||||||||||
 	"""
-
 	def pr_by_condition(self, exclude_experiments=[None], ax=None):
 		xp =  np.linspace(.8, 1.55, 200)
 		xrange = [.8, 1.55]
@@ -771,7 +770,7 @@ class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator
 		
 		# Get modes on individuals posteriors and grouped bayes
 		modes, means, stds, _ = self.get_hb_modes()
-		grouped_modes, grouped_means, grouped_params, sigmasquared, pranges = self.bayes_by_condition_analytical(mode="grouped", plot=False) 
+		grouped_modes, grouped_means, grouped_params, sigmasquared, pranges = self.analytical_bayes_individuals(conditions=self.conditions, mode="grouped", plot=False)
 
 		 # Plot each individual's pR and the group mean as a factor of L/R length ratio
 		if ax is None: 
@@ -787,22 +786,20 @@ class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator
 			if condition not in grouped_modes.keys(): continue 
 
 			yticks.append(grouped_modes[condition])
-			x = self.paths_lengths.loc[self.paths_lengths.maze == condition]["distance"].values
-
 			y = means[condition]
 			# ? plot HB PR with errorbars
-			ax.errorbar(x, grouped_means[condition], yerr=(pranges[condition].low - pranges[condition].high)/2, 
+			ax.errorbar(i, grouped_means[condition], yerr=(pranges[condition].low - pranges[condition].high)/2, 
 						fmt='o', markeredgecolor=colors[i], markerfacecolor=colors[i], markersize=25, 
 						ecolor=desaturate_color(colors[i], k=.7), elinewidth=12, label=condition,
 						capthick=2, alpha=1, zorder=20)             
-			vline_to_point(ax, x, grouped_modes[condition], color=colors[1], lw=5, ls="--", alpha=.8)
-			hline_to_point(ax, x, grouped_modes[condition], color=black, lw=5, ls="--", alpha=.8)
+			# vline_to_point(ax, i, grouped_modes[condition], color=colors[1], lw=5, ls="--", alpha=.8)
+			# hline_to_point(ax, i, grouped_modes[condition], color=black, lw=5, ls="--", alpha=.8)
 
 
 			if condition not in exclude_experiments:# ? use the data for curves fitting
 				k = .4
-				lr_ratios_mean_pr["grouped"].append((x[0], np.mean(pr), np.std(pr)))  
-				lr_ratios_mean_pr["individuals_x"].append([x[0] for _ in np.arange(len(y))])
+				lr_ratios_mean_pr["grouped"].append((i, np.mean(pr), np.std(pr)))  
+				lr_ratios_mean_pr["individuals_x"].append([i for _ in np.arange(len(y))])
 				lr_ratios_mean_pr["individuals_y"].append(y)
 				lr_ratios_mean_pr["individuals_y_sigma"].append(stds[condition])
 			else: 
@@ -810,9 +807,9 @@ class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator
 		yticks.append(1)
 
 		# Fix plotting
-		ax.set(ylim=[0, 1], xlim=[0, 1000], ylabel="$p(R)$", title=None, xlabel="$L$",
-				xticks = self.paths_lengths["distance"].values, xticklabels = ["${}$".format(np.int(x)) for x in self.paths_lengths["distance"].values], 
-				yticks=np.array(yticks), yticklabels=["${}$".format(round(y, 2)) for y in yticks])
+		# ax.set(ylim=[0, 1], xlim=[0, 1000], ylabel="$p(R)$", title=None, xlabel="$L$",
+		# 		xticks = self.paths_lengths["distance"].values, xticklabels = ["${}$".format(np.int(x)) for x in self.paths_lengths["distance"].values], 
+		# 		yticks=np.array(yticks), yticklabels=["${}$".format(round(y, 2)) for y in yticks])
 		# make_legend(ax)
 		sns.despine(fig=f, offset=10, trim=False, left=False, right=True)
 

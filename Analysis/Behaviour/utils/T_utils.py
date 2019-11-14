@@ -81,7 +81,6 @@ def get_T_data(load=False, median_filter=False, ea=None):
             mdist = np.argmax(dist)
 
             # Get body and head orientation
-            # TODO FIX these damn angles
             head_angles, body_angles = get_angles(rawx, rawy, sx, sy, nx, ny, tx, ty)
                     
 

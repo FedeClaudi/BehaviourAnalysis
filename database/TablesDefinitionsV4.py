@@ -111,7 +111,7 @@ class Recording(dj.Imported):
 	definition = """
 		# Within one session one may perform several recordings. Each recording has its own video and metadata files
 		recording_uid: varchar(128)
-        -> Session
+		-> Session
 		---
 		software:           enum('behaviour', 'mantis')
 		ai_file_path:       varchar(256)
@@ -236,7 +236,24 @@ class TrackingData(dj.Imported):
 			bpname: varchar(128)        # name of the bodypart
 			---
 			tracking_data: longblob     # pandas dataframe with X,Y,Velocity, MazeComponent ... 
+			speed: longblob
+			direction_of_movement: longblob
 		"""
+
+	class BodySegmentData(dj.Part):
+		definition = """
+			# Store orientaiton, ang vel..
+			-> TrackingData
+			segment_name: varchar(128)
+			---
+			bp1: varchar(128)
+			bp2: varchar(128)
+			orientation: longblob
+			angular_velocity: longblob
+			angular_acceleration: longblob
+
+		"""
+	
 	def make(self, key):
 		make_trackingdata_table(self, key)
 
@@ -330,9 +347,9 @@ class Homings(dj.Manual):
 
 
 if __name__ == "__main__": 
-    # pass
+	# pass
 	TrackingData.drop()
 	# print(Homings())
-    # print_erd() 
-    # plt.show()
-    # Recording.drop()
+	# print_erd() 
+	# plt.show()
+	# Recording.drop()

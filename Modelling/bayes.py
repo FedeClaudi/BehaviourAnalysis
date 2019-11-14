@@ -79,13 +79,38 @@ class Bayes:
             # either pass conditions or pass a dataframe with pre loaded data
         """
         a, b  = self.a, self.b
+        ptuple = namedtuple("betaparams", "a b")
+        
         if conditions is not None:
             hits, ntrials, p_r, n_mice, _ = self.get_binary_trials_per_condition(conditions)
             # for (cond, H), (c, N) in zip(hits.items(), ntrials.items())
-            raise NotImplementedError
+            
+            # compute likelihood function
+            modes, means, params, sigmas, pranges = {}, {}, {},{}, {}
+            for condition in conditions.keys():
+                fact, kk, dnk = 1, 1, 1
+                for k,n in zip(hits[condition], ntrials[condition]):
+                    fact *= binom(n, k)
+                    kk += k
+                    dnk += n-k
+            
+                # Now compute the posterior
+                a2 = a - 1 + kk
+                b2 = b - 1 + dnk
+
+                # Plot mean and mode of posterior
+                mean =  a2 / (a2 + b2)
+                _mode = (a2 -1)/(a2 + b2 -2)
+                sigmasquared = (a2 * b2)/((a2+b2)**2 * (a2 + b2 + 1)) # https://math.stackexchange.com/questions/497577/mean-and-variance-of-beta-distributions
+                prange = percentile_range(get_parametric_distribution("beta", a2, b2)[1])
+                
+                modes[condition], means[condition], params[condition], sigmas[condition], pranges[condition] = _mode, mean, ptuple(a2, b2), sigmasquared, prange
+            return modes, means, params, sigmas, pranges
+
+
         elif data is not None:
             if plot: f, ax  = plt.subplots(figsize=(12, 12),)
-            ptuple = namedtuple("betaparams", "a b")
+            
             modes, means, params, sigmas, pranges = {}, {}, {},{}, {}
             for expn, (exp, trials) in enumerate(data.items()):
                 # Get number of tirals ad hits per session

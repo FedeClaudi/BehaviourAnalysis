@@ -25,7 +25,8 @@ class analyse_all_trals:
         self.naughty_experiments = ['Lambda Maze',  'FlipFlop Maze', 'FlipFlop2 Maze', 'TwoArmsLong Maze', "FourArms Maze", "Foraging"]
 
         self.good_experiments = ["Psychometric - short", "Psychometric - long", "PathInt2", "PathInt2-L", "PathInt2-D", "PathInt2-L",
-                                "PathInt2 L", "Square Maze", "TwoAndahalf Maze", "PathInt",  "PathInt2 D", "noshelter m1", "shortexploration m1", "narrowbridge m5", "m6"]
+                                "PathInt2 L", "Square Maze", "TwoAndahalf Maze", "PathInt",  "PathInt2 D", "noshelter m1", "shortexploration m1", 
+                                "narrowbridge m5", "m6"]
 
         if fill_in_table:  # Get tracking data
             self.table = AllTrials()
@@ -300,11 +301,10 @@ def check_arm_assignment():
 
 if __name__ == "__main__":
     # a = analyse_all_trals(erase_table=True, fill_in_table=False)
-    a = analyse_all_trals(erase_table=False, fill_in_table=True)
-    # print(AllTrials())
+    # a = analyse_all_trals(erase_table=False, fill_in_table=True)
 
 
-    # print(pd.DataFrame(AllTrials().fetch()).tail())
+    print(pd.DataFrame(AllTrials()).head())
 
 
 
