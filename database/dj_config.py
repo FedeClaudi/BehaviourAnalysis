@@ -48,5 +48,5 @@ def print_erd():
 
 
 if __name__ == "__main__":
-    # start_connection()
-    print_erd()
+    start_connection()
+    # print_erd()
