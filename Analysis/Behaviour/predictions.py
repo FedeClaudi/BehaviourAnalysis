@@ -8,7 +8,7 @@ from Analysis.Behaviour.utils.T_utils import get_T_data, get_angles, get_above_y
 # Getting data
 aligned_trials  = get_T_data(load=True, median_filter=False)
 # %%
-n_trials = 100
+n_trials = 125
 n_frames = 100
 
 ids = random.choices(np.arange(len(aligned_trials)), k=10) 
@@ -51,8 +51,32 @@ from sklearn import metrics
 X_train, X_test, y_train, y_test = train_test_split(data, frames_outcomes, test_size=0.3, random_state=0)
 logreg = LogisticRegression()
 logreg.fit(X_train, y_train)
+y_pred_prob_train = logreg.predict_proba(X_train)
 
 y_pred = logreg.predict(X_test)
+y_pred_prob = logreg.predict_proba(X_test)
 print('Accuracy of logistic regression classifier on test set: {:.2f}'.format(logreg.score(X_test, y_test)))
 print("p(R) in test set was: {}".format(round(np.mean(y_test), 2)))
 # %%
+# plot results on test set
+f, axarr = create_figure(subplots=True, ncols=2, facecolor=white, figsize=(16, 16))
+
+axarr[0].scatter(X_train.x.values, X_train.y.values, c=y_train, cmap="bwr")
+
+axarr[1].scatter(X_train.x.values, X_train.y.values, c=y_pred_prob_train[:, 1], cmap="bwr")
+
+
+_ = axarr[0].set(title="Ground truth", facecolor=[.2, .2, .2],)
+_ = axarr[1].set(title="Prediction", facecolor=[.2, .2, .2],)
+
+# %%
+# plot results
+f, axarr = create_figure(subplots=True, ncols=2, facecolor=white, figsize=(16, 16))
+
+axarr[0].scatter(X_test.x.values, X_test.y.values, c=y_test, cmap="bwr")
+
+axarr[1].scatter(X_test.x.values, X_test.y.values, c=y_pred_prob[:, 1], cmap="bwr")
+
+
+_ = axarr[0].set(title="Ground truth", facecolor=[.2, .2, .2],)
+_ = axarr[1].set(title="Prediction", facecolor=[.2, .2, .2],)
