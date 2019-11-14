@@ -615,3 +615,56 @@ def make_trackingdata_table(table, key):
 
 		table.BodySegmentData.insert1(segkey)
 
+
+"""
+			! EXPLORATION 
+"""
+def make_exploration_table(table, key):
+	from database.TablesDefinitionsV4 import Session, TrackingData, Stimuli
+	if key['uid'] < 184: fps = 30 # ! hardcoded
+	else: fps = 40
+
+
+	# Get tracking and stimuli data
+	try:
+		data = pd.DataFrame(Session * TrackingData.BodyPartData & "bpname='body'" & key).sort_values(['recording_uid'])
+	except:
+		print("\nCould not load tracking data for session {} - can't compute exploration".format(key))
+		return
+
+	try:
+		stimuli = pd.DataFrame((Stimuli & key).fetch()).sort_values(['overview_frame']) 
+	except:
+		print("\nCould not load stimuli data for session {} - can't compute exploration".format(key))
+		return
+
+	# Check if there was a stim
+	if len(stimuli) == 0:
+		end_frame = -1
+	else:
+		# Get the comulative frame number in the session
+		first_stim = (stimuli.recording_uid.values[0], stimuli.overview_frame.values[0])
+		first_stim_rec = list(data.recording_uid.values).index(first_stim[0])
+		pre_stim_frames = np.sum([len(x) for i, x in enumerate(data.x.values) if i<first_stim_rec])
+		end_frame = np.int(pre_stim_frames + first_stim[1])
+	
+	exploration_tracking = np.vstack(data.tracking_data)[:end_frame-1, :]
+
+	# Get where the exploration starst (ie we can track the mouse correctly)
+	nonnan = np.where(~np.isnan(exploration_tracking[:, 0]) & ~np.isnan(exploration_tracking[:, 1]))[0]
+	smoothed = np.convolve(np.diff(nonnan), np.ones((250,))/250, mode='valid')
+	start = list(smoothed).index(1) 
+	exploration_tracking = exploration_tracking[start:, :]
+
+
+	# preprare stuff for entry in table
+	key['start_frame'] = start
+	key['end_frame'] = end_frame
+	key['total_travel'] = np.nansum(exploration_tracking[:, 2])
+	key['tot_time_in_shelter'] = np.where(exploration_tracking[:, -1]==0)[0].shape[0]/fps
+	key['tot_time_on_threat'] = np.where(exploration_tracking[:, -1]==1)[0].shape[0]/fps
+	key['duration'] = exploration_tracking.shape[0]/fps
+	key['median_vel'] = np.nanmedian(exploration_tracking[:, 2])*fps
+
+	table.insert1(key)
+

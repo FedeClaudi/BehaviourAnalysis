@@ -37,6 +37,9 @@ class PopulateDatabase:
                             Recording(),
                             Stimuli(),
                             TrackingData(),
+                            Explorations(), 
+                            Trials(),
+                            Homings()
                             ])
 
 
@@ -264,7 +267,7 @@ if __name__ == '__main__':
     # ? These tables population is fast and largely automated
     # p.populate_mice_table()   # ! mice recordings, components... 
     # p.populate_sessions_table()
-# 
+ 
     # p.recording.populate(display_progress=True) 
     # p.recording.make_paths(p) 
     # p.mazecomponents.populate(display_progress=True)  # ? this will require input for new experiments
@@ -274,10 +277,13 @@ if __name__ == '__main__':
     # p.ccm.populate(display_progress=True)  # ! ccm
 
     # ? this is considerably slower but should be automated
-    errors = p.trackingdata.populate(display_progress=True, suppress_errors=False, return_exception_objects =True) # ! tracking data
+    # errors = p.trackingdata.populate(display_progress=True, suppress_errors=False, return_exception_objects =True) # ! tracking data
 
     # errors = p.stimuli.populate(display_progress=True, suppress_errors=False, return_exception_objects=True) # , max_calls =10)  # ! stimuli
     # p.stimuli.make_metadata() # ? only used for visual stims
+
+    # ? Should be fast but needs the stuff above to be done
+    p.explorations.populate(display_progress=True, suppress_errors=False, return_exception_objects =True)
 
 
     # if errors: raise ValueError([print("\n\n", e) for e in errors])

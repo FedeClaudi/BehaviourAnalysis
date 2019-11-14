@@ -127,29 +127,7 @@ class AllExplorationsPopulate:
 			self.table.insert1(key)
 			
 
-	def calculations_on_tracking_data(self, data, fps):
-		"""[Given the tracking data for an exploration, calc median velocity, distance covered and time in shetler]
-		
-		Arguments:
-			data {[np.array]} -- [Exploration's tracking data]
-		"""
 
-		# Calc median velocity in px/s
-		median_velocity = np.nanmedian(data[:, 2])*fps
-
-		# Calc time in shelter
-		time_in_shelt = np.where(data[:, -1]==0)[0].shape[0]/fps
-
-		# Calc time on T
-		time_on_t =np.where(data[:, -1]==1)[0].shape[0]/fps
-
-		# Calc total distance covered
-		distance_covered = np.nansum(data[:, 2])
-
-		# Calc duration in seconds
-		duration = data.shape[0]/fps
-
-		return median_velocity, time_in_shelt, time_on_t, distance_covered, duration
 
 
 

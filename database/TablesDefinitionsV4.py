@@ -266,7 +266,7 @@ class TrackingData(dj.Imported):
 		return set((TrackingData() * Recording() * Session()).fetch("experiment_name"))
 
 @schema
-class Explorations(dj.Manual):
+class Explorations(dj.Imported):
 	definition = """
 		-> Session
 		---
@@ -277,9 +277,10 @@ class Explorations(dj.Manual):
 		tot_time_on_threat: float         # Number of seconds spent on threat platf
 		duration: float                   # Total duration of the exploration in seconds
 		median_vel: float                  # median velocity in px/s 
-		session_number_trials: int      # Number of trials in the session following the expl
-		exploration_start: int              # frame start exploration
 	"""
+
+	def make(self, key):
+		make_exploration_table(self, key)
 
 
 @schema
@@ -347,7 +348,7 @@ class Homings(dj.Manual):
 
 if __name__ == "__main__": 
 	# pass
-	TrackingData.drop()
+	Explorations.drop()
 	# print(Homings())
 	# print_erd() 
 	# plt.show()
