@@ -20,9 +20,6 @@ from Utilities.dbase.stim_times_loader import *
 
 from Processing.tracking_stats.correct_tracking import correct_tracking_data
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
-from Processing.tracking_stats.extract_velocities_from_tracking import complete_bp_with_velocity, get_body_segment_stats
-
-# from database.auxillary_tables import *
 
 
 

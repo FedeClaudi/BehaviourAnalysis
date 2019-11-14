@@ -19,7 +19,6 @@ from Utilities.dbase.stim_times_loader import *
 
 from Processing.tracking_stats.correct_tracking import correct_tracking_data
 from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
-from Processing.tracking_stats.extract_velocities_from_tracking import complete_bp_with_velocity, get_body_segment_stats
 
 """
 			! TEMPLATES 
@@ -545,19 +544,20 @@ def make_trackingdata_table(table, key):
 			raise ValueError("Something went wrong while trying to correct tracking data, are you sure you have the CCM for this recording? {}".format(key))
 		corrected_data = pd.DataFrame.from_dict({'x':corrected_data[:, 0], 'y':corrected_data[:, 1]})
 
-		# get velocity
-		vel = calc_distance_between_points_in_a_vector_2d(corrected_data.values)
+		# get speed
+		speed = calc_distance_between_points_in_a_vector_2d(corrected_data.values)
 
-		# Add new vals
-		corrected_data['velocity'] = vel
+		# get direction of movement
+		dir_of_mvt = calc_angle_between_points_of_vector(np.vstack([corrected_data['x'], corrected_data['y']]).T)
+		dir_of_mvt[np.where(speed == 0)[0]] = np.nan # no dir of mvmt when there is no mvmt
 
-		# Correct the data
+		# Add new vals to df
+		corrected_data['speed'], corrected_data['direction_of_mvmt'] = speed, dir_of_mvt
+
+		# remove low likelihood frames
+		bp_data[bp] = corrected_data.copy()
 		like = posedata[scorer[0], bp].values[:, 2]
 		corrected_data[like < .99] = np.nan
-		# corrected_data.x = interpolate_nans(corrected_data.x.values)
-		# corrected_data.y = interpolate_nans(corrected_data.y.values)
-		
-
 
 		# If bp is body get the position on the maze
 		if 'body' in bp:
@@ -572,10 +572,46 @@ def make_trackingdata_table(table, key):
 			corrected_data['roi_at_each_frame'] = np.array([rois_ids[r] for r in corrected_data['roi_at_each_frame']])
 			
 		# Insert into part table
-		bp_data[bp] = corrected_data
 		bpkey = key.copy()
 		bpkey['bpname'] = bp
-		bpkey['tracking_data'] = corrected_data.values 
+		bpkey['tracking_data'] = corrected_data.values
+		bpkey['x'] = corrected_data.x.values
+		bpkey['y'] = corrected_data.y.values
+		bpkey['likelihood'] = like
+		bpkey['speed'] = corrected_data.speed.values
+		bpkey['direction_of_mvmt'] = corrected_data.direction_of_mvmt.values
 
 		table.BodyPartData.insert1(bpkey)
+
+	# populate body segments part table
+	body_part_data = pd.DataFrame(table.BodyPartData & key)
+	for name, (bp1, bp2) in table.skeleton.items():
+		segkey = key.copy()
+		segkey['segment_name'], segkey['bp1'], segkey['bp2'] = name, bp1, bp2
+
+		# get likelihoods
+		l1, l2  = body_part_data.loc[body_part_data.bpname == bp1].likelihood.values[0], body_part_data.loc[body_part_data.bpname == bp2].likelihood.values[0]
+		segkey['likelihood'] = np.min(np.vstack([l1, l2]).T, 1)
+
+		# get the tracking data
+		bp1, bp2 = bp_data[bp1].values[:, :2], bp_data[bp2].values[:, :2]
+
+		# get length of the body segment
+		bone_orientation = np.array(calc_angle_between_vectors_of_points_2d(bp1.T, bp2.T))
+
+		# Get angular velocity
+		bone_angvel = np.array(calc_ang_velocity(bone_orientation))
+
+		# remove nans
+		nan_frames = np.where(segkey['likelihood'] <.99)[0]
+		bp1[nan_frames] = np.nan
+		bp2[nan_frames] = np.nan
+		bone_orientation[nan_frames] = np.nan
+		bone_angvel[nan_frames] = np.nan
+
+		# Store everything in the part table
+		segkey['orientation'] = bone_orientation
+		segkey['angular_velocity'] = bone_angvel
+
+		table.BodySegmentData.insert1(segkey)
 

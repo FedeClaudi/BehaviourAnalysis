@@ -48,7 +48,6 @@ class Session(dj.Manual):
 		-> Session
 		---
 		shelter: int  # 0 if there is no shelter 1 otherwise
-
 		"""
 
 
@@ -221,6 +220,8 @@ class TrackingData(dj.Imported):
 							'PathInt2 Close', "Foraging"]
 
 	bodyparts = ['snout', 'neck', 'body', 'tail_base',]
+	skeleton = dict(head = ['snout', 'neck'], body_upper=['neck', 'body'],
+				body_lower=['body', 'tail_base'], body=['neck', 'tail_base'])
 
 	definition = """
 		# store dlc data for bodyparts and body segments
@@ -235,9 +236,13 @@ class TrackingData(dj.Imported):
 			-> TrackingData
 			bpname: varchar(128)        # name of the bodypart
 			---
-			tracking_data: longblob     # pandas dataframe with X,Y,Velocity, MazeComponent ... 
+			tracking_data: longblob     # pandas dataframe with X,Y,Speed,Dir of mvmt
+			x: longblob
+			y: longblob
+			likelihood: longblob
 			speed: longblob
-			direction_of_movement: longblob
+			direction_of_mvmt: longblob
+			
 		"""
 
 	class BodySegmentData(dj.Part):
@@ -250,8 +255,7 @@ class TrackingData(dj.Imported):
 			bp2: varchar(128)
 			orientation: longblob
 			angular_velocity: longblob
-			angular_acceleration: longblob
-
+			likelihood: longblob
 		"""
 	
 	def make(self, key):
@@ -262,13 +266,12 @@ class TrackingData(dj.Imported):
 		return set((TrackingData() * Recording() * Session()).fetch("experiment_name"))
 
 @schema
-class AllExplorations(dj.Manual):
+class Explorations(dj.Manual):
 	definition = """
-		exploration_id: int
+		-> Session
 		---
-		session_uid: int
-		experiment_name: varchar(128)
-		tracking_data: longblob
+		start_frame: int
+		end_frame: int
 		total_travel: float               # Total distance covered by the mouse
 		tot_time_in_shelter: float        # Number of seconds spent in the shelter
 		tot_time_on_threat: float         # Number of seconds spent on threat platf
@@ -280,36 +283,32 @@ class AllExplorations(dj.Manual):
 
 
 @schema
-class AllTrials(dj.Manual):
+class Trials(dj.Manual):
 	definition = """
-		trial_id: int
+		-> Stimuli
 		---
-		session_uid: int
-		recording_uid: varchar(128)
-		experiment_name: varchar(128)
+		-> Recording
 
-		tracking_data: longblob
-		snout_tracking_data: longblob
-		neck_tracking_data: longblob
-		tail_tracking_data: longblob
-
-		outward_tracking_data: longblob
-
+		out_of_shelter_frame: int
+		at_threat_frame: int
 		stim_frame: int
+		out_of_t_frame: int
+		at_shelter_frame: int
+
+		escape_duration: float        # duration in seconds
+		time_out_of_t: float
+
 		stim_frame_session: int  # stim frame relative to the start of the session and not the start of the recording
 		stim_type: enum('audio', 'visual')
 		stim_duration: int
 
-		number_of_trials: int
+		number_of_trials_in_session: int
 		trial_number: int
 
-		is_escape: enum('true', 'false')
-		escape_arm: enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'Right2', 'Left2', 'nan', 'alpha0', 'alpha1', 'beta0', 'beta1', 'lambda') 
-		origin_arm:  enum('Left_Far', 'Left_Medium', 'Centre', 'Right_Medium', 'Right_Far', 'Right2', 'Left2', 'nan', 'alpha0', 'alpha1', 'beta0', 'beta1', 'lambda')         
-		time_out_of_t: float
-		fps: int
-		escape_duration: float        # duration in seconds
+		escape_arm: enum('left', "center", "right") 
+		origin_arm:  enum('left', "center", "right")        
 
+		fps: int
 		threat_exits: longblob
 	"""
 

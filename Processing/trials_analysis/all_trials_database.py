@@ -300,7 +300,7 @@ def check_arm_assignment():
 
 
 if __name__ == "__main__":
-    # a = analyse_all_trals(erase_table=True, fill_in_table=False)
+    a = analyse_all_trals(erase_table=True, fill_in_table=False)
     # a = analyse_all_trals(erase_table=False, fill_in_table=True)
 
 
