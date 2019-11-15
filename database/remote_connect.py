@@ -12,3 +12,6 @@ conn = pymysql.connect(
     
 
 # %%
+print(conn)
+
+# %%
