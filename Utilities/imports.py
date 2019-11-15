@@ -46,15 +46,7 @@ from Plotting.utils.plot_distributions import *
 from Plotting.utils.colors import *
 
 
-# sns.set_style("white", {
-#             "axes.grid":"False",
-#             "ytick.right":"False",
-#             "ytick.left":"True",
-#             "xtick.bottom":"True",
-#             "text.color": "0"
-# })
 mpl.rc('text', usetex=False)
-
 params = {
     'text.latex.preamble': ['\\usepackage{gensymb}'],
     # 'image.origin': 'lower',
@@ -65,10 +57,9 @@ params = {
     'axes.labelsize': 12, # fontsize for x and y labels (was 10)
     'axes.titlesize': 12,
     'font.size': 12, # was 10
-    'legend.fontsize': 6, # was 10
     'xtick.labelsize': 12,
     'ytick.labelsize': 12,
     'text.usetex': False,        # ! <----- use TEX
+    'legend.fontsize': 14,
 }
 mpl.rcParams.update(params)
-# sns.set_context("talk", font_scale=1)  # was 3 

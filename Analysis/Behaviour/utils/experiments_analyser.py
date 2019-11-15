@@ -15,12 +15,13 @@ from Modelling.maze_solvers.environment import Environment
 from Analysis.Behaviour.utils.trials_data_loader import TrialsLoader
 from Analysis.Behaviour.utils.path_lengths import PathLengthsEstimator
 from Analysis.Behaviour.plotting.plot_trials_tracking import TrialsPlotter
+from Analysis.Behaviour.utils.plots_by_condition import PlotsByCondition
 
 """[This class facilitates the loading of experiments trials data + collects a number of methods for the analysis. ]
 """
 
 
-class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator, TrialsPlotter):
+class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator, TrialsPlotter, PlotsByCondition):
 	# ! important 
 	max_duration_th = 19 # ? only trials in which the mice reach the shelter within this number of seconds are considered escapes (if using escapes == True)
 	
@@ -37,19 +38,20 @@ class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator
 	distance_noise = .1
 
 
-	def __init__(self, naive=None, lights=None, escapes=None, escapes_dur=None, shelter=True, 
+	def __init__(self, naive=None, lights=None, escapes_dur=None, shelter=True, 
 			agent_params=None, **kwargs):
 		# Initiate some parent classes
 		Bayes.__init__(self) # Get functions from bayesian modelling class
 		PathLengthsEstimator.__init__(self)
 		TrialsPlotter.__init__(self)
+		PlotsByCondition.__init__(self)
 		
 		# store params
-		self.naive, self.lights, self.escapes, self.escapes_dur, self.shelter = naive, lights, escapes, escapes_dur, shelter
+		self.naive, self.lights, self.escapes_dur, self.shelter = naive, lights, escapes_dur, shelter
 
 		# Get trials data
 		TrialsLoader.__init__(self, naive=self.naive, lights=self.lights, 
-                        escapes=self.escapes, escapes_dur=self.escapes_dur, shelter=self.shelter, **kwargs)
+						escapes_dur=self.escapes_dur, shelter=self.shelter, **kwargs)
 
 		# Load geodesic agent
 		if agent_params is None:
@@ -64,7 +66,7 @@ class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator
 						 DATA MANIPULATION
 	||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 	"""
-	def get_binary_trials_per_condition(self, conditions):
+	def get_binary_trials_per_condition(self, conditions, ignore_center=True):
 		# ? conditions should be a dict whose keys should be a list of strings with the names of the different conditions to be modelled
 		# ? the values of conditions should be a a list of dataframes, each specifying the trials for one condition (e.g. maze design) and the session they belong to
 
@@ -72,9 +74,14 @@ class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator
 		# Get trials
 		trials = {c:[] for c in conditions.keys()}
 		for condition, df in conditions.items():
-			sessions = sorted(set(df.session_uid.values))
+			sessions = sorted(set(df.uid.values))
 			for sess in sessions:
-				trials[condition].append([1 if "right" in arm.lower() else 0 for arm in df.loc[df.session_uid==sess].escape_arm.values])
+				if "center" in  df.loc[df.uid==sess].escape_arm.values:
+					if not ignore_center:
+						raise NotImplementedError
+				else:
+					df = df.loc[df.escape_arm != "center"]
+				trials[condition].append([1 if "right" in arm.lower() else 0 for arm in df.loc[df.uid==sess].escape_arm.values])
 
 		# Get hits and number of trials
 		hits = {c:[np.sum(t2) for t2 in t] for c, t in trials.items()}
@@ -105,145 +112,25 @@ class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator
 		return data
 
 
-
-	"""
-		||||||||||||||||||||||||||||    DECISION THEORY MODEL     |||||||||||||||||||||
-	"""
-	def dt_model_speed_and_distances(self, plot=False, sqrt=True):
-		speed = stats.norm(loc=self.speed_mu, scale=self.speed_sigma)
-		if sqrt: dnoise = math.sqrt(self.distance_noise)
-		else: dnoise = self.distance_noise
-		distances = {a.maze:stats.norm(loc=a[self.ratio], scale=dnoise) for i,a in self.paths_lengths.iterrows()}
-		
-		if plot:
-			f, axarr = create_figure(subplots=True, ncols=2)
-			dist_plot(speed, ax=axarr[0])
-
-			for k,v in distances.items():
-				dist_plot(v, ax=axarr[1], label=k)
-
-			for ax in axarr: make_legend(ax)
-
-		return speed, distances
-
-	def simulate_trials_analytical(self):
-		# Get simulated running speed and path lengths estimates
-		speed, distances = self.dt_model_speed_and_distances(plot=False)
-
-		# right arm
-		right = distances["maze4"]
-
-		# Compare each arm to right
-		pR = {k:0 for k in distances.keys()}
-		for left, d in distances.items():
-			# p(R) = phi(-mu/sigma) and mu=mu_l - mu_r, sigma = sigma_r^2 + sigma_l^2
-			mu_l, sigma_l = d.mean(), d.std()
-			mu_r, sigma_r = right.mean(), right.std()
-
-			mu, sigma = mu_l - mu_r, sigma_r**2 + sigma_l**2
-			pR[left] = round(1 - stats.norm.cdf(-mu/sigma,  loc=0, scale=1), 3)
-		return pR
-
-	def simulate_trials(self, niters=1000):
-		# Get simulated running speed and path lengths estimates
-		speed, distances = self.dt_model_speed_and_distances(plot=False, sqrt=False)
-
-		# right arm
-		right = distances["maze4"]
-
-		# Compare each arm to right
-		trials, pR = {k:[] for k in distances.keys()}, {k:0 for k in distances.keys()}
-		for left, d in distances.items():
-			# simulate n trials
-			for tn in range(niters):
-				# Draw a random length for each arms
-				l, r = d.rvs(), right.rvs()
-
-				# Draw a random speed and add noise
-				if self.speed_noise > 0: s = speed.rvs() + np.random.normal(0, self.speed_noise, size=1) 
-				else: s = speed.rvs()
-
-				# Calc escape duration on each arma nd keep the fastest
-				# if r/s <= l/s:
-				if r <= l:
-					trials[left].append(1)
-				else: 
-					trials[left].append(0)
-
-			pR[left] = np.mean(trials[left])
-		return trials, pR
-		
-	def fit_model(self):
-		xp =  np.linspace(.8, 1.55, 200)
-		xrange = [.8, 1.55]
-
-		# Get paths length ratios and p(R) by condition
-		hits, ntrials, p_r, n_mice = self.get_binary_trials_per_condition(self.conditions)
-		
-		# Get modes on individuals posteriors and grouped bayes
-		modes, means, stds = self.get_hb_modes()
-		grouped_modes, grouped_means = self.bayes_by_condition_analytical(mode="grouped", plot=False) 
-
-		# Plot each individual's pR and the group mean as a factor of L/R length ratio
-		f, axarr = create_figure(subplots=True, ncols=2)
-		ax = axarr[1]
-		mseax = axarr[0]
-			
-		lr_ratios_mean_pr = {"grouped":[], "individuals_x":[], "individuals_y":[], "individuals_y_sigma":[]}
-		for i, (condition, pr) in enumerate(p_r.items()):
-			x = self.paths_lengths.loc[self.paths_lengths.maze == condition][self.ratio].values
-			y = means[condition]
-
-			# ? plot HB PR with errorbars
-			ax.errorbar(x, np.mean(y), yerr=np.std(y), 
-						fmt='o', markeredgecolor=self.colors[i+1], markerfacecolor=self.colors[i+1], markersize=15, 
-						ecolor=desaturate_color(self.colors[i+1], k=.7), elinewidth=3, 
-						capthick=2, alpha=1, zorder=0)             
-
-		def residual(distances, sigma):
-			self.distance_noise = sigma
-			analytical_pr = self.simulate_trials_analytical()
-			return np.sum(np.array(list(analytical_pr.values())))
-			 
-		params = Parameters()
-		params.add("sigma", min=1.e-10, max=.5)
-		model = Model(residual, params=params)
-		params = model.make_params()
-		params["sigma"].min, params["sigma"].max = 1.e-10, 1
-
-		ytrue = [np.mean(m) for m in means.values()]
-		x = self.paths_lengths[self.ratio].values
-
-		result = model.fit(ytrue, distances=x, params=params)
-
-		# ? Plot best fit
-		# best_sigma = sigma_range[np.argmin(mserr)]
-		best_sigma = result.params["sigma"].value
-		self.distance_noise = best_sigma
-
-		analytical_pr = self.simulate_trials_analytical()
-		pomp = plot_fitted_curve(sigmoid, self.paths_lengths[self.ratio].values, np.hstack(list(analytical_pr.values())), ax, xrange=xrange, 
-			scatter_kwargs={"alpha":0}, 
-			line_kwargs={"color":white, "alpha":1, "lw":6, "label":"model pR - $\sigma : {}$".format(round(best_sigma, 2))})
-
-
-		# Fix plotting
-		ortholines(ax, [1, 0,], [1, .5])
-		ortholines(ax, [0, 0,], [1, 0], ls=":", lw=1, alpha=.3)
-		ax.set(title="best fit logistic regression", ylim=[-0.01, 1.05], ylabel="p(R)", xlabel="Left path length (a.u.)",
-				 xticks = self.paths_lengths[self.ratio].values, xticklabels = self.conditions.keys())
-		make_legend(ax)
-		
 	"""
 	||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 						 BAYES
 	||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 	"""
 	def bayes_by_condition_analytical(self, load=True, mode="grouped", plot=True):
-		if not load: raise NotImplementedError
-		else:
-			data = self.load_trials_from_pickle()
-		return self.analytical_bayes_individuals(conditions=None, data=data, mode=mode, plot=plot)
+		results = {"condition":[], "mean":[], "median":[], "sigmasquared":[], "prange":[]}
+		hits, ntrials, p_r, n_mice, trials = self.get_binary_trials_per_condition(self.conditions)
+
+		for (cond, h), n in zip(hits.items(), ntrials.values()):
+			res = self.grouped_bayes_analytical(n, h)
+			results['condition'].append(cond)
+			results['mean'].append(res[0])
+			results['median'].append(res[1])
+			results['sigmasquared'].append(res[2])
+			results['prange'].append(res[3])
+
+		return pd.DataFrame(results)
+
 
 	def bayes_by_condition(self, conditions=None,  load=False, tracefile="a.pkl", plot=True):
 		tracename = os.path.join(self.metadata_folder, tracefile)
@@ -756,247 +643,7 @@ class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator
 			axarr[leftcol[4]].set(title="balance over time", xlabel="time (min)", ylabel="R / (R+L)")
 			make_legend(axarr[4])
 			f.tight_layout()
-
-
-	"""
-		||||||||||||||||||||||||||||    PLOTTERS     |||||||||||||||||||||
-	"""
-	def pr_by_condition(self, exclude_experiments=[None], ax=None):
-		xp =  np.linspace(.8, 1.55, 200)
-		xrange = [.8, 1.55]
-
-		# Get paths length ratios and p(R) by condition
-		hits, ntrials, p_r, n_mice, trials = self.get_binary_trials_per_condition(self.conditions)
-		
-		# Get modes on individuals posteriors and grouped bayes
-		modes, means, stds, _ = self.get_hb_modes()
-		grouped_modes, grouped_means, grouped_params, sigmasquared, pranges = self.analytical_bayes_individuals(conditions=self.conditions, mode="grouped", plot=False)
-
-		 # Plot each individual's pR and the group mean as a factor of L/R length ratio
-		if ax is None: 
-			f, ax = create_figure(subplots=False)
-		else: f = None
-		
-		colors_helper = MplColorHelper("Purples", 0, 5, inverse=True)
-		colors = [colors_helper.get_rgb(i) for i in range(len(p_r.keys()))]
-
-		lr_ratios_mean_pr = {"grouped":[], "individuals_x":[], "individuals_y":[], "individuals_y_sigma":[]}
-		yticks=[0]
-		for i, (condition, pr) in enumerate(p_r.items()):
-			if condition not in grouped_modes.keys(): continue 
-
-			yticks.append(grouped_modes[condition])
-			y = means[condition]
-			# ? plot HB PR with errorbars
-			ax.errorbar(i, grouped_means[condition], yerr=(pranges[condition].low - pranges[condition].high)/2, 
-						fmt='o', markeredgecolor=colors[i], markerfacecolor=colors[i], markersize=25, 
-						ecolor=desaturate_color(colors[i], k=.7), elinewidth=12, label=condition,
-						capthick=2, alpha=1, zorder=20)             
-			# vline_to_point(ax, i, grouped_modes[condition], color=colors[1], lw=5, ls="--", alpha=.8)
-			# hline_to_point(ax, i, grouped_modes[condition], color=black, lw=5, ls="--", alpha=.8)
-
-
-			if condition not in exclude_experiments:# ? use the data for curves fitting
-				k = .4
-				lr_ratios_mean_pr["grouped"].append((i, np.mean(pr), np.std(pr)))  
-				lr_ratios_mean_pr["individuals_x"].append([i for _ in np.arange(len(y))])
-				lr_ratios_mean_pr["individuals_y"].append(y)
-				lr_ratios_mean_pr["individuals_y_sigma"].append(stds[condition])
-			else: 
-				del grouped_modes[condition], grouped_means[condition], sigmasquared[condition]
-		yticks.append(1)
-
-		# Fix plotting
-		# ax.set(ylim=[0, 1], xlim=[0, 1000], ylabel="$p(R)$", title=None, xlabel="$L$",
-		# 		xticks = self.paths_lengths["distance"].values, xticklabels = ["${}$".format(np.int(x)) for x in self.paths_lengths["distance"].values], 
-		# 		yticks=np.array(yticks), yticklabels=["${}$".format(round(y, 2)) for y in yticks])
-		# make_legend(ax)
-		sns.despine(fig=f, offset=10, trim=False, left=False, right=True)
-
-		return lr_ratios_mean_pr, grouped_modes, grouped_means, sigmasquared, modes, means, stds, f, ax, xp, xrange, grouped_params
-
-	def plot_pr_by_condition_detailed(self):
-		for bw in [0.02]:
-			f, axarr = create_figure(subplots=True, ncols=5, sharey=False)
-			# plot normal pR
-			lr_ratios_mean_pr, grouped_modes, grouped_means, sigmasquared,  modes, means, stds, _, ax, xp, xrange, grouped_params = self.pr_by_condition(ax=axarr[0])
-
-			# Plot a kde of the pR of each mouse on each maze
-			for i, (maze, prs) in enumerate(means.items()):
-				if len(prs) == 0: continue
-				bins = np.linspace(0, 1, 15)
-
-				# Plot KDE of mice's pR + max density point and horizontal lines
-				kde = fit_kde(prs, bw=bw)
-				shift = (4-i)*.1-.1
-
-				# Plot KDE of each experiments rpr
-				xx, yy = (kde.density*bw)+shift, kde.support
-				axarr[1].scatter(np.ones(len(prs))*shift, prs, color=desaturate_color(self.colors[i+1]), s=50)
-				plot_shaded_withline(axarr[1],xx, yy, z=shift, color=self.colors[i+1], lw=3, label=maze, zorder=10 )
-
-				# Plot mean and 95th percentile range of probabilities 
-				plot_shaded_withline(axarr[2], kde.cdf, yy, color=desaturate_color(self.colors[i+1]), lw=3,  zorder=10 )
-
-				# percrange = percentile_range(prs)
-				# axarr[1].scatter(shift, percrange.mean, color=white, s=50, zorder=50)
-				# axarr[1].plot([shift, shift], [percrange.low, percrange.high], color=grey, lw=4, alpha=.9, zorder=40)
-
-				# Plot a line to the highest density point
-				hmax, yyy = np.max(xx), yy[np.argmax(xx)]
-				hline_to_curve(axarr[1], yyy, xx, yy, color=self.colors[i+1], dot=True, line_kwargs=dict(alpha=.5, ls="--", lw=3), scatter_kwargs=dict(s=100))
-				axarr[0].axhline(np.mean(prs), color=self.colors[i+1], alpha=.5, ls="--", lw=3)
-
-				# Plot beta distributions of grouped analytical bayes
-				beta, support, density = get_parametric_distribution("beta", *grouped_params[maze] )
-				plot_shaded_withline(axarr[3], density, support, z=None, color=self.colors[i+1])
-				hline_to_curve(axarr[3], support[np.argmax(density)], density, support, color=self.colors[i+1], dot=True, line_kwargs=dict(alpha=.5, ls="--", lw=3), scatter_kwargs=dict(s=100))
-
-				axarr[4].bar(4-i, len(prs), color=self.colors[i+1])
-
-			ortholines(axarr[1], [0,], [.5])
-			axarr[1].set(title="individuals pR distribution - bw{}".format(bw), xlabel="probability",  ylim=[0, 1], xlim=[-0.01, 0.5])
-			make_legend(axarr[1])
-
-			axarr[2].set(title="individuals pR cdf", xlabel="cdf",  ylim=[0, 1], xlim=[0, 1])
-
-
-			ortholines(axarr[2], [0,], [.5])
-			axarr[3].set(title="grouped bayes", ylabel="p(R)", xlabel="probability",  ylim=[0, 1], xlim=[-2, 20])
-
-		axarr[4].set(title="mice x maze", xticks=[1, 2, 3, 4], xticklabels=["m4", "m3", "m2", "m1"], ylabel="# mice", xlabel="maze")
-
-	def model_summary(self, exclude_experiments=[None], ax=None):
-		sns.set_context("talk", font_scale=4.5)
-
-		sns.set_style("white", {
-					"axes.grid":"False",
-					"ytick.right":"False",
-					"ytick.left":"True",
-					"xtick.bottom":"True",
-					"text.color": "0"
-		})
-
-		lr_ratios_mean_pr, grouped_modes, grouped_means, sigmasquared,  modes, means, stds, f, ax, xp, xrange, _ = self.pr_by_condition(exclude_experiments=exclude_experiments, ax=ax)
-
-		# ? Fit logistic regression to mean p(R)+std(p(R))
-		# ? Plot sigmoid filled to psy - mean pR of grouped bayes + std
-		xdata, ydata = [m[0] for m in lr_ratios_mean_pr["grouped"]], list(grouped_modes.values())
-
-		colors_helper = MplColorHelper("Purples", 0, 5, inverse=True)
-		colors = [colors_helper.get_rgb(i) for i in range(len(xdata))]
-
-		pomp = plot_fitted_curve(centered_logistic, xdata, ydata, ax, 
-			xrange=[0, 1000],
-			fit_kwargs={"sigma":[math.sqrt(s) for s in list(sigmasquared.values())], 
-							"method":"dogbox", "bounds":([0.99, 585, 0.01],[1, 595, 0.3])},
-			scatter_kwargs={"alpha":0, "c":colors}, 
-			line_kwargs={"color":black, "alpha":.85, "lw":10,})
-
-		rhos = [m[0] for m in lr_ratios_mean_pr["grouped"]]
-		labels = ["$Maze\\ {}$\n $\\rho = {}$".format(1+i, round(r, 2)) for i,r in enumerate(rhos)]
-		# Fix plotting
-		# ax.axhline(.5, ls="--", color=grey, lw=.25)
-		# ax.set(ylim=[0, 1], ylabel="p(R)", title=None, xlabel="$\\rho$",
-		# 		 xticks = self.paths_lengths[self.ratio].values, xticklabels = labels)
-		# make_legend(ax)
-
-
-		sns.despine(offset=10, trim=False, left=False, right=True)
-		print(sns.axes_style())
-
-	def plot_hierarchical_bayes_effect(self):
-		# Get hierarchical Bayes modes and individual mice p(R)
-		hits, ntrials, p_r, n_trials, _ = self.get_binary_trials_per_condition(self.conditions)
-		trace = self.bayes_by_condition(conditions=self.conditions, load=True, tracefile="psychometric_individual_bayes.pkl", plot=False) 
-
-		# Get data from the alternative hierarchical model
-		v2trace = self.load_trace(os.path.join(self.metadata_folder, "test_hb_trace.pkl"))
-		v2_cols = [k  for k in v2trace.columns if "beta_theta" in k]
-		data = self.get_hits_ntrials_maze_dataframe()
-
-		# Get the mode of the posteriors
-		modes, means, stds, _ = self.get_hb_modes()
-
-		f, axarr = plt.subplots(ncols=4, sharex=True, sharey=True)
-		
-		for i, (exp, ax) in enumerate(zip(trace.keys(), axarr)):
-			# Plot mean and errorbar for naive and standard hb
-
-			ax.errorbar(0.1, np.mean(p_r[exp]), yerr=np.std(p_r[exp]),  **white_errorbar)
-			ax.errorbar(0.9, np.mean(means[exp]), yerr=np.std(means[exp]),  **white_errorbar)
-
-			# Plot data from naive and standard hb
-			ax.scatter(np.random.normal(0, .025, size=len(p_r[exp])), p_r[exp], color=self.colors[i+1], alpha=.5, s=200)
-			ax.scatter(np.random.normal(1, .025, size=len(means[exp])), means[exp], color=self.colors[i+1], alpha=.5, s=200)
-
-			# Plot KDEs
-			kde = fit_kde(p_r[exp],   bw=.05)
-			plot_kde(ax, kde, z=0, vertical=True, normto=.3, color=self.colors[i+1],)
-
-			kde = fit_kde(means[exp],   bw=.05)
-			plot_kde(ax, kde, z=1, vertical=True, invert=False, normto=.3, color=self.colors[i+1],)
-
-			# Add results from alternative hb
-			exp_mice = data.loc[data.maze == int(exp[-1])-1].index
-			exp_traces_cols = [k for k in v2_cols if int(k.split("_")[-1]) in exp_mice]
-			t = v2trace[exp_traces_cols].values
-			v2means, v2stds = np.mean(t, 0), np.std(t, 0)
-
-			ax.errorbar(1.9, np.mean(v2means), yerr=np.std(v2means),  **white_errorbar)
-			ax.scatter(np.random.normal(2, .025, size=len(v2means)), v2means, color=self.colors[i+1], alpha=.5, s=200)
-
-			kde = fit_kde(v2means,   bw=.05)
-			plot_kde(ax, kde, z=2, vertical=True, invert=False, normto=.3, color=self.colors[i+1],)
-
-			# Set ax
-			ortholines(ax, [0,], [.5])
-			ax.set(title=exp, xlim=[-.1, 3.1], ylim=[-.02, 1.02], xticks=[0, 1, 2], xticklabels=["Raw", "hb means", "hb_v2"], ylabel="p(R)")
-
-	def plot_escape_duration_by_arm(self):
-		def get_escape_distance(df, key=None):
-			if key is not None:
-				df = df.loc[df.maze == key]
-			distance = [np.sum(r.tracking_data[:, 2]) for i,r in df.iterrows()]
-			return distance
-
-		def get_mean_escape_speed(df, key=None):
-			if key is not None:
-				df = df.loc[df.maze == key]
-			distance = [np.mean(r.tracking_data[:, 2]) for i,r in df.iterrows()]
-			return distance			
-
-		for maze, df in self.conditions.items():
-			df["maze"] = maze
-		escapes = pd.concat([df.loc[df["is_escape"]=="true"] for df in self.conditions.values()])
-
-		# resc, lescs = escapes.loc[escapes.escape_arm == "Right_Medium"], escapes.loc[escapes.escape_arm != "Right_Medium"]
-		
-		arms = sorted(set(escapes.maze))
-		durations, mean_speeds, distances = {arm:[] for arm in arms}, {arm:[] for arm in arms}, {arm:[] for arm in arms}
-
-		for arm in arms:
-			durations[arm].extend(list(escapes.loc[escapes.maze == arm].escape_duration))		
-			mean_speeds[arm].extend(get_mean_escape_speed(escapes, arm))
-			distances[arm].extend(get_escape_distance(escapes, arm))   
-
-
-		f, ax = plt.subplots()
-		colors = MplColorHelper("tab10", 0, 5, inverse=True)
-
-		all_durations = np.hstack(durations.values())
-		all_speeds = np.hstack(mean_speeds.values())
-		all_distances = np.hstack(distances.values())
-
-		colormap = plt.cm.Reds #or any other colormap
-		normalize = mpl.colors.Normalize(vmin=0, vmax=np.max(all_speeds))
-		ax.scatter(all_distances, all_durations, c=all_speeds, s=300, cmap="Reds", norm=normalize, edgecolors=black)
-		
-		ax.set(ylabel="$duration (s)$", xlabel="$distance (a.u.)$", xlim=[0, 1400], ylim=[0, 12],
-				xticks=np.arange(0, 1400, 200), xticklabels=["${}$".format(x) for x in np.arange(0, 1400, 200)],
-				yticks=np.arange(0, 12, 2), yticklabels=["${}$".format(y) for y in np.arange(0, 12, 2)])
-
-		sns.despine(fig=f, offset=10, trim=False, left=False, right=True)
+	
 
 	"""
 		||||||||||||||||||||||||||||    THREAT PLTFORM ANALYSIS     |||||||||||||||||||||

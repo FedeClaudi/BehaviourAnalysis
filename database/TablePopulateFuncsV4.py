@@ -699,7 +699,7 @@ def make_trials_table(table, key):
 	try:
 		data = pd.DataFrame(Session * TrackingData.BodyPartData * Stimuli & key).sort_values(['recording_uid'])
 	except:
-		print("\nCould not load tracking data for session {} - can't compute exploration".format(key))
+		print("\nCould not load tracking data for session {} - can't compute trial data".format(key))
 		return
 
 	# Get the last next time that the mouse reaches the shelter

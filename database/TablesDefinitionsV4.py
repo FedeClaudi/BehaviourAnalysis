@@ -20,6 +20,29 @@ class Mouse(dj.Manual):
 	"""
 
 	# ? population method is in populate_database
+    
+@schema
+class Maze(dj.Manual):
+    definition = """
+        # stores info about maze designs
+        maze_id: int
+        maze_name: varchar(128)
+        ---
+        left_path_length: float
+        right_path_length: float # length of right path in CM
+        center_path_length: float
+
+        left_path_angle: int  # angle of start of path from T
+        right_path_angle: int
+        center_path_angle: float
+
+        has_catwalk: int # 1 or 0
+        maze_image: longblob # numpy array with maze image
+        maze_image_binary: longblob # numpy array with maze image binary 
+    """
+
+    # ? population method is in populate_database
+
 
 @schema
 class Session(dj.Manual):

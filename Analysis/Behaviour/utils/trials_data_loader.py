@@ -22,35 +22,44 @@ class TrialsLoader:
 								maze3 =  self.load_trials_by_condition(maze_design=3, **kwargs),
 								maze4 =  self.load_trials_by_condition(maze_design=4, **kwargs),
 							)
+		else:
+			self.conditions = {}
 
-	def load_trials_by_condition(self, maze_design=None, naive=None, lights=None, escapes=None, escapes_dur=None, shelter=None):
+	def add_condition(self, name, **kwargs):
+		if name in self.conditions.keys():
+			raise ValueError("Condition with name {} already exists!")
+
+		self.conditions[name] = self.load_trials_by_condition(**kwargs)
+
+		
+	def load_trials_by_condition(self, maze_design=None, naive=None, lights=None, escapes_dur=None, shelter=None):
 		"""[Given a number of criteria, load the trials that match these criteria]
 		
 		Keyword Arguments:
 			maze_design {[int]} -- [Number of maze of experiment] (default: {None})
 			naive {[int]} -- [1 for naive only mice] (default: {None})
 			lights {[int]} -- [1 for light on only experiments] (default: {None})
-			escapes {bool} -- [if true only escape trials are used] (default: {False})
 			escapes_dur {bool} -- [If true only trials in which the escapes terminate within the duraiton th are used] (default: {True})
 		"""
 
 		if naive is None: naive= self.naive
 		if lights is None: lights= self.lights
 		if escapes_dur is None: escapes_dur = self.escapes_dur
-		if escapes is None: escapes = self.escapes
 		if shelter is None: shelter = self.shelter
 
 		# Get all trials from the AllTrials Table
-		all_trials = pd.DataFrame(AllTrials.fetch())
-		if escapes:
-			all_trials = all_trials.loc[all_trials.is_escape == "true"]
+		all_trials = pd.DataFrame(Trials.fetch())
+
 		if escapes_dur:
 			all_trials = all_trials.loc[all_trials.escape_duration <= self.max_duration_th]
+
+		# Remove trials with negative escape duration [placeholders]
+		all_trials = all_trials.loc[all_trials.escape_duration > 0]
 
 		# Get the sessions that match the criteria and use them to discard other trials
 		sessions = self.get_sessions_by_condition(maze_design=maze_design, naive=naive, lights=lights,shelter=shelter, df=True)
 		ss = set(sorted(sessions.uid.values))
-		trials = all_trials.loc[all_trials.session_uid.isin(ss)]
+		trials = all_trials.loc[all_trials.uid.isin(ss)]
 		return trials
 
 	def get_sessions_by_condition(self, maze_design=None, naive=None, lights=None,  shelter=None, df=False):

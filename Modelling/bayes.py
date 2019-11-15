@@ -45,6 +45,34 @@ class Bayes:
         ANALYSIS
     """
 
+    def grouped_bayes_analytical(self, N, K):
+        """[Solves the bayesia model for p(R) for grouped data]
+        
+        Arguments:
+            n {[int]} -- [tot number of trials]
+            k {[int]} -- [tot number of hits]
+        """
+        # Compute likelihood function
+        fact, kk, dnk = 1, 1, 1
+        for k,n in zip(K, N):
+            fact *= binom(n, k)
+            kk += k
+            dnk += n-k
+        
+        # Now compute the posterior
+        a2 = self.a - 1 + kk
+        b2 = self.b - 1 + dnk
+
+        # Plot mean and mode of posterior
+        mean =  a2 / (a2 + b2)
+        mode = (a2 -1)/(a2 + b2 -2)
+        sigmasquared = (a2 * b2)/((a2+b2)**2 * (a2 + b2 + 1)) # https://math.stackexchange.com/questions/497577/mean-and-variance-of-beta-distributions
+        prange = percentile_range(get_parametric_distribution("beta", a2, b2)[1])
+
+        return (mean, mode, sigmasquared, prange)
+     
+        
+
     def model_hierarchical_bayes(self, conditions): # ? using PyMC3
         hits, ntrials, p_r, n_mice, _ = self.get_binary_trials_per_condition(conditions)
 

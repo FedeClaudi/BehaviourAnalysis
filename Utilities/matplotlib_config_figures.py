@@ -32,15 +32,15 @@ mpl.rcParams['lines.linewidth'] = 2.0
 
 mpl.rcParams['legend.fancybox'] = True
 mpl.rcParams['legend.loc'] = 'best'
-mpl.rcParams['legend.numpoints'] = 1
-mpl.rcParams['legend.fontsize'] = 'small'
+mpl.rcParams['legend.numpoints'] = 3
+mpl.rcParams['legend.fontsize'] = 'medium'
 mpl.rcParams['legend.framealpha'] = .8
 mpl.rcParams['legend.scatterpoints'] = 3
 mpl.rcParams['legend.edgecolor'] = "w"
 mpl.rcParams['legend.facecolor'] = "w"
 mpl.rcParams['legend.shadow'] = True
 mpl.rcParams['legend.columnspacing'] = 1
-mpl.rcParams["legend.markerscale"] = 1.0
+mpl.rcParams["legend.markerscale"] = 2.0
 
 mpl.rcParams['axes.facecolor'] = "w"
 mpl.rcParams['axes.edgecolor'] = "k"
