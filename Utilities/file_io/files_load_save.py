@@ -8,6 +8,8 @@ import numpy as np
 from functools import partial
 import pandas as pd
 
+sys.path.append("./")
+
 def load_yaml(file):
         if not isinstance(file, str): raise ValueError('Invalid input argument')
         with open(file, 'r') as f:

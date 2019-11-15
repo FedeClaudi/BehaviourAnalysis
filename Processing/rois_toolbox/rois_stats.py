@@ -29,7 +29,7 @@ import os
 """
 
 def convert_roi_id_to_tag(ids):
-    rois_lookup = load_yaml('Processing\\rois_toolbox\\rois_lookup.yml')
+    rois_lookup = load_yaml('Processing/rois_toolbox/rois_lookup.yml')
     rois_lookup = {v:k for k,v in rois_lookup.items()}
     return [rois_lookup[int(r)] for r in ids]
 
@@ -112,9 +112,6 @@ def get_roi_at_each_frame(experiment, session_name, bp_data, rois=None):
         # plt.show()
         f.savefig(os.path.join(save_fld, session_name+'.png'))
 
-
-
-
     if rois is None:
         rois = load_rois()
     elif not isinstance(rois, dict): 
@@ -145,15 +142,6 @@ def get_roi_at_each_frame(experiment, session_name, bp_data, rois=None):
         center = np.asarray([center_x, center_y])
         centers.append(center)
         roi_names.append(name)
-
-    # Flip the tracking data on the Y axis to matche the orientation of the templates rois
-    # if 'flip' in experiment.lower():
-    #     raise NotImplementedError('Check y flippin')
-    # flipped_y = -bp_data[:, 1]
-    # shift = min(bp_data[:, 1]) - min(flipped_y)
-    # bp_data[:, 1] = np.add(flipped_y, shift)
-
-
 
     # Calc distance to each roi for each frame
     data_length = bp_data.shape[0]

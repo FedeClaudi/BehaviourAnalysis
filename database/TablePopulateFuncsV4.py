@@ -4,12 +4,6 @@ sys.path.append('./')
 from Utilities.imports import *
 from database.database_toolbox import ToolBox
 from database.TablesDefinitionsV4 import *
-
-# cur_dir = os.getcwd()
-# os.chdir("C:\\Users\\Federico\\Documents\\GitHub\\VisualStimuli")
-# from Utils.contrast_calculator import Calculator as ContrastCalc
-# os.chdir(cur_dir)
-
 import scipy.signal as signal
 from collections import OrderedDict
 
@@ -720,7 +714,7 @@ def make_trials_table(table, key):
 	try:
 		got_on_T = [t for t in threat_enters if t <= stim_frame][-1]
 	except:
-		a = 1
+		return
 
 	try:
 		left_T = [t for t in threat_exits if t >= stim_frame][0]
@@ -783,4 +777,47 @@ def make_trials_table(table, key):
 	key['fps'] = fps
 
 	table.insert1(key)
+
+	# ? Fill in parts tables
+	# Get tracking data for trial
+	parts_tracking = pd.DataFrame((TrackingData.BodyPartData & key).fetch())
+	parts_tracking.index = parts_tracking.bpname
+	bones_tracking = pd.DataFrame((TrackingData.BodySegmentData & key).fetch())
+	bones_tracking.index = bones_tracking.segment_name
+
+	# fill in
+	for subtable, end_frame in zip([table.TrialTracking, table.ThreatTracking], [next_at_shelt, left_T]):
+		trial_key = key.copy()
+		
+		delete_keys = ['out_of_shelter_frame', 'at_threat_frame', 'stim_frame', 'out_of_t_frame', 
+						'at_shelter_frame', 'escape_duration', 'time_out_of_t', 
+						'escape_arm', 'origin_arm', 'fps']
+		for k in delete_keys:
+			del trial_key[k]
+
+		trial_key['body_xy'] = parts_tracking.ix['body'].tracking_data[stim_frame:end_frame, :2]
+		trial_key['body_speed'] = parts_tracking.ix['body'].speed[stim_frame:end_frame]
+		trial_key['body_dir_mvmt'] = parts_tracking.ix['body'].direction_of_mvmt[stim_frame:end_frame]
+		trial_key['body_rois'] = parts_tracking.ix['body'].tracking_data[stim_frame:end_frame, -1]
+		trial_key['body_orientation'] = bones_tracking.ix['body'].orientation[stim_frame:end_frame]
+		trial_key['body_angular_vel'] = bones_tracking.ix['body'].angular_velocity[stim_frame:end_frame]
+
+		trial_key['head_orientation'] = bones_tracking.ix['head'].orientation[stim_frame:end_frame]
+		trial_key['head_angular_vel'] = bones_tracking.ix['head'].angular_velocity[stim_frame:end_frame]
+
+		trial_key['snout_xy'] = parts_tracking.ix['snout'].tracking_data[stim_frame:end_frame, :2]
+		trial_key['snout_speed'] = parts_tracking.ix['snout'].speed[stim_frame:end_frame]
+		trial_key['snout_dir_mvmt'] = parts_tracking.ix['snout'].direction_of_mvmt[stim_frame:end_frame]
+
+		trial_key['neck_xy'] = parts_tracking.ix['neck'].tracking_data[stim_frame:end_frame, :2]
+		trial_key['neck_speed'] = parts_tracking.ix['neck'].speed[stim_frame:end_frame]
+		trial_key['neck_dir_mvmt'] = parts_tracking.ix['neck'].direction_of_mvmt[stim_frame:end_frame]
+
+		trial_key['tail_xy'] = parts_tracking.ix['tail_base'].tracking_data[stim_frame:end_frame, :2]
+		trial_key['tail_speed'] = parts_tracking.ix['tail_base'].speed[stim_frame:end_frame]
+		trial_key['tail_dir_mvmt'] = parts_tracking.ix['tail_base'].direction_of_mvmt[stim_frame:end_frame]
+
+		subtable.insert1(trial_key)
+
+
 

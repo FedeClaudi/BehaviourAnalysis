@@ -20,28 +20,28 @@ class Mouse(dj.Manual):
 	"""
 
 	# ? population method is in populate_database
-    
+	
 @schema
 class Maze(dj.Manual):
-    definition = """
-        # stores info about maze designs
-        maze_id: int
-        maze_name: varchar(128)
-        ---
-        left_path_length: float
-        right_path_length: float # length of right path in CM
-        center_path_length: float
+	definition = """
+		# stores info about maze designs
+		maze_id: int
+		maze_name: varchar(128)
+		---
+		left_path_length: float
+		right_path_length: float # length of right path in CM
+		center_path_length: float
 
-        left_path_angle: int  # angle of start of path from T
-        right_path_angle: int
-        center_path_angle: float
+		left_path_angle: int  # angle of start of path from T
+		right_path_angle: int
+		center_path_angle: float
 
-        has_catwalk: int # 1 or 0
-        maze_image: longblob # numpy array with maze image
-        maze_image_binary: longblob # numpy array with maze image binary 
-    """
+		has_catwalk: int # 1 or 0
+		maze_image: longblob # numpy array with maze image
+		maze_image_binary: longblob # numpy array with maze image binary 
+	"""
 
-    # ? population method is in populate_database
+	# ? population method is in populate_database
 
 
 @schema
@@ -310,23 +310,78 @@ class Explorations(dj.Imported):
 class Trials(dj.Imported):
 	definition = """
 		-> Stimuli
+		-> TrackingData
 		---
 		-> Recording
 
-        out_of_shelter_frame: int
-        at_threat_frame: int
-        stim_frame: int
-        out_of_t_frame: int
-        at_shelter_frame: int
+		out_of_shelter_frame: int
+		at_threat_frame: int
+		stim_frame: int
+		out_of_t_frame: int
+		at_shelter_frame: int
 
-        escape_duration: float        # duration in seconds
-        time_out_of_t: float
+		escape_duration: float        # duration in seconds
+		time_out_of_t: float
 
 		escape_arm: enum('left', "center", "right") 
 		origin_arm:  enum('left', "center", "right")        
 
-        fps: int
+		fps: int
 	"""
+
+	class TrialTracking(dj.Part):
+		definition = """
+			-> Trials
+			---
+			body_xy: longblob
+			body_speed: longblob
+			body_dir_mvmt: longblob
+			body_rois: longblob # in which ROI the mouse is at each frame
+			body_orientation: longblob
+			body_angular_vel: longblob
+
+			head_orientation: longblob
+			head_angular_vel: longblob
+
+			snout_xy: longblob
+			snout_speed: longblob
+			snout_dir_mvmt: longblob
+
+			neck_xy: longblob
+			neck_speed: longblob
+			neck_dir_mvmt: longblob
+
+			tail_xy: longblob
+			tail_speed: longblob
+			tail_dir_mvmt: longblob
+		"""
+
+	class ThreatTracking(dj.Part):
+		definition = """
+			-> Trials
+			---
+			body_xy: longblob
+			body_speed: longblob
+			body_dir_mvmt: longblob
+			body_rois: longblob # in which ROI the mouse is at each frame
+			body_orientation: longblob
+			body_angular_vel: longblob
+
+			head_orientation: longblob
+			head_angular_vel: longblob
+
+			snout_xy: longblob
+			snout_speed: longblob
+			snout_dir_mvmt: longblob
+
+			neck_xy: longblob
+			neck_speed: longblob
+			neck_dir_mvmt: longblob
+
+			tail_xy: longblob
+			tail_speed: longblob
+			tail_dir_mvmt: longblob
+		"""
 
 	def make(self, key):
 		make_trials_table(self, key)
