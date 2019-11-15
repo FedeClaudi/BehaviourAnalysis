@@ -290,24 +290,19 @@ class Trials(dj.Imported):
 		---
 		-> Recording
 
-		out_of_shelter_frame: int
-		at_threat_frame: int
-		stim_frame: int
-		out_of_t_frame: int
-		at_shelter_frame: int
+        out_of_shelter_frame: int
+        at_threat_frame: int
+        stim_frame: int
+        out_of_t_frame: int
+        at_shelter_frame: int
 
-		escape_duration: float        # duration in seconds
-		time_out_of_t: float
-
-		stim_frame_session: int  # stim frame relative to the start of the session and not the start of the recording
-
-		number_of_trials_in_session: int
-		trial_number: int
+        escape_duration: float        # duration in seconds
+        time_out_of_t: float
 
 		escape_arm: enum('left', "center", "right") 
 		origin_arm:  enum('left', "center", "right")        
 
-		fps: int
+        fps: int
 	"""
 
 	def make(self, key):

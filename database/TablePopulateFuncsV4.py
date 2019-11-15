@@ -14,6 +14,7 @@ import scipy.signal as signal
 from collections import OrderedDict
 
 from Utilities.video_and_plotting.commoncoordinatebehaviour import run as get_matrix
+from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame, get_arm_given_rois, convert_roi_id_to_tag
 from Utilities.maths.stimuli_detection import *
 from Utilities.dbase.stim_times_loader import *
 
@@ -678,16 +679,16 @@ def make_trials_table(table, key):
 			default = 0
 			relevant_idx = -1
 		else:
-			in_roi = np.where(tracking[frame:, -1] == roi)[0]
-			default = tracking.shape[0]
+			in_roi = np.where(tracking[frame:, -1] == roi)[0]+frame
+			default = None
 			relevant_idx = 0
 
 		if np.any(in_roi):
-			in_roi = last_at_shelt[relevant_idx]
+			in_roi = in_roi[relevant_idx]
 		else:
-			last_at_shelt = default
+			in_roi = default
 
-		return last_at_shelt
+		return in_roi
 
 
 	from database.TablesDefinitionsV4 import Session, TrackingData, Stimuli
@@ -701,25 +702,85 @@ def make_trials_table(table, key):
 		print("\nCould not load tracking data for session {} - can't compute exploration".format(key))
 		return
 
-	# Get the last next time that the mouse reaches the shelter and threat
+	# Get the last next time that the mouse reaches the shelter
 	stim_frame = data.overview_frame.values[0]
+	if stim_frame == -1: return # it was a dummy entry
+
 	body_tracking = data.loc[data.bpname == "body"].tracking_data.values[0]
 
 	last_at_shelt = get_time_at_roi(body_tracking, 0.0, stim_frame, when="last")
 	next_at_shelt = get_time_at_roi(body_tracking, 0.0, stim_frame, when="next")
-	last_at_threat = get_time_at_roi(body_tracking, 1.0, stim_frame, when="last")
-	next_at_threat = get_time_at_roi(body_tracking, 1.0, stim_frame, when="next")
+	if next_at_shelt is None:
+		# mouse didn't return to the shelter
+		next_at_shelt = -1
 
-	# TODO
+	# Get the when mouse gets on and off T
+	threat_enters, threat_exits = get_roi_enters_exits(body_tracking[:, -1], 1)
+
+	try:
+		got_on_T = [t for t in threat_enters if t <= stim_frame][-1]
+	except:
+		a = 1
+
+	try:
+		left_T = [t for t in threat_exits if t >= stim_frame][0]
+	except:
+		# The mouse didn't leave the threat platform, disregard trial
+		return
+
+	if stim_frame in [last_at_shelt, next_at_shelt, got_on_T, left_T]:
+		# something went wrong... skipping trial
+		return
+
+	# Get time to leave T and escape duration in seconds
+	time_out_of_t = (left_T-stim_frame)/fps
+	if next_at_shelt > 0:
+		escape_duration = (next_at_shelt - stim_frame)/fps
+	else:
+		escape_duration = -1
+
 	# Get arm of escape
-	escape_rois = convert_roi_id_to_tag(trial_tracking[t:, -1]) # ? only look at arm taken since last departure from T
+	escape_rois = convert_roi_id_to_tag(body_tracking[stim_frame:next_at_shelt, -1])
 	if not  escape_rois: 
 		raise ValueError("No escape rois detected", t)
 	escape_arm = get_arm_given_rois(escape_rois, 'in')
+	if escape_arm is None: 
+		# something went wrong, ignore trial
+		return
+
+	if "left" in escape_arm.lower():
+		escape_arm  = "left"
+	elif "right" in escape_arm.lower():
+		escape_arm  = "right"
+	else:
+		escape_arm = "center"
 
 	# Get arm of origin
-	origin_rois = convert_roi_id_to_tag(out_trip_tracking[:, -1])
+	origin_rois = convert_roi_id_to_tag(body_tracking[last_at_shelt:stim_frame, -1])
 	if not origin_rois: raise ValueError
 	origin_arm = get_arm_given_rois(origin_rois, 'out')
+	if origin_arm is None: 
+		# something went wrong, ignore trial
+		return
 
-	# TODO compute stuff
+	if "left" in origin_arm.lower():
+		origin_arm  = "left"
+	elif "right" in origin_arm.lower():
+		origin_arm  = "right"
+	else:
+		origin_arm = "center"
+
+	# Fill in table
+	key['out_of_shelter_frame'] = last_at_shelt
+	key['at_threat_frame'] = got_on_T
+	key['stim_frame'] = stim_frame
+	key['out_of_t_frame'] = left_T
+	key['at_shelter_frame'] = next_at_shelt
+	key['escape_duration'] = escape_duration
+	key['time_out_of_t'] = time_out_of_t
+	key['escape_arm'] = escape_arm
+	key['origin_arm'] = origin_arm
+	key['fps'] = fps
+
+	table.insert1(key)
+
