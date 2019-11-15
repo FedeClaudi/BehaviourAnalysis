@@ -32,7 +32,7 @@ class TrialsLoader:
 		self.conditions[name] = self.load_trials_by_condition(**kwargs)
 
 		
-	def load_trials_by_condition(self, maze_design=None, naive=None, lights=None, escapes_dur=None, shelter=None):
+	def load_trials_by_condition(self, maze_design=None, naive=None, lights=None, escapes_dur=None, shelter=None, catwalk=None, tracking="all"):
 		"""[Given a number of criteria, load the trials that match these criteria]
 		
 		Keyword Arguments:
@@ -40,7 +40,11 @@ class TrialsLoader:
 			naive {[int]} -- [1 for naive only mice] (default: {None})
 			lights {[int]} -- [1 for light on only experiments] (default: {None})
 			escapes_dur {bool} -- [If true only trials in which the escapes terminate within the duraiton th are used] (default: {True})
+			catwalk {bool} -- [If true only trials for experiments with the catwalk are returned] (default: {True})
+			tracking{[bool, str]} -- [if not None the tracking for the trials is returned with the trials. If "threat" only the threat tracking is returned]
+
 		"""
+
 
 		if naive is None: naive= self.naive
 		if lights is None: lights= self.lights
@@ -60,7 +64,32 @@ class TrialsLoader:
 		sessions = self.get_sessions_by_condition(maze_design=maze_design, naive=naive, lights=lights,shelter=shelter, df=True)
 		ss = set(sorted(sessions.uid.values))
 		trials = all_trials.loc[all_trials.uid.isin(ss)]
+
+		if tracking is not None:
+			trials = self.get_tracking_for_trials(trials, how=tracking)
+
 		return trials
+
+	def get_tracking_for_trials(self, trials, how=None):
+		"""[Get the tracking data associated with each trial, either for the whole trial or just for the threat]
+		
+		Keyword Arguments:
+			how {[str]} -- [either "all","trial" or None give the whole trial, "threat" gives just threat data] (default: {None})
+		"""
+		body_tracking_data, snout_tracking_data, neck_tracking_data, tail_tracking_data = [], [], [], []
+
+		for i, trial in trials.iterrows():
+			bptracking = pd.DataFrame(TrackingData.BodyPartData & "recording_uid='{}'".format(trial.recording_uid))
+			bptracking.index = bptracking.bpname
+			bptracking = bptracking.drop(columns=['bpname', 'recording_uid', 'uid', 'session_name', 'mouse_id', 'camera'])
+			bptracking.to_dict(orient="index")
+			# TODO insert this into dataframe
+			# TODO cut everything to the correct frame
+
+			# TODO do the same for body segments
+			segmenttracking = pd.DataFrame(TrackingData.BodySegmentData & "recording_uid='{}'".format(trial.recording_uid))
+			a = 1
+
 
 	def get_sessions_by_condition(self, maze_design=None, naive=None, lights=None,  shelter=None, df=False):
 		""" Query the DJ database table AllTrials for the trials that match the conditions """
