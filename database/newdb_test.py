@@ -10,6 +10,3 @@ ea.add_condition("m6", maze_design=6, escapes_dur=True)
 a = ea.plot_pr_bayes_bycond()
 
 # ea.arm_preference_plot_bycond()
-
-plt.show()
-a = 1

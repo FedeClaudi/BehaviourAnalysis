@@ -820,4 +820,3 @@ def make_trials_table(table, key):
 		subtable.insert1(trial_key)
 
 
-
