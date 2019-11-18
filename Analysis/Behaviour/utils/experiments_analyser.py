@@ -38,7 +38,7 @@ class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator
 	distance_noise = .1
 
 
-	def __init__(self, naive=None, lights=None, escapes_dur=None, shelter=True, 
+	def __init__(self, naive=None, lights=None, escapes_dur=None, shelter=True, tracking=None,
 			agent_params=None, **kwargs):
 		# Initiate some parent classes
 		Bayes.__init__(self) # Get functions from bayesian modelling class
@@ -47,10 +47,10 @@ class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator
 		PlotsByCondition.__init__(self)
 		
 		# store params
-		self.naive, self.lights, self.escapes_dur, self.shelter = naive, lights, escapes_dur, shelter
+		self.naive, self.lights, self.escapes_dur, self.shelter, self.tracking = naive, lights, escapes_dur, shelter, tracking
 
 		# Get trials data
-		TrialsLoader.__init__(self, naive=self.naive, lights=self.lights, 
+		TrialsLoader.__init__(self, naive=self.naive, lights=self.lights, tracking=tracking,
 						escapes_dur=self.escapes_dur, shelter=self.shelter, **kwargs)
 
 		# Load geodesic agent

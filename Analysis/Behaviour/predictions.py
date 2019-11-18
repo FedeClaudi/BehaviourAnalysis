@@ -1,17 +1,80 @@
 # %%
+import sys
+sys.path.append('./')
 from Utilities.imports import *
 import statsmodels.api as sm
 from pandas.plotting import scatter_matrix
 
-from Analysis.Behaviour.utils.T_utils import get_T_data, get_angles, get_above_yth
-%matplotlib inline
+from Analysis.Behaviour.utils.experiments_analyser import ExperimentsAnalyser
+# %matplotlib inline
 
-# Getting data
-aligned_trials  = get_T_data(load=True, median_filter=False)
 # %%
+# Getting data
+ea = ExperimentsAnalyser(load_psychometric=False, tracking="threat")
+ea.add_condition("m2", maze_design=2, escapes_dur=True, tracking="threat")
+ea.add_condition("m3", maze_design=3, escapes_dur=True, tracking="threat")
+
+
+trials = ea.merge_conditions_trials(list(ea.conditions.values()))
+
+print("Found {} trials".format(len(trials)))
+print("\n", trials.head())
+
+# %%
+# Explore the data
+print("\np(R) : {}".format(round(list(trials.escape_arm).count("right")/len(trials), 2)))
+
+
+# Plot a bunch of histograms
+f, axarr= create_figure(subplots=True, ncols=2, nrows=2, figsize=(8, 8))
+
+axarr[0].hist([np.median(s) for s in trials.body_speed.values])
+axarr[0].set(title="median speed")
+
+
+axarr[1].hist([np.median(s) for s in trials.time_out_of_t.values])
+axarr[1].set(title="median time_out_of_t")
+
+axarr[2].hist([np.median(s[:, 0]) for s in trials.body_xy.values])
+axarr[2].set(title="median x")
+
+axarr[3].hist([np.median(s[:, 1]) for s in trials.body_xy.values])
+axarr[3].set(title="median y")
+
+
+# %%
+# Create a new df with a selection of the data
+n_frames = 30
+data = dict(
+    x=[], y=[], dir_mvmt=[], speed=[], ang_vel=[], orientation=[])
+
+for trial_n, trial in trials.iterrows():
+    frames = np.random.randint(0, len(trial.body_xy), n_frames)
+
+    data['x'].extend(list(trial.body_xy[frames, 0]))
+    data['y'].extend(list(trial.body_xy[frames, 1]))
+    data['orientation'].extend(list(trial.body_orientation[frames]))
+    data['dir_mvmt'].extend(list(trial.body_dir_mvmt[frames]))
+    data['speed'].extend(list(trial.body_speed[frames]))
+    data['ang_vel'].extend(list(trial.body_angular_vel[frames]))
+    # data['escape_arm'].extend(list(trial.escape_arm))
+
+
+data = pd.DataFrame(data)
+data.head()
+
+print("\n{} frame in total from {} trials".format(len(data), len(trials)))
+# %%
+# explore
+data = data.drop(columns=["ang_vel"])
+scatter_matrix(data, alpha=0.2, figsize=(6, 6), diagonal='kde')
+
+# %%
+# Create the dataframe we need, not the one we deserve
 n_trials = 125
 n_frames = 10
 
+# select a random subset of trials
 ids = random.choices(np.arange(len(aligned_trials)), k=n_trials) 
 outcomes = [1 if 'right' in e else 0 for e in list(aligned_trials.iloc[ids].escape_side.values)]
 

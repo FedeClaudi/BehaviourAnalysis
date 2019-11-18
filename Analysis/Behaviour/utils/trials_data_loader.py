@@ -52,7 +52,15 @@ class TrialsLoader:
 		if shelter is None: shelter = self.shelter
 
 		# Get all trials from the AllTrials Table
-		all_trials = pd.DataFrame(Trials.fetch())
+		if tracking is not None:
+			if tracking == "all":
+				all_trials = pd.DataFrame((Trials * Trials.TrialTracking).fetch())
+			elif tracking == "threat":
+				all_trials = pd.DataFrame((Trials * Trials.ThreatTracking).fetch())
+			else:
+				raise ValueError("tracking parameter not valid")
+		else:
+			all_trials = pd.DataFrame(Trials.fetch())
 
 		if escapes_dur:
 			all_trials = all_trials.loc[all_trials.escape_duration <= self.max_duration_th]
@@ -65,30 +73,7 @@ class TrialsLoader:
 		ss = set(sorted(sessions.uid.values))
 		trials = all_trials.loc[all_trials.uid.isin(ss)]
 
-		if tracking is not None:
-			trials = self.get_tracking_for_trials(trials, how=tracking)
-
 		return trials
-
-	def get_tracking_for_trials(self, trials, how=None):
-		"""[Get the tracking data associated with each trial, either for the whole trial or just for the threat]
-		
-		Keyword Arguments:
-			how {[str]} -- [either "all","trial" or None give the whole trial, "threat" gives just threat data] (default: {None})
-		"""
-		body_tracking_data, snout_tracking_data, neck_tracking_data, tail_tracking_data = [], [], [], []
-
-		for i, trial in trials.iterrows():
-			bptracking = pd.DataFrame(TrackingData.BodyPartData & "recording_uid='{}'".format(trial.recording_uid))
-			bptracking.index = bptracking.bpname
-			bptracking = bptracking.drop(columns=['bpname', 'recording_uid', 'uid', 'session_name', 'mouse_id', 'camera'])
-			bptracking.to_dict(orient="index")
-			# TODO insert this into dataframe
-			# TODO cut everything to the correct frame
-
-			# TODO do the same for body segments
-			segmenttracking = pd.DataFrame(TrackingData.BodySegmentData & "recording_uid='{}'".format(trial.recording_uid))
-			a = 1
 
 
 	def get_sessions_by_condition(self, maze_design=None, naive=None, lights=None,  shelter=None, df=False):
