@@ -1,8 +1,8 @@
 import matplotlib as mpl
 import sys
 
-if sys.platform == "darwin":
-    mpl.use("Qt5Agg")
+# if sys.platform == "darwin":
+#     mpl.use("Qt5Agg")
 
 
 font = {'family' : 'Computer Modern Roman',

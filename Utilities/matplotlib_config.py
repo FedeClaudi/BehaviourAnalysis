@@ -1,14 +1,14 @@
 import matplotlib as mpl
 import sys
 
-if sys.platform == "darwin":
-    mpl.use("Qt5Agg")
+# if sys.platform == "darwin":
+#     mpl.use("Qt5Agg")
 
 import matplotlib as mpl
 import sys
 
-if sys.platform == "darwin":
-    mpl.use("Qt5Agg")
+# if sys.platform == "darwin":
+#     mpl.use("Qt5Agg")
 
 import matplotlib.pyplot as plt
 import seaborn as sns
