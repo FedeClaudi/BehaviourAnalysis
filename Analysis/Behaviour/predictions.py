@@ -7,7 +7,9 @@ from pandas.plotting import scatter_matrix
 
 from Analysis.Behaviour.utils.experiments_analyser import ExperimentsAnalyser
 # %matplotlib inline
-
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn import metrics#
 # %%
 # Getting data
 ea = ExperimentsAnalyser(load_psychometric=False, tracking="threat")
@@ -19,138 +21,154 @@ trials = ea.merge_conditions_trials(list(ea.conditions.values()))
 
 print("Found {} trials".format(len(trials)))
 print("\n", trials.head())
-
-# %%
 # Explore the data
 print("\np(R) : {}".format(round(list(trials.escape_arm).count("right")/len(trials), 2)))
 
 
-# Plot a bunch of histograms
-f, axarr= create_figure(subplots=True, ncols=2, nrows=2, figsize=(8, 8))
+# %%
+# useful funcs and params
+n_frames = 20
+n_trials_per_side = 80
 
-axarr[0].hist([np.median(s) for s in trials.body_speed.values])
-axarr[0].set(title="median speed")
+def get_dataframe(miny, maxy):
+    data = dict(
+        x=[], y=[], dir_mvmt=[],  orientation=[], escape_arm=[]) # speed=[],
+
+    n_left, n_right = 0, 0
+    for trial_n, trial in trials.iterrows():
+        # get y only below a threshold
+        y = trial.body_xy[:, 1]
+        good_idx = np.where((y>miny)&(y<maxy))
+        y = y[good_idx]
+        if not np.any(y): continue
+
+        # get random frame numbers
+        frames = np.random.randint(0, len(y), n_frames)
+
+        # Get equal number per side
+        side = trial.escape_arm
+        if side == "left" and n_left < n_trials_per_side:
+            n_left += 1
+        elif side == "left" and n_left > n_trials_per_side:
+            continue
+        elif side == "right" and n_right < n_trials_per_side:
+            n_right += 1
+        else: 
+            continue
+
+        # prep stuff
+        x = np.nan_to_num(trial.body_xy[:, 0][good_idx])
+        o = np.nan_to_num(trial.body_orientation[good_idx])
+        dm = np.nan_to_num(trial.body_dir_mvmt[good_idx])
+        s = np.nan_to_num(trial.body_speed[good_idx])
 
 
-axarr[1].hist([np.median(s) for s in trials.time_out_of_t.values])
-axarr[1].set(title="median time_out_of_t")
+        # put everything together
+        data['x'].extend(list(x[frames]))
+        data['y'].extend(list(np.nan_to_num(y[frames])))
+        data['orientation'].extend(list(o[frames]))
+        data['dir_mvmt'].extend(list(dm[frames]))
+        # data['speed'].extend(list(s[frames]))
+        data['escape_arm'].extend(list(np.nan_to_num([1 if trial.escape_arm == "right" else 0 for i in range(len(frames))])))
+        
 
-axarr[2].hist([np.median(s[:, 0]) for s in trials.body_xy.values])
-axarr[2].set(title="median x")
+    data = pd.DataFrame(data)
 
-axarr[3].hist([np.median(s[:, 1]) for s in trials.body_xy.values])
-axarr[3].set(title="median y")
+    # Fix the orientation column
+    oris = data['orientation'].values
+    oris -= 180
+    oris[oris<0] += 360
+
+    data['orientation'] = oris
+    # print(data.head())
+
+    frames_outcomes = data.escape_arm.values
+    data = data.drop(columns=["escape_arm"])
+
+    # print("\n{} frame in total from {} trials".format(len(data), n_left+n_right))
+
+    return data, frames_outcomes
+
+
+def run_test_logistic(data, frames_outcomes):
+    X_train, X_test, y_train, y_test = train_test_split(data, frames_outcomes, test_size=0.3, random_state=0)
+    logreg = LogisticRegression(verbose=True)
+    logreg.fit(X_train, y_train)
+    y_pred_prob_train = logreg.predict_proba(X_train)
+
+    y_pred = logreg.predict(X_test)
+    y_pred_prob = logreg.predict_proba(X_test)
+
+    accuracy = logreg.score(X_test, y_test)
+    real_pr = round(np.mean(y_test), 2)
+    
+    return logreg, (X_train, y_train), (X_test, y_test), (y_pred_prob_train, y_pred_prob), real_pr, accuracy
 
 
 # %%
-# Create a new df with a selection of the data
-n_frames = 30
-data = dict(
-    x=[], y=[], dir_mvmt=[], speed=[], ang_vel=[], orientation=[])
+# Analyze by slice
+slices = [(150, 170), (180, 200), (210, 230), (240, 260), (270, 290), (300, 320), (330, 350)]
 
-for trial_n, trial in trials.iterrows():
-    frames = np.random.randint(0, len(trial.body_xy), n_frames)
-
-    data['x'].extend(list(trial.body_xy[frames, 0]))
-    data['y'].extend(list(trial.body_xy[frames, 1]))
-    data['orientation'].extend(list(trial.body_orientation[frames]))
-    data['dir_mvmt'].extend(list(trial.body_dir_mvmt[frames]))
-    data['speed'].extend(list(trial.body_speed[frames]))
-    data['ang_vel'].extend(list(trial.body_angular_vel[frames]))
-    # data['escape_arm'].extend(list(trial.escape_arm))
+# slices = [(0, 500)]
+f, axarr = create_figure(subplots=True, ncols=4, facecolor=white, figsize=(16, 16))
 
 
-data = pd.DataFrame(data)
-data.head()
+cols = ["x", "y"]
+coeffs = {c:[] for c in cols}
+ypos, xval = [], []
+for miny, maxy in slices:
+    data, frames_outcomes = get_dataframe(miny, maxy)
 
-print("\n{} frame in total from {} trials".format(len(data), len(trials)))
+    # keep columns
+    data = data[cols]
+
+    # do logistic regression
+    logreg, trainingset, testset, predictions, pr, predicted_pr =  run_test_logistic(data, frames_outcomes)
+
+    # plot frames
+    axarr[0].scatter(trainingset[0].x.values, trainingset[0].y.values, c=trainingset[1], cmap="bwr", alpha=.5)
+    axarr[1].scatter(trainingset[0].x.values, trainingset[0].y.values, c=predictions[0][:, 1], cmap="bwr", alpha=.5)
+
+    # store values for other plots
+    ypos.append(round(np.mean([miny, maxy])))
+    xval.append((pr, predicted_pr))
+
+    for col, coef in zip(cols, logreg.coef_):
+        coeffs[col].append(cofff)
+
+
+    ## speed:          {}
+#     print(""" Instructions
+#     Logistic regression parameters:
+#         x:              {}
+#         y:              {}
+#         dir_mvmt:       {}
+        
+#         orientation:    {}
+
+# """.format(*[round(x,5) for x in logreg.coef_[0]]))
+
+# plot p(R) and accuracy
+axarr[2].barh([y+5 for y in ypos], [x[0] for x in xval], align='center', color=green, label="p(R)", height=10)
+axarr[2].barh([y-5 for y in ypos], [x[1] for x in xval], align='center', color=orange, label="accuracy", height=10)
+axarr[2].legend()
+
+# plot p(R) and accuracy 
+# TODO finishsshs
+# !sdoifhsduiogfnsdognfiosdfskl
+for cname, coeff in ceffs.items():
+    axarr[3].barh([y for y in ypos], [x[0] for x in xval], align='center', color=green, label="p(R)", height=10)
+axarr[3].legend()
+
+# set axes props
+_ = axarr[0].set(title="TRAIN SET", facecolor=[.2, .2, .2], xlim=[420, 580])
+_ = axarr[1].set(title="Prediction", facecolor=[.2, .2, .2], xlim=[420, 580])
+axarr[2].set(title="p(R) vs performance", facecolor=[.2, .2, .2], xlim=[0, 1.05])
+
 # %%
 # explore
-data = data.drop(columns=["ang_vel"])
-scatter_matrix(data, alpha=0.2, figsize=(6, 6), diagonal='kde')
-
-# %%
-# Create the dataframe we need, not the one we deserve
-n_trials = 125
-n_frames = 10
-
-# select a random subset of trials
-ids = random.choices(np.arange(len(aligned_trials)), k=n_trials) 
-outcomes = [1 if 'right' in e else 0 for e in list(aligned_trials.iloc[ids].escape_side.values)]
-
-data = dict(x=[],
-            y  = [],
-            orientation = [],
-            direction_of_mvmt = [],
-            speed = [],
-            # ang_speed = [],
-            )
-
-frames_outcomes = []
-for trial_n, i in enumerate(ids):
-    trial = aligned_trials.iloc[i]
-    frames = np.random.randint(0, len(trial.tracking), n_frames)
-
-    data['x'].extend(list(trial.tracking[frames, 0]))
-    data['y'].extend(list(trial.tracking[frames, 1]))
-    data['orientation'].extend(list(trial.body_orientation[frames]))
-    data['direction_of_mvmt'].extend(list(trial.direction_of_movement[frames]))
-    data['speed'].extend(list(trial.tracking[frames, 2]))
-    # data['ang_speed'].extend(list(trial.body_angvel[frames]))
-
-    frames_outcomes.extend([outcomes[trial_n] for n in range(n_frames)])
-
-data['outcomes'] = frames_outcomes
-data = pd.DataFrame(data)
-
-left_trials, right_trials = data.loc[data.outcomes == 0], data.loc[data.outcomes == 1]
-
-
-# %% 
-# ! EXPLORE THE DATA
-# Plot tracking (to find errors)
-f, ax = create_figure(subplots=False, figsize=(16, 16), facecolor=white)
-for n, i in enumerate(ids):
-    scatter = ax.scatter(aligned_trials.iloc[i].tracking[:, 0], aligned_trials.iloc[i].tracking[:,1], 
-                c=aligned_trials.iloc[i].body_orientation+90, cmap="bwr", vmin=0, vmax=360)
-
-cm = f.colorbar(scatter)
-
-# %%
-# Pot hists
-f, ax = create_figure(subplots=False, figsize=(16, 16), facecolor=white)
-ax = data.hist(color=orange, ax=ax)
-
-
-f, ax = create_figure(subplots=False, figsize=(16, 16), facecolor=white)
-ax = left_trials.hist(color=blue, ax=ax)
-
-
-f, ax = create_figure(subplots=False, figsize=(16, 16), facecolor=white)
-ax = right_trials.hist(color=red, ax=ax)
-
-# %%
-
-# Plot scatter mtx
-for d, ttl, color in zip([data, left_trials, right_trials],  ["all", "left", "right"], [orange, blue, red]):
-    d = d.drop(['outcomes'], axis=1)
-    f, ax = create_figure(subplots=False, figsize=(16, 16))
-    _ = scatter_matrix(d, ax=ax, alpha=0.8, color=color, hist_kwds=dict(color=color, facecolor=color))
-    ax.set(title="{} trials".format(ttl), facecolor=[.2, .2, .2])
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+scatter_matrix(data, alpha=0.2, figsize=(20, 20), diagonal='kde')
+plt.show()
 
 
 # %%
@@ -159,30 +177,10 @@ result=logit_model.fit()
 print(result.summary2())
 
 # %%
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
-from sklearn import metrics
 
-X_train, X_test, y_train, y_test = train_test_split(data, frames_outcomes, test_size=0.3, random_state=0)
-logreg = LogisticRegression()
-logreg.fit(X_train, y_train)
-y_pred_prob_train = logreg.predict_proba(X_train)
 
-y_pred = logreg.predict(X_test)
-y_pred_prob = logreg.predict_proba(X_test)
-print('Accuracy of logistic regression classifier on test set: {:.2f}'.format(logreg.score(X_test, y_test)))
-print("p(R) in test set was: {}".format(round(np.mean(y_test), 2)))
-# %%
 # plot results on train set
-f, axarr = create_figure(subplots=True, ncols=2, facecolor=white, figsize=(16, 16))
 
-axarr[0].scatter(X_train.x.values, X_train.y.values, c=y_train, cmap="bwr")
-
-axarr[1].scatter(X_train.x.values, X_train.y.values, c=y_pred_prob_train[:, 1], cmap="bwr")
-
-
-_ = axarr[0].set(title="TRAIN SET", facecolor=[.2, .2, .2],)
-_ = axarr[1].set(title="Prediction", facecolor=[.2, .2, .2],)
 
 # %%
 # plot results on test set
