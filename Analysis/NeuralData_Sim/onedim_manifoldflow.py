@@ -10,7 +10,7 @@ from random import random
 
 # %%
 # parameters
-n_steps = 5000
+n_steps = 15000
 
 latent_var_params = dict(
     stepsize = 10,
@@ -39,7 +39,6 @@ def n1_tuning_curve(latent_var):
 def n2_tuning_curve(latent_var):
     return np.cos(np.radians(latent_var)) + 1.5
 
-# %%
 # Random walk functions
 
 def step_latent_variable(walk, params):
@@ -55,8 +54,6 @@ def step_latent_variable(walk, params):
 
     walk.append(nxt)
     return walk
-
-
 
 
 
@@ -98,7 +95,6 @@ _ = axarr[2].set(title="Pop vector 'steps'", xlim=[0, 3], ylim=[0, 3])
 
 # %%
 # Get dynamics
-
 # Get a list of all the places the pop has been
 poplist = [(x,y) for x,y in zip(*popvect.tolist())]
 places = set(poplist)
@@ -117,24 +113,29 @@ for place in tqdm(places):
     vectors.append((np.mean(place_vectors[0]), np.mean(place_vectors[1])))
 
 vectors_in_place = [(v[0]+p[0], v[1]+p[1]) for v,p in zip(vectors, places)] # for plotting
-vectors_lengths = [(math.sqrt((v[0]**2 + v[1]**2))) for v in vectors_in_place]
+vectors_lengths = [(math.sqrt((v[0]**2 + v[1]**2))) for v in vectors]
 
 # %%
 # plot vector field
 
 ch = MplColorHelper("Reds", 0, max(vectors_lengths))
 colors = [ch.get_rgb(l) for l in vectors_lengths]
-f, axarr = create_figure(subplots=True, ncols=2)
+f, axarr = create_figure(subplots=True, ncols=2, nrows=2)
 
 _ = axarr[0].hist(vectors_lengths, bins=25, color=blue)
-_ = sns.plot([[p[0] for p in places], [v[0] for v in vectors_in_place]],
-        [[p[1] for p in places], [v[1] for v in vectors_in_place]],
-        color= colors, ax=axarr[1]
-        )
+
+x = [[p[0] for p in places], [v[0] for v in vectors_in_place]]
+y = [[p[1] for p in places], [v[1] for v in vectors_in_place]]
+lines = axarr[1].plot(x, y, alpha=.4)
+_ = axarr[2].scatter([p[0] for p in places], [p[1] for p in places],
+                        c=colors, s=vectors_lengths)
+
+for l,c in zip(lines, colors):
+    l.set_color(c)
 
 
-axarr[0].set(title="vectors lengths")
-axarr[1].set(title="title pop vectors")
+_ = axarr[0].set(title="vectors lengths")
+_ = axarr[1].set(title="pop vectors")
 
 # %%
 
