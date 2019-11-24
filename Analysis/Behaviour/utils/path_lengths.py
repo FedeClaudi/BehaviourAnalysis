@@ -85,3 +85,8 @@ class PathLengthsEstimator:
 		
 		self.short_arm_len = self.paths_lengths.loc[self.paths_lengths.maze=="maze4"][self.ratio].values[0]
 		self.long_arm_len = self.paths_lengths.loc[self.paths_lengths.maze=="maze1"][self.ratio].values[0]
+
+
+
+	def get_uclidean_distance_along_path_from_data(self):
+		a = 1

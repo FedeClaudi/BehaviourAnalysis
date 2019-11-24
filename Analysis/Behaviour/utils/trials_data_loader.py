@@ -57,6 +57,7 @@ class TrialsLoader:
 				all_trials = pd.DataFrame((Trials * Trials.TrialTracking).fetch())
 			elif tracking == "threat":
 				all_trials = pd.DataFrame((Trials * Trials.ThreatTracking).fetch())
+			
 			else:
 				raise ValueError("tracking parameter not valid")
 		else:
