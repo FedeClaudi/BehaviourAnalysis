@@ -126,9 +126,10 @@ class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator
 						 BAYES
 	||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 	"""
-	def bayes_by_condition_analytical(self):
+	def bayes_by_condition_analytical(self, conditions=None):
+		if conditions is None: conditions = self.conditions
 		results = {"condition":[], "alpha":[], "beta":[], "mean":[], "median":[], "sigmasquared":[], "prange":[]}
-		hits, ntrials, p_r, n_mice, trials = self.get_binary_trials_per_condition(self.conditions)
+		hits, ntrials, p_r, n_mice, trials = self.get_binary_trials_per_condition(conditions)
 
 		for (cond, h), n in zip(hits.items(), ntrials.values()):
 			res = self.grouped_bayes_analytical(n, h)
