@@ -382,3 +382,111 @@ def get_random_colors(n_colors=1):
 	else:
 		return list(random.choices(list(colors.keys()), k=n_colors))
 
+def _isSequence(arg):
+    # Check if input is iterable.
+    if hasattr(arg, "strip"):
+        return False
+    if hasattr(arg, "__getslice__"):
+        return True
+    if hasattr(arg, "__iter__"):
+        return True
+    return False
+
+
+def getColor(rgb=None, hsv=None):
+    """
+    Convert a color or list of colors to (r,g,b) format from many different input formats.
+    :param bool hsv: if set to `True`, rgb is assumed as (hue, saturation, value).
+    Example:
+         - RGB    = (255, 255, 255), corresponds to white
+         - rgb    = (1,1,1) is white
+         - hex    = #FFFF00 is yellow
+         - string = 'white'
+         - string = 'w' is white nickname
+         - string = 'dr' is darkred
+         - int    =  7 picks color nr. 7 in a predefined color list
+         - int    = -7 picks color nr. 7 in a different predefined list
+    |colorcubes| |colorcubes.py|_
+    """
+    # recursion, return a list if input is list of colors:
+    if _isSequence(rgb) and (len(rgb) > 3 or _isSequence(rgb[0])):
+        seqcol = []
+        for sc in rgb:
+            seqcol.append(getColor(sc))
+        return seqcol
+
+    if str(rgb).isdigit():
+        rgb = int(rgb)
+
+    if hsv:
+        c = hsv2rgb(hsv)
+    else:
+        c = rgb
+
+    if _isSequence(c):
+        if c[0] <= 1 and c[1] <= 1 and c[2] <= 1:
+            return c  # already rgb
+        else:
+            if len(c) == 3:
+                return list(np.array(c) / 255.0)  # RGB
+            else:
+                return (c[0] / 255.0, c[1] / 255.0, c[2] / 255.0, c[3])  # RGBA
+
+    elif isinstance(c, str):  # is string
+        c = c.replace("grey", "gray").replace(" ", "")
+        if 0 < len(c) < 3:  # single/double letter color
+            if c.lower() in color_nicks.keys():
+                c = color_nicks[c.lower()]
+            else:
+                print("Unknow color nickname:", c)
+                print("Available abbreviations:", color_nicks)
+                return (0.5, 0.5, 0.5)
+
+        if c.lower() in colors.keys():  # matplotlib name color
+            c = colors[c.lower()]
+        else:  # vtk name color
+            namedColors = vtk.vtkNamedColors()
+            rgba = [0, 0, 0, 0]
+            namedColors.GetColor(c, rgba)
+            return list(np.array(rgba[0:3]) / 255.0)
+
+        if "#" in c:  # hex to rgb
+            h = c.lstrip("#")
+            rgb255 = list(int(h[i : i + 2], 16) for i in (0, 2, 4))
+            rgbh = np.array(rgb255) / 255.0
+            if np.sum(rgbh) > 3:
+                print("Error in getColor(): Wrong hex color", c)
+                return (0.5, 0.5, 0.5)
+            return tuple(rgbh)
+
+    elif isinstance(c, int):  # color number
+        if c >= 0:
+            return colors1[c % 10]
+        else:
+            return colors2[-c % 10]
+
+    elif isinstance(c, float):
+        if c >= 0:
+            return colors1[int(c) % 10]
+        else:
+            return colors2[int(-c) % 10]
+
+    # print("Unknown color:", c)
+    return (0.5, 0.5, 0.5)
+
+def hsv2rgb(hsv):
+    """Convert HSV to RGB color."""
+    ma = vtk.vtkMath()
+    return ma.HSVToRGB(hsv)
+
+
+def rgb2hsv(rgb):
+    """Convert RGB to HSV color."""
+    ma = vtk.vtkMath()
+    return ma.RGBToHSV(getColor(rgb))
+
+
+def rgb2int(rgb_tuple):
+    """Return the int number of a color from (r,g,b), with 0<r<1 etc."""
+    rgb = (int(rgb_tuple[0] * 255), int(rgb_tuple[1] * 255), int(rgb_tuple[2] * 255))
+    return 65536 * rgb[0] + 256 * rgb[1] + rgb[2]

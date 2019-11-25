@@ -9,8 +9,9 @@ from Plotting.utils.plotting_utils import *
 from Utilities.matplotlib_config_figures import *
 from Utilities.maths.distributions import fit_kde
 
-def plot_distribution(*args, dist_type="logistic", comulative=False, ax=None, shaded=False, shade_alpha=.5,
-                            x_range=None, plot_kwargs={}, ax_kwargs={},  **kwargs):
+def plot_distribution(*args, dist_type="logistic", comulative=False, ax=None, shaded=False, shade_alpha=.5, 
+                            line_alpha=1, vertical=False,
+                            x_range=None, plot_kwargs={}, ax_kwargs={}, fill_offset=0, y_scale=1,   **kwargs):
     # Get the distribution
     if dist_type == "logistic":
         dist = stats.logistic(*args, **kwargs)
@@ -39,10 +40,17 @@ def plot_distribution(*args, dist_type="logistic", comulative=False, ax=None, sh
     if ax is None: f, ax = plt.subplots()
 
     if not shaded:
-        ax.plot(x, func(x), **plot_kwargs)
+        if not vertical:
+            ax.plot(x, func(x)*y_scale, **plot_kwargs)
+        else:
+            ax.plot(func(x), x*y_scale, **plot_kwargs)
     else: 
-        ax.fill_between(x, 0, func(x), alpha=shade_alpha,  **plot_kwargs)
-        ax.plot(x, func(x), **plot_kwargs)
+        if not vertical:
+            ax.fill_between(x, fill_offset, func(x)+fill_offset*y_scale, alpha=shade_alpha,  **plot_kwargs)
+            ax.plot(x, (func(x)+fill_offset)*y_scale, alpha=line_alpha, **plot_kwargs)
+        else:
+            ax.fill_between((func(x))*y_scale+fill_offset, fill_offset, x, alpha=shade_alpha,  **plot_kwargs)
+            ax.plot((func(x))*y_scale+fill_offset, x, alpha=line_alpha, **plot_kwargs)
 
     ax.set(**ax_kwargs)
 
@@ -133,5 +141,8 @@ def plot_kde(ax=None, z=0, kde=None, data=None, invert=False, vertical=False, no
 
 if __name__ == "__main__":
     f, ax = plt.subplots()
-    plot_distribution(1.00, 1.00, ax=ax, dist_type="normal", shaded="True", ax_kwargs={"ylim":[0, 1.1]}, plot_kwargs={"color":[.4, .8, .2]})
+    plot_distribution(10, 26, ax=ax, dist_type="beta", shaded="True", ax_kwargs={"ylim":[0, 1.1]}, plot_kwargs={"color":[.4, .8, .2]},
+                vertical=True, fill_offset=2, y_scale=.2)
+    plot_distribution(10, 26, ax=ax, dist_type="beta", shaded="True", ax_kwargs={"ylim":[0, 1.1]}, plot_kwargs={"color":[.4, .8, .2]},
+                vertical=True, fill_offset=2)
     plt.show()

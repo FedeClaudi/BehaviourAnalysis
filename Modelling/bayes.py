@@ -69,7 +69,7 @@ class Bayes:
         sigmasquared = (a2 * b2)/((a2+b2)**2 * (a2 + b2 + 1)) # https://math.stackexchange.com/questions/497577/mean-and-variance-of-beta-distributions
         prange = percentile_range(get_parametric_distribution("beta", a2, b2)[1])
 
-        return (mean, mode, sigmasquared, prange)
+        return (a2, b2, mean, mode, sigmasquared, prange)
      
         
 

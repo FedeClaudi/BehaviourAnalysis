@@ -23,8 +23,8 @@ from Analysis.Behaviour.utils.plots_by_condition import PlotsByCondition
 
 class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator, TrialsPlotter, PlotsByCondition):
 	# ! important 
-	max_duration_th = 19 # ? only trials in which the mice reach the shelter within this number of seconds are considered escapes (if using escapes == True)
-	
+	max_duration_th = 9 # ? only trials in which the mice reach the shelter within this number of seconds are considered escapes (if using escapes == True)
+	shelter_location = [500, 650]
 
 	# Variables look ups
 	if sys.platform != "darwin": # folder in which the pickled trial data are saved
@@ -111,23 +111,34 @@ class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator
 		data = pd.DataFrame.from_dict(data)
 		return data
 
+	def get_tracking_after_leaving_T_for_conditions(self):
+		for condition, trials in self.conditions.items():
+			trackings = []
+			for i, trial in trials.iterrows():
+				start_frame = trial.out_of_t_frame - trial.stim_frame
+				trackings.append(trial.body_xy[start_frame:, :])
+			trials['after_t_tracking'] = trackings
+		# TODO check that this is actually updating the conditions dictionaries dataframes
+			
 
 	"""
 	||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 						 BAYES
 	||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 	"""
-	def bayes_by_condition_analytical(self, load=True, mode="grouped", plot=True):
-		results = {"condition":[], "mean":[], "median":[], "sigmasquared":[], "prange":[]}
+	def bayes_by_condition_analytical(self):
+		results = {"condition":[], "alpha":[], "beta":[], "mean":[], "median":[], "sigmasquared":[], "prange":[]}
 		hits, ntrials, p_r, n_mice, trials = self.get_binary_trials_per_condition(self.conditions)
 
 		for (cond, h), n in zip(hits.items(), ntrials.values()):
 			res = self.grouped_bayes_analytical(n, h)
 			results['condition'].append(cond)
-			results['mean'].append(res[0])
-			results['median'].append(res[1])
-			results['sigmasquared'].append(res[2])
-			results['prange'].append(res[3])
+			results['alpha'].append(res[0])
+			results['beta'].append(res[1])
+			results['mean'].append(res[2])
+			results['median'].append(res[3])
+			results['sigmasquared'].append(res[4])
+			results['prange'].append(res[5])
 
 		return pd.DataFrame(results)
 

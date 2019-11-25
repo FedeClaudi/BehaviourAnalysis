@@ -104,10 +104,10 @@ def vline_to_curve(ax, x, xdata, ydata, dot=False, line_kwargs={}, scatter_kwarg
 	if dot:
 		ax.scatter(x, yval, **scatter_kwargs, **kwargs)
 
-def vline_to_point(ax, x, y, **kwargs):
-	ax.plot([x, x], [0, y], **kwargs)
-def hline_to_point(ax, x, y, **kwargs):
-	ax.plot([0, x], [y, y], **kwargs)
+def vline_to_point(ax, x, y, ymin=0,  **kwargs):
+	ax.plot([x, x], [ymin, y], **kwargs)
+def hline_to_point(ax, x, y, xmin=0, **kwargs):
+	ax.plot([xmin, x], [y, y], **kwargs)
 
 def hline_to_curve(ax, y, xdata, ydata, dot=False, line_kwargs={}, scatter_kwargs={}, **kwargs):
 	"""[plots a vertical line from the x axis to the curve at location x]

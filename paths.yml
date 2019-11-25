@@ -3,16 +3,16 @@ exp_records: 'D:\Dropbox (UCL - SWC)\Rotation_vte\datalog.xlsx'
 
 
 
-raw_data_folder: Z:\branco\Federico\raw_behaviour\maze
+raw_data_folder: Z:\swc\branco\Federico\raw_behaviour\maze
 raw_metadata_folder: 'metadata'   # appended to raw data folder
 raw_video_folder: 'video'   # appended to raw data folder
 raw_to_sort: 'to_sort'   # appended to raw data folder
 raw_analoginput_folder: 'analoginputdata'
-tracked_data_folder: Z:\branco\Federico\raw_behaviour\maze\pose
-raw_ai_folder: Z:\branco\Federico\raw_behaviour\maze\analoginputdata
+tracked_data_folder: Z:\swc\branco\Federico\raw_behaviour\maze\pose
+raw_ai_folder: Z:\swc\branco\Federico\raw_behaviour\maze\analoginputdata
 
-# trials_clips: 'Z:\branco\Federico\raw_behaviour\maze\trials_clips'   # appended to raw data folder
-trials_clips: Z:\branco\Federico\raw_behaviour\maze\test_clips
+# trials_clips: 'Z:\swc\branco\Federico\raw_behaviour\maze\trials_clips'   # appended to raw data folder
+trials_clips: Z:\swc\branco\Federico\raw_behaviour\maze\test_clips
 
 
 

@@ -8,7 +8,7 @@ try:
     os.chdir("C:\\GITHUB\\BehaviourAnalysis")
     videofolder = "W:\\branco\\Federico\\raw_behaviour\\maze\\video"
 except:
-    videofolder = 'Z:\\branco\\Federico\\raw_behaviour\\maze\\video'
+    videofolder = 'Z:\\swc\\branco\\Federico\\raw_behaviour\\maze\\video'
 
 try:
     from database.Populate_database import PopulateDatabase

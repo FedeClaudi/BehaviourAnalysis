@@ -47,33 +47,33 @@ class PathLengthsEstimator:
 		else:
 			self.agent_path_lengths =  pd.read_pickle(os.path.join(self.metadata_folder, "geoagent_paths.pkl"))
 
-	def get_arms_lengths_from_trials(self, load=False):
-		if not load:
-			# Loop over each maze design and get the path lenght (from the tracking data)
-			summary = dict(maze=[], left=[], right=[], ratio=[])
-			for i in np.arange(4):
-				mazen = i +1
-				trials = self.get_sesions_trials(maze_design=mazen, naive=None, lights=None, escapes=True)
+	def get_arms_lengths_from_trials(self):
+		""" Estimates the path length for the left and right paths from the data. 
+			It does so by only looking at the part of the escape trials between when the mice lave
+			the threat platform to when they get to the shelter platform. It returns the data for left
+			and right as 5th 95th percentile and media and the ratio of these values.
+		"""
+		def do_arm(data):
+			path_lengths = []
+			for i, trial in data.iterrows():
+				path_lengths.append(np.sum(calc_distance_between_points_in_a_vector_2d(trial.after_t_tracking)))
+			return percentile_range(path_lengths)
 
-				# Get the length of each escape
-				lengths = []
-				for _, trial in trials.iterrows():
-					lengths.append(np.sum(calc_distance_between_points_in_a_vector_2d(trial.tracking_data[:, :2])))
-				trials["lengths"] = lengths
+		res = namedtuple("res", "left right ratio")
+		res2 = namedtuple("percentile", "low median mean high")
+		self.get_tracking_after_leaving_T_for_conditions()
 
-				left_trials, right_trials = [t.trial_id for i,t in trials.iterrows() if "left" in t.escape_arm.lower()], [t.trial_id for i,t in trials.iterrows() if "right" in t.escape_arm.lower()]
-				left, right = trials.loc[trials.trial_id.isin(left_trials)], trials.loc[trials.trial_id.isin(right_trials)]
+		results = {}
+		for condition, trials in self.conditions.items():
+			left_trials = trials.loc[trials.escape_arm == 'left']
+			right_trials = trials.loc[trials.escape_arm == 'right']
 
-				# Make dict for summary df
-				l, r  = percentile_range(left.lengths, low=10).low, percentile_range(right.lengths, low=10).low
-				summary["maze"].append(self.maze_names_r[self.maze_designs[mazen]])
-				summary["left"].append(round(l, 2))
-				summary["right"].append(round(r, 2))
-				summary["ratio"].append(round(l / r, 4))
+			lres, rres = do_arm(left_trials), do_arm(right_trials)
 
-			self.trials_paths_lengths = pd.DataFrame.from_dict(summary)
-		else:
-			self.trials_paths_lengths = pd.read_pickle(os.path.join(self.metadata_folder, "path_lengths.pkl"))
+			ratio = res2(*[l/r for l,r in zip(lres, rres)])
+			results[condition] = res(lres, rres, ratio)
+		return results
+
 
 	def get_lengths_ratios(self):
 		if self.agent_path_lengths is None:
@@ -86,7 +86,3 @@ class PathLengthsEstimator:
 		self.short_arm_len = self.paths_lengths.loc[self.paths_lengths.maze=="maze4"][self.ratio].values[0]
 		self.long_arm_len = self.paths_lengths.loc[self.paths_lengths.maze=="maze1"][self.ratio].values[0]
 
-
-
-	def get_uclidean_distance_along_path_from_data(self):
-		a = 1
