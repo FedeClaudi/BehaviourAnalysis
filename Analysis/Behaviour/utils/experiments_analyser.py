@@ -53,6 +53,9 @@ class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator
 		TrialsLoader.__init__(self, naive=self.naive, lights=self.lights, tracking=tracking,
 						escapes_dur=self.escapes_dur, shelter=self.shelter, **kwargs)
 
+		# Get explorations
+		self.explorations = pd.DataFrame(Explorations().fetch())
+
 		# Load geodesic agent
 		if agent_params is None:
 			self.agent_params = dict(grid_size=1000, maze_design="PathInt2_old.png")

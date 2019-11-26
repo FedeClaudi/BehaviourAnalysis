@@ -196,14 +196,3 @@ def fit_kde(x, **kwargs):
 
 
 
-
-
-
-if __name__ == "__main__":
-	xval = sorted(np.concatenate([np.linspace(-5,5,100),[0]])) # includes x = 0
-	yval = step_function(xval)
-	plt.plot(xval,yval,'ko-')
-	plt.ylim(-0.1,1.1)
-	plt.xlabel('x',size=18)
-	plt.ylabel('H(x)',size=20)
-	plt.show()

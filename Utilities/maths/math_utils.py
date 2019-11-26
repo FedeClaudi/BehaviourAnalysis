@@ -91,8 +91,9 @@ def percentile_range(data, low=5, high=95):
 	highp = np.percentile(data, high)
 	median = np.median(data)
 	mean = np.mean(data)
-	res = namedtuple("percentile", "low median mean high")
-	return res(lowp, median, mean, highp)
+	std = np.std(data)
+	res = namedtuple("percentile", "low median mean high std")
+	return res(lowp, median, mean, highp, std)
 
 # ! MISC
 def fill_nans_interpolate(y, pkind='linear'):
@@ -116,14 +117,6 @@ def fill_nans_interpolate(y, pkind='linear'):
 			, fill_value="extrapolate"
 			, kind=pkind)
 	return f(aindexes)
-
-def calc_IdPhi(phi):
-	dPhi = abs(np.diff(phi))
-	IdPhi = np.sum(dPhi) # /len(dPhi)
-	return IdPhi
-
-def calc_LogIdPhi(phi):
-	return math.log(calc_IdPhi(phi))
 
 def get_roi_enters_exits(roi_tracking, roi_id):
 	"""get_roi_enters_exits [Get all the timepoints in which mouse enters or exits a specific roi]

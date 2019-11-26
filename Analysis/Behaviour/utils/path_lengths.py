@@ -60,7 +60,7 @@ class PathLengthsEstimator:
 			return percentile_range(path_lengths)
 
 		res = namedtuple("res", "left right ratio")
-		res2 = namedtuple("percentile", "low median mean high")
+		res2 = namedtuple("percentile", "low median mean high std")
 		self.get_tracking_after_leaving_T_for_conditions()
 
 		results = {}
@@ -74,15 +74,58 @@ class PathLengthsEstimator:
 			results[condition] = res(lres, rres, ratio)
 		return results
 
+	def get_duration_per_arm_from_trials(self):
+		"""[Estimates the average and confidence intervals of escape durations for each arm.
+			It only looks at the interval between when the mice step off the threat platform
+			to when they step onto the shelter platform.]
+		"""
 
-	def get_lengths_ratios(self):
-		if self.agent_path_lengths is None:
-			self.get_arms_lengths_with_agent()
+		def do_arm(data):
+			durations = []
+			for i, trial in data.iterrows():
+				durations.append(trial.after_t_tracking.shape[0]/trial.fps)
+			return percentile_range(durations)
 
-		# TODO make this more general
-		short_arm_dist = self.paths_lengths.loc[self.paths_lengths.maze=="maze4"].distance.values[0]
-		self.agent_path_lengths["georatio"] = [round(x / short_arm_dist, 4) for x in self.paths_lengths.distance.values]
+		res = namedtuple("res", "left right ratio")
+		res2 = namedtuple("percentile", "low median mean high std")
 		
-		self.short_arm_len = self.paths_lengths.loc[self.paths_lengths.maze=="maze4"][self.ratio].values[0]
-		self.long_arm_len = self.paths_lengths.loc[self.paths_lengths.maze=="maze1"][self.ratio].values[0]
+		self.get_tracking_after_leaving_T_for_conditions()
 
+		results = {}
+		for condition, trials in self.conditions.items():
+			left_trials = trials.loc[trials.escape_arm == 'left']
+			right_trials = trials.loc[trials.escape_arm == 'right']
+
+			lres, rres = do_arm(left_trials), do_arm(right_trials)
+
+			ratio = res2(*[l/r for l,r in zip(lres, rres)])
+			results[condition] = res(lres, rres, ratio)
+		return results
+
+	def get_exploration_per_path_from_trials(self):
+		res = namedtuple("res", "left right ratio")
+		results = {}
+		for i, (condition, trials) in enumerate(self.conditions.items()):
+			uids = set(trials.uid.values)
+			exps = self.explorations[self.explorations['uid'].isin(uids)]
+			print("Exp. {} - {} mice".format(condition, len(set(exps.mouse_id.values))))
+
+			time_on_l, time_on_r, ratios = [], [], []
+			for ii, exp in exps.iterrows():
+				if exp.end_frame == -1: 
+					print("skipping no end")
+					continue
+				tracking = (TrackingData * TrackingData.BodyPartData & "bpname='body'" & "uid='{}'".format(exp.uid)).fetch("tracking_data")
+				tracking = np.vstack(tracking)[exp.start_frame:exp.end_frame, :]
+
+				on_the_left = tracking[tracking[:, 0] < 450, :]
+				on_the_right = tracking[tracking[:, 0] > 550, :]
+				fps = trials.loc[trials.uid == exp.uid].fps.values[0]
+
+				time_on_l.append(on_the_left.shape[0]/fps)
+				time_on_r.append(on_the_right.shape[0]/fps)
+				ratios.append(time_on_l[-1]/time_on_r[-1])
+
+			left, right, ratio = percentile_range(time_on_l), percentile_range(time_on_r), percentile_range(ratios)
+			results[condition] = res(left, right, ratio)
+		return results

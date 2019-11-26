@@ -74,6 +74,7 @@ def get_arm_given_rois(rois, direction):
 def load_rois(display=False):
     components = load_yaml('Processing/rois_toolbox/template_components.yml')
     rois = {}
+
     # Get platforms
     for pltf, (center, radius) in components['platforms'].items():
         rois[pltf] = tuple(center)
@@ -86,6 +87,8 @@ def load_rois(display=False):
 
     if display:
         [print('\n', n, ' - ', v) for n,v in rois.items()]
+    
+    return rois
 
 def get_roi_at_each_frame(experiment, session_name, bp_data, rois=None):
     """
@@ -218,8 +221,20 @@ def get_timeinrois_stats(data, rois, fps=None):
     return results
 
 
+
+def plot_rois_positions():
+    rois = load_rois()
+    
+    f, ax= plt.subplots()
+    for roi, (x, y) in rois.items():
+        ax.scatter(x, y, s=50)
+        ax.annotate(roi, (x, y))
+    ax.set(xlim=[0, 1000], ylim=[0, 1000])
+    plt.show()
+
+
 if __name__ == "__main__":
-    load_rois(display=True)
+    plot_rois_positions()
 
 
 
