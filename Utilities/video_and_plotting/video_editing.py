@@ -21,6 +21,8 @@ import time
 from Utilities.file_io.files_load_save import *
 
 
+paths_file = 'paths.yml'
+
 class VideoConverter:
     def __init__(self, filepath, output='.mp4', output_folder=None, extract_framesize=True, n_processes=1):
         if filepath is None:
@@ -32,6 +34,7 @@ class VideoConverter:
         if filepath is not None:
             if not isinstance(filepath, list):
                 filepath = [filepath]
+
             # Loop over each file in list of paths
             for fpath in filepath:
                 self.filep = fpath
@@ -61,14 +64,6 @@ class VideoConverter:
                         self.tdmstovideo_converter()
                     else:
                         raise ValueError('Unrecognised file format {}'.format(self.extention))
-
-    def __repr__(self):
-        functions = [
-            'def videotovideo_converter(self)', 'def opencv_mp4_to_avi_converter(videopath, savepath)', 'def tdmstovideo_converter(self)']
-
-        print('\n\n\nThe VideoConverter class has functions:\n')
-        [print('FUNCTION: ', f, '\n\n') for f in functions]
-        return ''
 
     def videotovideo_converter(self):
         clip = VideoFileClip(self.filep)
@@ -101,52 +96,52 @@ class VideoConverter:
 
     @staticmethod
     def extract_framesize_from_metadata(videotdms):
-            """extract_framesize_from_metadata [takes the path to the video to be connverted and 
-                uses it to extract metadata about the acquired video (frame widht and height...)]
-            
-            Arguments:
-                videotdms {[str]} -- [path to video.tdms]
-            Returns:
-                frame width, height and number of frames in the video to be converted
-            """
-            print('Extracting metadata...', videotdms)
-            # Find the tdms video
-            paths = load_yaml('paths_spike1.yml')
-            
-            metadata_fld = os.path.join(paths['raw_data_folder'], paths['raw_metadata_folder'])
+        """extract_framesize_from_metadata [takes the path to the video to be connverted and 
+            uses it to extract metadata about the acquired video (frame widht and height...)]
+        
+        Arguments:
+            videotdms {[str]} -- [path to video.tdms]
+        Returns:
+            frame width, height and number of frames in the video to be converted
+        """
+        print('Extracting metadata...', videotdms)
+        # Find the tdms video
+        paths = load_yaml(paths_file)
+        
+        metadata_fld = os.path.join(paths['raw_data_folder'], paths['raw_metadata_folder'])
 
-            videoname = os.path.split(videotdms)[-1]
-            try:
-                metadata_file = [os.path.join(metadata_fld, f) for f in os.listdir(metadata_fld)
-                                    if videoname in f][0]
-            except:
-                print("Could not load metadata for {} in folder {}".format(videoname, metadata_fld))
-                raise ValueError("Could not load metadata for {} in folder {}".format(videoname, metadata_fld))
-            # Get info about the video data
-            # video = TdmsFile(videotdms)
-            # video_bytes = video.object('cam0', 'data').data
-            video_size = os.path.getsize(videotdms)
-            #plt.plot(video_bytes[:10000])
-            #plt.show()
+        videoname = os.path.split(videotdms)[-1]
+        try:
+            metadata_file = [os.path.join(metadata_fld, f) for f in os.listdir(metadata_fld)
+                                if videoname in f][0]
+        except:
+            print("Could not load metadata for {} in folder {}".format(videoname, metadata_fld))
+            raise ValueError("Could not load metadata for {} in folder {}".format(videoname, metadata_fld))
+        # Get info about the video data
+        # video = TdmsFile(videotdms)
+        # video_bytes = video.object('cam0', 'data').data
+        video_size = os.path.getsize(videotdms)
+        #plt.plot(video_bytes[:10000])
+        #plt.show()
 
-            # Get info about the metadata
-            metadata = TdmsFile(metadata_file)
+        # Get info about the metadata
+        metadata = TdmsFile(metadata_file)
 
-            # Get values to return
-            metadata_object = metadata.object()
-            props = {n:v for n,v in metadata_object.properties.items()} # fps, width, ...  code below is to print props out
+        # Get values to return
+        metadata_object = metadata.object()
+        props = {n:v for n,v in metadata_object.properties.items()} # fps, width, ...  code below is to print props out
 
-            # for name, value in metadata_object.properties.items():
-            #     print("{0}: {1}".format(name, value))
-            # return
-            if props['width'] > 0:
-                tot = np.int(round(video_size/(props['width']*props['height'])))  # tot number of frames 
-                if tot != props['last']:
-                    raise ValueError('Calculated number of frames doesnt match what is stored in the metadata: {} vs {}'.format(tot, props['last']))
-            else:
-                tot = 0
+        # for name, value in metadata_object.properties.items():
+        #     print("{0}: {1}".format(name, value))
+        # return
+        if props['width'] > 0:
+            tot = np.int(round(video_size/(props['width']*props['height'])))  # tot number of frames 
+            if tot != props['last']:
+                raise ValueError('Calculated number of frames doesnt match what is stored in the metadata: {} vs {}'.format(tot, props['last']))
+        else:
+            tot = 0
 
-            return props, tot
+        return props, tot
 
     def tdmstovideo_converter(self):
         def write_clip(arguments, limits=None, clean_name=False):
