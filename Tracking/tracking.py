@@ -15,7 +15,7 @@ import warnings
 import os
 
 
-computer = "spike"
+computer = "desk"
 if computer == "desk":
     from database.TablesDefinitionsV4 import *
 
@@ -24,6 +24,8 @@ warnings.warn("\n\n\nCOMPUTER IS: {}\n\n\n".format(computer))
  
 
 class SetUpTracking:
+    dlc_proj_name = "DecisionMaze-Federico-2019-10-15\\config.yaml"
+    
     def __init__(self, video_folder, pose_folder):
         """[For each video in video folder check if there is a corresponding pose file, if there isn't analyse it with the correct
         dlc model [info about dlc models is in database.dlcmodels]]
@@ -77,7 +79,7 @@ class SetUpTracking:
             print('Processing video {} of {}'.format(i+1, len(self.video_to_process)))
 
             # Get the DLC model config path
-            config_path = os.path.join(self.nets_folder, "DecisionMaze-Federico-2019-10-15\\config.yaml")
+            config_path = os.path.join(self.nets_folder, self.dlc_proj_name)
                 
             # Move video to local HD: otherwise analysis breaks if internet connection is unstable
             complete_path = os.path.join(self.video_folder, video)

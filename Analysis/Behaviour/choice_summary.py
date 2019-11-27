@@ -121,18 +121,6 @@ for condition, trials in ea.conditions.items():
 
     ax.scatter(ll, dd, color=cc, alpha=.3, s=50)
 
-# sns.regplot(all_l[0], all_l[1], scatter=False, 
-#                     truncate=True, color=arms_colors['left'], robust=False, ax=ax)
-# sns.regplot(all_r[0], all_r[1], scatter=False, 
-#                     truncate=True, color=arms_colors['right'], robust=False, ax=ax)
-
-# for (condition, lengths), (_, durations) in zip(path_lengths.items(), path_durations.items()):
-#     if condition == "m6": continue
-#     ax.scatter(lengths.left.median, durations.left.median, color=maze_colors[condition], s=150, label=condition+" (left)", 
-#                 zorder=99, edgecolor=black)
-
-
-
 # _ = ax.legend()
 _ = ax.set(title="Avg path length vs Avg duration", xlabel="length (a.u.)", ylabel="duration (s)")
 
@@ -150,19 +138,19 @@ X, Y = [], []
 for i, pr in pRs.iterrows():
     if pr.condition == "m6": continue
     std = math.sqrt(pr.sigmasquared)
-    yerr = np.array([pr['median']-pr.prange.low, pr.prange.high-pr['median']]).reshape(2, 1)
+    yerr = np.array([pr['mean']-pr.prange.low, pr.prange.high-pr['mean']]).reshape(2, 1)
     x = path_lengths[pr.condition].ratio.mean
     X.append(x)
-    Y.append(pr['median'])
+    Y.append(pr['mean'])
     color=maze_colors[pr.condition]
 
-    ax.errorbar(x, pr['median'], yerr=std, fmt = 'o', color=color)
+    ax.errorbar(x, pr['mean'], yerr=std, fmt = 'o', color=color)
 
     plot_distribution(pr.alpha, pr.beta, ax=ax, dist_type="beta", shaded="True", line_alpha=.3,
                     plot_kwargs={"color":color}, shade_alpha=.05,
                     vertical=True, fill_offset=(x), y_scale=.008)
 
-    _ = hline_to_point(ax, x, pr['median'], color=color, ls="--", alpha=.2)
+    _ = hline_to_point(ax, x, pr['mean'], color=color, ls="--", alpha=.2)
 
 plot_fitted_curve(logistic, X, Y, ax, xrange=[0, 3], scatter_kwargs=dict(alpha=0),
                 line_kwargs=dict(color=[.3, .3, .3], alpha=.7, lw=3))
@@ -173,7 +161,68 @@ _ = ax.set(title="p(R) for each maze", xticks=X, xlabel="L/R length ratio", xtic
                     ylim=[0, 1], xlim=[.5, 2.2])
 
 
+# %%
+# ! TIMED ANALYSIS
+# ? params
+windows_size = 300 # window size in seconds
+min_trials_in_bin = 4
 
+f, axarr = create_figure(subplots=True, ncols=2, nrows=2, sharex=False, figsize=(12, 12))
+for n, (condition, trials) in enumerate(ea.conditions.items()):
+    if condition == "m6": continue
+    ax = axarr[n]
+    trial_times = {'left':[], 'right':[]}
+    tmax = 0
+
+    # Get time and arm of escape for each trial
+    for i, trial in trials.iterrows():
+        if trial.escape_arm == "center": continue
+
+        stim_time = trial.stim_frame/trial.fps
+        trial_times[trial.escape_arm].append(stim_time)
+        if stim_time > tmax: tmax = stim_time
+
+        if stim_time < 6*60:
+            raise ValueError    
+    # bin trials by time
+    binned_trials = {}
+    x, y, yerr = [], [], []
+    for i in range(int(np.ceil(tmax/windows_size))):
+        # Get trials in time window
+        ranges = (windows_size*i, windows_size*(i+1))
+        x.append(np.mean(ranges))
+
+        tr_in_t = {arm:[a for a in t if a>ranges[0] and a <= ranges[1]] for arm,t in trial_times.items()}
+        binary_trials = np.hstack([np.ones(len(tr_in_t['right'])), np.zeros(len(tr_in_t['left']))])
+
+        if len(binary_trials)<min_trials_in_bin:
+            y.append(np.nan)
+            yerr.append(np.nan)
+        else:
+            a2, b2, mean, mode, sigmasquared, prange = ea.grouped_bayes_analytical([len(binary_trials)], [np.sum(binary_trials)])
+            y.append(mean)
+            yerr.append(math.sqrt(sigmasquared))
+
+    ax.errorbar(x, y, yerr=yerr, fmt="-", color=maze_colors[condition], alpha=.5)
+    ax.scatter(x, y, edgecolor=black, color=maze_colors[condition], zorder=99)
+
+    # mark the global average
+    mn  = pRs.loc[pRs.condition==condition]['mean'].values[0]
+    std = math.sqrt(pRs.loc[pRs.condition==condition]['sigmasquared'].values[0])
+    rect = mpl.patches.Rectangle((0, mn-std), 10000, 2*std, lw=1, edgecolor=desaturate_color(maze_colors[condition]),
+                facecolor=desaturate_color(maze_colors[condition]), alpha=.2)
+    ax.add_patch(rect)
+    ax.axhline(mn, ls="--", color=desaturate_color(maze_colors[condition]), lw=4, alpha=.8)
+
+
+    ax.axhline(.5, color=[.7, .7, .7], ls=":")
+    ax.set(title="{} - {}s window".format(condition, windows_size), xlabel="time (s)", ylabel="p(R)", xlim=[0, 60*60*1.5],
+            ylim=[0, 1], xticks=np.arange(0, 10000, 600), xticklabels=[int(x/60) for x in np.arange(0, 10000, 600)])
+
+
+
+
+    
 # %%
 # ! EFFECT OF ORIGIN
 f, axarr = create_figure(subplots=True, ncols=2)
@@ -212,7 +261,6 @@ axarr[0].legend()
 axarr[1].axvline(0, lw=2, color=black, alpha=.4, ls="--")
 
 
-
 _ = axarr[0].set(title="p(R) vs arm of origin", xlabel="origin", xticks=[0, 1], 
         xticklabels=["left", "right"], ylim=[.3, 1])
 _ = axarr[1].set(title="p(R|L) - p(R|R)", xticks=[-.2, 0, .2], 
@@ -234,6 +282,8 @@ for condition, data in exploration_data.items():
 ax.legend()
 _ = ax.set(title="Normalized arm occupancy during exploration", xlabel="arm", xticks=[0, 1], 
         xticklabels=["left", "right"], ylabel="norm. occupancy (s/len)")
+
+
 
 
 # %%

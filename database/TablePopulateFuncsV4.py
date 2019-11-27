@@ -684,8 +684,9 @@ def make_trials_table(table, key):
 
 		return in_roi
 
+	key_copy = key.copy()
 
-	from database.TablesDefinitionsV4 import Session, TrackingData, Stimuli
+	from database.TablesDefinitionsV4 import Session, TrackingData, Stimuli, Recording
 	if key['uid'] < 184: fps = 30 # ! hardcoded
 	else: fps = 40
 
@@ -764,6 +765,15 @@ def make_trials_table(table, key):
 	else:
 		origin_arm = "center"
 
+	# Get the frame numnber relative to start of session
+	session_recordings = pd.DataFrame((Session * Recording * TrackingData.BodyPartData & "bpname='body'" \
+								& "uid={}".format(key['uid']) \
+								& "bpname='body'").fetch())
+	session_recordings = session_recordings.sort_values(["recording_uid"])
+	stim_rec_n = list(session_recordings.recording_uid.values).index(key['recording_uid'])
+
+	nframes_before = np.int(0+np.sum([len(tr.x) for i,tr in session_recordings.iterrows()][:stim_rec_n]))
+
 	# Fill in table
 	key['out_of_shelter_frame'] = last_at_shelt
 	key['at_threat_frame'] = got_on_T
@@ -779,6 +789,11 @@ def make_trials_table(table, key):
 	table.insert1(key)
 
 	# ? Fill in parts tables
+	# Session metadata
+	trial_key = key_copy.copy()
+	trial_key['stim_frame_session'] = nframes_before + stim_frame
+	table.TrialSessionMetadata.insert1(trial_key)
+
 	# Get tracking data for trial
 	parts_tracking = pd.DataFrame((TrackingData.BodyPartData & key).fetch())
 	parts_tracking.index = parts_tracking.bpname

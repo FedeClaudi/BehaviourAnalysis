@@ -615,9 +615,12 @@ class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator
 				times, ones, zeros, speeds = [], [], [], []
 				# loop over trials
 				for n, (_, trial) in enumerate(df.iterrows()):
+					# Get stim frame number relative to session
+					stim_frame_session = (Stimuli & "stimulus_uid='{}'".format(trial.stimulus_uid)).fetch("overview_frame")[0]
+					
 					# get time of trial and escape arm
-					x = trial.stim_frame_session / trial.fps
-					if 'Right' in trial.escape_arm:
+					x = stim_frame_session / trial.fps
+					if 'right' in trial.escape_arm.lower():
 						y = 1
 						ones.append(x)
 					else:
@@ -625,9 +628,8 @@ class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator
 						zeros.append(x)
 
 					# Get escape speed
-					escape_speed = np.mean(trial.tracking_data[:, 2]) / trial.fps
 					times.append(x)
-					speeds.append(escape_speed)
+					speeds.append(np.mean(trial.body_speed) / trial.fps)
 
 					# plot
 					ax.scatter(x, y, color=self.colors[i+1], s=50, alpha=.5)

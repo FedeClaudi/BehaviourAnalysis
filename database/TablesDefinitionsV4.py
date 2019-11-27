@@ -316,7 +316,7 @@ class Trials(dj.Imported):
 
 		out_of_shelter_frame: int
 		at_threat_frame: int
-		stim_frame: int
+		stim_frame: int              # stim frame relative to recording
 		out_of_t_frame: int
 		at_shelter_frame: int
 
@@ -327,7 +327,15 @@ class Trials(dj.Imported):
 		origin_arm:  enum('left', "center", "right")        
 
 		fps: int
+
 	"""
+
+	class TrialSessionMetadata(dj.Part):
+		definition = """
+			-> Trials
+			---
+			stim_frame_session: int    # frame of the number relative tot the session and not the recording
+		"""
 
 	class TrialTracking(dj.Part):
 		definition = """
