@@ -164,7 +164,7 @@ _ = ax.set(title="p(R) for each maze", xticks=X, xlabel="L/R length ratio", xtic
 # %%
 # ! TIMED ANALYSIS
 # ? params
-windows_size = 300 # window size in seconds
+windows_size = 600 # window size in seconds
 min_trials_in_bin = 4
 
 f, axarr = create_figure(subplots=True, ncols=2, nrows=2, sharex=False, figsize=(12, 12))
@@ -182,8 +182,6 @@ for n, (condition, trials) in enumerate(ea.conditions.items()):
         trial_times[trial.escape_arm].append(stim_time)
         if stim_time > tmax: tmax = stim_time
 
-        if stim_time < 6*60:
-            raise ValueError    
     # bin trials by time
     binned_trials = {}
     x, y, yerr = [], [], []
@@ -203,16 +201,16 @@ for n, (condition, trials) in enumerate(ea.conditions.items()):
             y.append(mean)
             yerr.append(math.sqrt(sigmasquared))
 
-    ax.errorbar(x, y, yerr=yerr, fmt="-", color=maze_colors[condition], alpha=.5)
+    ax.errorbar(x, y, yerr=yerr, fmt="-", color=maze_colors[condition], alpha=.85)
     ax.scatter(x, y, edgecolor=black, color=maze_colors[condition], zorder=99)
 
     # mark the global average
     mn  = pRs.loc[pRs.condition==condition]['mean'].values[0]
     std = math.sqrt(pRs.loc[pRs.condition==condition]['sigmasquared'].values[0])
     rect = mpl.patches.Rectangle((0, mn-std), 10000, 2*std, lw=1, edgecolor=desaturate_color(maze_colors[condition]),
-                facecolor=desaturate_color(maze_colors[condition]), alpha=.2)
+                facecolor=desaturate_color(maze_colors[condition]), alpha=.1)
     ax.add_patch(rect)
-    ax.axhline(mn, ls="--", color=desaturate_color(maze_colors[condition]), lw=4, alpha=.8)
+    ax.axhline(mn, ls="--", color=desaturate_color(maze_colors[condition]), lw=4, alpha=.3)
 
 
     ax.axhline(.5, color=[.7, .7, .7], ls=":")
