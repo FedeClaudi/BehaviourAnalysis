@@ -410,8 +410,13 @@ def make_stimuli_table(table, key):
 				part_key['stimulus_uid'] =   stim_key['stimulus_uid']
 				table.VisualStimuliLogFile.insert1(part_key)
 
-	if int(key["uid"])  < 184: make_behaviourstimuli(table,key)
-	else: make_mantisstimuli(table, key)
+	if int(key["uid"])  < 184: 
+		try:
+			make_behaviourstimuli(table,key)
+		except:
+			print("Could not make behaviour stimuli insert for key: {}",format(key))
+	else: 
+		make_mantisstimuli(table, key)
 
 
 def make_visual_stimuli_metadata(table):
@@ -692,14 +697,19 @@ def make_trials_table(table, key):
 
 	# Get tracking and stimuli data
 	try:
-		data = pd.DataFrame(Session * TrackingData.BodyPartData * Stimuli & key).sort_values(['recording_uid'])
+		data = pd.DataFrame(Session * TrackingData.BodyPartData * Stimuli & key \
+						& "overview_frame > -1")
+						
+		if len(data) > 0:
+			data = data.sort_values(['recording_uid'])
+		else:
+			return # no stimuli in session
 	except:
 		print("\nCould not load tracking data for session {} - can't compute trial data".format(key))
 		return
 
 	# Get the last next time that the mouse reaches the shelter
 	stim_frame = data.overview_frame.values[0]
-	if stim_frame == -1: return # it was a dummy entry
 
 	body_tracking = data.loc[data.bpname == "body"].tracking_data.values[0]
 
@@ -715,16 +725,19 @@ def make_trials_table(table, key):
 	try:
 		got_on_T = [t for t in threat_enters if t <= stim_frame][-1]
 	except:
+		a = 1
 		return
 
 	try:
 		left_T = [t for t in threat_exits if t >= stim_frame][0]
 	except:
 		# The mouse didn't leave the threat platform, disregard trial
+		a = 1
 		return
 
 	if stim_frame in [last_at_shelt, next_at_shelt, got_on_T, left_T]:
 		# something went wrong... skipping trial
+		a = 1
 		return
 
 	# Get time to leave T and escape duration in seconds
@@ -741,6 +754,7 @@ def make_trials_table(table, key):
 	escape_arm = get_arm_given_rois(escape_rois, 'in')
 	if escape_arm is None: 
 		# something went wrong, ignore trial
+		a = 1
 		return
 
 	if "left" in escape_arm.lower():
@@ -756,6 +770,7 @@ def make_trials_table(table, key):
 	origin_arm = get_arm_given_rois(origin_rois, 'out')
 	if origin_arm is None: 
 		# something went wrong, ignore trial
+		a = 1
 		return
 
 	if "left" in origin_arm.lower():

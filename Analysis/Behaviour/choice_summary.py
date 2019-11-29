@@ -47,6 +47,34 @@ for condition, trials in ea.conditions.items():
 
 
 # %%
+# inspect stuff
+f, axarr = create_figure(subplots=True, ncols=3)
+for condition, trials in ea.conditions.items():
+    mean_speed = [np.nanmean(t.body_speed) for i,t in trials.iterrows()]
+    axarr[2].scatter(trials.escape_duration.values, mean_speed, color=maze_colors[condition], alpha=.4, label=condition)
+
+    axarr[0].hist(mean_speed, histtype="stepfilled", alpha=.25,
+                         color=maze_colors[condition], density=True)
+
+    axarr[1].hist(trials.escape_duration.values, histtype="stepfilled", alpha=.25,
+                         color=maze_colors[condition], density=True)
+
+    print("{} - mean speed {}+-{} -- {}".format(condition, round(np.mean(mean_speed), 2), 
+                                round(np.std(mean_speed), 3), round(np.mean(mean_speed)+2*np.std(mean_speed), 3)))
+    axarr[0].axvline(np.mean(mean_speed), color=maze_colors[condition])
+
+axarr[1].axvline(12, color=black, ls=":")
+axarr[2].axvline(12, color=black, ls=":")
+
+axarr[2].legend()
+_ = axarr[2].set(title="dur vs speed", xlabel="escape duration (s)", ylabel="mean escape speed")
+axarr[0].set(title="mean speed")
+axarr[1].set(title="escape duration")
+
+
+
+
+# %%
 # ! PATH LENGTH
 # Calc and plot path lengths for each condition
 path_lengths = ea.get_arms_lengths_from_trials()
@@ -164,42 +192,114 @@ _ = ax.set(title="p(R) for each maze", xticks=X, xlabel="L/R length ratio", xtic
 # %%
 # ! TIMED ANALYSIS
 # ? params
-windows_size = 600 # window size in seconds
-min_trials_in_bin = 4
+n_random_iters = 50
+for windows_size in [300]:
+    # windows_size = 600 # window size in seconds
+    min_trials_in_bin = 1
+
+    f, axarr = create_figure(subplots=True, ncols=2, nrows=2, sharex=False, figsize=(12, 12))
+    for n, (condition, trials) in enumerate(ea.conditions.items()):
+        if condition == "m6": continue
+        ax = axarr[n]
+        trial_times = {'left':[], 'right':[]}
+        tmax = 0
+
+        # Get time and arm of escape for each trial
+        for i, trial in trials.iterrows():
+            if trial.escape_arm == "center": continue
+
+            stim_time = trial.stim_frame_session/trial.fps
+            trial_times[trial.escape_arm].append(stim_time)
+            if stim_time > tmax: tmax = stim_time
+
+        # bin trials by time
+        x, y, yerr = [], [], []
+        for i in range(int(np.ceil(tmax/windows_size))):
+            # Get trials in time window
+            ranges = (windows_size*i, windows_size*(i+1))
+            x.append(np.mean(ranges))
+
+            tr_in_t = {arm:[a for a in t if a>ranges[0] and a <= ranges[1]] for arm,t in trial_times.items()}
+            binary_trials = np.hstack([np.ones(len(tr_in_t['right'])), np.zeros(len(tr_in_t['left']))])
+
+            n_trials_in_bin = len(binary_trials)
+
+            if n_trials_in_bin<min_trials_in_bin:
+                y.append(np.nan)
+                yerr.append(np.nan)
+            else:
+                a2, b2, mean, mode, sigmasquared, prange = ea.grouped_bayes_analytical([len(binary_trials)], [np.sum(binary_trials)])
+                y.append(mean)
+                yerr.append(math.sqrt(sigmasquared))
+
+            # random sampling
+            if n_trials_in_bin > min_trials_in_bin:
+                random_prs = []
+                for n in range(n_random_iters):
+                    random_trials = trials.sample(n=n_trials_in_bin, axis=0)
+                    random_trials = random_trials.loc[random_trials.escape_arm != "center"]
+                    r_binary_trials = [1 if e == "right" else 0 for e in random_trials.escape_arm.values]
+                    _, _, mean, _, sigmasquared, _ = ea.grouped_bayes_analytical([len(r_binary_trials)], [np.sum(r_binary_trials)])
+                    random_prs.append(mean)
+                ax.errorbar(x[-1], np.mean(random_prs), yerr=np.std(random_prs), fmt="-", color=[.2, .2, .2], alpha=.85)
+                ax.scatter(x[-1], np.mean(random_prs), edgecolor=white, color=[.1, .1, .1], zorder=99)
+
+        ax.errorbar(x, y, yerr=yerr, fmt="-", color=maze_colors[condition], alpha=.85)
+        ax.scatter(x, y, edgecolor=black, color=maze_colors[condition], zorder=99)
+
+        # mark the global average
+        mn  = pRs.loc[pRs.condition==condition]['mean'].values[0]
+        std = math.sqrt(pRs.loc[pRs.condition==condition]['sigmasquared'].values[0])
+        rect = mpl.patches.Rectangle((0, mn-std), 10000, 2*std, lw=1, edgecolor=desaturate_color(maze_colors[condition]),
+                    facecolor=desaturate_color(maze_colors[condition]), alpha=.1)
+        ax.add_patch(rect)
+        ax.axhline(mn, ls="--", color=desaturate_color(maze_colors[condition]), lw=4, alpha=.3)
+
+
+        ax.axhline(.5, color=[.7, .7, .7], ls=":")
+        ax.set(title="{} - {}s window".format(condition, windows_size), xlabel="time (s)", ylabel="p(R)", xlim=[0, 60*60*1.5],
+                ylim=[0, 1], xticks=np.arange(0, 10000, 600), xticklabels=[int(x/60) for x in np.arange(0, 10000, 600)])
+
+# %%
+# ! timed analysis test
+n_random_iters = 50
+windows_size = 300 
+n_trials_in_bin = 20
 
 f, axarr = create_figure(subplots=True, ncols=2, nrows=2, sharex=False, figsize=(12, 12))
 for n, (condition, trials) in enumerate(ea.conditions.items()):
     if condition == "m6": continue
     ax = axarr[n]
-    trial_times = {'left':[], 'right':[]}
+    trial_times = []
+    trial_outcomes = []
     tmax = 0
 
     # Get time and arm of escape for each trial
     for i, trial in trials.iterrows():
         if trial.escape_arm == "center": continue
 
-        stim_time = trial.stim_frame/trial.fps
-        trial_times[trial.escape_arm].append(stim_time)
+        stim_time = trial.stim_frame_session/trial.fps
+        trial_times.append(stim_time)
         if stim_time > tmax: tmax = stim_time
+        if trial.escape_arm == "right": trial_outcomes.append(1)
+        else: trial_outcomes.append(0)
 
-    # bin trials by time
-    binned_trials = {}
+    sort_idx = np.argsort(trial_times)
+    trial_times = np.array(trial_times)[sort_idx]
+    trial_outcomes = np.array(trial_outcomes)[sort_idx]
+    n_trials = len(trial_outcomes)
+
+    # # bin trials by n trials
     x, y, yerr = [], [], []
-    for i in range(int(np.ceil(tmax/windows_size))):
+    for i in range(int(np.ceil(n_trials/n_trials_in_bin))):
         # Get trials in time window
-        ranges = (windows_size*i, windows_size*(i+1))
-        x.append(np.mean(ranges))
+        binary_trials = trial_outcomes[i*n_trials_in_bin:(i+1)*n_trials_in_bin]
+        if len(binary_trials) < n_trials_in_bin: continue
 
-        tr_in_t = {arm:[a for a in t if a>ranges[0] and a <= ranges[1]] for arm,t in trial_times.items()}
-        binary_trials = np.hstack([np.ones(len(tr_in_t['right'])), np.zeros(len(tr_in_t['left']))])
-
-        if len(binary_trials)<min_trials_in_bin:
-            y.append(np.nan)
-            yerr.append(np.nan)
-        else:
-            a2, b2, mean, mode, sigmasquared, prange = ea.grouped_bayes_analytical([len(binary_trials)], [np.sum(binary_trials)])
-            y.append(mean)
-            yerr.append(math.sqrt(sigmasquared))
+        # a2, b2, mean, mode, sigmasquared, prange = ea.grouped_bayes_analytical([len(binary_trials)], [np.sum(binary_trials)])
+        y.append(np.mean(binary_trials))
+        x.append(i)
+        yerr.append(np.std(binary_trials))
 
     ax.errorbar(x, y, yerr=yerr, fmt="-", color=maze_colors[condition], alpha=.85)
     ax.scatter(x, y, edgecolor=black, color=maze_colors[condition], zorder=99)
@@ -207,16 +307,15 @@ for n, (condition, trials) in enumerate(ea.conditions.items()):
     # mark the global average
     mn  = pRs.loc[pRs.condition==condition]['mean'].values[0]
     std = math.sqrt(pRs.loc[pRs.condition==condition]['sigmasquared'].values[0])
-    rect = mpl.patches.Rectangle((0, mn-std), 10000, 2*std, lw=1, edgecolor=desaturate_color(maze_colors[condition]),
+    rect = mpl.patches.Rectangle((-1, mn-std), 10000, 2*std, lw=1, edgecolor=desaturate_color(maze_colors[condition]),
                 facecolor=desaturate_color(maze_colors[condition]), alpha=.1)
     ax.add_patch(rect)
     ax.axhline(mn, ls="--", color=desaturate_color(maze_colors[condition]), lw=4, alpha=.3)
 
 
     ax.axhline(.5, color=[.7, .7, .7], ls=":")
-    ax.set(title="{} - {}s window".format(condition, windows_size), xlabel="time (s)", ylabel="p(R)", xlim=[0, 60*60*1.5],
-            ylim=[0, 1], xticks=np.arange(0, 10000, 600), xticklabels=[int(x/60) for x in np.arange(0, 10000, 600)])
-
+    ax.set(title="{} - {} trials bins".format(condition, n_trials_in_bin), xlabel="bin number", ylabel="p(R)", xlim=[-1, int(np.ceil(n_trials/n_trials_in_bin))],
+            ylim=[0, 1], xticks=np.arange(0, 30, 5), xticklabels=np.arange(0, 30, 5))
 
 
 
@@ -280,6 +379,31 @@ for condition, data in exploration_data.items():
 ax.legend()
 _ = ax.set(title="Normalized arm occupancy during exploration", xlabel="arm", xticks=[0, 1], 
         xticklabels=["left", "right"], ylabel="norm. occupancy (s/len)")
+
+
+
+# %%
+# ! M6
+
+pRs = ea.bayes_by_condition_analytical()
+
+conditions = ['m4', 'm6']
+f, ax = create_figure(subplots=False)
+for i, condition in enumerate(conditions):
+    pr = pRs.loc[pRs.condition==condition]
+
+    ax.errorbar(pr['mean'], 0*0.5*i, xerr=math.sqrt(pr.sigmasquared), color=maze_colors[condition])
+    ax.scatter(pr['mean'], 0*0.5*i, color=maze_colors[condition], s=250, edgecolor=black, zorder=99, label=condition)
+
+
+    plot_distribution(pr.alpha.values[0], pr.beta.values[0], ax=ax, dist_type="beta", shaded="True", line_alpha=.3,
+                    plot_kwargs={"color":maze_colors[condition]}, shade_alpha=.05, 
+                    y_scale=.01)
+
+ax.legend()
+_ = ax.axvline(.5, color=black, lw=2, ls=":")
+_ = ax.set(title="M4 vs M6", xlabel="p(R)", ylabel="density", xlim=[0, 1])
+    
 
 
 

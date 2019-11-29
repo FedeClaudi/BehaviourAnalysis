@@ -10,7 +10,7 @@ from Utilities.matplotlib_config_figures import *
 from Utilities.maths.distributions import fit_kde
 
 def plot_distribution(*args, dist_type="logistic", comulative=False, ax=None, shaded=False, shade_alpha=.5, 
-                            line_alpha=1, vertical=False,
+                            line_alpha=1, vertical=False, flip_y=False,
                             x_range=None, plot_kwargs={}, ax_kwargs={}, fill_offset=0, y_scale=1,   **kwargs):
     # Get the distribution
     if dist_type == "logistic":
@@ -31,26 +31,50 @@ def plot_distribution(*args, dist_type="logistic", comulative=False, ax=None, sh
     else: 
         try:
             func = dist.pdf
-            x = np.linspace(dist.ppf(0.0001), dist.ppf(0.99999), 100)
+            if not flip_y:
+                x = np.linspace(dist.ppf(0.0001), dist.ppf(0.99999), 100)
+            else: 
+                x = np.linspace(dist.ppf(0.0001), -dist.ppf(0.99999), 100)
+
         except:
             func = dist
-            x = np.linspace(x_range[0], x_range[1], 100)
+            if not flip_y:
+                x = np.linspace(x_range[0], x_range[1], 100)
+            else: 
+                x = np.linspace(x_range[0], -x_range[1], 100)
+
 
     # Plot
     if ax is None: f, ax = plt.subplots()
 
     if not shaded:
         if not vertical:
-            ax.plot(x, func(x)*y_scale, **plot_kwargs)
+            if not flip_y:
+                ax.plot(x, func(x)*y_scale, **plot_kwargs)
+            else:
+                ax.plot(x, -func(x)*y_scale, **plot_kwargs)
+
         else:
-            ax.plot(func(x), x*y_scale, **plot_kwargs)
+            if not flip_y:
+                ax.plot(func(x), x*y_scale, **plot_kwargs)
+            else:
+                ax.plot(func(x), -x*y_scale, **plot_kwargs)
+
     else: 
         if not vertical:
-            ax.fill_between(x, fill_offset, func(x)+fill_offset*y_scale, alpha=shade_alpha,  **plot_kwargs)
-            ax.plot(x, (func(x)+fill_offset)*y_scale, alpha=line_alpha, **plot_kwargs)
+            if not flip_y:
+                ax.fill_between(x, fill_offset, (func(x)+fill_offset)*y_scale, alpha=shade_alpha,  **plot_kwargs)
+                ax.plot(x, (func(x)+fill_offset)*y_scale, alpha=line_alpha, **plot_kwargs)
+            else:
+                ax.fill_between(x, fill_offset, -func(x)+fill_offset*y_scale, alpha=shade_alpha,  **plot_kwargs)
+                ax.plot(x, -(func(x)+fill_offset)*y_scale, alpha=line_alpha, **plot_kwargs)
         else:
-            ax.fill_between((func(x))*y_scale+fill_offset, fill_offset, x, alpha=shade_alpha,  **plot_kwargs)
-            ax.plot((func(x))*y_scale+fill_offset, x, alpha=line_alpha, **plot_kwargs)
+            if not flip_y:
+                ax.fill_between((func(x))*y_scale+fill_offset, fill_offset, x, alpha=shade_alpha,  **plot_kwargs)
+                ax.plot((func(x))*y_scale+fill_offset, x, alpha=line_alpha, **plot_kwargs)
+            else:
+                ax.fill_between((func(x))*y_scale+fill_offset, fill_offset, -x, alpha=shade_alpha,  **plot_kwargs)
+                ax.plot((func(x))*y_scale+fill_offset, -x, alpha=line_alpha, **plot_kwargs)
 
     ax.set(**ax_kwargs)
 

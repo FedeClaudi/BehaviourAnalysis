@@ -212,12 +212,24 @@ class PopulateDatabase:
 
             self.insert_entry_in_table(part_dat['session_name'], 'session_name', part_dat, self.session.Shelter)
 
+    def print_mice(self):
+        for i,s in pd.DataFrame(self.mouse.fetch()).iterrows():
+            print(s.mouse_id)
+
+    def print_sessions(self):
+        ses = pd.DataFrame(self.session.fetch())
+        for i,s in ses.iterrows():
+            print("{} - {} - {} -- {} - {}".format(s.uid, s.session_name, s.mouse_id, s.date, s.experiment_name))
+
+    def print_recordings(self):
+        rec = pd.DataFrame(self.recording.fetch())
+        for i,r in rec.iterrows():
+            print("{} - {} - {}".format(r.uid, r.recording_uid, r.mouse_id))
 
     """
         ###################################################################################################################
         ###################################################################################################################
     """
-
 
     def __str__(self):
         self.__repr__()
@@ -252,6 +264,9 @@ if __name__ == '__main__':
     disable_pandas_warnings()
     p = PopulateDatabase()
 
+    # p.print_mice()
+    # p.print_sessions()
+    # p.print_recordings()
 
     # print(p)
 
@@ -291,7 +306,7 @@ if __name__ == '__main__':
 
     # ? Show database content and progress
     # print(p.ccm.tail())
-    p.show_progress()
+    # p.show_progress()
 
 
 
