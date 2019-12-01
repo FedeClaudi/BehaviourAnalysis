@@ -32,7 +32,8 @@ class TrialsLoader:
 		self.conditions[name] = self.load_trials_by_condition(**kwargs)
 
 		
-	def load_trials_by_condition(self, maze_design=None, naive=None, lights=None, escapes_dur=None, shelter=None, catwalk=None, tracking="all"):
+	def load_trials_by_condition(self, maze_design=None, naive=None, lights=None, escapes_dur=None, shelter=None, 
+					catwalk=None, tracking="all"):
 		"""[Given a number of criteria, load the trials that match these criteria]
 		
 		Keyword Arguments:

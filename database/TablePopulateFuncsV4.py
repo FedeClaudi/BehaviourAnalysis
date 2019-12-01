@@ -516,7 +516,14 @@ def make_trackingdata_table(table, key):
 	# load pose data
 	pose_file  = (Recording.FilePaths & key).fetch1("overview_pose")
 	try:
-		posedata = pd.read_hdf(pose_file)
+		try:
+			posedata = pd.read_hdf(pose_file)
+		except:  # adjust path to new winstor path name
+			pathparts = pose_file.split("\\")
+			pathparts.insert(1, "swc")
+			pose_file = os.path.join(*pathparts)
+			posedata = pd.read_hdf(pose_file)
+
 	except:
 		print("Could not find {}".format(pose_file))
 		return

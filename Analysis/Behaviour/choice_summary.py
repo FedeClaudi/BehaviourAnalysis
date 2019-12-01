@@ -81,7 +81,7 @@ path_lengths = ea.get_arms_lengths_from_trials()
 
 f, axarr = create_figure(subplots=True, ncols=2)
 for i, (condition, lengths) in enumerate(path_lengths.items()):
-    if condition == "m6": continue
+    # if condition == "m6": continue
     x = [0, 1]
     y = [lengths.left.mean, lengths.right.mean]
     yerr = np.array([[lengths.left.std, lengths.left.std], [lengths.right.std, lengths.right.std]]).reshape(2, 2)
@@ -105,7 +105,7 @@ path_durations = ea.get_duration_per_arm_from_trials()
 
 f, axarr = create_figure(subplots=True, ncols=2)
 for i, (condition, durations) in enumerate(path_durations.items()):
-    if condition == "m6": continue
+    # if condition == "m6": continue
     x = [0, 1]
     y = [durations.left.mean, durations.right.mean]
     axarr[0].plot(x, y, "-o", label=condition, color=maze_colors[condition])
@@ -404,6 +404,12 @@ ax.legend()
 _ = ax.axvline(.5, color=black, lw=2, ls=":")
 _ = ax.set(title="M4 vs M6", xlabel="p(R)", ylabel="density", xlim=[0, 1])
     
+# %%
+# ! M6 TRACKING 
+
+f, ax = create_figure(subplots=False)
+for i, trial in ea.conditions['m3'].iterrows():
+    ax.plot(trial.body_xy[:, 0], trial.body_xy[:, 1])
 
 
 

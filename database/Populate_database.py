@@ -274,7 +274,7 @@ if __name__ == '__main__':
 
 
     # ? drop tables
-    # p.remove_table(["trials"])
+    # p.remove_table(["trackingdata"])
 
     # ? Remove stuff from tables
     # p.delete_placeholders_from_stim_table()

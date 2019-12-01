@@ -127,7 +127,7 @@ def get_roi_at_each_frame(experiment, session_name, bp_data, rois=None):
 
     # Get the center of each roi
     centers, roi_names = [], [] 
-    for name, points in rois.items():  # a pointa is  two 2d XY coords for top left and bottom right points of roi
+    for name, points in rois.items():  # a point is two 2d XY coords for top left and bottom right points of roi
         points = points.values[0]
         if not isinstance(points, np.ndarray): continue # maze component not present in maze for this experiment
         try:

@@ -244,7 +244,7 @@ class TrackingData(dj.Imported):
 
 	bodyparts = ['snout', 'neck', 'body', 'tail_base',]
 	skeleton = dict(head = ['snout', 'neck'], body_upper=['neck', 'body'],
-				body_lower=['body', 'tail_base'], body=['neck', 'tail_base'])
+				body_lower=['body', 'tail_base'], body=['tail_base', 'neck'])
 
 	definition = """
 		# store dlc data for bodyparts and body segments

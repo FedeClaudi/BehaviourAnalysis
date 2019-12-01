@@ -62,8 +62,8 @@ p6: !!python/tuple
 - 867
 - 687
 s: !!python/tuple
-- 501
-- 314
+- 500
+- 250
 t: !!python/tuple
 - 498
 - 681
