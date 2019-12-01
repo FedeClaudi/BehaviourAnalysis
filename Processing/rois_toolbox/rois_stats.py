@@ -158,8 +158,6 @@ def get_roi_at_each_frame(experiment, session_name, bp_data, rois=None):
     # Get which roi the mouse is in at each frame
     sel_rois = np.argmin(distances, 1)
     roi_at_each_frame = tuple([roi_names[x] for x in sel_rois])
-    # print('the mouse has visited these platforms ', set(roi_at_each_frame))
-    # print('and has spent this time in shelter ', roi_at_each_frame.count('s'))
 
     # Check we got cetners correctly
     check_roi_tracking_plot(session_name, rois, centers, roi_names, bp_data, roi_at_each_frame)

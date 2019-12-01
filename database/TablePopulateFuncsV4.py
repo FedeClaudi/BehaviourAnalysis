@@ -13,7 +13,6 @@ from Utilities.maths.stimuli_detection import *
 from Utilities.dbase.stim_times_loader import *
 
 from Processing.tracking_stats.correct_tracking import correct_tracking_data
-from Processing.rois_toolbox.rois_stats import get_roi_at_each_frame
 
 """
 			! TEMPLATES 
@@ -710,9 +709,11 @@ def make_trials_table(table, key):
 		if len(data) > 0:
 			data = data.sort_values(['recording_uid'])
 		else:
-			return # no stimuli in session
+			self._insert_placeholder(key) # no stimuli in session
+			return
 	except:
 		print("\nCould not load tracking data for session {} - can't compute trial data".format(key))
+		self._insert_placeholder(key)
 		return
 
 	# Get the last next time that the mouse reaches the shelter
@@ -732,19 +733,19 @@ def make_trials_table(table, key):
 	try:
 		got_on_T = [t for t in threat_enters if t <= stim_frame][-1]
 	except:
-		a = 1
+		self._insert_placeholder(key)
 		return
 
 	try:
 		left_T = [t for t in threat_exits if t >= stim_frame][0]
 	except:
 		# The mouse didn't leave the threat platform, disregard trial
-		a = 1
+		self._insert_placeholder(key)
 		return
 
 	if stim_frame in [last_at_shelt, next_at_shelt, got_on_T, left_T]:
 		# something went wrong... skipping trial
-		a = 1
+		self._insert_placeholder(key)
 		return
 
 	# Get time to leave T and escape duration in seconds
@@ -761,7 +762,7 @@ def make_trials_table(table, key):
 	escape_arm = get_arm_given_rois(escape_rois, 'in')
 	if escape_arm is None: 
 		# something went wrong, ignore trial
-		a = 1
+		self._insert_placeholder(key)
 		return
 
 	if "left" in escape_arm.lower():
@@ -777,7 +778,7 @@ def make_trials_table(table, key):
 	origin_arm = get_arm_given_rois(origin_rois, 'out')
 	if origin_arm is None: 
 		# something went wrong, ignore trial
-		a = 1
+		self._insert_placeholder(key)
 		return
 
 	if "left" in origin_arm.lower():

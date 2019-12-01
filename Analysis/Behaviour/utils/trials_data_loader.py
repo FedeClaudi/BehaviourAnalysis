@@ -55,9 +55,9 @@ class TrialsLoader:
 		# Get all trials from the AllTrials Table
 		if tracking is not None:
 			if tracking == "all":
-				all_trials = pd.DataFrame((Trials * Trials.TrialTracking * Trials.TrialSessionMetadata).fetch())
+				all_trials = pd.DataFrame((Trials * Trials.TrialTracking * Trials.TrialSessionMetadata & "escape_duration > 0").fetch())
 			elif tracking == "threat":
-				all_trials = pd.DataFrame((Trials * Trials.ThreatTracking * Trials.TrialSessionMetadata).fetch())
+				all_trials = pd.DataFrame((Trials * Trials.ThreatTracking * Trials.TrialSessionMetadata & "escape_duration > 0").fetch())
 			
 			else:
 				raise ValueError("tracking parameter not valid")

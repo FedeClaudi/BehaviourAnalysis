@@ -327,8 +327,22 @@ class Trials(dj.Imported):
 		origin_arm:  enum('left', "center", "right")        
 
 		fps: int
-
 	"""
+
+	def _insert_placeholder(self, key):
+		key['out_of_shelter_frame'] = -1
+		key['at_threat_frame'] = -1
+		key['stim_frame'] = -1
+		key['out_of_t_frame'] = -1
+		key['at_shelter_frame'] = -1
+		key['escape_duration'] = -1
+		key['time_out_of_t'] = -1
+		key['escape_arm'] = 'left'
+		key['origin_arm'] = 'left'
+		key['fps'] = -1
+
+		self.insert1(key)
+
 
 	class TrialSessionMetadata(dj.Part):
 		definition = """

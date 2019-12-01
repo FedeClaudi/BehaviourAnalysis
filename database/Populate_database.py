@@ -274,7 +274,7 @@ if __name__ == '__main__':
 
 
     # ? drop tables
-    # p.remove_table(["trackingdata"])
+    # p.remove_table(["mazecomponents"])
 
     # ? Remove stuff from tables
     # p.delete_placeholders_from_stim_table()
@@ -286,21 +286,21 @@ if __name__ == '__main__':
  
     # p.recording.populate(display_progress=True) 
     # p.recording.make_paths(p) 
-    # p.mazecomponents.populate(display_progress=True)  # ? this will require input for new experiments
+    p.mazecomponents.populate(display_progress=True)  # ? this will require input for new experiments
 
     # ? This slower and will require some input
     # Before populating CCM you need to have done the tracking and have ran recording.make_paths
     # p.ccm.populate(display_progress=True)  # ! ccm
 
     # ? this is considerably slower but should be automated
-    # errors = p.trackingdata.populate(display_progress=True, suppress_errors=False, return_exception_objects =True) # ! tracking data
+    errors = p.trackingdata.populate(display_progress=True, suppress_errors=False, return_exception_objects =True) # ! tracking data
 
     # errors = p.stimuli.populate(display_progress=True, suppress_errors=False, return_exception_objects=True) # , max_calls =10)  # ! stimuli
     # p.stimuli.make_metadata() # ? only used for visual stims
 
     # ? Should be fast but needs the stuff above to be done
     # p.explorations.populate(display_progress=True, suppress_errors=False, return_exception_objects =True)
-    p.trials.populate(display_progress=True, suppress_errors=False, return_exception_objects =True)
+    # p.trials.populate(display_progress=True, suppress_errors=False, return_exception_objects =True)
 
     # if errors: raise ValueError([print("\n\n", e) for e in errors])
 

@@ -408,7 +408,7 @@ _ = ax.set(title="M4 vs M6", xlabel="p(R)", ylabel="density", xlim=[0, 1])
 # ! M6 TRACKING 
 
 f, ax = create_figure(subplots=False)
-for i, trial in ea.conditions['m3'].iterrows():
+for i, trial in ea.conditions['m1'].iterrows():
     ax.plot(trial.body_xy[:, 0], trial.body_xy[:, 1])
 
 
