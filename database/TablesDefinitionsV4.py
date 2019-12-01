@@ -9,6 +9,13 @@ schema = dj.schema(dbname)
 
 from database.TablePopulateFuncsV4 import *
 
+
+
+
+# ---------------------------------------------------------------------------- #
+#                                     MOUSE                                    #
+# ---------------------------------------------------------------------------- #
+
 @schema
 class Mouse(dj.Manual):
 	definition = """
@@ -21,6 +28,13 @@ class Mouse(dj.Manual):
 
 	# ? population method is in populate_database
 	
+
+
+
+# ---------------------------------------------------------------------------- #
+#                                     MAZE                                     #
+# ---------------------------------------------------------------------------- #
+
 @schema
 class Maze(dj.Manual):
 	definition = """
@@ -43,6 +57,13 @@ class Maze(dj.Manual):
 
 	# ? population method is in populate_database
 
+
+
+
+
+# ---------------------------------------------------------------------------- #
+#                                    SESSION                                   #
+# ---------------------------------------------------------------------------- #
 
 @schema
 class Session(dj.Manual):
@@ -76,6 +97,14 @@ class Session(dj.Manual):
 
 	def get_experiments_in_table(self):
 		return set(Session.fetch("experiment_name"))
+
+
+
+
+
+# ---------------------------------------------------------------------------- #
+#                                MAZE COMPONENTS                               #
+# ---------------------------------------------------------------------------- #
 @schema
 class MazeComponents(dj.Imported):
 	definition = """
@@ -112,6 +141,14 @@ class MazeComponents(dj.Imported):
 		if new_key is not None:
 			self.insert1(new_key)
 
+
+
+
+
+
+# ---------------------------------------------------------------------------- #
+#                           COMMON COORDINATES MATRIX                          #
+# ---------------------------------------------------------------------------- #
 @schema
 class CCM(dj.Imported):
 	definition = """
@@ -128,6 +165,14 @@ class CCM(dj.Imported):
 	def make(self, key):
 		make_commoncoordinatematrices_table(self, key)
 
+
+
+
+
+
+# ---------------------------------------------------------------------------- #
+#                                   RECORDING                                  #
+# ---------------------------------------------------------------------------- #
 @schema
 class Recording(dj.Imported):
 	definition = """
@@ -175,6 +220,13 @@ class Recording(dj.Imported):
 	def make_aligned_frames(self):
 		fill_in_aligned_frames(self)
 
+
+
+
+
+# ---------------------------------------------------------------------------- #
+#                                    STIMULI                                   #
+# ---------------------------------------------------------------------------- #
 @schema
 class Stimuli(dj.Imported):
 	definition = """
@@ -237,6 +289,14 @@ class Stimuli(dj.Imported):
 	def make_metadata(self):
 		make_visual_stimuli_metadata(self)	
 			
+
+
+
+
+
+# ---------------------------------------------------------------------------- #
+#                                 TRACKING DATA                                #
+# ---------------------------------------------------------------------------- #
 @schema
 class TrackingData(dj.Imported):
 	experiments_to_skip = ['Lambda Maze', 'Model Based', 
@@ -288,6 +348,15 @@ class TrackingData(dj.Imported):
 	def get_experiments_in_table(self):
 		return set((TrackingData() * Recording() * Session()).fetch("experiment_name"))
 
+
+
+
+
+
+
+# ---------------------------------------------------------------------------- #
+#                                 EXPLORATIONS                                 #
+# ---------------------------------------------------------------------------- #
 @schema
 class Explorations(dj.Imported):
 	definition = """
@@ -306,6 +375,14 @@ class Explorations(dj.Imported):
 		make_exploration_table(self, key)
 
 
+
+
+
+
+
+# ---------------------------------------------------------------------------- #
+#                                    TRIALS                                    #
+# ---------------------------------------------------------------------------- #
 @schema
 class Trials(dj.Imported):
 	definition = """
@@ -408,6 +485,14 @@ class Trials(dj.Imported):
 	def make(self, key):
 		make_trials_table(self, key)
 
+
+
+
+
+
+# ---------------------------------------------------------------------------- #
+#                                    HOMINGS                                   #
+# ---------------------------------------------------------------------------- #
 @schema
 class Homings(dj.Manual):
 	definition = """

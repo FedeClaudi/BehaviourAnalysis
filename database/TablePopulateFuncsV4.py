@@ -14,9 +14,14 @@ from Utilities.dbase.stim_times_loader import *
 
 from Processing.tracking_stats.correct_tracking import correct_tracking_data
 
-"""
-			! TEMPLATES 
-"""
+
+
+
+
+# !--------------------------------------------------------------------------- #
+#               !                   TEMPLATES                                  #
+# !--------------------------------------------------------------------------- #
+
 def make_templates_table(key):
 	from database.TablesDefinitionsV4 import Session
 	# Load yaml with rois coordinates
@@ -32,9 +37,14 @@ def make_templates_table(key):
 	return {**key, **selected_rois}
 
 
-"""
-			! RECORDING
-"""
+
+
+
+
+
+# !--------------------------------------------------------------------------- #
+#            !                     RECORDINGS                                  #
+# !--------------------------------------------------------------------------- #
 
 def make_recording_table(table, key):
 	def behaviour(table, key, software, tb):
@@ -169,9 +179,16 @@ def fill_in_aligned_frames(recordings):
 			tdp.insert_in_table()
 
 
-"""
-			! CCM
-"""
+
+
+
+
+
+
+# !--------------------------------------------------------------------------- #
+#         !                 COMMON COORDINATES MATRIX                          #
+# !--------------------------------------------------------------------------- #
+
 def make_commoncoordinatematrices_table(table, key):
 	from database.TablesDefinitionsV4 import Recording, Session
 
@@ -223,9 +240,15 @@ def make_commoncoordinatematrices_table(table, key):
 	table.insert1(key)
 
 
-"""
-					 # ! STIMULI
-"""
+
+
+
+
+
+# !--------------------------------------------------------------------------- #
+#        !                           STIMULI                                   #
+# !--------------------------------------------------------------------------- #
+
 def make_stimuli_table(table, key):
 	from database.TablesDefinitionsV4 import Recording, Session
 	from Utilities.video_and_plotting.video_editing import Editor
@@ -481,9 +504,11 @@ def make_visual_stimuli_metadata(table):
 
 
 
-"""
-			! TRACKING DATA
-"""
+
+
+# !--------------------------------------------------------------------------- #
+#   !                             TRACKING DATA                                #
+# !--------------------------------------------------------------------------- #
 def make_trackingdata_table(table, key):
 	from database.TablesDefinitionsV4 import Recording, Session, CCM, MazeComponents
 	# skip experiments that i'm not interested in 
@@ -622,9 +647,14 @@ def make_trackingdata_table(table, key):
 		table.BodySegmentData.insert1(segkey)
 
 
-"""
-			! EXPLORATION 
-"""
+
+
+
+
+# !--------------------------------------------------------------------------- #
+#           !                      EXPLORATION                                 #
+# !--------------------------------------------------------------------------- #
+
 def make_exploration_table(table, key):
 	from database.TablesDefinitionsV4 import Session, TrackingData, Stimuli
 	if key['uid'] < 184: fps = 30 # ! hardcoded
@@ -676,6 +706,14 @@ def make_exploration_table(table, key):
 
 
 
+
+
+
+
+
+# !--------------------------------------------------------------------------- #
+# !                                  TRIALS                                    #
+# !--------------------------------------------------------------------------- #
 
 def make_trials_table(table, key):
 	def get_time_at_roi(tracking, roi, frame, when="next"):
