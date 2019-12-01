@@ -100,8 +100,6 @@ class Session(dj.Manual):
 
 
 
-
-
 # ---------------------------------------------------------------------------- #
 #                                MAZE COMPONENTS                               #
 # ---------------------------------------------------------------------------- #
@@ -299,8 +297,7 @@ class Stimuli(dj.Imported):
 # ---------------------------------------------------------------------------- #
 @schema
 class TrackingData(dj.Imported):
-	experiments_to_skip = ['Lambda Maze', 'Model Based', 
-							'PathInt2 Close', "Foraging"]
+	experiments_to_skip = ['Lambda Maze', 'PathInt2 Close', "Foraging"]
 
 	bodyparts = ['snout', 'neck', 'body', 'tail_base',]
 	skeleton = dict(head = ['snout', 'neck'], body_upper=['neck', 'body'],
@@ -508,8 +505,8 @@ class Homings(dj.Manual):
 		outward_tracking_data: longblob		# same as above, but for shelter -> threat platform
 		threat_tracking_data: longblob	    # just tracking when on threat
 		
-		homing_arm: varchar(128) 					# 0 for left and 1 for right
-		outward_arm: varchar(128) 					# 0 for left and 1 for right
+		homing_arm: varchar(128) 			# 0 for left and 1 for right
+		outward_arm: varchar(128) 			# 0 for left and 1 for right
 		
 		time_out_of_t: float 				# time in seconds out of the threat platform
 		frame_out_of_t: int 				# time in frames out of the threat platform

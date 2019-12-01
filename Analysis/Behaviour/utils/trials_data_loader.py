@@ -33,7 +33,7 @@ class TrialsLoader:
 
 		
 	def load_trials_by_condition(self, maze_design=None, naive=None, lights=None, escapes_dur=None, shelter=None, 
-					catwalk=None, tracking="all"):
+					catwalk=None, tracking="all", experiment_name = None):
 		"""[Given a number of criteria, load the trials that match these criteria]
 		
 		Keyword Arguments:
@@ -43,7 +43,7 @@ class TrialsLoader:
 			escapes_dur {bool} -- [If true only trials in which the escapes terminate within the duraiton th are used] (default: {True})
 			catwalk {bool} -- [If true only trials for experiments with the catwalk are returned] (default: {True})
 			tracking{[bool, str]} -- [if not None the tracking for the trials is returned with the trials. If "threat" only the threat tracking is returned]
-
+			experiment_name {[str]} -- [pass the name of an experiment as a string to select only data for that experiment]
 		"""
 
 
@@ -55,9 +55,17 @@ class TrialsLoader:
 		# Get all trials from the AllTrials Table
 		if tracking is not None:
 			if tracking == "all":
-				all_trials = pd.DataFrame((Trials * Trials.TrialTracking * Trials.TrialSessionMetadata & "escape_duration > 0").fetch())
+				if experiment_name is None:
+					all_trials = pd.DataFrame((Session * Trials * Trials.TrialTracking * Trials.TrialSessionMetadata & "escape_duration > 0").fetch())
+				else:
+					all_trials = pd.DataFrame((Session * Trials * Trials.TrialTracking * Trials.TrialSessionMetadata\
+						& "escape_duration > 0" & "experiment_name='{}'".format(experiment_name)).fetch())
 			elif tracking == "threat":
-				all_trials = pd.DataFrame((Trials * Trials.ThreatTracking * Trials.TrialSessionMetadata & "escape_duration > 0").fetch())
+				if experiment_name is None:
+					all_trials = pd.DataFrame((Session * Trials * Trials.ThreatTracking * Trials.TrialSessionMetadata & "escape_duration > 0").fetch())
+				else:
+					all_trials = pd.DataFrame((Session * Trials * Trials.ThreatTracking * Trials.TrialSessionMetadata\
+						& "escape_duration > 0" & "experiment_name='{}'".format(experiment_name)).fetch())
 			
 			else:
 				raise ValueError("tracking parameter not valid")
