@@ -92,6 +92,13 @@ def make_recording_table(table, key):
 		key_copy['ai_file_path'] = aifile
 		table.insert1(key_copy)
 
+	# Check that there's no errors in the key
+	split = key['session_name'].split("_")
+	if len(split) > 2: raise ValueError
+	else:
+		mouse = split[-1]
+	if key['mouse_id'] != mouse: return
+
 	# See which software was used and call corresponding function
 	# print(' Processing: ', key)
 	tb = ToolBox()
@@ -190,6 +197,13 @@ def fill_in_aligned_frames(recordings):
 # !--------------------------------------------------------------------------- #
 
 def make_commoncoordinatematrices_table(table, key):
+	# Ignore wrong entries
+	split = key['session_name'].split("_")
+	if len(split) > 2: raise ValueError
+	else:
+		mouse = split[-1]
+	if key['mouse_id'] != mouse: return
+
 	from database.TablesDefinitionsV4 import Recording, Session
 
 	"""make_commoncoordinatematrices_table [Allows user to align frame to model
@@ -253,6 +267,12 @@ def make_stimuli_table(table, key):
 	from database.TablesDefinitionsV4 import Recording, Session
 	from Utilities.video_and_plotting.video_editing import Editor
 	tb = ToolBox()
+
+	split = key['session_name'].split("_")
+	if len(split) > 2: raise ValueError
+	else:
+		mouse = split[-1]
+	if key['mouse_id'] != mouse: return
 
 	def make_behaviourstimuli(table, key):
 		# Get file paths    
@@ -511,6 +531,13 @@ def make_visual_stimuli_metadata(table):
 # !--------------------------------------------------------------------------- #
 def make_trackingdata_table(table, key):
 	from database.TablesDefinitionsV4 import Recording, Session, CCM, MazeComponents
+
+	split = key['session_name'].split("_")
+	if len(split) > 2: raise ValueError
+	else:
+		mouse = split[-1]
+	if key['mouse_id'] != mouse: return
+
 	# skip experiments that i'm not interested in 
 	experiment = (Session & key).fetch1("experiment_name")
 	if experiment in table.experiments_to_skip: 
@@ -656,6 +683,12 @@ def make_trackingdata_table(table, key):
 # !--------------------------------------------------------------------------- #
 
 def make_exploration_table(table, key):
+	split = key['session_name'].split("_")
+	if len(split) > 2: raise ValueError
+	else:
+		mouse = split[-1]
+	if key['mouse_id'] != mouse: return
+
 	from database.TablesDefinitionsV4 import Session, TrackingData, Stimuli
 	if key['uid'] < 184: fps = 30 # ! hardcoded
 	else: fps = 40
@@ -716,6 +749,12 @@ def make_exploration_table(table, key):
 # !--------------------------------------------------------------------------- #
 
 def make_trials_table(table, key):
+	split = key['session_name'].split("_")
+	if len(split) > 2: raise ValueError
+	else:
+		mouse = split[-1]
+	if key['mouse_id'] != mouse: return
+
 	def get_time_at_roi(tracking, roi, frame, when="next"):
 		if when == "last":
 			in_roi = np.where(tracking[:frame, -1] == roi)[0]
@@ -747,11 +786,11 @@ def make_trials_table(table, key):
 		if len(data) > 0:
 			data = data.sort_values(['recording_uid'])
 		else:
-			self._insert_placeholder(key) # no stimuli in session
+			table._insert_placeholder(key) # no stimuli in session
 			return
 	except:
 		print("\nCould not load tracking data for session {} - can't compute trial data".format(key))
-		self._insert_placeholder(key)
+		table._insert_placeholder(key)
 		return
 
 	# Get the last next time that the mouse reaches the shelter
@@ -771,19 +810,19 @@ def make_trials_table(table, key):
 	try:
 		got_on_T = [t for t in threat_enters if t <= stim_frame][-1]
 	except:
-		self._insert_placeholder(key)
+		table._insert_placeholder(key)
 		return
 
 	try:
 		left_T = [t for t in threat_exits if t >= stim_frame][0]
 	except:
 		# The mouse didn't leave the threat platform, disregard trial
-		self._insert_placeholder(key)
+		table._insert_placeholder(key)
 		return
 
 	if stim_frame in [last_at_shelt, next_at_shelt, got_on_T, left_T]:
 		# something went wrong... skipping trial
-		self._insert_placeholder(key)
+		table._insert_placeholder(key)
 		return
 
 	# Get time to leave T and escape duration in seconds
@@ -800,7 +839,7 @@ def make_trials_table(table, key):
 	escape_arm = get_arm_given_rois(escape_rois, 'in')
 	if escape_arm is None: 
 		# something went wrong, ignore trial
-		self._insert_placeholder(key)
+		table._insert_placeholder(key)
 		return
 
 	if "left" in escape_arm.lower():
@@ -816,7 +855,7 @@ def make_trials_table(table, key):
 	origin_arm = get_arm_given_rois(origin_rois, 'out')
 	if origin_arm is None: 
 		# something went wrong, ignore trial
-		self._insert_placeholder(key)
+		table._insert_placeholder(key)
 		return
 
 	if "left" in origin_arm.lower():

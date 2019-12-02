@@ -73,6 +73,31 @@ class PopulateDatabase:
         ###################################################################################################################
     """
 
+    def clean_sessions_table(self):
+        names = list(set(self.session.fetch("session_name")))
+        tot_wrong = 0
+        for name in names:
+            sessions = self.session & 'session_name="{}"'.format(name)
+            if len(sessions) > 1:
+                split = name.split("_")
+                if len(split) > 2: raise ValueError
+                else:
+                    mouse = split[-1]
+                wrong_sessions = sessions & "mouse_id != '{}'".format(mouse)
+
+                wrong_trials = wrong_sessions * self.trials
+                
+                tot_wrong += len(wrong_trials)
+                if len(wrong_trials):
+                    print("shit {} wrong trials".format(len(wrong_trials)))
+
+                    wrong = Trials & "mouse_id != '{}'".format(mouse) & "session_name = '{}'".format(name)
+                    wrong.delete(forced=True)
+                    # print(wrong_trials)
+                    # print("\n")
+                # wrong_sessions.delete()
+        print("removed {} trials".format(tot_wrong))
+
     @staticmethod
     def insert_entry_in_table(dataname, checktag, data, table, overwrite=False):
         """
@@ -81,6 +106,8 @@ class PopulateDatabase:
         data: entry to be inserted into the table
         table: database table
         """
+        if dataname in list(table.fetch(checktag)):
+                return
         try:
             table.insert1(data)
             print('     ... inserted {} in table'.format(dataname))
@@ -231,29 +258,29 @@ class PopulateDatabase:
         ###################################################################################################################
     """
 
-    def __str__(self):
-        self.__repr__()
-        return ''
+    # def __str__(self):
+    #     self.__repr__()
+    #     return ''
 
-    def __repr__(self):
-        summary = {}
-        tabledata = namedtuple('data', 'name numofentries lastentry')
-        for name, table in self.all_tables.items():
-            if table is None: continue
-            fetched = table.fetch()
-            df = pd.DataFrame(fetched)
-            toprint = tabledata(name, len(fetched), df.tail(1))
+    # def __repr__(self):
+    #     summary = {}
+    #     tabledata = namedtuple('data', 'name numofentries lastentry')
+    #     for name, table in self.all_tables.items():
+    #         if table is None: continue
+    #         fetched = table.fetch()
+    #         df = pd.DataFrame(fetched)
+    #         toprint = tabledata(name, len(fetched), df.tail(1))
 
-            summary[name] = toprint.numofentries
+    #         summary[name] = toprint.numofentries
 
-            # print('Table {} has {} entries'.format(toprint.name, toprint.numofentries))
-            # print('The last entry in the table is\n ', toprint.lastentry)
+    #         # print('Table {} has {} entries'.format(toprint.name, toprint.numofentries))
+    #         # print('The last entry in the table is\n ', toprint.lastentry)
 
-        print('\n\nNumber of Entries per table')
-        sumdf = (pd.DataFrame.from_dict(summary, orient='index'))
-        sumdf.columns = ['NumOfEntries']
-        print(sumdf)
-        return ''
+    #     print('\n\nNumber of Entries per table')
+    #     sumdf = (pd.DataFrame.from_dict(summary, orient='index'))
+    #     sumdf.columns = ['NumOfEntries']
+    #     print(sumdf)
+    #     return ''
     """
         ###################################################################################################################
         ###################################################################################################################
@@ -273,7 +300,7 @@ if __name__ == '__main__':
     errors = []
 
 
-    # ? drop tables
+    # ? drop clean tables
     # p.remove_table(["mazecomponents"])
 
     # ? Remove stuff from tables
@@ -286,7 +313,7 @@ if __name__ == '__main__':
  
     # p.recording.populate(display_progress=True) 
     # p.recording.make_paths(p) 
-    p.mazecomponents.populate(display_progress=True)  # ? this will require input for new experiments
+    # p.mazecomponents.populate(display_progress=True)  # ? this will require input for new experiments
 
     # ? This slower and will require some input
     # Before populating CCM you need to have done the tracking and have ran recording.make_paths
@@ -307,6 +334,9 @@ if __name__ == '__main__':
     # ? Show database content and progress
     # print(p.ccm.tail())
     # p.show_progress()
+
+    p.clean_sessions_table()
+
 
 
 

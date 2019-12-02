@@ -57,9 +57,12 @@ class PathLengthsEstimator:
 			path_lengths = []
 			for i, trial in data.iterrows():
 				path_lengths.append(np.sum(calc_distance_between_points_in_a_vector_2d(trial.after_t_tracking)))
-			return percentile_range(path_lengths)
-
-		res = namedtuple("res", "left right ratio")
+			try:
+				return percentile_range(path_lengths)
+			except:
+				return (0)
+				
+		res = namedtuple("res", "left right center ratio")
 		res2 = namedtuple("percentile", "low median mean high std")
 		self.get_tracking_after_leaving_T_for_conditions()
 
@@ -67,11 +70,12 @@ class PathLengthsEstimator:
 		for condition, trials in self.conditions.items():
 			left_trials = trials.loc[trials.escape_arm == 'left']
 			right_trials = trials.loc[trials.escape_arm == 'right']
+			center_trials = trials.loc[trials.escape_arm == 'center']
 
-			lres, rres = do_arm(left_trials), do_arm(right_trials)
+			lres, rres, cres = do_arm(left_trials), do_arm(right_trials), do_arm(center_trials)
 
 			ratio = res2(*[l/r for l,r in zip(lres, rres)])
-			results[condition] = res(lres, rres, ratio)
+			results[condition] = res(lres, rres, cres, ratio)
 		return results
 
 	def get_duration_per_arm_from_trials(self):
@@ -84,9 +88,12 @@ class PathLengthsEstimator:
 			durations = []
 			for i, trial in data.iterrows():
 				durations.append(trial.after_t_tracking.shape[0]/trial.fps)
-			return percentile_range(durations)
+			try:
+				return percentile_range(durations)
+			except:
+				return (0)
 
-		res = namedtuple("res", "left right ratio")
+		res = namedtuple("res", "left right center ratio")
 		res2 = namedtuple("percentile", "low median mean high std")
 		
 		self.get_tracking_after_leaving_T_for_conditions()
@@ -95,11 +102,12 @@ class PathLengthsEstimator:
 		for condition, trials in self.conditions.items():
 			left_trials = trials.loc[trials.escape_arm == 'left']
 			right_trials = trials.loc[trials.escape_arm == 'right']
+			center_trials = trials.loc[trials.escape_arm == 'center']
 
-			lres, rres = do_arm(left_trials), do_arm(right_trials)
+			lres, rres, cres = do_arm(left_trials), do_arm(right_trials), do_arm(center_trials)
 
 			ratio = res2(*[l/r for l,r in zip(lres, rres)])
-			results[condition] = res(lres, rres, ratio)
+			results[condition] = res(lres, rres, cres, ratio)
 		return results
 
 	def get_exploration_per_path_from_trials(self):
