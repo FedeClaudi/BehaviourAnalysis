@@ -33,6 +33,8 @@ def start_connection():
         dj.config['database.user'] = 'root'
         dj.config['database.password'] = 'fede'
         dj.config['database.safemode'] = False
+        dj.config['safemode']=False
+
 
         dj.conn()
 

@@ -1,0 +1,99 @@
+# PATH LENGTH IS DEFINED AS THE INNER PARAMETER OF THE SIDES THAT GO FROM
+# THE t PLATF ENDS TO WHERE THE s PLATF STARTS
+
+# path lengths are expressed in MM
+
+# ------------------------------------ m0 ------------------------------------ #
+m0:
+  maze_id: 0
+  maze_name: 'm0'
+  left_path_length: 1085
+  right_path_length: 505
+  center_path_length: 450
+
+  left_path_angle: 45
+  right_path_angle: 45
+  center_path_angle: 0
+ 
+  has_catwalk: 0
+
+
+
+# ------------------------------------ m1 ------------------------------------ #
+m1:
+  maze_id: 1
+  maze_name: 'm1'
+  left_path_length: 1085
+  right_path_length: 505
+  center_path_length: -1
+
+  left_path_angle: 45
+  right_path_angle: 45
+  center_path_angle: -1
+
+  has_catwalk: 1
+
+
+
+# ------------------------------------ m2 ------------------------------------ #
+m2:
+  maze_id: 2
+  maze_name: 'm2'
+  left_path_length: 872
+  right_path_length: 505
+  center_path_length: -1
+
+  left_path_angle: 45
+  right_path_angle: 45
+  center_path_angle: -1
+
+  has_catwalk: 1
+
+
+
+# ------------------------------------ m3 ------------------------------------ #
+m3:
+  maze_id: 3
+  maze_name: 'm3'
+  left_path_length: 770
+  right_path_length: 505
+  center_path_length: -1
+
+  left_path_angle: 45
+  right_path_angle: 45
+  center_path_angle: -1
+
+  has_catwalk: 1
+
+
+
+# ------------------------------------ m4 ------------------------------------ #
+m4:
+  maze_id: 4
+  maze_name: 'm4'
+  left_path_length: 505
+  right_path_length: 505
+  center_path_length: -1
+
+  left_path_angle: 45
+  right_path_angle: 45
+  center_path_angle: -1
+
+  has_catwalk: 0
+
+
+
+# ------------------------------------ m6------------------------------------ #
+m6:
+  maze_id: 6
+  maze_name: 'm6'
+  left_path_length: 1085
+  right_path_length: 1085
+  center_path_length: -1
+
+  left_path_angle: 45
+  right_path_angle: 90
+  center_path_angle: -1
+
+  has_catwalk: 1
+

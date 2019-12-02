@@ -88,7 +88,7 @@ class TrialsLoader:
 
 	def get_sessions_by_condition(self, maze_design=None, naive=None, lights=None,  shelter=None, df=False):
 		""" Query the DJ database table AllTrials for the trials that match the conditions """
-		data = Session * Session.Metadata * Session.Shelter  - 'experiment_name="Foraging"'  - "maze_type=-1"
+		data = Session * Session.Metadata * Session.Shelter  - 'experiment_name="Foraging"'
 
 		if maze_design is not None:
 			data = (data & "maze_type={}".format(maze_design))

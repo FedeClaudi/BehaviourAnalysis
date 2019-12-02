@@ -420,3 +420,6 @@ class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator
 		return datadf
 
 
+if __name__ == "__main__":
+	ea2 = ExperimentsAnalyser(load_psychometric=False, tracking="all")
+	ea2.add_condition("2L", maze_design=None, lights=None, escapes_dur=True, tracking="all", experiment_name='TwoArmsLong Maze')

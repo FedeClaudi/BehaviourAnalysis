@@ -58,12 +58,12 @@ class PathLengthsEstimator:
 			for i, trial in data.iterrows():
 				path_lengths.append(np.sum(calc_distance_between_points_in_a_vector_2d(trial.after_t_tracking)))
 			try:
-				return percentile_range(path_lengths)
+				return percentile_range(path_lengths, low=10, high=90)
 			except:
 				return (0)
 				
 		res = namedtuple("res", "left right center ratio")
-		res2 = namedtuple("percentile", "low median mean high std")
+		res2 = namedtuple("percentile", "low median mean high std sem")
 		self.get_tracking_after_leaving_T_for_conditions()
 
 		results = {}
@@ -89,16 +89,17 @@ class PathLengthsEstimator:
 			for i, trial in data.iterrows():
 				durations.append(trial.after_t_tracking.shape[0]/trial.fps)
 			try:
-				return percentile_range(durations)
+				return percentile_range(durations, low=10, high=90)
 			except:
 				return (0)
 
 		res = namedtuple("res", "left right center ratio")
-		res2 = namedtuple("percentile", "low median mean high std")
+		res2 = namedtuple("percentile", "low median mean high std sem")
 		
 		self.get_tracking_after_leaving_T_for_conditions()
 
 		results = {}
+		alldata = {c:{a:[] for a in ['left', 'right', 'center']} for c in self.conditions.keys()}
 		for condition, trials in self.conditions.items():
 			left_trials = trials.loc[trials.escape_arm == 'left']
 			right_trials = trials.loc[trials.escape_arm == 'right']
@@ -108,7 +109,10 @@ class PathLengthsEstimator:
 
 			ratio = res2(*[l/r for l,r in zip(lres, rres)])
 			results[condition] = res(lres, rres, cres, ratio)
-		return results
+
+			for i, trial in trials.iterrows():
+				alldata[condition][trial.escape_arm].append(trial.after_t_tracking.shape[0]/trial.fps)
+		return results, alldata
 
 	def get_exploration_per_path_from_trials(self):
 		res = namedtuple("res", "left right ratio")

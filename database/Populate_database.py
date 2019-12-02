@@ -72,8 +72,22 @@ class PopulateDatabase:
         ###################################################################################################################
         ###################################################################################################################
     """
-
     def clean_sessions_table(self):
+        names = list(set(self.session.fetch("session_name")))
+        queries = []
+        for name in tqdm(names):
+            sessions = self.session & 'session_name="{}"'.format(name)
+            if len(sessions) > 1:
+                split = name.split("_")
+                if len(split) > 2: raise ValueError
+                else:
+                    mouse = split[-1]
+                wrong_sessions = (sessions & "mouse_id != '{}'".format(mouse)) 
+                wrong_tracking = (TrackingData & "mouse_id != '{}'".format(mouse) & 'session_name="{}"'.format(name)) 
+                wrong_tracking.delete()
+
+
+    def clean_trials_table(self):
         names = list(set(self.session.fetch("session_name")))
         tot_wrong = 0
         for name in names:
@@ -92,10 +106,7 @@ class PopulateDatabase:
                     print("shit {} wrong trials".format(len(wrong_trials)))
 
                     wrong = Trials & "mouse_id != '{}'".format(mouse) & "session_name = '{}'".format(name)
-                    wrong.delete(forced=True)
-                    # print(wrong_trials)
-                    # print("\n")
-                # wrong_sessions.delete()
+                    wrong.delete()
         print("removed {} trials".format(tot_wrong))
 
     @staticmethod
@@ -304,9 +315,8 @@ if __name__ == '__main__':
     # p.remove_table(["mazecomponents"])
 
     # ? Remove stuff from tables
-    # p.delete_placeholders_from_stim_table()
-    # p.delete_wrong_entries()
-        
+    p.clean_sessions_table()
+
     # ? These tables population is fast and largely automated
     # p.populate_mice_table()   # ! mice recordings, components... 
     # p.populate_sessions_table()
@@ -320,14 +330,14 @@ if __name__ == '__main__':
     # p.ccm.populate(display_progress=True)  # ! ccm
 
     # ? this is considerably slower but should be automated
-    errors = p.trackingdata.populate(display_progress=True, suppress_errors=False, return_exception_objects =True) # ! tracking data
+    # errors = p.trackingdata.populate(display_progress=True, suppress_errors=False, return_exception_objects =True) # ! tracking data
 
     # errors = p.stimuli.populate(display_progress=True, suppress_errors=False, return_exception_objects=True) # , max_calls =10)  # ! stimuli
     # p.stimuli.make_metadata() # ? only used for visual stims
 
     # ? Should be fast but needs the stuff above to be done
     # p.explorations.populate(display_progress=True, suppress_errors=False, return_exception_objects =True)
-    # p.trials.populate(display_progress=True, suppress_errors=False, return_exception_objects =True)
+    p.trials.populate(display_progress=True, suppress_errors=False, return_exception_objects =True)
 
     # if errors: raise ValueError([print("\n\n", e) for e in errors])
 
@@ -335,7 +345,7 @@ if __name__ == '__main__':
     # print(p.ccm.tail())
     # p.show_progress()
 
-    p.clean_sessions_table()
+    p.clean_trials_table()
 
 
 

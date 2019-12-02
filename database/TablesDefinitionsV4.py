@@ -51,8 +51,6 @@ class Maze(dj.Manual):
 		center_path_angle: float
 
 		has_catwalk: int # 1 or 0
-		maze_image: longblob # numpy array with maze image
-		maze_image_binary: longblob # numpy array with maze image binary 
 	"""
 
 	# ? population method is in populate_database

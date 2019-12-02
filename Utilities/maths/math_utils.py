@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from scipy.signal import medfilt as median_filter
 from scipy.interpolate import interp1d
 from collections import namedtuple
+from scipy import stats
 import seaborn as sns
 
 try:
@@ -92,8 +93,10 @@ def percentile_range(data, low=5, high=95):
 	median = np.median(data)
 	mean = np.mean(data)
 	std = np.std(data)
-	res = namedtuple("percentile", "low median mean high std")
-	return res(lowp, median, mean, highp, std)
+	sem = stats.sem(data)
+
+	res = namedtuple("percentile", "low median mean high std sem")
+	return res(lowp, median, mean, highp, std, sem)
 
 # ! MISC
 def fill_nans_interpolate(y, pkind='linear'):
