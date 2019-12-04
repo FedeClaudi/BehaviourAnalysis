@@ -77,14 +77,15 @@ class PopulateDatabase:
         queries = []
         for name in tqdm(names):
             sessions = self.session & 'session_name="{}"'.format(name)
-            if len(sessions) > 1:
-                split = name.split("_")
-                if len(split) > 2: raise ValueError
-                else:
-                    mouse = split[-1]
-                wrong_sessions = (sessions & "mouse_id != '{}'".format(mouse)) 
-                wrong_tracking = (TrackingData & "mouse_id != '{}'".format(mouse) & 'session_name="{}"'.format(name)) 
-                wrong_tracking.delete()
+            # if len(sessions) > 1:
+            split = name.split("_")
+            if len(split) > 2: raise ValueError
+            else:
+                mouse = split[-1]
+            wrong_sessions = (sessions & "mouse_id != '{}'".format(mouse)) 
+            # wrong_tracking = (TrackingData & "mouse_id != '{}'".format(mouse) & 'session_name="{}"'.format(name)) 
+            if len(wrong_sessions) > 0:
+                wrong_sessions.delete()
 
 
     def clean_trials_table(self):
@@ -197,18 +198,22 @@ class PopulateDatabase:
     def populate_sessions_table(self):
         """  Populates the sessions table """
         mice = self.mouse.fetch(as_dict=True)
+        micenames = list(pd.DataFrame(mice).mouse_id.values)
         loaded_excel = pyexcel.get_records(file_name=self.exp_records)
 
         for session in loaded_excel:
-            # Get mouse name
+            # # Get mouse name
             mouse_id = session['MouseID']
-            for mouse in mice:
-                idd = mouse['mouse_id']
-                original_idd = mouse['mouse_id']
-                idd = idd.replace('_', '')
-                idd = idd.replace('.', '')
-                if idd.lower() == mouse_id.lower():
+            for mouse in micenames:
+                if mouse_id == mouse: 
                     break
+                else:
+                    original_mouse = mouse
+                    mouse = mouse.replace('_', '')
+                    mouse = mouse.replace('.', '')
+                    if mouse == mouse_id:
+                        mouse_id = original_mouse
+                        break
 
             # Get session name
             session_name = '{}_{}'.format(session['Date'], session['MouseID'])
@@ -221,7 +226,7 @@ class PopulateDatabase:
             session_data = dict(
                 uid = str(session['Sess.ID']), 
                 session_name=session_name,
-                mouse_id=original_idd,
+                mouse_id=mouse_id,
                 date=session_date,
                 experiment_name = experiment_name
             )
@@ -234,7 +239,7 @@ class PopulateDatabase:
                 maze_type= int(session["Maze type"]),
                 naive = int(session["Naive"]),
                 lights = int(session["Lights"]),
-                mouse_id=original_idd,
+                mouse_id=mouse_id,
             )
 
             self.insert_entry_in_table(part_dat['session_name'], 'session_name', part_dat, self.session.Metadata)
@@ -244,7 +249,7 @@ class PopulateDatabase:
                 session_name=session_data["session_name"],
                 uid=session_data["uid"],
                 shelter= int(session["Shelter"]),
-                mouse_id=original_idd,
+                mouse_id=mouse_id,
 
             )
 
@@ -312,10 +317,10 @@ if __name__ == '__main__':
 
 
     # ? drop clean tables
-    # p.remove_table(["mazecomponents"])
+    # p.remove_table(["trackingdata"])
 
     # ? Remove stuff from tables
-    p.clean_sessions_table()
+    # p.clean_sessions_table()
 
     # ? These tables population is fast and largely automated
     # p.populate_mice_table()   # ! mice recordings, components... 
@@ -332,7 +337,7 @@ if __name__ == '__main__':
     # ? this is considerably slower but should be automated
     # errors = p.trackingdata.populate(display_progress=True, suppress_errors=False, return_exception_objects =True) # ! tracking data
 
-    # errors = p.stimuli.populate(display_progress=True, suppress_errors=False, return_exception_objects=True) # , max_calls =10)  # ! stimuli
+    # errors = p.stimuli.populate(dis0play_progress=True, suppress_errors=False, return_exception_objects=True) # , max_calls =10)  # ! stimuli
     # p.stimuli.make_metadata() # ? only used for visual stims
 
     # ? Should be fast but needs the stuff above to be done
@@ -343,9 +348,8 @@ if __name__ == '__main__':
 
     # ? Show database content and progress
     # print(p.ccm.tail())
-    # p.show_progress()
+    p.show_progress()
 
-    p.clean_trials_table()
 
 
 

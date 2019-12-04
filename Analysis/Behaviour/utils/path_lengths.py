@@ -117,6 +117,7 @@ class PathLengthsEstimator:
 	def get_exploration_per_path_from_trials(self):
 		res = namedtuple("res", "left right ratio")
 		results = {}
+		alldata = {c:{a:[] for a in ['left', 'right']} for c in self.conditions.keys()} 
 		for i, (condition, trials) in enumerate(self.conditions.items()):
 			uids = set(trials.uid.values)
 			exps = self.explorations[self.explorations['uid'].isin(uids)]
@@ -138,6 +139,9 @@ class PathLengthsEstimator:
 				time_on_r.append(on_the_right.shape[0]/fps)
 				ratios.append(time_on_l[-1]/time_on_r[-1])
 
+				alldata[condition]['left'].append(time_on_l)
+				alldata[condition]['right'].append(time_on_r)
+
 			left, right, ratio = percentile_range(time_on_l), percentile_range(time_on_r), percentile_range(ratios)
 			results[condition] = res(left, right, ratio)
-		return results
+		return results, alldata

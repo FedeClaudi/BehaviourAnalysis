@@ -6,8 +6,7 @@ from Analysis.Behaviour.utils.behaviour_variables import *
 
 class TrialsPlotter:
 	def __init__(self):
-		self.maze_colors = mazes_colors
-		self.arms_colors = arms_colors
+		return
 
 	def plot_tracking_trace(self, trials, tracking_key, ax=None, colorby=None, color="w", origin=False, minT=0, maxT=-1,
 							as_scatter=True, 

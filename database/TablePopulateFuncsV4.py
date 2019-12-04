@@ -423,12 +423,15 @@ def make_stimuli_table(table, key):
 			# Get the metadata about the stimuli from the log.yml file
 			log_stimuli = load_visual_stim_log(visual_log_file)
 
-			if len(ldr_stimuli) != len(log_stimuli): 
-				if len(ldr_stimuli) < len(log_stimuli):
-					warnings.warn("Something weird going on, ignoring some of the stims on the visual stimuli log file")
-					log_stimuli = log_stimuli.iloc[np.arange(0, len(ldr_stimuli))]
-				else:
-					raise ValueError("Something went wrong with stimuli detection")
+			try:
+				if len(ldr_stimuli) != len(log_stimuli): 
+					if len(ldr_stimuli) < len(log_stimuli):
+						warnings.warn("Something weird going on, ignoring some of the stims on the visual stimuli log file")
+						log_stimuli = log_stimuli.iloc[np.arange(0, len(ldr_stimuli))]
+					else:
+						raise ValueError("Something went wrong with stimuli detection")
+			except:
+				return
 
 			# Add the start time (in seconds) and end time of each stim to log_stimuli df
 			log_stimuli['start_time'] = [s.start/table.sampling_rate for s in ldr_stimuli]

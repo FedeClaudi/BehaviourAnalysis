@@ -21,35 +21,32 @@ def save_plot(name, f):
 # %%
 # Define a bunch of useful colors
 %matplotlib inline
-p1 = makePalette(green, orange, 4, False)
-p2 = makePalette(orange, teal, 5, False)
-palette = np.vstack([p1, p2[1:]])
+palette = makePalette(green, orange, 5 , False)
 maze_colors = {
-    'm0': palette[0],
-    'm1': palette[1],
-    'm2': palette[2],
-    'm3': palette[3],
-    'm4': palette[4],
-    'm6': palette[5],
+    'm0': darkgreen,
+    'm1': palette[0],
+    'm2': palette[1],
+    'm3': palette[2],
+    'm4': palette[3],
+    'm6': salmon,
 }
 
-
+palette = makePalette(teal, lilla, 4, False)
 arms_colors = {
-    "left": lilla,
-    'center': green,
-    "right": teal,
+    "left": teal,
+    'center': darkcyan,
+    "right": lilla,
 }
-palette = makePalette(magenta, purple, 4, False)
 
-m0cols = {'left':palette[0], 
-            'center':palette[1], 
-            'right':palette[2]}
 
 
 psychometric_mazes = ["m1", "m2", "m3", "m4"]
+five_mazes = ["m1", "m2", "m3", "m4", "m6"]
+m6 = ["m6"]
+m0 = ["m0"]
 arms = ['left', 'right', 'center']
 
-
+# TODO write functino that gets N,n,M for each experiment
 # %%
 # Getting data
 ea = ExperimentsAnalyser(load_psychometric=False, tracking="all")
@@ -114,12 +111,14 @@ path_durations, alldurations = ea.get_duration_per_arm_from_trials()
 xticks, xlabels = [], []
 f, ax = create_figure(subplots=False)
 for i, (condition, durations) in enumerate(path_durations.items()):
-    if condition in ['m0']: continue
+    if condition not in five_mazes: continue
     x = [i-.25, i+.25]
     xticks.extend([i-.25,i, i+.25])
     xlabels.extend(["left","\n{}".format(condition), "right"])
     y = [durations.left.mean, durations.right.mean]
     yerr = [durations.left.sem, durations.right.sem]
+
+    print("Maze {} - ratio: {}".format(condition, round(y[0]/y[1], 2)))
 
     ax.axvline(i-.25, color=[.2, .2, .2], ls=":", alpha=.15)
     ax.axvline(i+.25, color=[.2, .2, .2], ls=":", alpha=.15)
@@ -130,8 +129,12 @@ for i, (condition, durations) in enumerate(path_durations.items()):
 
     ttest, pval = stats.ttest_ind(alldurations[condition]['left'], alldurations[condition]['right'])
     if pval < .05:
-        ax.plot([i-.3, i+.3], [4.25, 4.25], lw=4, color=[.4, .4, .4])
-        ax.text(i-0.025, 4.25, "*", fontsize=20)
+        ax.plot([i-.3, i+.3], [4.75, 4.75], lw=4, color=[.4, .4, .4])
+        ax.text(i-0.025, 4.75, "*", fontsize=20)
+    else:
+        ax.plot([i-.3, i+.3], [4.75, 4.75], lw=4, color=[.7, .7, .7])
+        ax.text(i-0.05, 4.8, "n.s.", fontsize=16)
+        
 
 _ = ax.set(title="Paths durations per maze design", xticks=xticks, xticklabels=xlabels,
                 ylabel="mean duration (s)")
@@ -139,12 +142,6 @@ save_plot("escape_durations", f)
 
 
 
-
-
-# f2, axarr2 = create_figure(subplots=True, ncols=int(np.ceil(len(ea.conditions.keys())/2)), nrows=2, sharex=True)
-# for n, (condition, trials) in enumerate(ea.conditions.items()):
-#     axarr2[n].hist(trials.escape_duration.values, color=maze_colors[condition])
-#     axarr2[n].set(title=condition, xlim=[0, ea.max_duration_th+1], ylabel="count", xlabel="escape duration (s)")
 
 
 # %%
@@ -156,6 +153,10 @@ includem0 = False
 includem6 = True
 fit_curve = True
 
+use_eucl = True
+euclidean_dists = {'m1':0.405, 'm2':0.2444, 'm3':0.227, 'm4':0.053, 'm6':-0.349}
+combined_dists = {a:path_durations[a].ratio.mean*euclidean_dists[a] for a in euclidean_dists.keys()}
+
 # Calc and plot pR for psychometric data
 pRs = ea.bayes_by_condition_analytical()
 
@@ -164,10 +165,13 @@ f, ax = create_figure(subplots=False)
 xfit, yfit = [], []
 X, Y, Xlabels= [], [], []
 for i, pr in pRs.iterrows():
-    if pr.condition in ["m6", 'm0']: continue
+    if pr.condition not in psychometric_mazes: continue
     std = math.sqrt(pr.sigmasquared)
     yerr = np.array([pr['mean']-pr.prange.low, pr.prange.high-pr['mean']]).reshape(2, 1)
-    x = mazes[pr.condition]['ratio']
+    if not use_eucl:
+        x = mazes[pr.condition]['ratio']
+    else:
+        x = euclidean_dists[pr.condition]
     X.append(x)
     Y.append(pr['mean'])
     xfit.append(x); yfit.append(pr['mean'])
@@ -197,13 +201,13 @@ if includem0:
         a2, b2, mean, mode, sigmasquared, prange = ea.grouped_bayes_analytical([len(binary_trials)], [np.sum(binary_trials)])
         ax.errorbar(lenratio, mean, yerr=math.sqrt(sigmasquared), fmt = 'o', color=color)
 
-        # plot_distribution(a2, b2, ax=ax, dist_type="beta", shaded="True", line_alpha=.3,
-        #                 plot_kwargs={"color":color}, shade_alpha=.05,
-        #                 vertical=True, fill_offset=(lenratio), y_scale=.008)
 
 if includem6:
     pr = pRs.loc[pRs.condition == "m6"]
-    x = mazes['m6']['ratio']
+    if not use_eucl:
+        x = mazes['m6']['ratio']
+    else:
+        x = euclidean_dists['m6']
             
     Xlabels.append("m6\n{}".format(round(x, 1)))
     X.append(x)
@@ -214,27 +218,36 @@ if includem6:
                     vertical=True, fill_offset=(x), y_scale=.008)
 
 
+
+_ = ax.axhline(0.5, ls="--", color=[.5, .5, .5])
+
+if not use_eucl: 
+    xlim=[.5, 2.8]
+else:
+    xlim=[-.5, 1.2]
+
 if fit_curve:
-    plot_fitted_curve(centered_logistic, xfit, yfit, ax, xrange=[0, 3], scatter_kwargs=dict(alpha=0),
+    plot_fitted_curve(centered_logistic, xfit, yfit, ax, xrange=xlim, scatter_kwargs=dict(alpha=0),
                     fit_kwargs = dict(),
                     line_kwargs=dict(color=[.3, .3, .3], alpha=.7, lw=3))
 
-_ = ax.axhline(0.5, ls="--", color=[.5, .5, .5])
 
 _ = ax.set(title="p(R) for each maze", xticks=X, xlabel="Llong/Short length ratio", 
                     xticklabels=Xlabels, 
                     ylabel="p(best)",
-                    ylim=[0, 1], xlim=[.5, 2.8])
+                    ylim=[0, 1], xlim=xlim ) #xlim=[.5, 2.8]
 save_plot("psychometric", f)
 
 # %%
-# ! Euclidean distance analysis
+# ---------------------------------------------------------------------------- #
+#                             ! EUCLIDEAN DISTANCE                             #
+# ---------------------------------------------------------------------------- #
 n_samples = 250
 
 f, axarr = create_figure(subplots=True, nrows=3, ncols=2, sharex=False)
 for n, (condition, trials) in enumerate(ea.conditions.items()):
     # Get data and sample aligned in time normalized bu escape duration
-    if condition == "m0": continue
+    if condition not in five_mazes: continue
     X = np.linspace(0, 1, num=101)
     data = {a:{round(m,2):[] for m in X} for a in arms}
     counts = {a:{round(m,2):0 for m in X} for a in arms}
@@ -260,36 +273,52 @@ for n, (condition, trials) in enumerate(ea.conditions.items()):
 
     avg_r = np.array([np.mean(d) if c > 0 else np.nan for d,c in zip(data['right'].values(), counts['right'].values())])
     avg_l = np.array([np.mean(d) if c > 0 else np.nan for d,c in zip(data['left'].values(), counts['left'].values())])
-    axarr[0].plot(avg_l/avg_r, color=maze_colors[condition], lw=3, label=condition)
+    ratio = avg_l/avg_r
+    axarr[0].plot(ratio, color=maze_colors[condition], lw=3, label=condition)
+
+    top, bottom = np.max(ratio-1), np.min(ratio-1)
+    if top > np.abs(bottom): dist = round(top, 4)
+    else: dist = round(bottom, 4)
+    print("{} - A.O.C.: {} - max dist: {}".format(condition, round(np.trapz(ratio-1), 3), dist))
+    
     
     axarr[n].legend()
     axarr[n].set(title=condition, ylim=[100, 650], xticks=[0, 1/2, 1], xlabel='escape proportion', 
                 ylabel='eucl.dist.shelt.')
 
-axarr[0].legend()
+axarr[0].legend(fontsize=9)
 axarr[0].set(title="LEFT/RIGHT", xticklabels=[0, 1/2, 1], xlabel='escape proportion', 
             ylabel='L/R', xticks=[0, len(avg_r)*0.5, len(avg_r)])
 f.tight_layout()
 
 save_plot("euclidean_dist", f)
 
+# %%
+# ---------------------------------------------------------------------------- #
+#                                     TEST                                     #
+# ---------------------------------------------------------------------------- #
+euclidean_dists = {'m1':0.405, 'm2':0.2444, 'm3':0.227, 'm4':0.053, 'm6':-0.349}
+geo_ratios = {a:round(mazes[a]['ratio'], 3) for a in euclidean_dists.keys()}
+prs = {a:round(pRs.loc[pRs.condition==a]['mean'].values[0], 3) for a in euclidean_dists.keys()}
 
-
+for a in euclidean_dists.keys():
+    print("{} - len ratio: {} - eucl dist ratio: {} - p(R): {}".format(a, geo_ratios[a], euclidean_dists[a], prs[a]))
 
 # %%
 # ---------------------------------------------------------------------------- #
 #                               ! TIMED ANALYSIS (time)                        #
 # ---------------------------------------------------------------------------- #
+# TODO try different window params
+# TODO compare light vs dark
 
 # ? params
 n_random_iters = None
-for windows_size in [300]:
-    # windows_size = 600 # window size in seconds
+for windows_size in [120, 300, 600, 1200]:
     min_trials_in_bin = 1
 
     f, axarr = create_figure(subplots=True, ncols=2, nrows=2, sharex=False, figsize=(12, 12))
     for n, (condition, trials) in enumerate(ea.conditions.items()):
-        if condition in ["m6", 'm0']: continue
+        if condition not in psychometric_mazes: continue
         n = psychometric_mazes.index(condition)
         ax = axarr[n]
         trial_times = {'left':[], 'right':[]}
@@ -359,72 +388,73 @@ save_plot("timed_by_time", f)
 # ---------------------------------------------------------------------------- #
 #                          ! TIMED ANALYSIS (n trials)                         #
 # ---------------------------------------------------------------------------- #
-
+# TODO try different binning params
+# TODO compare light vs dark
 use_real_mean = False
 
-n_trials_in_bin = 20
 
-f, axarr = create_figure(subplots=True, ncols=2, nrows=2, sharex=False, figsize=(12, 12))
-for n, (condition, trials) in enumerate(ea.conditions.items()):
-    if condition in ['m0', "m6"]: continue
-    n = psychometric_mazes.index(condition)
+for n_trials_in_bin in [10, 20, 40]:
+    f, axarr = create_figure(subplots=True, ncols=2, nrows=2, sharex=False, figsize=(12, 12))
+    for n, (condition, trials) in enumerate(ea.conditions.items()):
+        if condition not in psychometric_mazes: continue
+        n = psychometric_mazes.index(condition)
 
-    ax = axarr[n]
-    trial_times = []
-    trial_outcomes = []
-    tmax = 0
+        ax = axarr[n]
+        trial_times = []
+        trial_outcomes = []
+        tmax = 0
 
-    # Get time and arm of escape for each trial
-    for i, trial in trials.iterrows():
-        if trial.escape_arm == "center": continue
+        # Get time and arm of escape for each trial
+        for i, trial in trials.iterrows():
+            if trial.escape_arm == "center": continue
 
-        stim_time = trial.stim_frame_session/trial.fps
-        trial_times.append(stim_time)
-        if stim_time > tmax: tmax = stim_time
-        if trial.escape_arm == "right": trial_outcomes.append(1)
-        else: trial_outcomes.append(0)
+            stim_time = trial.stim_frame_session/trial.fps
+            trial_times.append(stim_time)
+            if stim_time > tmax: tmax = stim_time
+            if trial.escape_arm == "right": trial_outcomes.append(1)
+            else: trial_outcomes.append(0)
 
-    sort_idx = np.argsort(trial_times)
-    trial_times = np.array(trial_times)[sort_idx]
-    trial_outcomes = np.array(trial_outcomes)[sort_idx]
-    n_trials = len(trial_outcomes)
+        sort_idx = np.argsort(trial_times)
+        trial_times = np.array(trial_times)[sort_idx]
+        trial_outcomes = np.array(trial_outcomes)[sort_idx]
+        n_trials = len(trial_outcomes)
 
-    # # bin trials by n trials
-    x, y, yerr = [], [], []
-    for i in range(int(np.ceil(n_trials/n_trials_in_bin))):
-        # Get trials in time window
-        binary_trials = trial_outcomes[i*n_trials_in_bin:(i+1)*n_trials_in_bin]
-        if len(binary_trials) < n_trials_in_bin: continue
+        # # bin trials by n trials
+        x, y, yerr = [], [], []
+        for i in range(int(np.ceil(n_trials/n_trials_in_bin))):
+            # Get trials in time window
+            binary_trials = trial_outcomes[i*n_trials_in_bin:(i+1)*n_trials_in_bin]
+            if len(binary_trials) < n_trials_in_bin: continue
 
-        if not use_real_mean:
-            a2, b2, mean, mode, sigmasquared, prange = ea.grouped_bayes_analytical([len(binary_trials)], [np.sum(binary_trials)])
-            y.append(mean)
-            yerr.append(math.sqrt(sigmasquared))
-        else:
-            y.append(np.mean(binary_trials))
-            yerr.append(np.std(binary_trials))
+            if not use_real_mean:
+                a2, b2, mean, mode, sigmasquared, prange = ea.grouped_bayes_analytical([len(binary_trials)], [np.sum(binary_trials)])
+                y.append(mean)
+                yerr.append(math.sqrt(sigmasquared))
+            else:
+                y.append(np.mean(binary_trials))
+                yerr.append(np.std(binary_trials))
 
-        x.append(i)
+            x.append(i)
 
-    ax.errorbar(x, y, yerr=yerr, fmt="-", color=maze_colors[condition], alpha=.85)
-    ax.scatter(x, y, edgecolor=black, color=maze_colors[condition], zorder=99)
+        ax.errorbar(x, y, yerr=yerr, fmt="-", color=maze_colors[condition], alpha=.85)
+        ax.scatter(x, y, edgecolor=black, color=maze_colors[condition], zorder=99)
 
-    # mark the global average
-    mn  = pRs.loc[pRs.condition==condition]['mean'].values[0]
-    std = math.sqrt(pRs.loc[pRs.condition==condition]['sigmasquared'].values[0])
-    rect = mpl.patches.Rectangle((-1, mn-std), 10000, 2*std, lw=1, edgecolor=desaturate_color(maze_colors[condition]),
-                facecolor=desaturate_color(maze_colors[condition]), alpha=.1)
-    ax.add_patch(rect)
-    ax.axhline(mn, ls="--", color=desaturate_color(maze_colors[condition]), lw=4, alpha=.3)
-
-
-    ax.axhline(.5, color=[.7, .7, .7], ls=":")
-    ax.set(title="{} - {} trials bins".format(condition, n_trials_in_bin), xlabel="bin number", ylabel="p(R)", xlim=[-1, int(np.ceil(n_trials/n_trials_in_bin))],
-            ylim=[0, 1], xticks=np.arange(0, 30, 5), xticklabels=np.arange(0, 30, 5))
+        # mark the global average
+        mn  = pRs.loc[pRs.condition==condition]['mean'].values[0]
+        std = math.sqrt(pRs.loc[pRs.condition==condition]['sigmasquared'].values[0])
+        rect = mpl.patches.Rectangle((-1, mn-std), 10000, 2*std, lw=1, edgecolor=desaturate_color(maze_colors[condition]),
+                    facecolor=desaturate_color(maze_colors[condition]), alpha=.1)
+        ax.add_patch(rect)
+        ax.axhline(mn, ls="--", color=desaturate_color(maze_colors[condition]), lw=4, alpha=.3)
 
 
+        ax.axhline(.5, color=[.7, .7, .7], ls=":")
+        ax.set(title="{} - {} trials bins".format(condition, n_trials_in_bin), xlabel="bin number", ylabel="p(R)", xlim=[-1, int(np.ceil(n_trials/n_trials_in_bin))],
+                ylim=[0, 1], xticks=np.arange(0, 30, 5), xticklabels=np.arange(0, 30, 5))
 
-save_plot("timed_by_ntrials", f)
+
+
+    save_plot("timed_by_ntrials", f)
 
 
 
@@ -434,7 +464,7 @@ save_plot("timed_by_ntrials", f)
 # ---------------------------------------------------------------------------- #
 #                                     ! M6                                     #
 # ---------------------------------------------------------------------------- #
-
+# TODO plot against null posterior instead of against M4
 pRs = ea.bayes_by_condition_analytical()
 
 conditions = ['m4', 'm6']
@@ -497,7 +527,7 @@ save_plot("m0", f)
 
 
 
-
+# TODO look at other mazes
 
 
 
@@ -576,11 +606,33 @@ save_plot("effect_origin", f)
 
 # %%
 # -------------------------- ! EXPLORATION ANALYSIS -------------------------- #
-
-exploration_data = ea.get_exploration_per_path_from_trials()
+exploration_data, alldata = ea.get_exploration_per_path_from_trials()
 f, ax = create_figure(subplots=False)
 for condition, data in exploration_data.items():
     if condition == "m0": continue
+    x = [i-.25, i+.25]
+    xticks.extend([i-.25,i, i+.25])
+    xlabels.extend(["left","\n{}".format(condition), "right"])
+    y = [data.left.median/mazes[condition]['ratio'], data.right.median]
+    yerr = [data.left.std, data.right.std]
+
+    ax.axvline(i-.25, color=[.2, .2, .2], ls=":", alpha=.15)
+    ax.axvline(i+.25, color=[.2, .2, .2], ls=":", alpha=.15)
+
+    ax.plot(x, y, "-o", label=condition, color=maze_colors[condition], zorder=90)
+    ax.scatter(x, y, edgecolor=black, s=250, color=maze_colors[condition], zorder=99)
+    ax.errorbar(x, y, yerr, color=maze_colors[condition], zorder=90)
+
+
+    ttest, pval = stats.ttest_ind([x/mazes[condition]['ratio'] for x in  alldata[condition]['left']], 
+                                    alldata[condition]['right'])
+    if pval < .05:
+        ax.plot([i-.3, i+.3], [4.25, 4.25], lw=4, color=[.4, .4, .4])
+        ax.text(i-0.025, 4.25, "*", fontsize=20)
+    else:
+        ax.plot([i-.3, i+.3], [4.25, 4.25], lw=4, color=[.7, .7, .7])
+        ax.text(i-0.025, 4.25, "n.s.", fontsize=16)
+
     x = [0, 1]
     y = [data.left.median/mazes[condition]['ratio'], 
         data.right.median]

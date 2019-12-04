@@ -88,7 +88,8 @@ def find_visual_stimuli(data, th, sampling_rate):
     stimuli =[stim(s,e) for s,e in zip(starts, ends)]
 
     for s,e in stimuli:  # check that the end is after the start
-        if e < s: raise ValueError("Wrong stimuli detection")
+        return
+        # if e < s: raise ValueError("Wrong stimuli detection")
 
     return stimuli
 
