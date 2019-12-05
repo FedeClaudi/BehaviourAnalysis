@@ -44,6 +44,7 @@ arms_colors = {
 
 
 psychometric_mazes = ["m1", "m2", "m3", "m4"]
+psychometric_mazes_and_dark = ["m1", "m2", "m3", "m4", "m1-dark"]
 five_mazes = ["m1", "m2", "m3", "m4", "m6"]
 m6 = ["m6"]
 m0 = ["m0"]
@@ -53,14 +54,14 @@ arms = ['left', 'right', 'center']
 # %%
 # Getting data
 ea = ExperimentsAnalyser(load_psychometric=False, tracking="all")
-ea.max_duration_th = 12
+ea.max_duration_th = 9
 
-ea.add_condition("m0", maze_design=0, lights=None, escapes_dur=True, tracking="all"); print("Got m0")
-ea.add_condition("m1", maze_design=1, lights=None, escapes_dur=True, tracking="all"); print("Got m1")
-ea.add_condition("m2", maze_design=2, lights=None, escapes_dur=True, tracking="all"); print("Got m2")
-ea.add_condition("m3", maze_design=3, lights=None, escapes_dur=True, tracking="all"); print("Got m3")
-ea.add_condition("m4", maze_design=4, lights=None, escapes_dur=True, tracking="all"); print("Got m4")
-ea.add_condition("m6", maze_design=6, lights=None, escapes_dur=True, tracking="all"); print("Got m6")
+ea.add_condition("m0", maze_design=0, lights=1, escapes_dur=True, tracking="all"); print("Got m0")
+ea.add_condition("m1", maze_design=1, lights=1, escapes_dur=True, tracking="all"); print("Got m1")
+ea.add_condition("m2", maze_design=2, lights=1, escapes_dur=True, tracking="all"); print("Got m2")
+ea.add_condition("m3", maze_design=3, lights=1, escapes_dur=True, tracking="all"); print("Got m3")
+ea.add_condition("m4", maze_design=4, lights=1, escapes_dur=True, tracking="all"); print("Got m4")
+ea.add_condition("m6", maze_design=6, lights=1, escapes_dur=True, tracking="all"); print("Got m6")
 ea.add_condition("m1-light", maze_design=1, lights=1, escapes_dur=True, tracking="all"); print("Got m1-light")
 ea.add_condition("m1-dark", maze_design=1, lights=0, escapes_dur=True, tracking="all"); print("Got m1-dark")
 
@@ -84,19 +85,24 @@ for n, (condition, trials) in enumerate(ea.conditions.items()):
     axarr[n].set(title=condition, xlim=[0, 1000], ylim=[0, 1000])
 save_plot("tracking", f)
 
+
+
 # %%
-# By arm tracking inspection
-arm = 'left'
-f, axarr = create_figure(subplots=True, ncols=int(np.ceil(len(ea.conditions.keys())/2)), nrows=2)
-for n, (condition, trials) in enumerate(ea.conditions.items()):
-    trials = trials.loc[trials.escape_arm == arm]
-    for i, trial in trials.iterrows():
-        # if arm == 'right':
-        #     if np.min(trial.body_xy[:, 0] > 400): continue
-        if arm == 'left':
-            if np.max(trial.body_xy[:, 0] < 400): continue
-        axarr[n].plot(trial.body_xy[:, 0], trial.body_xy[:, 1], color=arms_colors[trial.escape_arm])
-    axarr[n].set(title=condition, xlim=[0, 1000], ylim=[0, 1000])
+# cleanup
+goodids, skipped = [], 0
+trials = ea.conditions['m1']
+for i, trial in trials.iterrows():
+    if trial.escape_arm == "left":
+        if np.max(trial.body_xy[:, 0]) > 600:
+            skipped += 1
+            continue
+    goodids.append(trial.stimulus_uid)
+
+t = ea.conditions['m1'].loc[ea.conditions['m1'].stimulus_uid.isin(goodids)]
+print(len(t.loc[t.escape_arm == "right"])/len(t), len(trials.loc[trials.escape_arm == "right"])/len(trials))
+ea.conditions['m1'] = t
+
+
 
 # %%
 # --------------------------------------------------------------------------- #
@@ -172,10 +178,10 @@ for n, (condition, trials) in enumerate(ea.conditions.items()):
     top, bottom = np.max(ratio-1), np.min(ratio-1)
     if top > np.abs(bottom): dist = round(top, 4)
     else: dist = round(bottom, 4)
-    print("{} - A.O.C.: {} - max dist raito: {} - max dist L: {} - max dist R {}".format(
+    print("{} - A.O.C.: {} - max dist ratio: {} - max dist L: {} - max dist R {}".format(
             condition, round(np.trapz(ratio-1), 3), dist, round(np.max(avg_l), 3), round(np.max(avg_r), 3)))
     euclidean_dists[condition] = dist
-    
+
     axarr[n].legend()
     axarr[n].set(title=condition, ylim=[100, 650], xticks=[0, 1/2, 1], xlabel='escape proportion', 
                 ylabel='eucl.dist.shelt.')
@@ -186,9 +192,6 @@ axarr[0].set(title="LEFT/RIGHT", xticklabels=[0, 1/2, 1], xlabel='escape proport
 f.tight_layout()
 
 save_plot("euclidean_dist", f)
-
-
-
 
 
 
@@ -246,9 +249,9 @@ includem0 = False
 includem6 = True
 fit_curve = True
 
-use_eucl = False
+use_eucl = True
 
-alpha, beta = 2.5, 1
+alpha, beta = 1, 1
 combined_dists = {a:(alpha*mazes[a]['ratio'])+(beta*euclidean_dists[a]) for a in euclidean_dists.keys()}
 
 # Calc and plot pR for psychometric data
@@ -320,7 +323,7 @@ _ = ax.axhline(0.5, ls="--", color=[.5, .5, .5])
 if not use_eucl: 
     xlim=[.5, 2.8]
 else:
-    xlim=[min(combined_dists.values())-1,  max(combined_dists.values())+1]
+    xlim=[min(combined_dists.values())-.3,  max(combined_dists.values())+.3]
 
 if fit_curve:
     plot_fitted_curve(centered_logistic, xfit, yfit, ax, xrange=xlim, scatter_kwargs=dict(alpha=0),
@@ -328,7 +331,7 @@ if fit_curve:
                     line_kwargs=dict(color=[.3, .3, .3], alpha=.7, lw=3))
 
 
-_ = ax.set(title="p(R) for each maze", xticks=X, xlabel="Llong/Short length ratio", 
+_ = ax.set(title="p(R) for each maze", xticks=X, xlabel="Increasing asymmetry", 
                     xticklabels=Xlabels, 
                     ylabel="p(best)",
                     ylim=[0, 1], xlim=xlim ) #xlim=[.5, 2.8]
@@ -349,11 +352,11 @@ save_plot("psychometric", f)
 n_random_iters = None
 min_trials_in_bin = 4
 
-for windows_size in [600]:
-    f, axarr = create_figure(subplots=True, ncols=2, nrows=2, sharex=False, figsize=(12, 12))
+for windows_size in [300]:
+    f, axarr = create_figure(subplots=True, ncols=3, nrows=2, sharex=False, figsize=(12, 12))
     for n, (condition, trials) in enumerate(ea.conditions.items()):
-        if condition not in psychometric_mazes: continue
-        n = psychometric_mazes.index(condition)
+        if condition not in psychometric_mazes_and_dark: continue
+        n = psychometric_mazes_and_dark.index(condition)
         ax = axarr[n]
         trial_times = {'left':[], 'right':[]}
         tmax = 0
@@ -427,11 +430,11 @@ save_plot("timed_by_time", f)
 use_real_mean = False
 
 
-for n_trials_in_bin in [20]:
-    f, axarr = create_figure(subplots=True, ncols=2, nrows=2, sharex=False, figsize=(12, 12))
+for n_trials_in_bin in [10, 20, 30, 40]:
+    f, axarr = create_figure(subplots=True, ncols=3, nrows=2, sharex=False, figsize=(12, 12))
     for n, (condition, trials) in enumerate(ea.conditions.items()):
-        if condition not in psychometric_mazes: continue
-        n = psychometric_mazes.index(condition)
+        if condition not in psychometric_mazes_and_dark: continue
+        n = psychometric_mazes_and_dark.index(condition)
 
         ax = axarr[n]
         trial_times = []
@@ -498,63 +501,35 @@ for n_trials_in_bin in [20]:
 # ---------------------------------------------------------------------------- #
 #                                     ! M6                                     #
 # ---------------------------------------------------------------------------- #
-# TODO plot against null posterior instead of against M4
+# TODO test against NULL
 pRs = ea.bayes_by_condition_analytical()
 
-conditions = ['m4', 'm6']
-f, axarr = create_figure(subplots=True, ncols=2)
-for i, condition in enumerate(conditions):
-    pr = pRs.loc[pRs.condition==condition]
 
-    axarr[0].errorbar(pr['mean'], 0*0.5*i, xerr=math.sqrt(pr.sigmasquared), color=maze_colors[condition])
-    axarr[0].scatter(pr['mean'], 0*0.5*i, color=maze_colors[condition], s=250, edgecolor=black, zorder=99, label=condition)
+f, ax = create_figure(subplots=False)
+pr = pRs.loc[pRs.condition=='m6']
+n = len(ea.conditions['m6'])
+k = np.int(n/2)
 
+a2, b2, mean, mode, sigmasquared, prange = ea.grouped_bayes_analytical(n, k)
 
-    plot_distribution(pr.alpha.values[0], pr.beta.values[0], ax=axarr[0], dist_type="beta", shaded="True", line_alpha=.3,
-                    plot_kwargs={"color":maze_colors[condition]}, shade_alpha=.05, 
-                    y_scale=.01)
+ax.errorbar(pr['mean'], 0*0.5*i, xerr=2*math.sqrt(pr.sigmasquared), color=maze_colors['m6'])
+ax.scatter(pr['mean'], 0*0.5*i, color=maze_colors['m6'], s=250, edgecolor=black, zorder=99, label='m6')
+plot_distribution(pr.alpha.values[0], pr.beta.values[0], ax=ax, dist_type="beta", shaded="True", line_alpha=.3,
+                plot_kwargs={"color":maze_colors['m6']}, shade_alpha=.05, 
+                y_scale=1)
 
-lengths = [np.sum(calc_distance_between_points_in_a_vector_2d(t.body_xy)) for i,t in ea.conditions['m6'].iterrows()]
-llengths = [l  for l, (i, t) in zip(lengths, ea.conditions['m6'].iterrows()) if t.escape_arm == 'left']
-elengths = [l  for l, (i, t) in zip(lengths, ea.conditions['m6'].iterrows()) if t.escape_arm == 'right']
+ax.errorbar(mean, -.2*0.5*i, xerr=2*math.sqrt(sigmasquared), color=[.4, .4, .4])
+ax.scatter(mean, -.2*0.5*i, color=[.4, .4, .4], s=250, edgecolor=black, zorder=99, label='null')
+plot_distribution(a2, b2, ax=ax, dist_type="beta", shaded="True", line_alpha=.3,
+                plot_kwargs={"color":[.4, .4, .4]}, shade_alpha=.05, 
+                y_scale=1)
 
-axarr[1].hist(lengths, color=maze_colors['m6'], density=True)
-axarr[1].hist(llengths, color=green, alpha=.5, density=True)
-axarr[1].hist(elengths, color=blue, alpha=.5, density=True)
-
-axarr[0].legend()
-_ = axarr[0].axvline(.5, color=black, lw=2, ls=":")
-_ = axarr[0].set(title="M4 vs M6", xlabel="p(R)", ylabel="density", xlim=[0, 1])
+ax.legend()
+_ = ax.axvline(.5, color=black, lw=2, ls=":")
+_ = ax.set(title="M4 vs M6", xlabel="p(R)", ylabel="density", xlim=[0, 1])
 save_plot("m6", f)
 
 
-# %%
-# ---------------------------------------------------------------------------- #
-#                                     ! M0                                     #
-# ---------------------------------------------------------------------------- #
-
-trials = ea.conditions['m0']
-
-f, ax = create_figure(subplots=False)
-
-for exclude, shortest, longest in zip(['left', 'right', 'center'], ['center', 'center', 'right'], ['right', 'left', 'left']):
-    tleft = trials.loc[trials.escape_arm != exclude]
-    pshort = len(tleft.loc[tleft.escape_arm==shortest])/len(tleft)
-    lenratio = mazes['m0']["{}_path_length".format(longest)]/mazes['m0']["{}_path_length".format(shortest)]
-    print('Excluding {} - length ratio {} - p(shortest) {} - n trials {}'.format(exclude, round(lenratio, 2), round(pshort, 2), len(tleft)))
-
-    color = m0cols[exclude]
-    binary_trials = [1 if t.escape_arm == shortest else 0 for i,t in tleft.iterrows()]
-    a2, b2, mean, mode, sigmasquared, prange = ea.grouped_bayes_analytical([len(binary_trials)], [np.sum(binary_trials)])
-    ax.errorbar(lenratio, mean, yerr=math.sqrt(sigmasquared), fmt = 'o', color=color)
-
-    plot_distribution(a2, b2, ax=ax, dist_type="beta", shaded="True", line_alpha=.3,
-                    plot_kwargs={"color":color}, shade_alpha=.05,
-                    vertical=True, fill_offset=(lenratio), y_scale=.008)
-
-_ = ax.set(ylim=[0, 1], xlim=[.9, 2.8])
-
-save_plot("m0", f)
 
 
 
