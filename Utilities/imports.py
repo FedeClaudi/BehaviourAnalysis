@@ -26,8 +26,8 @@ except: # ? onlu import tables if we havent already
         import datajoint as dj
         from database.dj_config import start_connection 
         dbname, _ = start_connection()    
-    except:
-        print("Could not connect to database")
+    except Exception as e:
+        print("Could not connect to database: ", e)
     else:
         # print("Importing tables")
         from database.TablesDefinitionsV4 import *

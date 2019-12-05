@@ -54,7 +54,10 @@ class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator
 						escapes_dur=self.escapes_dur, shelter=self.shelter, **kwargs)
 
 		# Get explorations
-		self.explorations = pd.DataFrame(Explorations().fetch())
+		try:
+			self.explorations = pd.DataFrame(Explorations().fetch())
+		except:
+			self.explorations = None
 
 		# Load geodesic agent
 		if agent_params is None:
@@ -134,7 +137,7 @@ class ExperimentsAnalyser(Bayes, Environment, TrialsLoader, PathLengthsEstimator
 		hits, ntrials, p_r, n_mice, trials = self.get_binary_trials_per_condition(conditions)
 
 		for (cond, h), n in zip(hits.items(), ntrials.values()):
-			res = self.grouped_bayes_analytical(n, h)
+			res = self.grouped_bayes_analytical(np.sum(n), np.sum(h))
 			results['condition'].append(cond)
 			results['alpha'].append(res[0])
 			results['beta'].append(res[1])

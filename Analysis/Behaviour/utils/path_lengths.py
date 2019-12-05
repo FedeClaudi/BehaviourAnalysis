@@ -101,6 +101,10 @@ class PathLengthsEstimator:
 		results = {}
 		alldata = {c:{a:[] for a in ['left', 'right', 'center']} for c in self.conditions.keys()}
 		for condition, trials in self.conditions.items():
+			if not len(trials): 
+				results[condition] = res(np.nan, np.nan, np.nan, np.nan)
+				continue
+
 			left_trials = trials.loc[trials.escape_arm == 'left']
 			right_trials = trials.loc[trials.escape_arm == 'right']
 			center_trials = trials.loc[trials.escape_arm == 'center']

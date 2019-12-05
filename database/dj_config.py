@@ -26,8 +26,8 @@ def start_connection():
     if dj.config['database.user'] != "root":
         try:
             dj.config['database.host'] = ip
-        except:
-            print("Could not connect to database")
+        except Exception as e:
+            print("Could not connect to database: ", e)
             return None, None
 
         dj.config['database.user'] = 'root'

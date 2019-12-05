@@ -45,23 +45,17 @@ class Bayes:
         ANALYSIS
     """
 
-    def grouped_bayes_analytical(self, N, K):
+    def grouped_bayes_analytical(self, n, k):
         """[Solves the bayesia model for p(R) for grouped data]
         
         Arguments:
             n {[int]} -- [tot number of trials]
             k {[int]} -- [tot number of hits]
         """
-        # Compute likelihood function
-        fact, kk, dnk = 1, 1, 1
-        for k,n in zip(K, N):
-            fact *= binom(n, k)
-            kk += k
-            dnk += n-k
-        
-        # Now compute the posterior
-        a2 = self.a - 1 + kk
-        b2 = self.b - 1 + dnk
+        # Compute posterior function
+        fact = binom(n, k)
+        a2 = self.a + k - 1
+        b2 = self.b + n -k -1
 
         # Plot mean and mode of posterior
         mean =  a2 / (a2 + b2)
