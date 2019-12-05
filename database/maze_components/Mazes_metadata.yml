@@ -33,7 +33,31 @@ m1:
 
   has_catwalk: 1
 
+m1-dark:
+  maze_id: 1
+  maze_name: 'm1'
+  left_path_length: 1085
+  right_path_length: 505
+  center_path_length: -1
 
+  left_path_angle: 45
+  right_path_angle: 45
+  center_path_angle: -1
+
+  has_catwalk: 1
+
+m1-light:
+  maze_id: 1
+  maze_name: 'm1'
+  left_path_length: 1085
+  right_path_length: 505
+  center_path_length: -1
+
+  left_path_angle: 45
+  right_path_angle: 45
+  center_path_angle: -1
+
+  has_catwalk: 1
 
 # ------------------------------------ m2 ------------------------------------ #
 m2:
@@ -97,3 +121,18 @@ m6:
 
   has_catwalk: 1
 
+
+
+# ------------------------------- model base v1 ------------------------------ #
+mb1:
+  maze_id: 7
+  maze_name: 'mb1'
+  left_path_length: 1085
+  right_path_length: 743
+  center_path_length: 660
+
+  left_path_angle: 45
+  right_path_angle: 90
+  center_path_angle: 0
+
+  has_catwalk: 1

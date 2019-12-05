@@ -143,8 +143,8 @@ class PathLengthsEstimator:
 				time_on_r.append(on_the_right.shape[0]/fps)
 				ratios.append(time_on_l[-1]/time_on_r[-1])
 
-				alldata[condition]['left'].append(time_on_l)
-				alldata[condition]['right'].append(time_on_r)
+			alldata[condition]['left'].extend(time_on_l)
+			alldata[condition]['right'].extend(time_on_r)
 
 			left, right, ratio = percentile_range(time_on_l), percentile_range(time_on_r), percentile_range(ratios)
 			results[condition] = res(left, right, ratio)

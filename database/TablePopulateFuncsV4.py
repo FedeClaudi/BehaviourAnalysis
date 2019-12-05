@@ -93,11 +93,11 @@ def make_recording_table(table, key):
 		table.insert1(key_copy)
 
 	# Check that there's no errors in the key
-	split = key['session_name'].split("_")
-	if len(split) > 2: raise ValueError
-	else:
-		mouse = split[-1]
-	if key['mouse_id'] != mouse: return
+	# split = key['session_name'].split("_")
+	# if len(split) > 2: raise ValueError
+	# else:
+	# 	mouse = split[-1]
+	# if key['mouse_id'] != mouse: return
 
 	# See which software was used and call corresponding function
 	# print(' Processing: ', key)
@@ -135,16 +135,17 @@ def fill_in_recording_paths(recordings, populator):
 						print("No pose file found for rec: --> ", key["recording_uid"])
 						continue
 				else:
-					continue  # ! remove this
+					# continue  # ! remove this
 					raise FileNotFoundError(key["recording_uid"])
 			else:
+				print("Something went wrong: ", key["recording_uid"])
 				continue  # ! remove this
-				raise FileNotFoundError(key["recording_uid"])
+				# raise FileNotFoundError(key["recording_uid"])
 
 		if "Overview" not in key['overview_pose']:
 			if key["recording_uid"][-1] != key["overview_pose"].split("_pose")[0][-1]: 
 				print("Something went wrong: ", key)
-				continue # ! re,pve this
+				# continue # ! re,pve this
 				raise ValueError(key)
 
 		threat_vids = [v for v in videos if key['recording_uid'] in v and "Overview" in v and "mp4" in v]
@@ -198,11 +199,11 @@ def fill_in_aligned_frames(recordings):
 
 def make_commoncoordinatematrices_table(table, key):
 	# Ignore wrong entries
-	split = key['session_name'].split("_")
-	if len(split) > 2: raise ValueError
-	else:
-		mouse = split[-1]
-	if key['mouse_id'] != mouse: return
+	# split = key['session_name'].split("_")
+	# if len(split) > 2: raise ValueError
+	# else:
+	# 	mouse = split[-1]
+	# if key['mouse_id'] != mouse: return
 
 	from database.TablesDefinitionsV4 import Recording, Session
 
@@ -225,12 +226,12 @@ def make_commoncoordinatematrices_table(table, key):
 	try:
 		videopath = (Recording.FilePaths & key).fetch("overview_video")[0]
 	except:
-		print("While populating CCM, could not find video, make sure to run recording.make_paths")
+		print("While populating CCM, could not find video, make sure to run recording.make_paths\n ", key)
 		warnings.warn("did not pupulate CCM for : {}".format(key))
 		return
 		
 	if not videopath: 
-		print("While populating CCM, could not find video, make sure to run recording.make_paths")
+		print("While populating CCM, could not find video, make sure to run recording.make_paths   \n", videopath)
 		return
 
 	# Apply the transorm [Call function that prepares data to feed to Philip's function]
@@ -268,11 +269,11 @@ def make_stimuli_table(table, key):
 	from Utilities.video_and_plotting.video_editing import Editor
 	tb = ToolBox()
 
-	split = key['session_name'].split("_")
-	if len(split) > 2: raise ValueError
-	else:
-		mouse = split[-1]
-	if key['mouse_id'] != mouse: return
+	# split = key['session_name'].split("_")
+	# if len(split) > 2: raise ValueError
+	# else:
+	# 	mouse = split[-1]
+	# if key['mouse_id'] != mouse: return
 
 	def make_behaviourstimuli(table, key):
 		# Get file paths    
@@ -535,11 +536,11 @@ def make_visual_stimuli_metadata(table):
 def make_trackingdata_table(table, key):
 	from database.TablesDefinitionsV4 import Recording, Session, CCM, MazeComponents
 
-	split = key['session_name'].split("_")
-	if len(split) > 2: raise ValueError
-	else:
-		mouse = split[-1]
-	if key['mouse_id'] != mouse: return
+	# split = key['session_name'].split("_")
+	# if len(split) > 2: raise ValueError
+	# else:
+	# 	mouse = split[-1]
+	# if key['mouse_id'] != mouse: return
 
 	# skip experiments that i'm not interested in 
 	experiment = (Session & key).fetch1("experiment_name")
