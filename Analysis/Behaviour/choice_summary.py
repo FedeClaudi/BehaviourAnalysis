@@ -7,6 +7,7 @@ from pandas.plotting import scatter_matrix
 
 from scipy.optimize import curve_fit
 from scipy import signal
+from sklearn.model_selection import train_test_split
 
 
 from Analysis.Behaviour.utils.experiments_analyser import ExperimentsAnalyser
@@ -61,18 +62,17 @@ arms = ['left', 'right', 'center']
 # Getting data
 ea = ExperimentsAnalyser(load_psychometric=False, tracking="all")
 ea.max_duration_th = 9
-
-ea.add_condition("m0", maze_design=0, lights=1, escapes_dur=True, tracking="all"); print("Got m0")
-ea.add_condition("m1", maze_design=1, lights=1, escapes_dur=True, tracking="all"); print("Got m1")
-ea.add_condition("m2", maze_design=2, lights=1, escapes_dur=True, tracking="all"); print("Got m2")
-ea.add_condition("m3", maze_design=3, lights=1, escapes_dur=True, tracking="all"); print("Got m3")
-ea.add_condition("m4", maze_design=4, lights=1, escapes_dur=True, tracking="all"); print("Got m4")
-ea.add_condition("m6", maze_design=6, lights=1, escapes_dur=True, tracking="all"); print("Got m6")
+# ea.add_condition("m0", maze_design=0, lights=1, escapes_dur=True, tracking="all"); print("Got m0")
+# ea.add_condition("m1", maze_design=1, lights=1, escapes_dur=True, tracking="all"); print("Got m1")
+# ea.add_condition("m2", maze_design=2, lights=1, escapes_dur=True, tracking="all"); print("Got m2")
+# ea.add_condition("m3", maze_design=3, lights=1, escapes_dur=True, tracking="all"); print("Got m3")
+# ea.add_condition("m4", maze_design=4, lights=1, escapes_dur=True, tracking="all"); print("Got m4")
+# ea.add_condition("m6", maze_design=6, lights=1, escapes_dur=True, tracking="all"); print("Got m6")
 # ea.add_condition("m1-light", maze_design=1, lights=1, escapes_dur=True, tracking="all"); print("Got m1-light")
 # ea.add_condition("m1-dark", maze_design=1, lights=0, escapes_dur=True, tracking="all"); print("Got m1-dark")
 
 
-# ea.add_condition("twolong", maze_design=None, lights=None, escapes_dur=True, tracking="all", experiment_name="TwoArmsLong Maze"); print("Got TwoArmsLong Maze")
+ea.add_condition("twolong", maze_design=None, lights=None, escapes_dur=False, tracking="all", experiment_name="TwoArmsLong Maze"); print("Got TwoArmsLong Maze")
 # ea.add_condition("ff", maze_design=None, lights=None, escapes_dur=True, tracking="all", experiment_name="FlipFlop Maze"); print("Got FlipFlop Maze")
 # ea.add_condition("ff2", maze_design=None, lights=None, escapes_dur=True, tracking="all", experiment_name="FlipFlop2 Maze"); print("Got FlipFlop2 Maze")
 # ea.add_condition("fourlong", maze_design=None, lights=None, escapes_dur=True, tracking="all", experiment_name="FourArms Maze"); print("Got FourArms Maze")
@@ -631,21 +631,79 @@ save_plot("m6", f)
 
 
 
+# %%
+# ---------------------------------------------------------------------------- #
+#                                   MODELLING                                  #
+# ---------------------------------------------------------------------------- #
+
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
+all_data = {
+        'origin_arm': [],
+        'origin_arm_bin': [],
+        'lengths_ratio': [],
+        'distance_delta': [],
+        'xpos': [],
+        'ypos': [],
+        'time': [],
+        'time_out_of_t': [],
+}
+Y = []
+
+
+for condition, trials in ea.conditions.items():
+    for i, t in trials.iterrows():
+        if 'center' ==  t.escape_arm: continue
+        if 'center' == t.origin_arm: continue
+        all_data['origin_arm'].append(t.origin_arm)
+        if t.origin_arm == 'right':
+            all_data['origin_arm_bin'].append(1)
+        else:
+            all_data['origin_arm_bin'].append(0)
+        all_data['lengths_ratio'].append(mazes[condition]['ratio'])
+        all_data['distance_delta'].append(euclidean_dists[condition])
+        all_data['xpos'].append(t.body_xy[0, 0])
+        all_data['ypos'].append(t.body_xy[0, 1])
+        all_data['time'].append(t.stim_frame_session/t.fps)
+        all_data['time_out_of_t'].append(t.time_out_of_t)
+        Y.append(t.escape_arm)
+
+
+all_data = pd.DataFrame(all_data)
+all_data.head()
+
+
+# %%
+formula = "escape_arm ~ lengths_ratio + distance_delta "
+data = all_data[['lengths_ratio','distance_delta', 'origin_arm_bin', 'xpos', 'ypos', 'time', 'time_out_of_t']]
+# data['escape_arm'] = Y
+
+# mod1 = smf.glm(formula=formula, data=data, family=sm.families.Binomial()).fit()
+# mod1.summary()
 
 
 
+data = sm.add_constant(data, prepend=False)
+
+logit_mod = sm.Logit(np.array([1 if 'r' in y else 0 for y in Y]),  data)
+logit_res = logit_mod.fit(disp=0)
+print('Parameters: \n', logit_res.params)
+pars = logit_res.params
+
+f, ax = create_figure(subplots=False)
+for (i, t), y in zip(data.iterrows(), Y):
+    yhat = 0
+    for name, value in pars.items():
+        if 'const' == name:
+            yhat += value
+        else:
+            yhat += value * t[name]
+    ax.scatter(i, yhat, color=arms_colors[y])
+
+logit_res.summary()
 
 
-
-
-
-
-
-
-
-
-
-
+# %%
 
 # %%
 # ---------------------------------------------------------------------------- #

@@ -687,11 +687,11 @@ def make_trackingdata_table(table, key):
 # !--------------------------------------------------------------------------- #
 
 def make_exploration_table(table, key):
-	split = key['session_name'].split("_")
-	if len(split) > 2: raise ValueError
-	else:
-		mouse = split[-1]
-	if key['mouse_id'] != mouse: return
+	# split = key['session_name'].split("_")
+	# if len(split) > 2: raise ValueError
+	# else:
+	# 	mouse = split[-1]
+	# if key['mouse_id'] != mouse: return
 
 	from database.TablesDefinitionsV4 import Session, TrackingData, Stimuli
 	if key['uid'] < 184: fps = 30 # ! hardcoded
@@ -753,11 +753,11 @@ def make_exploration_table(table, key):
 # !--------------------------------------------------------------------------- #
 
 def make_trials_table(table, key):
-	split = key['session_name'].split("_")
-	if len(split) > 2: raise ValueError
-	else:
-		mouse = split[-1]
-	if key['mouse_id'] != mouse: return
+	# split = key['session_name'].split("_")
+	# if len(split) > 2: raise ValueError
+	# else:
+	# 	mouse = split[-1]
+	# if key['mouse_id'] != mouse: return
 
 	def get_time_at_roi(tracking, roi, frame, when="next"):
 		if when == "last":
