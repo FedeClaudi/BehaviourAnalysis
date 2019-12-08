@@ -63,16 +63,16 @@ arms = ['left', 'right', 'center']
 ea = ExperimentsAnalyser(load_psychometric=False, tracking="all")
 ea.max_duration_th = 9
 # ea.add_condition("m0", maze_design=0, lights=1, escapes_dur=True, tracking="all"); print("Got m0")
-# ea.add_condition("m1", maze_design=1, lights=1, escapes_dur=True, tracking="all"); print("Got m1")
-# ea.add_condition("m2", maze_design=2, lights=1, escapes_dur=True, tracking="all"); print("Got m2")
-# ea.add_condition("m3", maze_design=3, lights=1, escapes_dur=True, tracking="all"); print("Got m3")
-# ea.add_condition("m4", maze_design=4, lights=1, escapes_dur=True, tracking="all"); print("Got m4")
-# ea.add_condition("m6", maze_design=6, lights=1, escapes_dur=True, tracking="all"); print("Got m6")
+ea.add_condition("m1", maze_design=1, lights=1, escapes_dur=True, tracking="all"); print("Got m1")
+ea.add_condition("m2", maze_design=2, lights=1, escapes_dur=True, tracking="all"); print("Got m2")
+ea.add_condition("m3", maze_design=3, lights=1, escapes_dur=True, tracking="all"); print("Got m3")
+ea.add_condition("m4", maze_design=4, lights=1, escapes_dur=True, tracking="all"); print("Got m4")
+ea.add_condition("m6", maze_design=6, lights=1, escapes_dur=True, tracking="all"); print("Got m6")
 # ea.add_condition("m1-light", maze_design=1, lights=1, escapes_dur=True, tracking="all"); print("Got m1-light")
 # ea.add_condition("m1-dark", maze_design=1, lights=0, escapes_dur=True, tracking="all"); print("Got m1-dark")
 
 
-ea.add_condition("twolong", maze_design=None, lights=None, escapes_dur=False, tracking="all", experiment_name="TwoArmsLong Maze"); print("Got TwoArmsLong Maze")
+# ea.add_condition("twolong", maze_design=None, lights=None, escapes_dur=False, tracking="all", experiment_name="TwoArmsLong Maze"); print("Got TwoArmsLong Maze")
 # ea.add_condition("ff", maze_design=None, lights=None, escapes_dur=True, tracking="all", experiment_name="FlipFlop Maze"); print("Got FlipFlop Maze")
 # ea.add_condition("ff2", maze_design=None, lights=None, escapes_dur=True, tracking="all", experiment_name="FlipFlop2 Maze"); print("Got FlipFlop2 Maze")
 # ea.add_condition("fourlong", maze_design=None, lights=None, escapes_dur=True, tracking="all", experiment_name="FourArms Maze"); print("Got FourArms Maze")
@@ -145,58 +145,55 @@ save_plot("path_lengths", f)
 # ---------------------------------------------------------------------------- #
 #                             ! EUCLIDEAN DISTANCE                             #
 # ---------------------------------------------------------------------------- #
-n_samples = 250
+
+plot_single_trials = True
 
 euclidean_dists = {}
-f, axarr = create_figure(subplots=True, nrows=2, ncols=3, sharex=False)
-for n, (condition, trials) in enumerate(ea.conditions.items()):
-    # Get data and sample aligned in time normalized bu escape duration
+f, ax = create_figure(subplots=False)
+xticks, xlabels = [], []
+for i, (condition, trials) in enumerate(ea.conditions.items()):
+    # Get data
     if condition not in five_mazes: continue
-    X = np.linspace(0, 1, num=101)
-    data = {a:{round(m,2):[] for m in X} for a in arms}
-    counts = {a:{round(m,2):0 for m in X} for a in arms}
 
-    for i, trial in trials.iterrows():
-        n_frames = trial.body_xy.shape[0] - (trial.out_of_t_frame-trial.stim_frame)
+    means, maxes = {a:[] for a in ['left', 'right']}, {a:[] for a in ['left', 'right']}
+    for n, trial in trials.iterrows():
+        if trial.escape_arm == "center": continue
 
-        x = np.linspace(0, 1, num=n_frames)
         d = calc_distance_from_shelter(trial.body_xy[trial.out_of_t_frame-trial.stim_frame:, :], [500, 850])
+        means[trial.escape_arm].append(np.mean(d))
+        maxes[trial.escape_arm].append(np.max(d))
 
-        for xx, dd in zip(x, d):
-            data[trial.escape_arm][round(xx, 2)].append(dd)
-            counts[trial.escape_arm][round(xx, 2)] += 1
+    
 
-    # Plot the average from all trials
-    for arm in arms:
-        if condition != "m0" and arm == "center": continue
-        avg = np.array([np.mean(d) if c > 0 else np.nan for d,c in zip(data[arm].values(), counts[arm].values())])
-        yerr = np.array([stats.sem(d) if c > 0 else np.nan for d,c in zip(data[arm].values(), counts[arm].values())])
+    # Make plot
+    x = [i-.25, i+.25]
+    xticks.extend([i-.25,i, i+.25])
+    xlabels.extend(["left","\n{}".format(condition), "right"])
+    ax.axvline(i-.25, color=[.2, .2, .2], ls=":", alpha=.15)
+    ax.axvline(i+.25, color=[.2, .2, .2], ls=":", alpha=.15)
 
-        axarr[n].fill_between(X, avg-yerr, avg+yerr, color=arms_colors[arm], alpha=.4)
-        axarr[n].plot(X, avg, color=desaturate_color(arms_colors[arm]), lw=4, label=arm)
+    y = [np.mean(means['left']), np.mean(means['right'])]
+    yerr = [stats.sem(means['left']), stats.sem(means['right'])]
+    ax.plot(x, y, "-o", label=condition, color=maze_colors[condition], zorder=90)
+    ax.scatter(x, y, edgecolor=black, s=250, color=maze_colors[condition], zorder=99)
+    ax.errorbar(x, y, yerr, color=maze_colors[condition], zorder=90)
 
-    avg_r = np.array([np.mean(d) if c > 0 else np.nan for d,c in zip(data['right'].values(), counts['right'].values())])
-    avg_l = np.array([np.mean(d) if c > 0 else np.nan for d,c in zip(data['left'].values(), counts['left'].values())])
-    ratio = avg_l/avg_r
-    axarr[0].plot(ratio, color=maze_colors[condition], lw=3, label=condition)
 
-    top, bottom = np.max(ratio-1), np.min(ratio-1)
-    if top > np.abs(bottom): dist = round(top, 4)
-    else: dist = round(bottom, 4)
-    print("{} - A.O.C.: {} - max dist ratio: {} - max dist L: {} - max dist R {}".format(
-            condition, round(np.trapz(ratio-1), 3), dist, round(np.max(avg_l), 3), round(np.max(avg_r), 3)))
-    euclidean_dists[condition] = dist
+    ttest, pval = stats.ttest_ind(means['left'], means['right'])
+    if pval < .05:
+        ax.plot([i-.3, i+.3], [505, 505], lw=4, color=[.4, .4, .4])
+        ax.text(i-0.025, 505, "*", fontsize=20)
+    else:
+        ax.plot([i-.3, i+.3], [505, 505], lw=4, color=[.7, .7, .7])
+        ax.text(i-0.05, 508, "n.s.", fontsize=16)
 
-    axarr[n].legend()
-    axarr[n].set(title=condition, ylim=[100, 650], xticks=[0, 1/2, 1], xlabel='escape proportion', 
-                ylabel='eucl.dist.shelt.')
+    # Take average and save it
+    euclidean_dists[condition] = y[0]/y[1]
 
-axarr[0].legend(fontsize=9)
-axarr[0].set(title="LEFT/RIGHT", xticklabels=[0, 1/2, 1], xlabel='escape proportion', 
-            ylabel='L/R', xticks=[0, len(avg_r)*0.5, len(avg_r)])
-f.tight_layout()
-
+_ = ax.set(title="Average euclidean distance", xticks=xticks, xticklabels=xlabels,
+                ylabel="mean distance (s)")
 save_plot("euclidean_dist", f)
+
 
 
 
@@ -270,14 +267,17 @@ includem0 = False
 includem6 = True
 fit_curve = True
 
-use_eucl = False
+use_eucl = True
+use_combined = True
 use_duration = False
 
-alpha, beta = 1, 1
+alpha, beta = .75, 1
 if use_duration:
     combined_dists = {a:(alpha*path_durations[a].ratio.mean)+(beta*euclidean_dists[a]) for a in euclidean_dists.keys()}
 else:
     combined_dists = {a:(alpha*mazes[a]['ratio'])+(beta*euclidean_dists[a]) for a in euclidean_dists.keys()}
+if not use_combined:
+    combined_dists = euclidean_dists
 
 # Calc and plot pR for psychometric data
 pRs = ea.bayes_by_condition_analytical()
@@ -793,14 +793,14 @@ save_plot("effect_exploration", f)
 # %%
 # ----------------------------- ! LIGHT VS DARK ----------------------------- #
 # Light vs dark -- get data
-ea2 = ExperimentsAnalyser(load_psychometric=False, tracking="all")
-ea2.max_duration_th = 9
+# ea2 = ExperimentsAnalyser(load_psychometric=False, tracking="all")
+# ea2.max_duration_th = 9
 
-ea2.add_condition("m1-light", maze_design=1, lights=1, escapes_dur=True, tracking="all")
-ea2.add_condition("m1-dark", maze_design=1, lights=0, escapes_dur=True, tracking="all")
+# ea2.add_condition("m1-light", maze_design=1, lights=1, escapes_dur=True, tracking="all")
+# ea2.add_condition("m1-dark", maze_design=1, lights=0, escapes_dur=True, tracking="all")
 
-for condition, trials in ea2.conditions.items():
-    print("Maze {} -- {} trials".format(condition, len(trials)))
+# for condition, trials in ea2.conditions.items():
+#     print("Maze {} -- {} trials".format(condition, len(trials)))
 
 
 # Calc and plot pR for light vs dark
@@ -809,39 +809,39 @@ pRs = ea2.bayes_by_condition_analytical()
 f, axarr = create_figure(subplots=True, ncols=2)
 
 X = [1, 1.15]
-cols = [maze_colors["m1"], desaturate_color(maze_colors["m1"])]
+cols = [maze_colors["m1"], desaturate_color(maze_colors["m1"], k=.2)]
 for i, pr in pRs.iterrows():
     std = math.sqrt(pr.sigmasquared)
 
-    axarr[0].errorbar(X[i], pr['median'], yerr=std, fmt = 'o', color=cols[i])
+    axarr[0].errorbar(pr['median'], -.5, xerr=std, fmt = 'o', color=cols[i])
+    axarr[0].scatter(pr['median'], -.5, edgecolor=black, color=cols[i])
 
-    plot_distribution(pr.alpha, pr.beta, ax=axarr[0], dist_type="beta", shaded="True", line_alpha=.2,
-                    plot_kwargs={"color":cols[i]}, shade_alpha=.05,
-                    vertical=True, fill_offset=(X[i]), y_scale=.012)
+    plot_distribution(pr.alpha, pr.beta, ax=axarr[0], dist_type="beta", shaded="True", line_alpha=.8,
+                    plot_kwargs={"color":cols[i]}, shade_alpha=.1, y_scale=1)
 
-    _ = hline_to_point(axarr[0], X[i], pr['median'], color=cols[i], ls="--", alpha=.2)
-_ = axarr[0].axhline(0.5, ls="--", color=[.5, .5, .5])
+    # _ = vline_to_point(axarr[0], X[i], pr['median'], color=cols[i], ls="--", alpha=.2)
+# _ = axarr[0].axvline(0.5, ls="--", color=[.5, .5, .5])
 
 
 # Difference betweel lori and rori beta distributions
-ldist = get_distribution('beta', pRs.loc[pRs.condition=='m1-light'].alpha, pRs.loc[pRs.condition=='m1-light'].beta)
-ddist = get_distribution('beta', pRs.loc[pRs.condition=='m1-dark'].alpha, pRs.loc[pRs.condition=='m1-dark'].beta)
-delta = [d-l for l,d in zip(random.choices(ldist, k=50000), random.choices(ddist, k=50000))]
-percdelta = percentile_range(delta)
+# ldist = get_distribution('beta', pRs.loc[pRs.condition=='m1-light'].alpha, pRs.loc[pRs.condition=='m1-light'].beta)
+# ddist = get_distribution('beta', pRs.loc[pRs.condition=='m1-dark'].alpha, pRs.loc[pRs.condition=='m1-dark'].beta)
+# delta = [d-l for l,d in zip(random.choices(ldist, k=50000), random.choices(ddist, k=50000))]
+# percdelta = percentile_range(delta)
 
-axarr[1].hist(delta, bins=30, color=cols[0], edgecolor=cols[0],  
-            alpha=.1, histtype="stepfilled", density=True)
-axarr[1].hist(delta, bins=30, color=cols[0], edgecolor=cols[0],  
-            alpha=1, histtype="step", linewidth=3, density=True)
+# axarr[1].hist(delta, bins=30, color=cols[0], edgecolor=cols[0],  
+#             alpha=.1, histtype="stepfilled", density=True)
+# axarr[1].hist(delta, bins=30, color=cols[0], edgecolor=cols[0],  
+#             alpha=1, histtype="step", linewidth=3, density=True)
 
-axarr[1].errorbar(np.mean(delta), -1.5, xerr=percdelta.mean-percdelta.low, lw=4, fmt="o",
-            color=cols[0])
-axarr[1].scatter(np.mean(delta), -1.5, s=100, edgecolor=black, color=cols[0], zorder=99)
-_ = axarr[1].axvline(0, ls="--", color=[.5, .5, .5])
+# axarr[1].errorbar(np.mean(delta), -1.5, xerr=percdelta.mean-percdelta.low, lw=4, fmt="o",
+#             color=cols[0])
+# axarr[1].scatter(np.mean(delta), -1.5, s=100, edgecolor=black, color=cols[0], zorder=99)
+# _ = axarr[1].axvline(0, ls="--", color=[.5, .5, .5])
 
 
-_ = axarr[0].set(title="p(R) dark vs light", xticks=X, xticklabels=['light', 'dark'], 
-                    ylabel="p(R)", ylim=[.3, 1], xlim=[0.95, 1.35])
+_ = axarr[0].set(title="p(R) dark vs light", ylabel='density', 
+                    xlabel="p(R)",xlim=[0.5, 1])
 _ = axarr[1].set(title="p(R|dark) - p(R|light)", xticks=[0, 0.1, 0.2], xticklabels=[0, 0.1, 0.2], 
                     ylabel="pdensity",)
 

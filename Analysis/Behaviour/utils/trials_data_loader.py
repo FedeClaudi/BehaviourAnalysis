@@ -56,15 +56,15 @@ class TrialsLoader:
 		if tracking is not None:
 			if tracking == "all":
 				if experiment_name is None:
-					all_trials = pd.DataFrame((Session * Trials * Trials.TrialTracking * Trials.TrialSessionMetadata & "escape_duration > 0").fetch())
+					all_trials = pd.DataFrame((Session * Trials * Trials.TrialTracking * Trials.TrialSessionMetadata.proj(ename='experiment_name') & "escape_duration > 0").fetch())
 				else:
-					all_trials = pd.DataFrame((Session * Trials * Trials.TrialTracking * Trials.TrialSessionMetadata\
+					all_trials = pd.DataFrame((Session * Trials * Trials.TrialTracking * Trials.TrialSessionMetadata.proj(ename='experiment_name')\
 						& "escape_duration > 0" & "experiment_name='{}'".format(experiment_name)).fetch())
 			elif tracking == "threat":
 				if experiment_name is None:
-					all_trials = pd.DataFrame((Session * Trials * Trials.ThreatTracking * Trials.TrialSessionMetadata & "escape_duration > 0").fetch())
+					all_trials = pd.DataFrame((Session * Trials * Trials.ThreatTracking * Trials.TrialSessionMetadata.proj(ename='experiment_name') & "escape_duration > 0").fetch())
 				else:
-					all_trials = pd.DataFrame((Session * Trials * Trials.ThreatTracking * Trials.TrialSessionMetadata\
+					all_trials = pd.DataFrame((Session * Trials * Trials.ThreatTracking * Trials.TrialSessionMetadata.proj(ename='experiment_name')\
 						& "escape_duration > 0" & "experiment_name='{}'".format(experiment_name)).fetch())
 			
 			else:

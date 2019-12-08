@@ -385,7 +385,7 @@ class Trials(dj.Imported):
 		-> TrackingData
 		---
 		-> Recording
-
+		
 		out_of_shelter_frame: int
 		at_threat_frame: int
 		stim_frame: int              # stim frame relative to recording
@@ -421,6 +421,7 @@ class Trials(dj.Imported):
 			-> Trials
 			---
 			stim_frame_session: int    # frame of the number relative tot the session and not the recording
+			experiment_name: varchar(128)
 		"""
 
 	class TrialTracking(dj.Part):

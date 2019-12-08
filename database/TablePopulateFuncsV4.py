@@ -773,7 +773,6 @@ def make_trials_table(table, key):
 			in_roi = in_roi[relevant_idx]
 		else:
 			in_roi = default
-
 		return in_roi
 
 	key_copy = key.copy()
@@ -786,6 +785,9 @@ def make_trials_table(table, key):
 	try:
 		data = pd.DataFrame(Session * TrackingData.BodyPartData * Stimuli & key \
 						& "overview_frame > -1")
+		
+		if 'TwoArmsLong Maze' in data.experiment_name.values:
+			raise ValueError
 						
 		if len(data) > 0:
 			data = data.sort_values(['recording_uid'])
@@ -896,6 +898,7 @@ def make_trials_table(table, key):
 	# Session metadata
 	trial_key = key_copy.copy()
 	trial_key['stim_frame_session'] = nframes_before + stim_frame
+	trial_key['experiment_name'] = data.experiment_name.values[0]
 	table.TrialSessionMetadata.insert1(trial_key)
 
 	# Get tracking data for trial
