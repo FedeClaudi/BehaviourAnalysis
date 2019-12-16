@@ -9,7 +9,6 @@ from scipy.optimize import curve_fit
 from scipy import signal
 from sklearn.model_selection import train_test_split
 
-
 from Analysis.Behaviour.utils.experiments_analyser import ExperimentsAnalyser
 from Processing.rois_toolbox.rois_stats import convert_roi_id_to_tag
 
@@ -368,11 +367,14 @@ save_plot("psychometric_fivemaze", f)
 
 
 # %%
-# ------------------------------- LOOK AT MAZES ------------------------------ #
+
+# ---------------------------------------------------------------------------- #
+#        !                        UTILITY SPACE                                #
+# ---------------------------------------------------------------------------- #
 cm = MplColorHelper("bwr", 0, 1)
 pRs = ea.bayes_by_condition_analytical()
 
-f, ax = create_figure(subplots=False)
+f, axarr = create_figure(subplots=True, ncols=2)
 
 for condition in ea.conditions.keys():
     if condition == "m0": continue 
@@ -380,20 +382,22 @@ for condition in ea.conditions.keys():
     lr_ratio = mazes[condition]['ratio']
     eucl_dist = euclidean_dists[condition]
     time_ratio = path_durations[condition].ratio.mean
-    # print(condition, "p(R): {0:.2f}, L/R: {1:.3f}, delta: {2:.3f}, time ratio {3: .3f}".format(pr, lr_ratio, 
-    #                 eucl_dist, time_ratio))
-
-    ax.scatter(lr_ratio, eucl_dist, color=maze_colors[condition], s=500, zorder=99)
+    axarr[0].scatter(lr_ratio, eucl_dist, color=maze_colors[condition], s=300, edgecolor=black, zorder=99)
 
 surface = np.zeros((250, 250))
-for n, i in tqdm(enumerate(np.linspace(0, 3, 250))):
-    for k, ii in enumerate(np.linspace(-1, 1, 250)):
-        p = centered_logistic(i+ii, *curve_params)
+for n, i in enumerate(np.linspace(0, 3, 250)): # iterate geo ratio
+    for k, ii in enumerate(np.linspace(0, 3, 250)): # iterate eucl ratio
+        p = centered_logistic(0.75*i+ii, *curve_params)
         surface[n, k] = p
-        # ax.scatter(i, ii, color=cm.get_rgb(p), s=300)
-ax.imshow(surface, cmap="bwr", extent=[0, 3, -1, 1], origin="lower", vmin=0, vmax=1)
+        # axarr[0].scatter(i, ii, color=cm.get_rgb(p), s=300)
+axarr[0].imshow(surface, cmap="bwr", extent=[0, 3, 0, 3], origin="lower", vmin=0, vmax=1)
+_ = axarr[0].set(xlim=[0,3], ylim=[0, 3])
 
-_ = ax.set(xlim=[0.5, 2.75], ylim=[-.5, .5])
+
+# plot slices
+for i in range(0, 250, 25):
+    axarr[1].plot(surface[:, i], color=black)
+    axarr[1].plot(surface[i, :], color=red)
 
 save_plot("costfunc", f)
 
@@ -596,111 +600,9 @@ save_plot("m6", f)
 
 
 
-# %%
-# ---------------------------------------------------------------------------- #
-#                                 SORT MB1 DATA                                #
-# ---------------------------------------------------------------------------- #
-# f, axarr = create_figure(subplots=True, ncols=2)
-# trials = ea.conditions['mb']
-
-# mb_noleft = trials.loc[trials.escape_arm != "left"]
-# mb_nocenter = trials.loc[trials.escape_arm != "center"]
-# mb_noright = trials.loc[trials.escape_arm != "right"]
-
-# cond = trials
-# for i, trial in cond.iterrows():
-#     axarr[0].plot(trial.body_xy[:, 0], trial.body_xy[:, 1], color=arms_colors[trial.escape_arm])
-# axarr[0].set(xlim=[0, 1000], ylim=[0, 1000])
-
-# for arm, color in arms_colors.items():
-#     a2, b2, mean, mode, sigmasquared, prange = ea.grouped_bayes_analytical(len(cond), len(cond.loc[cond.escape_arm==arm]))
-#     plot_distribution(a2, b2, ax=axarr[1], dist_type="beta", shaded="True", line_alpha=.3,
-#                     plot_kwargs={"color":color}, shade_alpha=.05, 
-#                     y_scale=1)
-
-# a2, b2, mean, mode, sigmasquared, prange = ea.grouped_bayes_analytical(len(cond), int(len(cond)/3))
-# plot_distribution(a2, b2, ax=axarr[1], dist_type="beta", shaded="True", line_alpha=.3,
-#                 plot_kwargs={"color":[.4, .4, .4]}, shade_alpha=.05, 
-#                 y_scale=1)
-
-# p = [len(cond.loc[cond.escape_arm == a])/len(cond) for a in ['left', 'center', 'right']]
-# print(" {0} trials, -  L:{1:.3f}, - C:{2:.3f}, - R:{3:.3f}".format(len(cond), *p))
 
 
 
-
-
-
-# %%
-# ---------------------------------------------------------------------------- #
-#                                   MODELLING                                  #
-# ---------------------------------------------------------------------------- #
-
-import statsmodels.api as sm
-import statsmodels.formula.api as smf
-all_data = {
-        'origin_arm': [],
-        'origin_arm_bin': [],
-        'lengths_ratio': [],
-        'distance_delta': [],
-        'xpos': [],
-        'ypos': [],
-        'time': [],
-        'time_out_of_t': [],
-}
-Y = []
-
-
-for condition, trials in ea.conditions.items():
-    for i, t in trials.iterrows():
-        if 'center' ==  t.escape_arm: continue
-        if 'center' == t.origin_arm: continue
-        all_data['origin_arm'].append(t.origin_arm)
-        if t.origin_arm == 'right':
-            all_data['origin_arm_bin'].append(1)
-        else:
-            all_data['origin_arm_bin'].append(0)
-        all_data['lengths_ratio'].append(mazes[condition]['ratio'])
-        all_data['distance_delta'].append(euclidean_dists[condition])
-        all_data['xpos'].append(t.body_xy[0, 0])
-        all_data['ypos'].append(t.body_xy[0, 1])
-        all_data['time'].append(t.stim_frame_session/t.fps)
-        all_data['time_out_of_t'].append(t.time_out_of_t)
-        Y.append(t.escape_arm)
-
-
-all_data = pd.DataFrame(all_data)
-all_data.head()
-
-
-# %%
-formula = "escape_arm ~ lengths_ratio + distance_delta "
-data = all_data[['lengths_ratio','distance_delta', 'origin_arm_bin', 'xpos', 'ypos', 'time', 'time_out_of_t']]
-# data['escape_arm'] = Y
-
-# mod1 = smf.glm(formula=formula, data=data, family=sm.families.Binomial()).fit()
-# mod1.summary()
-
-
-
-data = sm.add_constant(data, prepend=False)
-
-logit_mod = sm.Logit(np.array([1 if 'r' in y else 0 for y in Y]),  data)
-logit_res = logit_mod.fit(disp=0)
-print('Parameters: \n', logit_res.params)
-pars = logit_res.params
-
-f, ax = create_figure(subplots=False)
-for (i, t), y in zip(data.iterrows(), Y):
-    yhat = 0
-    for name, value in pars.items():
-        if 'const' == name:
-            yhat += value
-        else:
-            yhat += value * t[name]
-    ax.scatter(i, yhat, color=arms_colors[y])
-
-logit_res.summary()
 
 
 # %%
