@@ -523,7 +523,7 @@ class Homings(dj.Manual):
 
 if __name__ == "__main__": 
 	# pass
-	Trials.drop()
+	Recording.drop()
 	# print(Homings())
 	# print_erd() 
 	# plt.show()

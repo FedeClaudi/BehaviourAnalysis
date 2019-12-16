@@ -596,40 +596,6 @@ save_plot("m6", f)
 
 
 
-# %%
-# ---------------------------------------------------------------------------- #
-#                                 SORT MB1 DATA                                #
-# ---------------------------------------------------------------------------- #
-# f, axarr = create_figure(subplots=True, ncols=2)
-# trials = ea.conditions['mb']
-
-# mb_noleft = trials.loc[trials.escape_arm != "left"]
-# mb_nocenter = trials.loc[trials.escape_arm != "center"]
-# mb_noright = trials.loc[trials.escape_arm != "right"]
-
-# cond = trials
-# for i, trial in cond.iterrows():
-#     axarr[0].plot(trial.body_xy[:, 0], trial.body_xy[:, 1], color=arms_colors[trial.escape_arm])
-# axarr[0].set(xlim=[0, 1000], ylim=[0, 1000])
-
-# for arm, color in arms_colors.items():
-#     a2, b2, mean, mode, sigmasquared, prange = ea.grouped_bayes_analytical(len(cond), len(cond.loc[cond.escape_arm==arm]))
-#     plot_distribution(a2, b2, ax=axarr[1], dist_type="beta", shaded="True", line_alpha=.3,
-#                     plot_kwargs={"color":color}, shade_alpha=.05, 
-#                     y_scale=1)
-
-# a2, b2, mean, mode, sigmasquared, prange = ea.grouped_bayes_analytical(len(cond), int(len(cond)/3))
-# plot_distribution(a2, b2, ax=axarr[1], dist_type="beta", shaded="True", line_alpha=.3,
-#                 plot_kwargs={"color":[.4, .4, .4]}, shade_alpha=.05, 
-#                 y_scale=1)
-
-# p = [len(cond.loc[cond.escape_arm == a])/len(cond) for a in ['left', 'center', 'right']]
-# print(" {0} trials, -  L:{1:.3f}, - C:{2:.3f}, - R:{3:.3f}".format(len(cond), *p))
-
-
-
-
-
 
 # %%
 # ---------------------------------------------------------------------------- #
