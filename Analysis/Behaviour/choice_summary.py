@@ -332,12 +332,9 @@ endog = summary[['k', 'm']]
 
 glm_binom = sm.GLM(endog, exog, family=sm.families.Binomial())
 res = glm_binom.fit()
-print(res.summary())
-
-
-# print('\nTotal number of trials:',  endog['m'].sum())
-print('\nParameters: \n', res.params)
-print('\nT-values: \n', res.tvalues)
+# print(res.summary())
+# print('\nParameters: \n', res.params)
+# print('\nT-values: \n', res.tvalues)
 
 
 nobs = res.nobs
@@ -345,7 +342,7 @@ y = endog['k']/endog.sum(1)
 yhat = res.mu
 
 
-fig, axarr = create_figure(subplots=True, ncols=2)
+f, axarr = create_figure(subplots=True, ncols=2, nrows=2)
 
 axarr[0].scatter(yhat, y, s=250, c=darksalmon, zorder=99)
 axarr[0].plot([0, 1], [0, 1], ls="--", lw=2, color=black, alpha=.5)
@@ -362,11 +359,32 @@ axarr[1].scatter([mazes[condition]['ratio'] for condition in ea.conditions.keys(
 
 x0 = np.linspace(0, 3, num=250)
 x1 = [(-res.params['const']/res.params['geodist'] - (res.params['eucldist']/res.params['geodist'])*x) for x in x0]
-
 axarr[1].plot(x0, x1, color=black)
-
-
 axarr[1].set(xlim=[0.75, 2.3], ylim=[0.5, 1.3], xlabel='geodesic distance', ylabel='euclidean distance', title='all trials ')
+
+
+def compute(params, geo=1, eucl=1):
+    x = params['const'] + params['geodist']*geo + params['eucldist']*eucl
+    return 1/(1+np.exp(-x))
+
+x0 = np.linspace(0.25, 3.5, num=250)
+y = [compute(res.params, geo=x, eucl=1) for x in x0]
+axarr[2].plot(x0, y, label="geodesic")
+
+y = [compute(res.params, eucl=x, geo=1) for x in x0]
+axarr[2].plot(x0, y, label="euclidean")
+
+axarr[2].axhline(0.5,  ls="--", lw=2, color=black, alpha=.5)
+axarr[2].legend()
+axarr[2].set(title="logistic for each variabel", xlabel="distance ratio", xlim=[0, 3], ylabel="p(R)", ylim=[0, 1])
+
+# for m in psychometric_mazes:
+#     axarr[2].scatter(mazes[m]['ratio'], pRs.loc[pRs.condition == m]['mean'], color=maze_colors[m], zorder=99)
+# axarr[2].scatter(euclidean_dists['m6'], pRs.loc[pRs.condition == 'm6']['mean'], color=maze_colors['m6'], zorder=99)
+
+f.tight_layout()
+
+
 
 # %%
 # ---------------------------------------------------------------------------- #
