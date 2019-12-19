@@ -332,7 +332,7 @@ endog = summary[['k', 'm']]
 
 glm_binom = sm.GLM(endog, exog, family=sm.families.Binomial())
 res = glm_binom.fit()
-# print(res.summary())
+print(res.summary())
 # print('\nParameters: \n', res.params)
 # print('\nT-values: \n', res.tvalues)
 
