@@ -42,10 +42,10 @@ class ToolBox:
 
         # get video and metadata files
         videos = sorted([f for f in os.listdir(raw_video_folder)
-                            if session['session_name'].lower() in f.lower() and 'test' not in f
+                            if session['session_name'].lower().replace(".", '') in f.lower() and 'test' not in f
                             and '.h5' not in f and '.pickle' not in f])
         metadatas = sorted([f for f in os.listdir(raw_metadata_folder)
-                            if session['session_name'].lower() in f.lower() and 'test' not in f and '.tdms' in f])
+                            if session['session_name'].lower().replace(".", '') in f.lower() and 'test' not in f and '.tdms' in f])
 
         if videos is None or metadatas is None:
             raise FileNotFoundError(videos, metadatas)

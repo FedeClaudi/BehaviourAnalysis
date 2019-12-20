@@ -349,7 +349,7 @@ if __name__ == '__main__':
 
     # ? Show database content and progress
     # print(p.ccm.tail())
-    # p.show_progress()
+    p.show_progress()
 
 
 
