@@ -96,9 +96,9 @@ if plot_tracking:
     f, axarr = create_figure(subplots=True, ncols=2)
 
     for i, trial in left_long_trials.iterrows():
-        axarr[0].plot(trial.body_xy[:, 0], trial.body_xy[:, 1], color=arms_colors[trial.escape_arm])
+        axarr[0].plot(trial.body_xy[:, 0], trial.body_xy[:, 1], color=arms_colors[trial.escape_arm], alpha=.8)
     for i, trial in right_long_trials.iterrows():
-        axarr[1].plot(trial.body_xy[:, 0], trial.body_xy[:, 1], color=arms_colors[trial.escape_arm])
+        axarr[1].plot(trial.body_xy[:, 0], trial.body_xy[:, 1], color=arms_colors[trial.escape_arm], alpha=.8)
 
     axarr[0].set(title="LEFT LONG", xlim=[0, 1000], ylim=[0, 1000])
     axarr[1].set(title="RIGHT LONG", xlim=[0, 1000], ylim=[0, 1000])
@@ -116,7 +116,7 @@ n_rl, k_rl = len(right_long_trials), len(right_long_trials.loc[right_long_trials
 a_ll, b_ll, mean_ll, mode, sigmasquared_ll, prange = ea.grouped_bayes_analytical(n_ll, k_ll)
 a_rl, b_rl, mean_rl, mode, sigmasquared_rl, prange = ea.grouped_bayes_analytical(n_rl, n_rl-k_rl)
 
-f, ax = create_figure(subplots=False, figsize=(10, 10))
+f, axarr = create_figure(subplots=True, ncols=2, figsize=(10, 10), sharey=True)
 
 
 # PLOT subsample from M1
@@ -128,7 +128,7 @@ if bootstrap:
         k = len(trials.loc[trials.escape_arm == 'right'])
 
         a, b, mean, mode, sigmasquared, prange = ea.grouped_bayes_analytical(n, k)
-        plot_distribution(a, b, ax=ax, dist_type="beta", shaded=True, line_alpha=0, shade_alpha=.02, plot_kwargs={"color":black})
+        plot_distribution(a, b, ax=axarr[0], dist_type="beta", shaded=True, line_alpha=0, shade_alpha=.02, plot_kwargs={"color":black})
 
     for i in range(50):
         n = 91 
@@ -136,47 +136,74 @@ if bootstrap:
         k = len(trials.loc[trials.escape_arm == 'right'])
 
         a, b, mean, mode, sigmasquared, prange = ea.grouped_bayes_analytical(n, k)
-        plot_distribution(a, b, ax=ax, dist_type="beta", shaded=True, line_alpha=0, shade_alpha=.02, plot_kwargs={"color":black})
+        plot_distribution(a, b, ax=axarr[0], dist_type="beta", shaded=True, line_alpha=0, shade_alpha=.02, plot_kwargs={"color":black})
 
 # PLOT M1
 pr = pRs.loc[pRs.condition == 'm1']
-ax.errorbar(pr['mean'], -.75, xerr=2*math.sqrt(pr['sigmasquared']), color=darksalmon)
-ax.scatter(pr['mean'], -.75, color=darksalmon, s=250, edgecolor=black, zorder=99, label="M1 n:{}".format(len(ea.conditions['m1'])))
-plot_distribution(pr['alpha'].values[0], pr['beta'].values[0], ax=ax, dist_type="beta", shaded="True", line_alpha=.6,
+axarr[0].errorbar(pr['mean'], -.75, xerr=2*math.sqrt(pr['sigmasquared']), color=darksalmon)
+axarr[0].scatter(pr['mean'], -.75, color=darksalmon, s=250, edgecolor=black, zorder=99, label="M1 n:{}".format(len(ea.conditions['m1'])))
+plot_distribution(pr['alpha'].values[0], pr['beta'].values[0], ax=axarr[0], dist_type="beta", shaded="True", line_alpha=.6,
                 plot_kwargs={"color":darksalmon}, shade_alpha=.1, )
 
 # PLOT AFTER FLIP
-ax.errorbar(mean_rl, -.25, xerr=2*math.sqrt(sigmasquared_rl), color=goldenrod)
-ax.scatter(mean_rl,-.25, color=goldenrod, s=250, edgecolor=black, zorder=99, label="afterflip n:{}".format(n_rl))
-plot_distribution(a_rl, b_rl, ax=ax, dist_type="beta", shaded="True", line_alpha=.8,
+axarr[0].errorbar(mean_rl, -.25, xerr=2*math.sqrt(sigmasquared_rl), color=goldenrod)
+axarr[0].scatter(mean_rl,-.25, color=goldenrod, s=250, edgecolor=black, zorder=99, label="afterflip n:{}".format(n_rl))
+plot_distribution(a_rl, b_rl, ax=axarr[0], dist_type="beta", shaded="True", line_alpha=.8,
                 plot_kwargs={"color":goldenrod}, shade_alpha=.2, )
 
 # PLOT BASELINE
-ax.errorbar(mean_ll, -.5, xerr=2*math.sqrt(sigmasquared_ll), color=darkseagreen)
-ax.scatter(mean_ll, -.5, color=darkseagreen, s=250, edgecolor=black, zorder=99, label="baseline n:{}".format(n_ll))
-plot_distribution(a_ll, b_ll, ax=ax, dist_type="beta", shaded="True", line_alpha=.8,
+axarr[0].errorbar(mean_ll, -.5, xerr=2*math.sqrt(sigmasquared_ll), color=darkseagreen)
+axarr[0].scatter(mean_ll, -.5, color=darkseagreen, s=250, edgecolor=black, zorder=99, label="baseline n:{}".format(n_ll))
+plot_distribution(a_ll, b_ll, ax=axarr[0], dist_type="beta", shaded="True", line_alpha=.8,
                 plot_kwargs={"color":darkseagreen}, shade_alpha=.2 )
 
 
-ax.plot([0.5, .5], [0, 12], ls="--", lw=3, color=black, alpha=.5)
-ax.axhline(0, lw=3, color=black, alpha=.5)
+axarr[0].plot([0.5, .5], [0, 12], ls="--", lw=3, color=black, alpha=.5)
+axarr[0].axhline(0, lw=3, color=black, alpha=.5)
 
-ax.legend()
-_ = ax.set(title="p(shortest) before and after flip", xlabel="p(R)", ylabel="density")
+axarr[0].legend()
+_ = axarr[0].set(title="p(shortest) before and after flip", xlabel="p(shortest)", ylabel="density")
 
 
+# Plot the difference between m1 and after flip
+m1samples = random.choices(get_distribution('beta', pr['alpha'].values[0], pr['beta'].values[0], n_samples=500000), k=100000)
+afterflipsamples = random.choices(get_distribution('beta',a_rl, b_rl, n_samples=500000), k=100000)
+diff =  np.array(afterflipsamples) - np.array(m1samples) 
+
+axarr[1].axvline(0, ls="--", lw=4, color=black, alpha=.6)
+_ = axarr[1].hist(diff, bins=50, color=goldenrod, alpha=.5, histtype="stepfilled", density=True, zorder=80)
+_ = axarr[1].hist(diff, bins=50, color=goldenrod, alpha=1, histtype="step", lw=4, density=True, zorder=85, label="after flip")
+
+mean, std = np.mean(diff), np.std(diff)
+axarr[1].errorbar(mean, -.3, xerr=std, color=goldenrod, lw=4, zorder=98)
+axarr[1].scatter(mean, -.3, color=goldenrod, edgecolor=black, s=250, lw=2, zorder=99)
+
+
+beforeflip = random.choices(get_distribution('beta',a_ll, b_ll, n_samples=500000), k=100000)
+diff = np.array(beforeflip) - np.array(m1samples)
+
+_ = axarr[1].hist(diff, bins=50, color=darkseagreen, alpha=.5, histtype="stepfilled", density=True, zorder=80)
+_ = axarr[1].hist(diff, bins=50, color=darkseagreen, alpha=1, histtype="step", lw=4, density=True, zorder=85, label="baseline")
+axarr[1].axhline(0, lw=4, color=black, alpha=.6, zorder=99)
+
+mean, std = np.mean(diff), np.std(diff)
+axarr[1].errorbar(mean, -.8, xerr=std, color=darkseagreen, lw=4, zorder=98)
+axarr[1].scatter(mean, -.8, color=darkseagreen, edgecolor=black, s=250, lw=2, zorder=99)
+
+axarr[1].legend()
+_ = axarr[1].set(xlabel='difference', ylabel="density", title="p(R|m1) - p(R|flipflop)")
 
 # %%
 # ----------------------------------- TESET ---------------------------------- #
 
-f, ax = create_figure(subplots=False, figsize=(10, 10))
+escapes =  [1 if i.escape_arm == 'right' else 0 for _, i in ea.conditions['m1'].iterrows()]
 
-for i in range(50):
-    n = 41 
-    trials = ea.conditions['m1'].sample(n) 
-    k = len(trials.loc[trials.escape_arm == 'right'])
+prs, prs2, prs3 = [], [], []
+for i in tqdm(range(10000)):
+    prs.append(np.mean(random.choices(escapes, k=41)))
+    prs2.append(np.mean(random.choices(escapes, k=91)))
 
-    a, b, mean, mode, sigmasquared, prange = ea.grouped_bayes_analytical(n, k)
-    plot_distribution(a, b, ax=ax, dist_type="beta", shaded=True, line_alpha=0, shade_alpha=.02, plot_kwargs={"color":black})
+_  = plt.hist(prs, bins=10, density=True, alpha=.5)
+_  = plt.hist(prs2, bins=10, density=True, alpha=.5)
 
 
