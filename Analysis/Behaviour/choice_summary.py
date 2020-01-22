@@ -8,6 +8,8 @@ from pandas.plotting import scatter_matrix
 from scipy.optimize import curve_fit
 from scipy import signal
 from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import confusion_matrix
 
 from Analysis.Behaviour.utils.experiments_analyser import ExperimentsAnalyser
 from Processing.rois_toolbox.rois_stats import convert_roi_id_to_tag
@@ -239,6 +241,8 @@ save_plot("escape_durations", f)
 
 
 
+
+
 # %%
 # ---------------------------- DURATION VS LENGTH ---------------------------- #
 f, ax = create_figure(subplots=False)
@@ -254,6 +258,131 @@ ax.scatter(dists, durs, c=speeds, cmap="inferno_r", alpha=.7)
 ax.set(xlabel="Distance", ylabel="Duration")
 save_plot("dur_vs_dist", f)
 
+
+
+
+
+# %%
+# ---------------------------------------------------------------------------- #
+#                             ! ALL TRIALS LOGISTIC                            #
+# ---------------------------------------------------------------------------- #
+
+# Get all trials
+all_trials = dict(geodist=[], eucldist=[], outcome=[])
+summary = dict(geodist=[], eucldist=[], n=[], k=[], m=[])
+
+for condition, trials in ea.conditions.items():
+    n,k = 0, 0
+    for i, trial in trials.iterrows():
+        if trial.escape_arm == "center": continue
+        elif trial.escape_arm == "right": 
+            all_trials['outcome'].append(1)
+            k +=1
+        else:
+            all_trials['outcome'].append(0)
+        n += 1
+
+        all_trials['geodist'].append(mazes[condition]['ratio'])
+        all_trials['eucldist'].append(euclidean_dists[condition])
+
+    summary['geodist'].append(mazes[condition]['ratio'])
+    summary['eucldist'].append(euclidean_dists[condition])
+    summary['k'].append(k)
+    summary['n'].append(n)
+    summary['m'].append(n-k)
+
+
+all_trials= pd.DataFrame(all_trials)
+summary= pd.DataFrame(summary)
+ntrials = len(all_trials)
+
+# f, ax = create_figure(subplots=False)
+
+# ax.scatter(all_trials.geodist + np.random.normal(0, .05, size=ntrials), 
+#             all_trials.eucldist + np.random.normal(0, .05, size=ntrials), 
+#             cmap="bwr", c=all_trials.outcome, vmin=0, vmax=1, s=25, alpha=.75)
+
+
+y, X = all_trials.outcome.values, all_trials[['geodist', 'eucldist']].values
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
+logreg = LogisticRegression()
+logreg.fit(X_train, y_train)
+
+y_pred = logreg.predict(X_test)
+print('\n\nAccuracy of logistic regression classifier on training set: {:.2f}, average p(R) in training set: {:.2f}\n'.format(logreg.score(X_train, y_train), np.mean(y_train)))
+
+print('Accuracy of logistic regression classifier on test set: {:.2f}, average p(R) in test set: {:.2f}\n'.format(logreg.score(X_test, y_test), np.mean(y_test)))
+cm = confusion_matrix(y_test, y_pred)
+print(cm, "\n\n")
+
+
+logit_model=sm.Logit(y,all_trials[['geodist', 'eucldist']])
+result=logit_model.fit()
+print(result.summary2())
+
+
+
+# %%
+# -------------------------------- TRYING GLM -------------------------------- #
+from statsmodels.graphics.api import abline_plot
+
+exog = summary[['geodist', 'eucldist']]
+exog = sm.add_constant(exog, prepend=False)
+endog = summary[['k', 'm']]
+
+glm_binom = sm.GLM(endog, exog, family=sm.families.Binomial())
+res = glm_binom.fit()
+print(res.summary())
+# print('\nParameters: \n', res.params)
+# print('\nT-values: \n', res.tvalues)
+
+
+nobs = res.nobs
+y = endog['k']/endog.sum(1)
+yhat = res.mu
+
+
+f, axarr = create_figure(subplots=True, ncols=2, nrows=2)
+
+axarr[0].scatter(yhat, y, s=250, c=darksalmon, zorder=99)
+axarr[0].plot([0, 1], [0, 1], ls="--", lw=2, color=black, alpha=.5)
+axarr[0].set(title="Model evaluation", xlabel='predicted p(R)', ylabel="real p(R)" )
+
+
+axarr[1].scatter(all_trials.geodist + np.random.normal(0, .05, size=ntrials), 
+            all_trials.eucldist + np.random.normal(0, .05, size=ntrials), 
+            cmap="bwr", c=all_trials.outcome, vmin=0, vmax=1, s=100, alpha=.5)
+axarr[1].scatter([mazes[condition]['ratio'] for condition in ea.conditions.keys()], 
+                [euclidean_dists[condition] for condition in ea.conditions.keys()], 
+                s=250, c=[maze_colors[condition] for condition in ea.conditions.keys()], edgecolor=black,  zorder=99)
+
+
+x0 = np.linspace(0, 3, num=250)
+x1 = [(-res.params['const']/res.params['geodist'] - (res.params['eucldist']/res.params['geodist'])*x) for x in x0]
+axarr[1].plot(x0, x1, color=black)
+axarr[1].set(xlim=[0.75, 2.3], ylim=[0.5, 1.3], xlabel='geodesic distance', ylabel='euclidean distance', title='all trials ')
+
+
+def compute(params, geo=1, eucl=1):
+    x = params['const'] + params['geodist']*geo + params['eucldist']*eucl
+    return 1/(1+np.exp(-x))
+
+x0 = np.linspace(0.25, 3.5, num=250)
+y = [compute(res.params, geo=x, eucl=1) for x in x0]
+axarr[2].plot(x0, y, label="geodesic")
+
+y = [compute(res.params, eucl=x, geo=1) for x in x0]
+axarr[2].plot(x0, y, label="euclidean")
+
+axarr[2].axhline(0.5,  ls="--", lw=2, color=black, alpha=.5)
+axarr[2].legend()
+axarr[2].set(title="logistic for each variabel", xlabel="distance ratio", xlim=[0, 3], ylabel="p(R)", ylim=[0, 1])
+
+# for m in psychometric_mazes:
+#     axarr[2].scatter(mazes[m]['ratio'], pRs.loc[pRs.condition == m]['mean'], color=maze_colors[m], zorder=99)
+# axarr[2].scatter(euclidean_dists['m6'], pRs.loc[pRs.condition == 'm6']['mean'], color=maze_colors['m6'], zorder=99)
+
+f.tight_layout()
 
 
 

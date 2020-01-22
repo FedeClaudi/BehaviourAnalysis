@@ -7,7 +7,8 @@ import sys
 if sys.platform == "darwin":
     ip = "192.168.241.87"
 else:
-    ip = "127.18.0.1" 
+    # ip = "127.18.0.1" 
+    ip = "localhost"
 
 def start_connection():
     """
@@ -32,8 +33,8 @@ def start_connection():
 
         dj.config['database.user'] = 'root'
         dj.config['database.password'] = 'fede'
-        dj.config['database.safemode'] = False
-        dj.config['safemode']= False
+        dj.config['database.safemode'] = True
+        dj.config['safemode']= True
 
 
         dj.conn()
@@ -56,4 +57,4 @@ def print_erd():
 
 if __name__ == "__main__":
     start_connection()
-    # print_erd()
+    print_erd()

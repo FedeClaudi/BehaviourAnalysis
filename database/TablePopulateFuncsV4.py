@@ -49,7 +49,9 @@ def make_templates_table(key):
 def make_recording_table(table, key):
 	def behaviour(table, key, software, tb):
 		videos, metadatas = tb.get_behaviour_recording_files(key)
-		if videos is None: return
+		if videos is None: 
+			print("\n Could not find videos for: ", key)
+			return
 
 		# Loop over the files for each recording and extract info
 		for rec_num, (vid, met) in enumerate(zip(videos, metadatas)):
@@ -119,31 +121,33 @@ def fill_in_recording_paths(recordings, populator):
 
 	for rec in tqdm(recordings):
 		key = dict(rec)
-		if key["recording_uid"] in recs_in_part_table: continue  # ? its already in table
+		record_uid = key["recording_uid"].replace(".", '')
+
+		if record_uid in recs_in_part_table: continue  # ? its already in table
 
 		try:
-			key['overview_video'] = [v for v in videos if key['recording_uid'] in v and "Threat" not in v and "tdms" not in v][0]
-			key['overview_pose'] = [v for v in poses if key['recording_uid'] in v and "_pose" in v and ".h5" in v and "Threat" not in v][0]
+			key['overview_video'] = [v for v in videos if record_uid in v and "Threat" not in v and "tdms" not in v][0]
+			key['overview_pose'] = [v for v in poses if record_uid in v and "_pose" in v and ".h5" in v and "Threat" not in v][0]
 		except:
-			if key["recording_uid"][-1] == "1":
-				vids = [v for v in videos if key['recording_uid'][:-2] in v and "Threat" not in v and "tdms" not in v]
+			if record_uid[-1] == "1":
+				vids = [v for v in videos if record_uid[:-2] in v and "Threat" not in v and "tdms" not in v]
 				if vids:
 					key['overview_video'] = vids[0]
 					try:
-						key['overview_pose'] = [v for v in poses if key['recording_uid'][-2:] in v and "_pose" in v and ".h5" in v and key["session_name"] in v][0]
+						key['overview_pose'] = [v for v in poses if record_uid[-2:] in v and "_pose" in v and ".h5" in v and key["session_name"] in v][0]
 					except:
-						print("No pose file found for rec: --> ", key["recording_uid"])
+						print("No pose file found for rec: --> ", record_uid)
 						continue
 				else:
 					# continue  # ! remove this
-					raise FileNotFoundError(key["recording_uid"])
+					raise FileNotFoundError(record_uid)
 			else:
-				print("Something went wrong: ", key["recording_uid"])
+				print("Something went wrong: ", record_uid)
 				continue  # ! remove this
-				# raise FileNotFoundError(key["recording_uid"])
+				# raise FileNotFoundError(record_uid)
 
 		if "Overview" not in key['overview_pose']:
-			if key["recording_uid"][-1] != key["overview_pose"].split("_pose")[0][-1]: 
+			if record_uid[-1] != key["overview_pose"].split("_pose")[0][-1]: 
 				print("Something went wrong: ", key)
 				# continue # ! re,pve this
 				raise ValueError(key)
@@ -168,7 +172,10 @@ def fill_in_recording_paths(recordings, populator):
 
 		del key["software"]
 
-		recordings.FilePaths.insert1(key)
+		try:	
+			recordings.FilePaths.insert1(key)
+		except Exception as e:
+			print("\nCould not insert {} in table: \n".format(record_uid), e)
 
 def fill_in_aligned_frames(recordings):
 	from Utilities.dbase.db_data_alignment import ThreatDataProcessing
