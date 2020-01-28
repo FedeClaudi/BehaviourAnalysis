@@ -2,7 +2,7 @@ import napari
 import numpy as np
 from brainio import brainio
 
-nii_path = "D:\\alignment\\downsampled_2.nii"
+nii_path = r"Z:\swc\branco\BrainSaw\CC_134_2\cellfinder\registration\downsampled_channel_2.nii"
 
 with napari.gui_qt():
     v = napari.Viewer(title="amap viewer")

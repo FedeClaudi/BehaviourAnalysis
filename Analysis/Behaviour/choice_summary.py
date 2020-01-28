@@ -1,6 +1,6 @@
 # %%
 import sys
-sys.path.append('./')
+sys.path.append('C:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis')
 from Utilities.imports import *
 import statsmodels.api as sm
 from pandas.plotting import scatter_matrix
@@ -22,10 +22,11 @@ def save_plot(name, f):
     f.savefig(os.path.join(fld,"svg", "{}.svg".format(name)))
     f.savefig(os.path.join(fld, "{}.png".format(name)))
 
+# %matplotlib inline
+
 
 # %%
 # Define a bunch of useful colors
-%matplotlib inline
 palette = makePalette(green, orange, 7 , False)
 maze_colors = {
     'm0': darkgreen,
