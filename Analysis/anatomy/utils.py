@@ -15,7 +15,7 @@ cellfinder_out_dir='D:\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis_metadata\\an
 #                               GET FILES FUNCTIO                              #
 # ---------------------------------------------------------------------------- #
 def get_injection_site_for_mouse(mouse, ch=1):
-    correct = [f for f in listdir(injections_folder) if mouse in f and str(ch) in f]
+    correct = [f for f in listdir(injections_folder) if mouse in f and 'ch{}'.format(ch) in f]
     if not correct:
         raise FileNotFoundError("COuld not find injection file for mouse "+mouse)
     elif len(correct) > 1:
@@ -44,6 +44,16 @@ def get_count_by_brain_region(cells):
     n_cells = len(cells)
     count_per_region =  cells.groupby('region').count().sort_values('type', ascending=False)['type']
     return n_cells, count_per_region, count_per_region/n_cells
+
+def get_cells_in_region(cells, region):
+    if isinstance(region, list):
+        region_list = []
+        for reg in region:
+            region_list.extend(list(aba.get_structure_descendants(reg)['acronym'].values))
+    else:
+        region_list =  list(aba.get_structure_descendants(region)['acronym'].values)
+    return cells[cells.region.isin(region_list)]
+
 
 # ---------------------------------------------------------------------------- #
 #                           ACRONYMS OF BRAIN REGIONS                          #
@@ -83,4 +93,5 @@ __all__ = [
     "get_mice",
     "get_count_by_brain_region",
     "all_regions",
+    "get_cells_in_region",
 ]
