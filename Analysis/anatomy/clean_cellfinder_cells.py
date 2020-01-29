@@ -11,7 +11,10 @@ from fcutils.file_io.utils import listdir
 
 # Get brain region from cells
 for cellfile in listdir(cellfinder_cells_folder):
-    cells = pd.read_hdf(cellfile)
+    try:
+        cells = pd.read_hdf(cellfile)
+    except:
+        cells = pd.read_hdf(cellfile, key='hdf')
     print("Extracting brain region from {} [{} cells]".format(os.path.split(cellfile)[-1], len(cells)))
 
     regions, names = [], []

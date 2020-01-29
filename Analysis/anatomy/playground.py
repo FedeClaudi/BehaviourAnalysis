@@ -1,15 +1,17 @@
 
-import sys
-sys.path.append('./')
+
+from brainrender.scene import Scene
+
 
 import pandas as pd
 
-from utils import get_count_by_brain_region, cellfinder_cells_folder
-from fcutils.file_io.utils import listdir
+cells = pd.read_hdf(r'Z:\swc\branco\BrainSaw\cellfinder_cells\CC_134_1_test.h5')
+cells2 = pd.read_hdf(r'Z:\swc\branco\BrainSaw\cellfinder_cells\CC_134_1_ch1_cells.h5', key='hdf')
 
+scene = Scene()
 
+scene.add_cells(cells, alpha=.5)
+scene.add_cells(cells, color='green', alpha=.5)
 
-for cellfile in listdir(cellfinder_cells_folder):
-    cells = pd.read_hdf(cellfile, key='hdf')
+scene.render()
 
-    a = 1

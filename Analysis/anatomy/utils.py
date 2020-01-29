@@ -71,12 +71,14 @@ if __name__ == '__main__':
     ic = list(aba.get_structure_descendants('IC')['acronym'].values)
     cerebellum = list(aba.get_structure_descendants('CB')['acronym'].values)
     aud = list(aba.get_structure_descendants('AUD')['acronym'].values)
+    ptlp = list(aba.get_structure_descendants('PTLp')['acronym'].values)
+    aca = list(aba.get_structure_descendants('ACA')['acronym'].values)
 
 
     all_regions = dict(MOs=mos, MOp=mop, RSP=rsc, ZI=zi,
                     SSp=ssp, SSs=sss, VISp=visp, SCm=scm, 
                     SCs=scs, IC=ic, CB=cerebellum,
-                    AUD=aud,)
+                    AUD=aud, PTLp=ptlp, ACA=aca)
 
     save_yaml('Analysis/anatomy/acronyms.yaml', all_regions)
 else:

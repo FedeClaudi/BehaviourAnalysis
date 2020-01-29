@@ -54,11 +54,11 @@ for mouse in get_mice():
 
     # Plot total cell count summary
     f, _ = plot_count_per_region_summary(ch0_summary[1], ch1_summary[1], mouse)
-    save_figure(f, os.path.join(cellfinder_out_dir, mouse+'_count'), svg=False)
+    save_figure(f, os.path.join(cellfinder_out_dir, mouse+'_count'), svg=True)
 
     # Plot normalised cell count
     f, _ = plot_count_per_region_summary(ch0_summary[2], ch1_summary[2], mouse,  ylabel='normalised # cells')
-    save_figure(f, os.path.join(cellfinder_out_dir, mouse+'_normalised'), svg=False)
+    save_figure(f, os.path.join(cellfinder_out_dir, mouse+'_normalised'), svg=True)
 
 
 

@@ -1,3 +1,22 @@
+ACA:
+- ACA
+- ACA1
+- ACA2/3
+- ACA5
+- ACA6a
+- ACA6b
+- ACAd
+- ACAv
+- ACAd1
+- ACAd2/3
+- ACAd5
+- ACAd6a
+- ACAd6b
+- ACAv1
+- ACAv2/3
+- ACAv5
+- ACAv6a
+- ACAv6b
 AUD:
 - AUD
 - AUDd
@@ -142,6 +161,28 @@ MOs:
 - MOs5
 - MOs6a
 - MOs6b
+PTLp:
+- PTLp
+- PTLp1
+- PTLp2/3
+- PTLp4
+- PTLp5
+- PTLp6a
+- PTLp6b
+- VISa
+- VISrl
+- VISa1
+- VISa2/3
+- VISa4
+- VISa5
+- VISa6a
+- VISa6b
+- VISrl1
+- VISrl2/3
+- VISrl4
+- VISrl5
+- VISrl6a
+- VISrl6b
 RSP:
 - RSP
 - RSPagl
