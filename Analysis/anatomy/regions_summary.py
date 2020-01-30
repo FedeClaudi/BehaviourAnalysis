@@ -41,6 +41,11 @@ def plot_count_per_region_summary(ch0, ch1, mouse, n_regions_to_plot=16, ylabel=
 
 
 # %%
+
+# ---------------------------------------------------------------------------- #
+#                         MAKE BAR PLOT FOR EACH MOUSE                         #
+# ---------------------------------------------------------------------------- #
+
 for mouse in get_mice():
     ch0_cells = get_cells_for_mouse(mouse, ch=0)
     ch1_cells = get_cells_for_mouse(mouse, ch=1)
@@ -54,14 +59,55 @@ for mouse in get_mice():
 
     # Plot total cell count summary
     f, _ = plot_count_per_region_summary(ch0_summary[1], ch1_summary[1], mouse)
-    save_figure(f, os.path.join(cellfinder_out_dir, mouse+'_count'), svg=True)
+    save_figure(f, os.path.join(cellfinder_out_dir, mouse+'_count'), svg=False)
 
     # Plot normalised cell count
     f, _ = plot_count_per_region_summary(ch0_summary[2], ch1_summary[2], mouse,  ylabel='normalised # cells')
-    save_figure(f, os.path.join(cellfinder_out_dir, mouse+'_normalised'), svg=True)
+    save_figure(f, os.path.join(cellfinder_out_dir, mouse+'_normalised'), svg=False)
 
 
 
 
 
+# %%
+
+# ---------------------------------------------------------------------------- #
+#                       GET COUNT PER REGION FOR ALL MICE                      #
+# ---------------------------------------------------------------------------- #
+summary = {r:[] for r in all_regions_acronyms}
+summary['mouse'] = []
+
+do_channel_0 = False
+do_channel_1 = True
+
+summaries = []
+for i, mouse in enumerate(get_mice()):
+    ch0_cells = get_cells_for_mouse(mouse, ch=0)
+    ch1_cells = get_cells_for_mouse(mouse, ch=1)
+    if ch0_cells is None or ch1_cells is None:
+        continue
+
+    print(mouse)
+    ch0_summary = get_count_by_brain_region(ch0_cells)
+    ch1_summary = get_count_by_brain_region(ch1_cells)
+
+    if do_channel_0:
+        df = pd.DataFrame(ch0_summary[2])
+        df.columns = [mouse+'_ch0']
+        summaries.append(df)
+   
+    if do_channel_1:
+        df = pd.DataFrame(ch1_summary[2])
+        df.columns = [mouse+'_ch1']
+        summaries.append(df)
+   
+
+summary = pd.concat(summaries, axis=1)
+summary = summary.dropna(how='all')
+# idx = summary.sum(axis=1).sort_values(ascending=False).index
+# summary=summary[idx]
+summary.to_hdf(regions_summary_filepath, key='hdf')
+
+summary.loc[all_regions.keys()].plot(kind='bar')
+summary.loc[all_regions.keys()]
 # %%

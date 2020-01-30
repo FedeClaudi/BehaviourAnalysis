@@ -142,6 +142,37 @@ CB:
 - ANcr2mo
 - ANcr2pu
 - ANcr2gr
+ENT:
+- ENT
+- ENTl
+- ENTm
+- ENTmv
+- ENTl1
+- ENTl2
+- ENTl2/3
+- ENTl2a
+- ENTl2b
+- ENTl3
+- ENTl4
+- ENTl4/5
+- ENTl5
+- ENTl5/6
+- ENTl6a
+- ENTl6b
+- ENTm1
+- ENTm2
+- ENTm2a
+- ENTm2b
+- ENTm3
+- ENTm4
+- ENTm5
+- ENTm5/6
+- ENTm6
+- ENTmv1
+- ENTmv2
+- ENTmv3
+- ENTmv4
+- ENTmv5/6
 IC:
 - IC
 - ICc
@@ -312,6 +343,14 @@ SSs:
 - SSs5
 - SSs6a
 - SSs6b
+TEa:
+- TEa
+- TEa1
+- TEa2/3
+- TEa4
+- TEa5
+- TEa6a
+- TEa6b
 VISp:
 - VISp
 - VISp1

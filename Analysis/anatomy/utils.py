@@ -11,6 +11,8 @@ cellfinder_cells_folder = 'Z:\\swc\\branco\\BrainSaw\\cellfinder_cells'
 injections_folder = 'Z:\\swc\\branco\\BrainSaw\\injections'
 cellfinder_out_dir='D:\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis_metadata\\anatomy\\cellfinder'
 
+regions_summary_filepath = os.path.join(cellfinder_out_dir, 'regions_summary.hdf')
+
 # ---------------------------------------------------------------------------- #
 #                               GET FILES FUNCTIO                              #
 # ---------------------------------------------------------------------------- #
@@ -34,7 +36,7 @@ def get_cells_for_mouse(mouse, ch=1):
         return pd.read_hdf(correct[0], key='hdf')
 
 def get_mice():
-    return set([f.split("_ch")[0] for f in os.listdir(cellfinder_cells_folder)])
+    return sorted(set([f.split("_ch")[0] for f in os.listdir(cellfinder_cells_folder)]))
 
 
 # ---------------------------------------------------------------------------- #
@@ -73,16 +75,36 @@ if __name__ == '__main__':
     aud = list(aba.get_structure_descendants('AUD')['acronym'].values)
     ptlp = list(aba.get_structure_descendants('PTLp')['acronym'].values)
     aca = list(aba.get_structure_descendants('ACA')['acronym'].values)
-
+    ent = list(aba.get_structure_descendants('ENT')['acronym'].values)
+    tea = list(aba.get_structure_descendants('TEa')['acronym'].values)
 
     all_regions = dict(MOs=mos, MOp=mop, RSP=rsc, ZI=zi,
                     SSp=ssp, SSs=sss, VISp=visp, SCm=scm, 
-                    SCs=scs, IC=ic, CB=cerebellum,
-                    AUD=aud, PTLp=ptlp, ACA=aca)
+                    SCs=scs, IC=ic, CB=cerebellum, ENT=ent,
+                    AUD=aud, PTLp=ptlp, ACA=aca, TEa=tea)
 
     save_yaml('Analysis/anatomy/acronyms.yaml', all_regions)
+
+    # Get a condensed list of all regions acronyms
+    all_regions_acronyms = list(aba.get_structure_descendants('root')['acronym'].values)
+
+    clean_all_regions_acronyms = []
+    for acronym in all_regions_acronyms:
+        acro = False
+        for region_name, acronyms in all_regions.items():
+            if acronym in acronyms: 
+                clean_all_regions_acronyms.append(region_name)
+                acro = True
+                break
+        if not acro:
+            clean_all_regions_acronyms.append(acronym)
+
+    all_regions_acronyms = clean_all_regions_acronyms.copy()
+    save_yaml('Analysis/anatomy/all_acronyms.yaml', all_regions_acronyms)
 else:
     all_regions = load_yaml('C:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Analysis\\anatomy\\acronyms.yaml')
+    all_regions_acronyms = load_yaml('C:\\Users\\Federico\\Documents\\GitHub\\BehaviourAnalysis\\Analysis\\anatomy\\all_acronyms.yaml')
+
 
 
 __all__ = [
@@ -96,4 +118,6 @@ __all__ = [
     "get_count_by_brain_region",
     "all_regions",
     "get_cells_in_region",
+    "regions_summary_filepath",
+    "all_regions_acronyms",
 ]

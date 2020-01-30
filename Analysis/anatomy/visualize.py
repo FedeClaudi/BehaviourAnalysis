@@ -46,7 +46,7 @@ class CellFinderDoubleScene(DualScene):
 
 
 
-# ----------------------------- Visualize results ---------------------------- #
+# ----------------------------- Visualize results CC mice ---------------------------- #
 
 scene = CellFinderDoubleScene()
 
@@ -57,7 +57,9 @@ colors = ['salmon', 'darkseagreen']
 for mouse, color in zip(mice, colors):
     ch0_cells = get_cells_for_mouse(mouse, ch=0)
     ch1_cells = get_cells_for_mouse(mouse, ch=1)
-    injection = get_injection_site_for_mouse(mouse, ch=1)
+    # injection = get_injection_site_for_mouse(mouse, ch=1)
+
+    ch1_cells = ch1_cells.loc[ch1_cells.hemisphere == 'left']
 
     # scene.add_cells_to_scenes(ch0_cells, color='darkseagreen', radius=16, 
     #                 exclude_scene=1, alpha=.6, in_region=[['SCm', 'SCs', 'IC', 'PAG'], ['Isocortex']])
@@ -65,7 +67,7 @@ for mouse, color in zip(mice, colors):
     scene.add_cells_to_scenes(ch1_cells, color=color, radius=16,
                     alpha=.6, in_region=[['SCm', 'SCs', 'IC', 'PAG'], ['Isocortex']])
 
-    scene.add_injection_sites(injection, c=color, exclude_scene=1, alpha=.3)
+    # scene.add_injection_sites(injection, c=color, exclude_scene=1, alpha=.3)
 
 
 scene.scenes[0].add_brain_regions(['SCm', 'PAG', 'IC'], use_original_color=True, alpha=.2, wireframe=True)
@@ -73,3 +75,5 @@ scene.scenes[1].add_brain_regions(['MOs', 'VISp', 'AUD', 'PTLp'], use_original_c
 
 scene.render()
 
+
+# ----------------------- Visualize results rabies mice ---------------------- #
