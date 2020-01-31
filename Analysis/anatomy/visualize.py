@@ -4,8 +4,8 @@ sys.path.append('./')
 
 import pandas as pd
 from brainrender.scene import Scene, DualScene
+from brainrender.colors import colorMap
 from brainrender import *
-from vtkplotter import Plotter, interactive, Points, smoothMLS2D, recoSurface, removeOutliers, cluster, convexHull, connectedPoints, splitByConnectivity
 import numpy as np
 from scipy.spatial.distance import euclidean
 from skimage.filters import threshold_otsu
@@ -37,6 +37,8 @@ class CellFinderDoubleScene(DualScene):
     def add_cells_to_scenes(self, cells, in_region=[None, None], exclude_scene=None,  **kwargs):
         for i, (scene, region) in enumerate(zip(self.scenes, in_region)):
             if i != exclude_scene:
+                if not region:
+                    region = None
                 scene.add_cells_to_scene(cells, in_region=region, **kwargs)
 
     def add_injection_sites(self, injection, exclude_scene=None, **kwargs):
@@ -48,32 +50,45 @@ class CellFinderDoubleScene(DualScene):
 
 # ----------------------------- Visualize results CC mice ---------------------------- #
 
-scene = CellFinderDoubleScene()
+# scene = CellFinderDoubleScene()
 
                 
-mice = ['CC_134_1', 'CC_134_2']
-colors = ['salmon', 'darkseagreen']
+# mice = ['CC_134_1', 'CC_134_2']
+# colors = ['salmon', 'darkseagreen']
 
-for mouse, color in zip(mice, colors):
-    ch0_cells = get_cells_for_mouse(mouse, ch=0)
-    ch1_cells = get_cells_for_mouse(mouse, ch=1)
-    # injection = get_injection_site_for_mouse(mouse, ch=1)
+# for mouse, color in zip(mice, colors):
+#     ch0_cells = get_cells_for_mouse(mouse, ch=0)
+#     ch1_cells = get_cells_for_mouse(mouse, ch=1)
+#     # injection = get_injection_site_for_mouse(mouse, ch=1)
 
-    ch1_cells = ch1_cells.loc[ch1_cells.hemisphere == 'left']
+#     # ch1_cells = ch1_cells.loc[ch1_cells.hemisphere == 'left']
 
-    # scene.add_cells_to_scenes(ch0_cells, color='darkseagreen', radius=16, 
-    #                 exclude_scene=1, alpha=.6, in_region=[['SCm', 'SCs', 'IC', 'PAG'], ['Isocortex']])
+#     # scene.add_cells_to_scenes(ch0_cells, color='darkseagreen', radius=16, 
+#     #                 exclude_scene=1, alpha=.6, in_region=[['SCm', 'SCs', 'IC', 'PAG'], ['Isocortex']])
 
-    scene.add_cells_to_scenes(ch1_cells, color=color, radius=16,
-                    alpha=.6, in_region=[['SCm', 'SCs', 'IC', 'PAG'], ['Isocortex']])
+#     scene.add_cells_to_scenes(ch1_cells, color=color, radius=16,
+#                     alpha=.6, in_region=[['SCm', 'SCs', 'IC', 'PAG'], ['Isocortex']])
 
-    # scene.add_injection_sites(injection, c=color, exclude_scene=1, alpha=.3)
+#     # scene.add_injection_sites(injection, c=color, exclude_scene=1, alpha=.3)
+
+#     break
+
+# scene.scenes[0].add_brain_regions(['SCm', 'PAG', 'IC'], use_original_color=True, alpha=.2, wireframe=True)
+# scene.scenes[1].add_brain_regions(['MOs', 'VISp', 'AUD', 'PTLp'], use_original_color=True, alpha=.3, wireframe=True)
+
+# scene.render()
 
 
-scene.scenes[0].add_brain_regions(['SCm', 'PAG', 'IC'], use_original_color=True, alpha=.2, wireframe=True)
-scene.scenes[1].add_brain_regions(['MOs', 'VISp', 'AUD', 'PTLp'], use_original_color=True, alpha=.3, wireframe=True)
+# ----------------------- Visualize all injection sites ---------------------- #
 
+scene = CellFinderScene(display_root=False)
+
+for i, injfile in enumerate(listdir(injections_folder)):
+    if 'ch0' in injfile: continue
+
+    color = colorMap(i, vmin=0, vmax=len(listdir(injections_folder)))
+
+    scene.add_injection_site(injfile, c=color, wireframe=True)
+
+scene.add_brain_regions(['SCm', 'SCs'], use_original_color=True, wireframe=True)
 scene.render()
-
-
-# ----------------------- Visualize results rabies mice ---------------------- #
