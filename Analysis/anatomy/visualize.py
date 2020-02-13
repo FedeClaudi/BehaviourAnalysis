@@ -2,14 +2,26 @@
 import sys
 sys.path.append('./')
 
+import brainrender
+brainrender.SHADER_STYLE='cartoon'
+
+from brainrender.scene import Scene, DualScene 
+
+
 import pandas as pd
-from brainrender.scene import Scene, DualScene
+
+
+
 from brainrender.colors import colorMap
+from brainrender.Utils.videomaker import VideoMaker
 from brainrender import *
+from brainrender.Utils.data_manipulation import mirror_actor_at_point
+
 import numpy as np
+import os
 from scipy.spatial.distance import euclidean
 from skimage.filters import threshold_otsu
-from vtkplotter.analysis import surfaceIntersection
+from vtkplotter.analysis import surfaceIntersection, extractLargestRegion
 
 from utils import *
 from fcutils.file_io.utils import listdir
@@ -31,6 +43,7 @@ class CellFinderScene(Scene):
             self.edit_actors([actor], wireframe=True)
         if edit_kwargs is not None:
             self.edit_actors([actor], **edit_kwargs)
+
         return actor
 
 class CellFinderDoubleScene(DualScene):
@@ -55,49 +68,41 @@ class CellFinderDoubleScene(DualScene):
 if __name__ == "__main__":
     # ----------------------------- Visualize results CC mice ---------------------------- #
 
-    scene = CellFinderDoubleScene()
-    fakescene = Scene()
-                    
-    mice = ['CC_134_1', 'CC_134_2']
-    colors = ['salmon', 'darkseagreen']
-
-    for mouse, color in zip(mice, colors):
-        ch1_cells = get_cells_for_mouse(mouse, ch=1)
-        injection = get_injection_site_for_mouse(mouse, ch=1)
-
-        # ch1_cells = ch1_cells.loc[ch1_cells.hemisphere == 'left']
-
-        scene.add_cells_to_scenes(ch1_cells, color=color, radius=16, exclude_scene=0,
-                        alpha=.6, in_region=[['SCm', 'SCs', 'IC', 'PAG'], None])
-
-        # Add injection site and intersection
-        actor = scene.add_injection_sites(injection, c=color, exclude_scene=1, alpha=.8, edit_kwargs={'smooth':True})
-        actor.lighting("plastic")
-
-        fakescene.add_brain_regions(['SCm'])
-        reg = fakescene.actors['regions']['SCm']
-        intersection = surfaceIntersection(actor, reg)
-        scene.scenes[0].add_vtkactor(intersection)
-
-        break
+    scene = CellFinderScene()
 
 
-    scene.scenes[0].add_brain_regions(['SCm',], use_original_color=True, alpha=.6, wireframe=True)
-    # scene.scenes[1].add_brain_regions(['MOs', 'MOp', 'RSP'], use_original_color=True, alpha=.01, wireframe=True)
+    inj_folder = "Z:\\swc\\branco\\BrainSaw\\injections"
+    cells_folder = "Z:\\swc\\branco\\BrainSaw\\cellfinder_cells"
+
+
+    grn_mice = ['CC_136_1', 'CC_136_0']
+    sc_mice = ['CC_134_1', 'CC_134_2']
+
+    grn_colors = ['darkgreen', 'darkseagreen']
+    sc_colors = ['goldenrod', 'gold']
+
+
+    for mouse, color in zip(grn_mice, grn_colors):
+        # scene.add_injection_site(os.path.join(inj_folder, mouse+'_ch0inj.obj'), c=color)
+
+        cells = pd.read_hdf(os.path.join(cells_folder, mouse+'_ch0_cells.h5'), key='hdf')
+        scene.add_cells_to_scene(cells, color=color, radius=15, res=12,
+                                in_region=['MB'],
+                                alpha=1)
+
+
+    mirror_coord = scene.get_region_CenterOfMass('root', unilateral=False)[2]
+    for mouse, color in zip(sc_mice, sc_colors):
+        actor = scene.add_injection_site(os.path.join(inj_folder, mouse+'_ch1inj.obj'), c=color, alpha=.4)
+
+        coords = actor.points()
+        shifted_coords = [[c[0], c[1], mirror_coord + (mirror_coord-c[2])] for c in coords]
+        actor.points(shifted_coords)
+
+    scene.add_brain_regions(['SCm', 'GRN'], use_original_color=True, alpha=.25,wireframe=False)
+
+
 
     scene.render()
 
 
-    # ----------------------- Visualize all injection sites ---------------------- #
-
-    # scene = CellFinderScene(display_root=False)
-
-    # for i, injfile in enumerate(listdir(injections_folder)):
-    #     if 'ch0' in injfile: continue
-
-    #     color = colorMap(i, vmin=0, vmax=len(listdir(injections_folder)))
-
-    #     scene.add_injection_site(injfile, c=color, wireframe=True)
-
-    # scene.add_brain_regions(['SCm', 'SCs'], use_original_color=True, wireframe=True)
-    # scene.render()

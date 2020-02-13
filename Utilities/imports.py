@@ -15,7 +15,6 @@ import warnings
 from shutil import copyfile
 import pyexcel
 import yaml
-from math import sqrt, factorial
 
 
 
