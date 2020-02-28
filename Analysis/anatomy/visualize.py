@@ -83,23 +83,26 @@ if __name__ == "__main__":
 
 
     for mouse, color in zip(grn_mice, grn_colors):
-        # scene.add_injection_site(os.path.join(inj_folder, mouse+'_ch0inj.obj'), c=color)
+        scene.add_injection_site(os.path.join(inj_folder, mouse+'_ch0inj.obj'), c=color)
 
         cells = pd.read_hdf(os.path.join(cells_folder, mouse+'_ch0_cells.h5'), key='hdf')
-        scene.add_cells_to_scene(cells, color=color, radius=15, res=12,
-                                in_region=['MB'],
-                                alpha=1)
+        scene.add_cells_to_scene(cells, color=color, radius=15, res=12, alpha=.4, 
+                                in_region=['MOs', 'MOp', 'ZI', 'SCm'])
 
 
     mirror_coord = scene.get_region_CenterOfMass('root', unilateral=False)[2]
     for mouse, color in zip(sc_mice, sc_colors):
-        actor = scene.add_injection_site(os.path.join(inj_folder, mouse+'_ch1inj.obj'), c=color, alpha=.4)
+        cells = pd.read_hdf(os.path.join(cells_folder, mouse+'_ch1_cells.h5'), key='hdf')
+        scene.add_cells_to_scene(cells, color=color, radius=15, res=12, alpha=.4, 
+                                in_region=['MOs', 'MOp', 'ZI', 'GRN'])
+        scene.add_injection_site(os.path.join(inj_folder, mouse+'_ch1inj.obj'), c=color)
 
-        coords = actor.points()
-        shifted_coords = [[c[0], c[1], mirror_coord + (mirror_coord-c[2])] for c in coords]
-        actor.points(shifted_coords)
+        # coords = actor.points() 
+        # shifted_coords = [[c[0], c[1], mirror_coord + (mirror_coord-c[2])] for c in coords]
+    #     actor.points(shifted_coords)
 
-    scene.add_brain_regions(['SCm', 'GRN'], use_original_color=True, alpha=.25,wireframe=False)
+    scene.add_brain_regions(['MOs', 'MOp', 'ZI'], use_original_color=True, alpha=.05,wireframe=False)
+    scene.add_brain_regions(['GRN', 'SCm'], use_original_color=True, alpha=.5,wireframe=False)
 
 
 
