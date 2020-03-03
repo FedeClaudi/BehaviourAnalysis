@@ -80,7 +80,7 @@ def process_session(args):
             if framen >= stim and framen <= stim+9*fps:
                 cv2.circle(frame, (700, 75), 50, (0, 255, 0), -1)
 
-            cv2.putText(frame, f'Stim {stimn} of {len(onsets_frame)}', 
+            cv2.putText(frame, f'Stim {stimn} of {len(onsets_frame)-1}', 
                 (50, 50), 
                 font, 
                 fontScale,
