@@ -8,9 +8,11 @@ from tqdm import tqdm
 # %%
 #  Define params
 N_individuals = 1000
-N_generation = 100
-N_trials = 100
+N_generation = 200
+N_trials = 20
 
+KEEP_BEST_perc = 50
+KEEP_BEST = int((N_individuals/100)*KEEP_BEST_perc)
 
 # %%
 # Define distributions of path lengths and thethas
@@ -41,9 +43,10 @@ class Individual:
 
 
 class Population:
-    keep_best = 50
+    keep_best = KEEP_BEST
     p_mutation = .05
 
+    inverted = False
 
     def __init__(self):
         self.pop= []
@@ -70,15 +73,18 @@ class Population:
                 right = (choice(lengths_distributions), choice(thethas_distributions))
 
                 # lengths factor
-                lf = (left[0] - right[0])/(left[0] + right[0])
+                lf = (left[0] - right[0])/(left[0] + right[0])  # Will be positive if left longer right
 
                 # Angles factor
-                af = (left[1] - right[1])/(left[1] + right[1])
+                af = (left[1] - right[1])/(left[1] + right[1]) # Will be positive if theta left > theta right
 
                 # AGENT COMPUTATIONS
                 # Compute choice
-                choice_factor = individual.genome[0] * lf + individual.genome[1] * af
-                
+                if not self.inverted:
+                    choice_factor = individual.genome[0] * lf + individual.genome[1] * af
+                else:
+                    choice_factor = individual.genome[1] * lf + individual.genome[0] * af
+
                 # rescale to 0-1 range
                 choice_factor = (choice_factor + 1)/2
                 
@@ -119,37 +125,60 @@ class Population:
     def evolve(self):
         max_fitness = []
         best_individual = []
+        mean_gene_0, mean_gene_1 = [], []
+
         for gen in tqdm(range(N_generation)):
             self.run_generation()
             self.update_population()
 
             best_individual.append(self.pop[0])
             max_fitness.append(self.pop[0].fitness())
-        return max_fitness, best_individual
+            mean_gene_0.append(np.mean([i.genome[0] for i in self.pop]))
+            mean_gene_1.append(np.mean([i.genome[1] for i in self.pop]))
+
+            if gen == 50:
+                self.inverted = True
+            if gen == 100:
+                self.inverted = False
+        return max_fitness, best_individual, mean_gene_0, mean_gene_1
 
 
 
 # %%
 # Initialise individuals
 pop = Population()
-fitness, individuals = pop.evolve()
-individuals
+fitness, individuals, mean_gene_0, mean_gene_1 = pop.evolve()
 
 
-# %%
+
 # Summary plots
 
-f, axarr = plt.subplots(nrows=2, sharex=True)
+f, axarr = plt.subplots(nrows=3, sharex=True)
 
 axarr[0].plot(fitness, label='Max fitness')
+
 axarr[1].plot([ind.genome[0] for ind in individuals], label="Gene 0")
 axarr[1].plot([ind.genome[1] for ind in individuals], label="Gene 1")
 
+axarr[2].plot(mean_gene_0, label="Gene 0")
+axarr[2].plot(mean_gene_1, label="Gene 1")
+
+
 axarr[0].legend()
 axarr[1].legend()
+axarr[2]
+
+axarr[0].axvline(50)
+axarr[1].axvline(50)
+axarr[2].axvline(50)
+
+axarr[0].axvline(100)
+axarr[1].axvline(100)
+axarr[2].axvline(100)
 
 axarr[0].set(title='Max fitness')
-_ = axarr[1].set(title='Genome', xlabel='# generation')
+_ = axarr[1].set(title='Best genome')
+_ = axarr[2].set(title='Mean genome', xlabel='# generation')
 
 
 
