@@ -148,6 +148,7 @@ class Population:
 
             individual.durations.append(path[0]/individual.speed)
 
+
     def update_population(self):
         self.pop = self.pop[:KEEP_BEST]
         parent_gen = self.pop.copy()
