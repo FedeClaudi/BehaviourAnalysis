@@ -8,8 +8,8 @@ from tqdm import tqdm
 # %%
 #  Define params
 N_individuals = 1000
-N_generation = 100
-N_trials = 100
+N_generation = 1000
+N_trials = 200
 
 
 # %%
@@ -133,12 +133,11 @@ class Population:
 # Initialise individuals
 pop = Population()
 fitness, individuals = pop.evolve()
-individuals
+# individuals
 
 
 # %%
 # Summary plots
-
 f, axarr = plt.subplots(nrows=2, sharex=True)
 
 axarr[0].plot(fitness, label='Max fitness')
