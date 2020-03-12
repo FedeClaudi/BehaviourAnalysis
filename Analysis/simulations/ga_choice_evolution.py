@@ -1,214 +1,217 @@
+# %%
 import numpy as np
 import numpy.random as npr
 from random import choice
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import multiprocessing as mp
+from fcutils.maths.geometry import calc_distance_between_points_2d, calc_angle_between_vectors_of_points_2d
 
 
-# Define distributions of path lengths and thethas
-lengths_distributions = npr.uniform(25, 75, size=5000)
-thethas_distributions = npr.uniform(25, 90, size=5000)
 
-# Define Individual
-def get_random_gene():
-    return npr.uniform(-1, 1)
+# %%
+def coin_toss(th = 0.5):
+    if npr.random()>th:
+        return True
+    else:
+        return False
 
-def get_mutated_gene(gene):
-    return npr.normal(0, .1, 1) + gene
+class Maze:
+    def __init__(self, A, B, C_l, C_r):
+        self.A = A
+        self.B = B
+        self.C_l = C_l
+        self.C_r = C_r
+
+        self.compute_sides()
+        self.compute_xhat()
+
+    def compute_sides(self):
+        self.AB =   calc_distance_between_points_2d(self.A, self.B)
+
+        self.AC_l =     calc_distance_between_points_2d(self.A, self.C_l)
+        self.C_lB =     calc_distance_between_points_2d(self.C_l, self.B)
+        self.AC_lB = self.AC_l + self.C_lB
+
+        self.AC_r =     calc_distance_between_points_2d(self.A, self.C_r)
+        self.C_rB =     calc_distance_between_points_2d(self.C_r, self.B)
+        self.AC_rB = self.AC_r + self.C_rB
+
+    def compute_xhat(self, niters=100):
+        self.xhat_l = 0
+        for i in range(niters):
+            P = self.get_P(shortcut_on='left')
+            AP = calc_distance_between_points_2d(self.A, P)
+            PB = calc_distance_between_points_2d(P, self.B)
+            self.xhat_l += AP + PB
+        self.xhat_l = np.nanmean(self.xhat_l)
+
+        self.xhat_r = 0
+        for i in range(niters):
+            P = self.get_P(shortcut_on='right')
+            AP = calc_distance_between_points_2d(self.A, P)
+            PB = calc_distance_between_points_2d(P, self.B)
+            self.xhat_r += AP + PB
+        self.xhat_r = np.nanmean(self.xhat_r)
+
+    def compute_xbar(self, p_short):
+        if p_short < 0 or p_short > 1: raise ValueError
+        xbar_l = (1-p_short)*self.AC_lB + p_short*self.xhat_l
+        xbar_r = (1-p_short)*self.AC_lB + p_short*self.xhat_r
+        return xbar_l, xbar_r
+
+    def get_P(self, shortcut_on='left'):
+        # Choose between left and right arm 
+        if shortcut_on == 'left':
+            ac = self.AC_l
+            cb = self.C_lB
+            c = self.C_l
+            self.shortcut_on = 'left'
+        else:
+            ac = self.AC_r
+            cb = self.C_rB
+            c = self.C_r
+            self.shortcut_on = 'right'
+
+        # See if P is in AC or CB
+        segments_ratio = ac/(cb + ac)
+        if coin_toss(th=segments_ratio): # P appars in CL
+            self.P = (npr.uniform(c[0], self.B[0]), npr.uniform(c[1], self.B[1]))
+        else:
+            self.P = (npr.uniform(self.A[0], c[0]), npr.uniform(self.A[1], c[1]))
+        return self.P
+
+
+class Environment:
+    def __init__(self, **kwargs):
+        self.p_short = kwargs.pop('p_short', .1)
+        self.A = kwargs.pop('A', (0, 0)) # threat pos
+        self.B = kwargs.pop('B', (0, 10)) # shelter pos
+
+        self.N_mazes = kwargs.pop('N_mazes', 10)
+        self.N_trials_per_maze = kwargs.pop('N_trials_per_maze', 10)
+        self.N_generations = kwargs.pop('N_generations', 50)
+        self.N_agents = kwargs.pop('N_agents', 50)
+        self.keep_top_perc = kwargs.pop('keep_top_perc', 33)
+
+        self.x_minmax = kwargs.pop('x_minmax', 4)
+
+        self.get_mazes()
+
+    def get_mazes(self):
+        self.mazes = []
+        for i in np.arange(self.N_mazes):
+            C_l = (npr.uniform(self.A[0]-self.x_minmax, self.A[0]), npr.uniform(self.A[1], self.B[1]))
+            C_r = (npr.uniform(self.A[0], self.A[0]+self.x_minmax), npr.uniform(self.A[1], self.B[1]))
+
+            self.mazes.append(Maze(self.A, self.B, C_l, C_r))
+
+    def run_trial(self, agent, maze):
+        # Get the agent's choice
+        agent_choice = agent.choose(maze)
+
+        # Get the actual path lengths
+        xbar_l, xbar_r = maze.compute_xbar(self.p_short)
+
+        # Evaluate outcome
+        if agent_choice == 'left':
+            agent.outcomes.append(xbar_l)
+        else:
+            agent.outcomes.append(xbar_r)
+
+
+
+class Agent:
+    def __init__(self, p_short=None):
+        if p_short is None:
+            self.p_short = npr.uniform(0, 1)
+        else:
+            self.p_short = p_short
+
+        if self.p_short > 1: self.p_short = 1
+        if self.p_short < 0: self.p_short = 0
+
+        self.outcomes = []
+
+    def choose(self, maze):
+        xbar_l, xbar_r = maze.compute_xbar(self.p_short)
+
+        # choose according to the ratio
+        th = xbar_l/(xbar_l + xbar_r)
+        if coin_toss(th=1 - th):
+            choice = 'left'
+        else:
+            choice = 'right'
+
+        return choice
+
+    def compute_fitness(self):
+        self.fitness = np.mean(self.outcomes)
+
+
     
 
-class Individual:
-    speed = 1
-    
-    def __init__(self, idn):
-        self.genome = [get_random_gene(), get_random_gene()]
-        self.idn = idn
+class Population(Environment):
+    def __init__(self, **kwargs):
+        Environment.__init__(self, **kwargs)
 
-        self.reset_records()
+        self.gen_num = 0
+        self.agents = [Agent() for i in range(self.N_agents)]
 
-    def reset_records(self):
-        self.choices = []
-        self.durations = []
+        self.keep_top = np.int((self.N_agents/100)*self.keep_top_perc)
 
-    def fitness(self):
-        return np.mean(self.durations)
-
-    def __repr__(self):
-        return f'Individual {self.idn} - fitness: ' + str(self.fitness())
-    
-    def __str__(self):
-        return f'Individual {self.idn} - fitness: ' + str(self.fitness())
-
-#  Define params
-N_individuals = 1000
-N_generation = 300
-N_trials = 50
-
-KEEP_BEST_perc = 33
-KEEP_BEST = int((N_individuals/100)*KEEP_BEST_perc)
-
-
-class Population:
-    p_mutation = .025
-
-    p_shortcut = [0, 0.1, 0.25, 0.5, 1]
-    p_shortcut_idx = 0
-    change_p_short_every = 100
-    gen_num = 0
-
-    def __init__(self):
-        # Create population
-        self.pop= []
-        self.max_id = 0
-        for i in range(N_individuals):
-            self.add_to_population(Individual(self.max_id))
-
-        # Create stats records
         self.stats = dict(
-            mean_probability_correct = [],
-            mean_escape_duration = [],
-            mean_gene_0=[],
-            mean_gene_1=[],
+            world_p_short = [],
+            agents_p_short = [],
         )
-        
-    def __repr__(self):
-        return f'Population with {len(self.pop)} individuals'
-    
-    def __str__(self):
-        return f'Population with {len(self.pop)} individuals'
-
-    def add_to_population(self, individual):
-        self.pop.append(individual)
-        self.max_id += 1
 
     def run_generation(self):
+        # print(f'Running generation {self.gen_num} of {self.N_generations}')
+        for agent in self.agents:
+            for maze in self.mazes:
+                self.run_trial(agent, maze)
+            agent.compute_fitness()
         self.gen_num += 1
 
-        if self.gen_num > 0:
-            if self.gen_num % self.change_p_short_every == 0:
-                self.p_shortcut_idx +=1 
-        p_shortcut = self.p_shortcut[self.p_shortcut_idx]
-       
-
-        pool = mp.Pool(mp.cpu_count()-2)
-        pool.map(self.run_individual, [(ind, p_shortcut) for ind in self.pop])
-        pool.close()
-
-        fitnesses = [ind.fitness() for ind in self.pop]
-        sort_idx = np.argsort(fitnesses)
-        self.pop = list(np.array(self.pop)[sort_idx])
-
-    @staticmethod
-    def run_individual(args):
-        individual, p_shortcut = args
-        for trial in range(N_trials):
-            # ENVIRONMENT COMPUTATION
-            left = [choice(lengths_distributions), choice(thethas_distributions)]
-            right = [choice(lengths_distributions), choice(thethas_distributions)]
-
-            # apply shortcut
-            if npr.random() < p_shortcut:
-                # only apply to one arm
-                if npr.random() < .5:
-                    left[0] = left[0] - left[0]*np.cos(np.radians(left[1]))
-                else:
-                    right[0] = right[0] - right[0]*np.cos(np.radians(right[1]))
-
-            # lengths factor
-            lf = (left[0] - right[0])/(left[0] + right[0])  # Will be positive if left longer right
-
-            # Angles factor
-            af = (left[1] - right[1])/(left[1] + right[1]) # Will be positive if theta left > theta right
-
-            # AGENT COMPUTATIONS
-            # Compute choice
-            choice_factor = individual.genome[0] * lf + individual.genome[1] * af
-
-            # Choose an arm and compute escape duration
-            if choice_factor < 0:
-                chosen = 'r'
-                path = right
-            else:
-                chosen = 'l'
-                path = left
-
-            if left[0] < right[0]:
-                if chosen == 'l':
-                    individual.choices.append(1)
-                else:
-                    individual.choices.append(0)
-            elif left[0] > right[0]:
-                if chosen == 'r':
-                    individual.choices.append(1)
-                else:
-                    individual.choices.append(0)
-            else:
-                individual.choices.append(1)
-
-            individual.durations.append(path[0]/individual.speed)
-
-
     def update_population(self):
-        self.pop = self.pop[:KEEP_BEST]
-        parent_gen = self.pop.copy()
+        # keep best
+        pop_fitness = [a.fitness for a in self.agents]
+        sort_idx = np.argsort(pop_fitness)
+        self.agents = list(np.array(self.agents)[sort_idx])[:self.keep_top]
 
-        need_children = int((N_individuals - len(parent_gen))/2)
-        for i in range(need_children):
-            p1 = choice(parent_gen)
-            p2 = choice(parent_gen)
+        # replenish population
+        prev_gen = self.agents.copy()
+        while len(self.agents) < self.N_agents:
+            # choose a random parent
+            parent = choice(prev_gen)
+            self.agents.append(Agent(parent.p_short + npr.normal(0, .05)))
 
-            son1 = Individual(self.max_id)
-            son1.genome[0] = p1.genome[0] if npr.random()>self.p_mutation else get_mutated_gene(p1.genome[0])
-            son1.genome[1] = p2.genome[1] if npr.random()>self.p_mutation else get_mutated_gene(p2.genome[1])
-            self.add_to_population(son1)
-
-            son2 = Individual(self.max_id)
-            son2.genome[0] = p2.genome[0] if npr.random()>self.p_mutation else get_mutated_gene(p2.genome[0])
-            son2.genome[1] = p1.genome[1] if npr.random()>self.p_mutation else get_mutated_gene(p1.genome[1])
-            self.add_to_population(son2)
-
-        # reset stats kep by individuals
-        for ind in self.pop:
-            ind.reset_records()
-        
     def update_stats(self):
-        self.stats['mean_probability_correct'].append(np.nanmean([np.mean(i.choices) for i in self.pop]))
-        self.stats['mean_escape_duration'].append(np.nanmean([i.fitness() for i in self.pop]))
-        self.stats['mean_gene_0'].append(np.mean([i.genome[0] for i in self.pop]))
-        self.stats['mean_gene_1'].append(np.mean([i.genome[1] for i in self.pop]))
+        self.stats['world_p_short'].append(self.p_short)
+        self.stats['agents_p_short'].append(np.mean([a.p_short for a in self.agents]))
+
+    def plot(self):
+        f, ax = plt.subplots(figsize=(12, 8))
+
+        for k,v in self.stats.items():
+            ax.plot(v, label=k)
+        ax.legend()
+        ax.set(xlabel='# generations', ylabel='probability shortcut')
 
     def evolve(self):
-        for gen in tqdm(range(N_generation)):
-            self.run_generation()
+        while self.gen_num < self.N_generations:
             self.update_stats()
+            self.run_generation()
             self.update_population()
 
-    def plot_traces(self):
-        f, axarr = plt.subplots(nrows=3, sharex=True, figsize=(16, 8))
 
-        axarr[0].plot(self.stats['mean_probability_correct'])
-        axarr[1].plot(self.stats['mean_gene_0'], label="Gene 0")
-        axarr[1].plot(self.stats['mean_gene_1'], label="Gene 1")
-        axarr[2].plot(self.stats['mean_escape_duration'])
-
-        for ax in axarr:
-            ax.legend()
-            for v in [100, 200, 300]:
-                ax.axvline(v-1)
-
-        axarr[0].set(title='Mean p(correction)')
-        _ = axarr[1].set(title='Mean genome', xlabel='# generation')
-        _ = axarr[2].set(title='Mean escape duration')
-
-        f.tight_layout()
-
-if __name__ == '__main__':
-    # Initialise individuals
-    pop = Population()
-    pop.evolve()
-    pop.plot_traces()
-
-    plt.show()
+# %%
+# if __name__ == "__main__":
+pop = Population()
+pop.evolve()
+pop.plot()
 
 
+
+
+# %%
