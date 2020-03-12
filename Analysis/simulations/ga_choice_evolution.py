@@ -44,7 +44,12 @@ class Maze:
             AP = calc_distance_between_points_2d(self.A, P)
             PB = calc_distance_between_points_2d(P, self.B)
             self.xhat_l += AP + PB
-        self.xhat_l = np.nanmean(self.xhat_l)
+
+            # if AP + PB > self.AC_lB:
+            #     raise ValueError
+        self.xhat_l = self.xhat_l/niters
+
+
 
         self.xhat_r = 0
         for i in range(niters):
@@ -52,12 +57,17 @@ class Maze:
             AP = calc_distance_between_points_2d(self.A, P)
             PB = calc_distance_between_points_2d(P, self.B)
             self.xhat_r += AP + PB
-        self.xhat_r = np.nanmean(self.xhat_r)
+
+            # if AP + PB > self.AC_rB:
+            #     raise ValueError
+        self.xhat_r = self.xhat_r/niters
+
+
 
     def compute_xbar(self, p_short):
         if p_short < 0 or p_short > 1: raise ValueError
         xbar_l = (1-p_short)*self.AC_lB + p_short*self.xhat_l
-        xbar_r = (1-p_short)*self.AC_lB + p_short*self.xhat_r
+        xbar_r = (1-p_short)*self.AC_rB + p_short*self.xhat_r
         return xbar_l, xbar_r
 
     def get_P(self, shortcut_on='left'):
@@ -89,12 +99,11 @@ class Environment:
         self.B = kwargs.pop('B', (0, 10)) # shelter pos
 
         self.N_mazes = kwargs.pop('N_mazes', 10)
-        self.N_trials_per_maze = kwargs.pop('N_trials_per_maze', 10)
         self.N_generations = kwargs.pop('N_generations', 50)
         self.N_agents = kwargs.pop('N_agents', 50)
         self.keep_top_perc = kwargs.pop('keep_top_perc', 33)
 
-        self.x_minmax = kwargs.pop('x_minmax', 4)
+        self.x_minmax = kwargs.pop('x_minmax', 6)
 
         self.get_mazes()
 
@@ -166,7 +175,9 @@ class Population(Environment):
         )
 
     def run_generation(self):
-        # print(f'Running generation {self.gen_num} of {self.N_generations}')
+        if self.gen_num % 10 == 0:
+            self.get_mazes()
+
         for agent in self.agents:
             for maze in self.mazes:
                 self.run_trial(agent, maze)
@@ -199,16 +210,20 @@ class Population(Environment):
         ax.set(xlabel='# generations', ylabel='probability shortcut')
 
     def evolve(self):
-        while self.gen_num < self.N_generations:
+        for gen_n in tqdm(range(self.N_generations)):
             self.update_stats()
             self.run_generation()
             self.update_population()
 
 
 # %%
-# if __name__ == "__main__":
-pop = Population()
+pop = Population(N_generations=750, N_agents=100, keep_top_perc=50, p_short=0)
 pop.evolve()
+
+# pop.p_short=.0
+# pop.evolve()
+
+
 pop.plot()
 
 
