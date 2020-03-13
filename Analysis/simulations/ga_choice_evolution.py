@@ -19,14 +19,37 @@ def coin_toss(th = 0.5):
         return False
 
 class Maze:
-    def __init__(self, A, B, C_l, C_r):
+    def __init__(self, A, B, C_l=None, C_r=None, theta_l=None, theta_r=None, length=None):
         self.A = A
         self.B = B
         self.C_l = C_l
         self.C_r = C_r
+        self.theta_l = theta_l
+        self.theta_r = theta_r
+        self.length = length
+        self.P = None
 
-        self.compute_sides()
+        if C_l is not None:
+            self.compute_sides()
+        elif theta_l is not None:
+            self.get_arms_given_thetas_and_length()
         self.compute_xhat()
+
+    def get_arms_given_thetas_and_length(self):
+        self.AB =   calc_distance_between_points_2d(self.A, self.B)
+        costeta = np.cos(np.radians(self.theta_l))
+
+        self.AC_l = (self.length**2 - self.AB**2)/(-2 * self.AB * np.cos(self.theta_l) + 2 * self.length)
+        self.C_lB = self.length - self.AC_l
+        self.AC_lB = self.AC_l + self.C_lB
+        self.C_l = (self.AC_l * np.sin(self.theta_l), self.AC_l * np.cos(self.theta_l))
+
+        self.AC_r = (self.length**2 - self.AB**2)/(-2 * self.AB * np.cos(self.theta_r) + 2 * self.length)
+        self.C_rB = self.length - self.AC_r
+        self.AC_rB =    self.AC_r + self.C_rB
+        self.C_r = (self.AC_r * np.sin(self.theta_r), self.AC_r * np.cos(self.theta_r))
+
+        self.visualise()
 
     def compute_sides(self):
         self.AB =   calc_distance_between_points_2d(self.A, self.B)
@@ -98,6 +121,8 @@ class Maze:
         return self.P
 
     def visualise(self):
+        if self.P is None: 
+            self.get_P()
         nodes = ['A', 'B', 'C_l', 'C_r', 'P']
 
         edges = [('A', 'C_l'),
@@ -134,7 +159,7 @@ class Environment:
         self.N_agents = kwargs.pop('N_agents', 50)
         self.keep_top_perc = kwargs.pop('keep_top_perc', 33)
 
-        self.x_minmax = kwargs.pop('x_minmax', 4)
+        self.x_minmax = kwargs.pop('x_minmax', 2)
 
         self.get_mazes()
 
@@ -143,13 +168,33 @@ class Environment:
         for i in np.arange(self.N_mazes):
             gamma = npr.uniform(0, self.x_minmax)
 
-            theta_l = -round(np.radians(npr.uniform(1, 90)), 2)
-            theta_r = round(np.radians(npr.uniform(1, 90)), 2)
+            theta_l = -round(np.radians(npr.uniform(1, 45)), 2)
+            # theta_r = -theta_l + npr.normal(0, .25)
+            theta_r = round(np.radians(npr.uniform(45, 90)), 2)
 
-            C_l = (np.sin(theta_l)*gamma, np.cos(theta_l)*gamma)
-            C_r = (np.sin(theta_r)*gamma, np.cos(theta_r)*gamma)
+            self.mazes.append(Maze(self.A, self.B, theta_l = theta_l, theta_r = theta_r, length=gamma))
 
-            self.mazes.append(Maze(self.A, self.B, C_l, C_r))
+            # C_l = (np.sin(theta_l)*gamma, np.cos(theta_l)*gamma)
+            # C_r = (np.sin(theta_r)*gamma, np.cos(theta_r)*gamma)
+
+            # self.mazes.append(Maze(self.A, self.B, C_l, C_r))
+
+    def test_effect_of_pshort(self):
+        f, axarr = plt.subplots(figsize=(12, 6), ncols = len(self.mazes))
+
+        for ax, maze in zip(axarr, self.mazes):
+            left, right = [], []
+            for p in np.linspace(0, 1, 51):
+                l, r = maze.compute_xbar(p)
+                left.append(l)
+                right.append(r)
+
+            ax.plot(left, color='g', lw=2, label='left')
+            ax.plot(right, color='r', lw=2, label='right')
+            ax.legend()
+            ax.set(xlabel='p_shortcut', ylabel='path lengths')
+
+
 
 
     def run_trial(self, agent, maze):
@@ -295,7 +340,6 @@ class Population(Environment):
         self.stats['agents_p_take_shortest'].append(np.mean([a.p_take_shortest for a in self.best_agents]))
         self.stats['agents_p_correct'].append(np.mean([np.nanmean(a.corrects) for a in self.best_agents]))
 
-
     def plot(self):
         f, ax = plt.subplots(figsize=(12, 6))
 
@@ -320,16 +364,19 @@ class Population(Environment):
 
 # %%
 pop = Population(N_generations=500, N_agents=100, keep_top_perc=15, p_short=1)
-pop.evolve()
+# pop.evolve()
 
-pop.p_short= 0
-# pop.N_generations = 250
-pop.evolve()
+# pop.p_short= 0
+# # pop.N_generations = 250
+# pop.evolve()
 
 
-pop.plot()
+# pop.plot()
 
 
 
 plt.show()
+# %%
+pop.test_effect_of_pshort()
+
 # %%
