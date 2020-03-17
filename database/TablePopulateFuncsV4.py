@@ -585,7 +585,6 @@ def make_trackingdata_table(table, key):
 			pathparts.insert(1, "swc")
 			pose_file = os.path.join(*pathparts)
 			posedata = pd.read_hdf(pose_file)
-
 	except:
 		print("Could not find {}".format(pose_file))
 		return

@@ -231,8 +231,13 @@ class PopulateDatabase:
                 date=session_date,
                 experiment_name = experiment_name
             )
-            self.insert_entry_in_table(session_data['session_name'], 'session_name', session_data, self.session)
-        
+
+            if not session['Experiment']: continue
+            try:
+                self.insert_entry_in_table(session_data['session_name'], 'session_name', session_data, self.session)
+            except:
+                a = 1
+
             # Insert into metadata part table
             part_dat = dict(
                 session_name=session_data["session_name"],
@@ -324,12 +329,12 @@ if __name__ == '__main__':
     # p.clean_sessions_table()
 
     # ? These tables population is fast and largely automated
-    # p.populate_mice_table()   # ! mice recordings, components... 
-    # p.populate_sessions_table()
+    #p.populate_mice_table()   # ! mice recordings, components... 
+    #p.populate_sessions_table()
  
-    # p.recording.populate(display_progress=True) 
-    # p.recording.make_paths(p) 
-    # p.mazecomponents.populate(display_progress=True)  # ? this will require input for new experiments
+    #p.recording.populate(display_progress=True) 
+    #p.recording.make_paths(p) 
+    #p.mazecomponents.populate(display_progress=True)  # ? this will require input for new experiments
 
     # ? This slower and will require some input
     # Before populating CCM you need to have done the tracking and have ran recording.make_paths
@@ -338,12 +343,12 @@ if __name__ == '__main__':
     # ? this is considerably slower but should be automated
     # errors = p.trackingdata.populate(display_progress=True, suppress_errors=False, return_exception_objects =True) # ! tracking data
 
-    # errors = p.stimuli.populate(display_progress=True, suppress_errors=False, return_exception_objects=True) # , max_calls =10)  # ! stimuli
+    errors = p.stimuli.populate(display_progress=True, suppress_errors=False, return_exception_objects=True) # , max_calls =10)  # ! stimuli
     # p.stimuli.make_metadata() # ? only used for visual stims
 
     # ? Should be fast but needs the stuff above to be done
-    p.explorations.populate(display_progress=True, suppress_errors=False, return_exception_objects =True)
-    p.trials.populate(display_progress=True, suppress_errors=False, return_exception_objects =True)
+    # p.explorations.populate(display_progress=True, suppress_errors=False, return_exception_objects =True)
+    # p.trials.populate(display_progress=True, suppress_errors=False, return_exception_objects =True)
 
     # if errors: raise ValueError([print("\n\n", e) for e in errors])
 
